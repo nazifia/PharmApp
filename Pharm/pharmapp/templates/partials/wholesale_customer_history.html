@@ -1,0 +1,52 @@
+{% load static %}
+{% block content %}
+
+<div class="container">
+    <h2 class="mb-4">Purchase History for {{ wholesale_customer.name }}</h2>
+
+    {% for year, year_data in history_data.items %}
+    <div class="year-section">
+        <div class="year-header">
+            <h3>{{ year }}</h3>
+            <div>Annual Total: ₦{{ year_data.total|floatformat:2 }}</div>
+        </div>
+
+        {% for month, month_data in year_data.months.items %}
+        <div class="month-section">
+            <div class="period-header">
+                <h4>{{ month }}</h4>
+                <div>Monthly Total: ₦{{ month_data.total|floatformat:2 }}</div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for history in month_data.items %}
+                        <tr>
+                            <td>{{ history.date|date:"M d, Y" }}</td>
+                            <td>{{ history.item.name }}</td>
+                            <td>{{ history.quantity }}</td>
+                            <td>₦{{ history.subtotal|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <div class="alert alert-info">No purchase history found.</div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+

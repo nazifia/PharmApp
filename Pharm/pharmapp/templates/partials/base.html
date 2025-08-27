@@ -1,0 +1,1362 @@
+{% load static %}
+{% load humanize %}
+{% load permission_tags %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Nazz| Tech</title>
+
+    <!-- HTMX for all pages -->
+    <script src="{% static 'htmx/htmx.min.js' %}"></script>
+
+    <script>
+        function urlBase64ToUint8Array(base64String) {
+            const padding = "=".repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/-/g, "+")
+                .replace(/_/g, "/");
+
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+    </script>
+
+
+
+    <!-- Custom fonts for this template-->
+    <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
+
+    <!-- Custom styles for this template-->
+    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+
+    <!-- Extra CSS block for child templates -->
+    {% block extra_css %}{% endblock %}
+
+    <!-- Add manifest link -->
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+
+    <!-- Add theme-color meta tag -->
+    <meta name="theme-color" content="#4285f4">
+
+    <style>
+        .nazz:hover {
+            transform: scale(1.05);
+            transition: 0.5s ease-in-out;
+        }
+
+        .offline-status-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #connection-status .badge {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        #sync-button {
+            display: none;
+        }
+
+        .offline-indicator {
+            background-color: #dc3545;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+
+</head>
+
+<body id="page-top">
+
+    <!-- Add offline status indicator -->
+    <div class="offline-indicator" id="offline-indicator">
+        You are currently offline. Some features may be limited.
+    </div>
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- Sidebar -->
+        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+            <!-- Sidebar - Brand -->
+            <a class="sidebar-brand d-flex align-items-center justify-content-center"
+                href="{% url 'store:dashboard' %}">
+                <div class="sidebar-brand-icon rotate-n-15">
+                    <i class="fas fa-prescription"></i>
+                </div>
+                <div class="sidebar-brand-text mx-3">NAZZ PHARMACY</div>
+            </a>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider my-0">
+
+            <!-- Nav Item - Dashboard -->
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url 'store:dashboard' %}">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Dashboard</span></a>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+
+            <!-- Heading -->
+            <div class="sidebar-heading">
+                Core Operations
+            </div>
+
+            <!-- Nav Item - Store Operations -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseStore"
+                    aria-expanded="true" aria-controls="collapseStore">
+                    <i class="fas fa-fw fa-store"></i>
+                    <span>Store Operations</span>
+                </a>
+                <div id="collapseStore" class="collapse" aria-labelledby="headingStore" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        {% if user|can_operate_retail %}
+                        <h6 class="collapse-header">Retail Store:</h6>
+                        <a class="collapse-item" href="{% url 'store:store' %}">
+                            <i class="fas fa-shopping-cart"></i> Store Interface</a>
+                        <a class="collapse-item" href="{% url 'store:add_item' %}">
+                            <i class="fas fa-plus"></i> Add New Item</a>
+                        <a class="collapse-item" href="{% url 'store:search_item' %}">
+                            <i class="fas fa-search"></i> Search Items</a>
+                        <a class="collapse-item" href="{% url 'store:dispense' %}">
+                            <i class="fas fa-pills"></i> Dispense Items</a>
+                        <a class="collapse-item" href="{% url 'store:cart' %}">
+                            <i class="fas fa-shopping-basket"></i> Shopping Cart</a>
+                        {% endif %}
+                        {% if user|can_operate_wholesale %}
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Wholesale:</h6>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesale_dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i> Wholesale Dashboard</a>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesales' %}">
+                            <i class="fas fa-warehouse"></i> Wholesale Interface</a>
+                        <a class="collapse-item" href="{% url 'wholesale:add_to_wholesale' %}">
+                            <i class="fas fa-plus"></i> Add Wholesale Item</a>
+                        <a class="collapse-item" href="{% url 'wholesale:search_wholesale_item' %}">
+                            <i class="fas fa-search"></i> Search Wholesale</a>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesale_cart' %}">
+                            <i class="fas fa-shopping-cart"></i> Wholesale Cart</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Chat System -->
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'chat:chat_view_default' %}">
+                    <i class="fas fa-fw fa-comments"></i>
+                    <span>Chat System</span>
+                    <span id="sidebar-unread-badge" class="badge badge-danger badge-counter" style="display: none;">0</span>
+                </a>
+            </li>
+
+            <!-- Nav Item - Notifications -->
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'store:notification_list' %}">
+                    <i class="fas fa-fw fa-bell"></i>
+                    <span>Notifications</span>
+                    <span id="notification-badge" class="badge badge-warning badge-counter" style="display: none;">0</span>
+                </a>
+            </li>
+
+            <!-- Nav Item - Notebook -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseNotebook"
+                    aria-expanded="true" aria-controls="collapseNotebook">
+                    <i class="fas fa-fw fa-book"></i>
+                    <span>Notebook</span>
+                    <span id="notebook-new-indicator" class="badge badge-success badge-counter" style="display: none;">NEW</span>
+                </a>
+                <div id="collapseNotebook" class="collapse" aria-labelledby="headingNotebook" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Note Management:</h6>
+                        <a class="collapse-item" href="{% url 'notebook:dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                        <a class="collapse-item" href="{% url 'notebook:note_list' %}">
+                            <i class="fas fa-sticky-note"></i> All Notes</a>
+                        <a class="collapse-item" href="{% url 'notebook:note_create' %}">
+                            <i class="fas fa-plus"></i> New Note</a>
+                        <a class="collapse-item" href="{% url 'notebook:archived_notes' %}">
+                            <i class="fas fa-archive"></i> Archived Notes</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Organization:</h6>
+                        <a class="collapse-item" href="{% url 'notebook:category_list' %}">
+                            <i class="fas fa-tags"></i> Categories</a>
+                        <a class="collapse-item" href="{% url 'notebook:category_create' %}">
+                            <i class="fas fa-plus"></i> New Category</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+
+            <!-- Heading -->
+            <div class="sidebar-heading">
+                Customer Management
+            </div>
+
+            <!-- Customer Management Collapse Menu -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseCustomers"
+                    aria-expanded="true" aria-controls="collapseCustomers">
+                    <i class="fas fa-fw fa-users"></i>
+                    <span>Customer Management</span>
+                </a>
+                <div id="collapseCustomers" class="collapse" aria-labelledby="headingCustomers" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Retail Customers:</h6>
+                        <a class="collapse-item" href="{% url 'store:customer_list' %}">
+                            <i class="fas fa-list"></i> Customer List</a>
+                        <a class="collapse-item" href="{% url 'store:customers_on_negative' %}">
+                            <i class="fas fa-exclamation-triangle"></i> Customers on Negative</a>
+                        <a class="collapse-item" href="" data-toggle="modal" data-target="#registerCustomerModal"
+                            hx-get="{% url 'store:register_customers' %}"
+                            hx-target="{% url 'store:register_customers' %}" hx-trigger="click">
+                            <i class="fas fa-user-plus"></i> Register New Customer</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Wholesale Customers:</h6>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesale_customers' %}">
+                            <i class="fas fa-list"></i> Wholesale Customer List</a>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesale_customers_on_negative' %}">
+                            <i class="fas fa-exclamation-triangle"></i> Wholesale on Negative</a>
+                        <a class="collapse-item" href="" data-toggle="modal"
+                            data-target="#registerWholesaleCustomerModal"
+                            hx-get="{% url 'wholesale:register_wholesale_customers' %}"
+                            hx-target="{% url 'wholesale:register_wholesale_customers' %}" hx-trigger="click">
+                            <i class="fas fa-user-plus"></i> New Wholesale Customer</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Dispensing Management -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseDispensing"
+                    aria-expanded="true" aria-controls="collapseDispensing">
+                    <i class="fas fa-fw fa-pills"></i>
+                    <span>Dispensing Management</span>
+                </a>
+                <div id="collapseDispensing" class="collapse" aria-labelledby="headingDispensing" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Dispensing Operations:</h6>
+                        <a class="collapse-item" href="{% url 'store:dispense' %}">
+                            <i class="fas fa-pills"></i> Dispense Items</a>
+                        <a class="collapse-item" href="{% url 'store:dispensing_log' %}">
+                            <i class="fas fa-clipboard-list"></i> Dispensing Log</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">User Analytics:</h6>
+                        {% if user.is_superuser or user.is_staff or user.profile.user_type == 'Admin' or user.profile.user_type == 'Manager' %}
+                        <a class="collapse-item" href="{% url 'store:user_dispensing_summary' %}">
+                            <i class="fas fa-chart-bar"></i> All Users Summary</a>
+                        <a class="collapse-item" href="{% url 'store:user_dispensing_details' %}">
+                            <i class="fas fa-list-alt"></i> All Users Details</a>
+                        {% endif %}
+                        <a class="collapse-item" href="{% url 'store:user_dispensing_summary' %}">
+                            <i class="fas fa-user-chart"></i> My Summary</a>
+                        <a class="collapse-item" href="{% url 'store:my_dispensing_details' %}">
+                            <i class="fas fa-user-cog"></i> My Details</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Inventory Management -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseInventory"
+                    aria-expanded="true" aria-controls="collapseInventory">
+                    <i class="fas fa-fw fa-boxes"></i>
+                    <span>Inventory Management</span>
+                </a>
+                <div id="collapseInventory" class="collapse" aria-labelledby="headingInventory" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Stock Management:</h6>
+                        <a class="collapse-item" href="{% url 'store:adjust_stock_levels' %}">
+                            <i class="fas fa-edit"></i> Adjust Stock Levels</a>
+                        <a class="collapse-item" href="{% url 'store:exp_date_alert' %}">
+                            <i class="fas fa-calendar-times"></i> Expiry Alerts</a>
+                        <a class="collapse-item" href="{% url 'wholesale:adjust_wholesale_stock_levels' %}">
+                            <i class="fas fa-edit"></i> Adjust Wholesale Stock</a>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesale_exp_alert' %}">
+                            <i class="fas fa-calendar-times"></i> Wholesale Expiry</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Stock Transfers:</h6>
+                        <a class="collapse-item" href="{% url 'store:transfer_multiple_store_items' %}">
+                            <i class="fas fa-exchange-alt"></i> Transfer Store Items</a>
+                        <a class="collapse-item" href="{% url 'wholesale:transfer_multiple_wholesale_items' %}">
+                            <i class="fas fa-exchange-alt"></i> Transfer Wholesale Items</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+
+            <!-- Heading -->
+            <div class="sidebar-heading">
+                Reports & Analytics
+            </div>
+
+            <!-- Nav Item - Reports Collapse Menu -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReport"
+                    aria-expanded="true" aria-controls="collapseReport">
+                    <i class="fas fa-fw fa-chart-line"></i>
+                    <span>Reports & Analytics</span>
+                </a>
+                <div id="collapseReport" class="collapse" aria-labelledby="headingReport"
+                    data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">General Reports:</h6>
+                        <a class="collapse-item" href="{% url 'store:dispensing_log' %}">
+                            <i class="fas fa-clipboard-list"></i> Dispensing Log</a>
+                        <a class="collapse-item" href="{% url 'store:user_dispensing_summary' %}">
+                            <i class="fas fa-users"></i> User Dispensing Summary</a>
+                        <a class="collapse-item" href="{% url 'store:user_dispensing_details' %}">
+                            <i class="fas fa-list-alt"></i> User Dispensing Details</a>
+                        <a class="collapse-item" href="{% url 'store:daily_sales' %}">
+                            <i class="fas fa-calendar-day"></i> Daily Sales</a>
+                        <a class="collapse-item" href="{% url 'store:monthly_sales' %}">
+                            <i class="fas fa-calendar-alt"></i> Monthly Sales</a>
+                        <a class="collapse-item" href="{% url 'store:expense_list' %}">
+                            <i class="fas fa-money-bill-wave"></i> Expense Management</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Retail Reports:</h6>
+                        <a class="collapse-item" href="{% url 'store:sales_by_user' %}">
+                            <i class="fas fa-user-chart"></i> Sales by User</a>
+                        <a class="collapse-item" href="{% url 'store:receipt_list' %}">
+                            <i class="fas fa-receipt"></i> Retail Receipts</a>
+                        <a class="collapse-item" href="{% url 'store:customer_list' %}">
+                            <i class="fas fa-history"></i> Customer Records</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Wholesale Reports:</h6>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesales_by_user' %}">
+                            <i class="fas fa-user-chart"></i> Wholesale by User</a>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesale_receipt_list' %}">
+                            <i class="fas fa-receipt"></i> Wholesale Receipts</a>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesale_customers' %}">
+                            <i class="fas fa-history"></i> Wholesale Records</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Financial Management -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseFinance"
+                    aria-expanded="true" aria-controls="collapseFinance">
+                    <i class="fas fa-fw fa-dollar-sign"></i>
+                    <span>Financial Management</span>
+                </a>
+                <div id="collapseFinance" class="collapse" aria-labelledby="headingFinance" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Customer Accounts:</h6>
+                        <a class="collapse-item" href="{% url 'store:customer_list' %}">
+                            <i class="fas fa-plus-circle"></i> Manage Customer Funds</a>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesale_customers' %}">
+                            <i class="fas fa-plus-circle"></i> Manage Wholesale Funds</a>
+                        {% comment %} <a class="collapse-item" href="{% url 'store:customer_list' %}">
+                            <i class="fas fa-wallet"></i> Customer Accounts</a> {% endcomment %}
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Expenses:</h6>
+                        <a class="collapse-item" href="{% url 'store:expense_list' %}">
+                            <i class="fas fa-list"></i> View Expenses</a>
+                        <a class="collapse-item" href="{% url 'store:add_expense_form' %}">
+                            {% comment %} <i class="fas fa-plus"></i> Add Expense</a>
+                        <a class="collapse-item" href="{% url 'store:add_expense_category_form' %}">
+                            <i class="fas fa-tags"></i> Expense Categories</a> {% endcomment %}
+                    </div>
+                </div>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+
+            <!-- Procurement Heading -->
+            <div class="sidebar-heading">
+                Procurement & Supply
+            </div>
+
+            <!-- Nav Procurement - Pages Collapse Menu -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseProcurement"
+                    aria-expanded="true" aria-controls="collapseProcurement">
+                    <i class="fas fa-fw fa-truck"></i>
+                    <span>Procurement Management</span>
+                </a>
+                <div id="collapseProcurement" class="collapse" aria-labelledby="headingProcurement" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Suppliers:</h6>
+                        <a class="collapse-item" href="{% url 'store:register_supplier_view' %}">
+                            <i class="fas fa-user-plus"></i> Register Supplier</a>
+                        <a class="collapse-item" href="{% url 'store:supplier_list' %}">
+                            <i class="fas fa-list"></i> Supplier List</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Procurement:</h6>
+                        <a class="collapse-item" href="{% url 'store:add_procurement' %}">
+                            <i class="fas fa-plus"></i> New Procurement</a>
+                        <a class="collapse-item" href="{% url 'store:procurement_list' %}">
+                            <i class="fas fa-list"></i> Procurement List</a>
+                        <a class="collapse-item" href="{% url 'store:search_procurement' %}">
+                            <i class="fas fa-search"></i> Search Procurement</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Wholesale Procurement:</h6>
+                        <a class="collapse-item" href="{% url 'wholesale:add_wholesale_procurement' %}">
+                            <i class="fas fa-plus"></i> New W-Procurement</a>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesale_procurement_list' %}">
+                            <i class="fas fa-list"></i> W-Procurement List</a>
+                        <a class="collapse-item" href="{% url 'wholesale:search_wholesale_procurement' %}">
+                            <i class="fas fa-search"></i> Search W-Procurement</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Quality Control & Stock Checks -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseQuality"
+                    aria-expanded="true" aria-controls="collapseQuality">
+                    <i class="fas fa-fw fa-clipboard-check"></i>
+                    <span>Quality Control</span>
+                </a>
+                <div id="collapseQuality" class="collapse" aria-labelledby="headingQuality" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Stock Checks:</h6>
+                        <a class="collapse-item" href="{% url 'store:create_stock_check' %}">
+                            <i class="fas fa-search"></i> Create Stock Check</a>
+                        <a class="collapse-item" href="{% url 'store:list_stock_checks' %}">
+                            <i class="fas fa-list"></i> Stock Check Reports</a>
+                        <a class="collapse-item" href="{% url 'wholesale:create_wholesale_stock_check' %}">
+                            <i class="fas fa-search"></i> Wholesale Stock Check</a>
+                        <a class="collapse-item" href="{% url 'wholesale:list_wholesale_stock_checks' %}">
+                            <i class="fas fa-list"></i> Wholesale Stock Reports</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Returns & Adjustments:</h6>
+                        <a class="collapse-item" href="{% url 'store:store' %}">
+                            <i class="fas fa-undo"></i> Process Returns</a>
+                        <a class="collapse-item" href="{% url 'wholesale:wholesales' %}">
+                            <i class="fas fa-undo"></i> Wholesale Returns</a>
+                    </div>
+                </div>
+            </li>
+
+
+
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+
+            <!-- Heading -->
+            <div class="sidebar-heading">
+                System Administration
+            </div>
+
+            <!-- Nav Admin - Pages Collapse Menu -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseAdmin"
+                    aria-expanded="true" aria-controls="collapseAdmin">
+                    <i class="fas fa-fw fa-user-cog"></i>
+                    <span>System Administration</span>
+                </a>
+                <div id="collapseAdmin" class="collapse" aria-labelledby="headingAdmin" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">User Management:</h6>
+                        <a class="collapse-item" href="{% url 'userauth:register' %}">
+                            <i class="fas fa-user-plus"></i> User Registration</a>
+                        <a class="collapse-item" href="{% url 'userauth:user_list' %}">
+                            <i class="fas fa-users"></i> User Management</a>
+                        <a class="collapse-item" href="{% url 'userauth:privilege_management_view' %}">
+                            <i class="fas fa-lock"></i> User Privileges</a>
+                        <a class="collapse-item" href="{% url 'userauth:profile' %}">
+                            <i class="fas fa-user-circle"></i> My Profile</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">System Monitoring:</h6>
+                        {% if user|has_permission:"view_activity_logs" %}
+                        <a class="collapse-item" href="{% url 'userauth:activity_dashboard' %}">
+                            <i class="fas fa-chart-line"></i> Activity Logs</a>
+                        {% endif %}
+                        <a class="collapse-item" href="{% url 'admin:index' %}">
+                            <i class="fas fa-cog"></i> Django Admin</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Communication:</h6>
+                        <a class="collapse-item" href="{% url 'chat:chat_view_default' %}">
+                            <i class="fas fa-comments"></i> Chat Management</a>
+                        {% if user.profile.user_type == 'Admin' or user.profile.user_type == 'Manager' %}
+                        <a class="collapse-item" href="{% url 'chat:bulk_message' %}">
+                            <i class="fas fa-bullhorn"></i> Bulk Message</a>
+                        {% endif %}
+                        <a class="collapse-item" href="{% url 'admin:index' %}">
+                            <i class="fas fa-envelope"></i> Message Logs</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Quick Actions -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseQuickActions"
+                    aria-expanded="true" aria-controls="collapseQuickActions">
+                    <i class="fas fa-fw fa-bolt"></i>
+                    <span>Quick Actions</span>
+                </a>
+                <div id="collapseQuickActions" class="collapse" aria-labelledby="headingQuickActions" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Common Tasks:</h6>
+                        <a class="collapse-item" href="{% url 'store:add_item' %}">
+                            <i class="fas fa-plus"></i> Quick Add Item</a>
+                        <a class="collapse-item" href="{% url 'store:search_item' %}">
+                            <i class="fas fa-search"></i> Quick Search</a>
+                        <a class="collapse-item" href="{% url 'store:dispense' %}">
+                            <i class="fas fa-pills"></i> Quick Dispense</a>
+                        <a class="collapse-item" href="{% url 'store:cart' %}">
+                            <i class="fas fa-shopping-cart"></i> View Cart</a>
+                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Shortcuts:</h6>
+                        <a class="collapse-item" href="{% url 'store:daily_sales' %}">
+                            <i class="fas fa-chart-bar"></i> Today's Sales</a>
+                        <a class="collapse-item" href="{% url 'store:exp_date_alert' %}">
+                            <i class="fas fa-exclamation-triangle"></i> Expiry Alerts</a>
+                        <a class="collapse-item" href="{% url 'store:customers_on_negative' %}">
+                            <i class="fas fa-minus-circle"></i> Negative Balances</a>
+                    </div>
+                </div>
+            </li>
+
+
+
+            <!-- Divider -->
+            <hr class="sidebar-divider d-none d-md-block">
+
+            <!-- Sidebar Toggler (Sidebar) -->
+            <div class="text-center d-none d-md-inline">
+                <button class="rounded-circle border-0 lg" id="sidebarToggle"></button>
+            </div>
+
+        </ul>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                <!-- Topbar -->
+                <nav class="navbar navbar-expand navbar-dark bg-info topbar mb-4 static-top shadow">
+
+                    <!-- Sidebar Toggle (Topbar) -->
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <!-- Topbar marquee -->
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-head text-xs" style="color: red;">
+                            INFORMATION
+                            <div class="marquee-container">
+                                <div id="marquee-wrapper" class="d-flex align-items-center">
+                                    <marquee id="dynamic-marquee" behavior="" direction="">
+                                        <h4 class="marquee-text">{% if marquee_text %}{{ marquee_text }}{% else %}WELCOME TO NAZZ PHARMACY{% endif %}</h4>
+                                    </marquee>
+
+                                </div>
+                                <div id="marquee-edit" style="display: none;" class="d-flex align-items-center">
+                                    <input type="text"
+                                           id="marquee-input"
+                                           class="form-control form-control-sm me-2"
+                                           value="{% if marquee_text %}{{ marquee_text }}{% else %}WELCOME TO NAZZ PHARMACY{% endif %}">
+                                           {% if user.is_superuser %}
+                                           <button class="btn btn-sm btn-primary ms-2 mx-5"
+                                                   onclick="toggleMarqueeEdit()"
+                                                   style="position: absolute; right: 10px; z-index: 1000;">
+                                               <i class="fas fa-edit"></i>
+                                           </button>
+                                       {% endif %}
+                                    <button class="btn btn-sm btn-success me-1" onclick="saveMarquee()">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                    {% comment %} <button class="btn btn-sm btn-danger" onclick="toggleMarqueeEdit()">
+                                        <i class="fas fa-times"></i>
+                                    </button> {% endcomment %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Topbar Navbar -->
+                    <ul class="navbar-nav ml-auto">
+
+                        <!-- Nav Item - Alerts -->
+                        <li class="nav-item dropdown no-arrow mx-1">
+                            {% comment %} <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-bell fa-fw"></i>
+                                <!-- Counter - Alerts -->
+                                <span class="badge badge-danger badge-counter">3+</span> {% endcomment %}
+                            </a>
+                            <!-- Dropdown - Alerts -->
+                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="alertsDropdown">
+                                <h6 class="dropdown-header">
+                                    Alerts Center
+                                </h6>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="mr-3">
+                                        <div class="icon-circle bg-primary">
+                                            <i class="fas fa-file-alt text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="small text-gray-500">December 12, 2019</div>
+                                        <span class="font-weight-bold">A new monthly report is ready to download!</span>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="mr-3">
+                                        <div class="icon-circle bg-success">
+                                            <i class="fas fa-donate text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="small text-gray-500">December 7, 2019</div>
+                                        $290.29 has been deposited into your account!
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="mr-3">
+                                        <div class="icon-circle bg-warning">
+                                            <i class="fas fa-exclamation-triangle text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="small text-gray-500">December 2, 2019</div>
+                                        Spending Alert: We've noticed unusually high spending for your account.
+                                    </div>
+                                </a>
+                                <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
+                            </div>
+                        </li>
+
+                        <!-- Nav Item - Messages -->
+                        <li class="nav-item dropdown no-arrow mx-1">
+                            <button onclick="subscribeUser()">Subscribe to Notifications</button>
+                            {% comment %} <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-envelope fa-fw"></i>
+                                <!-- Counter - Messages -->
+                                <span class="badge badge-danger badge-counter">7</span>
+                            </a> {% endcomment %}
+                            <!-- Dropdown - Messages -->
+                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="messagesDropdown">
+                                <h6 class="dropdown-header">
+                                    Message Center
+                                </h6>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="dropdown-list-image mr-3">
+                                        <img class="rounded-circle" src="{% static 'img/undraw_profile_1.svg' %}"
+                                            alt="...">
+                                        <div class="status-indicator bg-success"></div>
+                                    </div>
+                                    <div class="font-weight-bold">
+                                        <div class="text-truncate">Hi there! I am wondering if you can help me with a
+                                            problem I've been having.</div>
+                                        <div class="small text-gray-500">Emily Fowler · 58m</div>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="dropdown-list-image mr-3">
+                                        <img class="rounded-circle" src="{% static 'img/undraw_profile_2.svg' %}"
+                                            alt="...">
+                                        <div class="status-indicator"></div>
+                                    </div>
+                                    <div>
+                                        <div class="text-truncate">I have the photos that you ordered last month, how
+                                            would you like them sent to you?</div>
+                                        <div class="small text-gray-500">Jae Chun · 1d</div>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="dropdown-list-image mr-3">
+                                        <img class="rounded-circle" src="{% static 'img/undraw_profile_3.svg' %}"
+                                            alt="...">
+                                        <div class="status-indicator bg-warning"></div>
+                                    </div>
+                                    <div>
+                                        <div class="text-truncate">Last month's report looks great, I am very happy with
+                                            the progress so far, keep up the good work!</div>
+                                        <div class="small text-gray-500">Morgan Alvarez · 2d</div>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="dropdown-list-image mr-3">
+                                        <img class="rounded-circle" src="https://source.unsplash.com/Mv9hjnEUHR4/60x60"
+                                            alt="...">
+                                        <div class="status-indicator bg-success"></div>
+                                    </div>
+                                    <div>
+                                        <div class="text-truncate">Am I a good boy? The reason I ask is because someone
+                                            told me that people say this to all dogs, even if they aren't good...</div>
+                                        <div class="small text-gray-500">Chicken the Dog · 2w</div>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+                            </div>
+                        </li>
+
+                        <div class="topbar-divider d-none d-sm-block"></div>
+
+
+                        {% if user.is_authenticated %}
+                        <!-- Nav Item - User Information -->
+                        <li class="nav-item dropdown no-arrow">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="mr-2 d-none d-lg-inline text-white-600 small">
+                                    {{ user.username|upper }}</span>
+                                <img class="img-profile rounded-circle"
+                                    src="{% if user.profile.image %}{{ user.profile.image.url }}{% else %}{% static 'img/undraw_profile.svg' %}{% endif %}">
+                            </a>
+                            <!-- Dropdown - User Information -->
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="userDropdown">
+                                <a class="dropdown-item" href="{% url 'userauth:profile' %}">
+                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Profile
+                                </a>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Settings
+                                </a>
+                                <a class="dropdown-item" href="{% url 'userauth:activity_dashboard' %}">
+                                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Activity Log
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="" data-toggle="modal" data-target="#logoutModal">
+                                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Logout
+                                </a>
+                            </div>
+                        </li>
+                        {% else %}
+                        <a href="{% url 'store:index' %}" class="btn btn-outline-light btn-sm my-3"
+                            style="font-weight: bolder;">Login</a>
+                        {% endif %}
+
+                    </ul>
+
+                </nav>
+                <!-- End of Topbar -->
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+                        {% if not request.user.is_authenticated %}
+                        <h2 style="color: rgb(255, 3, 3); text-align:center; font-weight:bold">Please log in to continue.</h2>
+                        {% endif %}
+                    </div>
+
+                    <!-- Content Row -->
+                    <div class="row">
+
+                        <!-- Store Card Example -->
+                        <a href="{% url 'store:store' %}" class="col-xl-3 col-md-6 mb-4 nazz"
+                            style="text-decoration: none;">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                STORE</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">RETAILING</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-store fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+
+                        <!-- Wholesale Card Example -->
+                        <a href="{% url 'wholesale:wholesales' %}" class="col-xl-3 col-md-6 mb-4 nazz"
+                            style="text-decoration: none;">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                STORE</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">WHOLESALE</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-store fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+
+                        <!-- Total Purchase value Card -->
+                        {% if user|can_view_financial_data %}
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">TOTAL
+                                                PURCHASE VALUE
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">
+                                                        ₦{{total_purchase_value|intcomma}}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Total stock Card Example -->
+                        {% if user|can_view_financial_data %}
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                TOTAL STOCK VALUE:</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">₦{{total_stock_value|intcomma}}
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Content Row -->
+
+                    <div class="row">
+
+
+                        <!-- Area Chart -->
+                        <div class="col-12">
+                            {% block content %}
+                            <div id="display"></div>
+                            {% endblock content %}
+                        </div>
+
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>Copyright &copy; Nazz Tech <span>2025</span>. All rights reserved.</span>
+                    </div>
+                </div>
+            </footer>
+            <!-- End of Footer -->
+
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Ready to Leave?</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                    <a class="btn btn-sm btn-danger" href="{% url 'store:logout_user' %}">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Register Retail Customers modal -->
+    <div class="modal fade" id="registerCustomerModal" tabindex="-1" aria-labelledby="registerCustomerModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>REGISTER CUSTOMER</h3>
+                    <button class="close" data-dismiss="modal" aria-label="Close">x</button>
+                </div>
+                <div class="modal-body">
+                    <form action="{% url 'store:register_customers' %}" method="post">
+                        {% csrf_token %}
+                        <input type="text" name="name" placeholder="Customer name..." class="form-control" required>
+                        <input type="number" name="phone" placeholder="Phone number" class="form-control mt-3" required>
+                        <input type="text" name="address" placeholder="Address" class="form-control mt-3" required>
+                        <input type="submit" value="Register" class="btn btn-sm btn-success mt-3 ">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Register Wholesale customer modal -->
+    <div class="modal fade" id="registerWholesaleCustomerModal" tabindex="-1"
+        aria-labelledby="registerWholesaleCustomerModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>REGISTER WHOLESALE CUSTOMER</h5>
+                    <button class="close" data-bs-dismiss="modal" aria-label="Close">x</button>
+                </div>
+                <div class="modal-body">
+                    <form action="{% url 'wholesale:register_wholesale_customers' %}" method="post">
+                        {% csrf_token %}
+                        <input type="text" name="name" placeholder="Customer name..." class="form-control" required>
+                        <input type="number" name="phone" placeholder="Phone number" class="form-control mt-3" required>
+                        <input type="text" name="address" placeholder="Address" class="form-control mt-3" required>
+                        <input type="submit" value="Register" class="btn btn-sm btn-success mt-3 ">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Retail customer modal -->
+    <div class="modal fade" id="editCustomerModal" tabindex="-1" aria-labelledby="editCustomerModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Transfer Request Modal -->
+    <div class="modal fade" id="transferRequestModal" tabindex="-1" aria-labelledby="transferRequestModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" id="transferRequestModalContent">
+            <!-- HTMX will load form content here -->
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="offline-status-container">
+        <div id="connection-status"></div>
+        {% if user.is_authenticated %}
+            <button id="sync-button" class="btn btn-sm btn-primary">Sync Data</button>
+        {% endif %}
+    </div>
+
+
+{% comment %} Provide csrf token to transfer-request {% endcomment %}
+    <script>
+        document.body.addEventListener("htmx:configRequest", (event) => {
+            event.detail.headers["X-CSRFToken"] = "{{ csrf_token }}";
+        });
+    </script>
+
+
+
+
+    <script>
+        // Warn users 10 minutes before session expiration
+        const timeoutWarning = 10 * 60 * 1000; // 10 minute
+        const logoutUrl = "{% url 'store:index' %}";
+
+        let timeoutTimer;
+
+        function startTimer() {
+            timeoutTimer = setTimeout(() => {
+                window.location.href = logoutUrl;
+            }, ({{ SESSION_COOKIE_AGE|default:1200 }} * 1000) - timeoutWarning);
+            // Fallback to 1200 (20 minutes) if SESSION_COOKIE_AGE is not in context
+
+            // Reset timer on any activity
+            document.addEventListener('mousemove', resetTimer);
+            document.addEventListener('keypress', resetTimer);
+        }
+
+        function resetTimer() {
+            clearTimeout(timeoutTimer);
+            startTimer();
+        }
+
+        startTimer();
+    </script>
+
+    <!-- Notebook New Notes Indicator Script -->
+    {% if user.is_authenticated %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const notebookIndicator = document.getElementById('notebook-new-indicator');
+
+            function checkForNewNotes() {
+                fetch('/notebook/api/new-notes-count/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.new_notes_count > 0) {
+                            notebookIndicator.textContent = data.new_notes_count;
+                            notebookIndicator.style.display = 'inline';
+                        } else {
+                            notebookIndicator.style.display = 'none';
+                        }
+                    })
+                    .catch(error => console.error('Error checking new notes:', error));
+            }
+
+            // Check for new notes every 30 seconds
+            if (notebookIndicator) {
+                checkForNewNotes(); // Initial check
+                setInterval(checkForNewNotes, 30000); // Check every 30 seconds
+            }
+        });
+    </script>
+    {% endif %}
+
+
+    <!-- Offline JavaScript-->
+    <script src="{% static 'js/offline.js' %}"></script>
+
+    <!-- Bootstrap core JavaScript-->
+    <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
+
+    <!-- Custom scripts for all pages-->
+    <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
+
+    <!-- Page level plugins -->
+    <script src="{% static 'vendor/chart.js/Chart.min.js' %}"></script>
+
+    <!-- Page level custom scripts -->
+
+    <!-- Custom script for footer copyright -->
+    <script>
+        document.getElementById('year').innerHTML = new Date().getFullYear();
+    </script>
+
+    <!-- Add offline.js script -->
+    <script src="{% static 'js/offline.js' %}"></script>
+
+    <script>
+        const vapidPublicKey = "{{ vapid_public_key|escapejs }}";  // pass from Django context
+
+        async function subscribeUser() {
+            if ("serviceWorker" in navigator) {
+                const reg = await navigator.serviceWorker.ready;
+
+                const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
+                const subscription = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: applicationServerKey
+                });
+
+                // Send subscription to Django backend
+                await fetch("/webpush/save_information/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify(subscription)
+                });
+
+                alert("✅ Subscribed for push notifications!");
+            }
+        }
+    </script>
+
+    <script>
+        const vapidPublicKey = "{{ VAPID_PUBLIC_KEY }}";
+    </script>
+
+    <script>
+        async function subscribeUser() {
+            if ("serviceWorker" in navigator) {
+                const reg = await navigator.serviceWorker.ready;
+
+                const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
+                const subscription = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: applicationServerKey
+                });
+
+                // Send subscription to Django backend
+                await fetch("/webpush/save_information/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify(subscription)
+                });
+
+                alert("✅ Subscribed for push notifications!");
+            }
+        }
+    </script>
+
+    <!-- Add this style section to your existing styles -->
+    <style>
+        .marquee-container {
+            position: relative;
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        #marquee-wrapper, #marquee-edit {
+            width: 100%;
+            position: relative;
+        }
+
+        #marquee-edit {
+            padding: 5px 0;
+        }
+
+        .marquee-text {
+            margin: 0;
+            color: black;
+        }
+
+        /* Toast notification styles */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+
+        .toast {
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+            min-width: 250px;
+        }
+    </style>
+
+    <!-- Add this right before the closing body tag -->
+    <div class="toast-container"></div>
+
+    <!-- Add this to your existing scripts section -->
+    <script>
+        function toggleMarqueeEdit() {
+            const wrapper = document.getElementById('marquee-wrapper');
+            const edit = document.getElementById('marquee-edit');
+
+            if (wrapper.style.display !== 'none') {
+                wrapper.style.display = 'none';
+                edit.style.display = 'flex';
+                document.getElementById('marquee-input').focus();
+            } else {
+                wrapper.style.display = 'flex';
+                edit.style.display = 'none';
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toastContainer = document.querySelector('.toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast show alert alert-${type}`;
+            toast.innerHTML = message;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function saveMarquee() {
+            const newText = document.getElementById('marquee-input').value.trim();
+            if (!newText) {
+                showToast('Marquee text cannot be empty!', 'danger');
+                return;
+            }
+
+            // Send AJAX request using fetch
+            fetch("{% url 'store:update_marquee' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `marquee_text=${encodeURIComponent(newText)}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(html => {
+                // Update the marquee content
+                document.getElementById('dynamic-marquee').innerHTML =
+                    `<h4 class="marquee-text">${newText}</h4>`;
+
+                // Switch back to display mode
+                toggleMarqueeEdit();
+
+                // Show success message
+                showToast('Marquee updated successfully!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Failed to update marquee!', 'danger');
+            });
+        }
+
+        // Add keyboard event listener for the input
+        document.getElementById('marquee-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                saveMarquee();
+            } else if (e.key === 'Escape') {
+                toggleMarqueeEdit();
+            }
+        });
+    </script>
+
+    <!-- Chat Unread Badge Update Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Update chat unread badge in sidebar
+        function updateChatUnreadBadge() {
+            {% if user.is_authenticated %}
+            fetch('{% url "chat:unread_messages_count" %}')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('sidebar-unread-badge');
+                    if (badge) {
+                        if (data.unread_count > 0) {
+                            badge.textContent = data.unread_count;
+                            badge.style.display = 'inline';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching unread count:', error));
+            {% endif %}
+        }
+
+        // Update immediately and then every 30 seconds
+        updateChatUnreadBadge();
+        setInterval(updateChatUnreadBadge, 30000);
+
+        // Update notification badge
+        function updateNotificationBadge() {
+            {% if user.is_authenticated %}
+            fetch('{% url "store:notification_count_api" %}')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('notification-badge');
+                    if (badge) {
+                        if (data.count > 0) {
+                            badge.textContent = data.count;
+                            badge.style.display = 'inline';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => console.error('Error updating notification count:', error));
+            {% endif %}
+        }
+
+        // Update notification badge immediately and then every 30 seconds
+        updateNotificationBadge();
+        setInterval(updateNotificationBadge, 30000);
+    });
+    </script>
+
+    <!-- Real-time Chat Scripts -->
+    <script src="{% static 'js/realtime-chat.js' %}"></script>
+    <script>
+    // Global real-time chat initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set user ID for real-time chat
+        document.body.dataset.userId = '{{ request.user.id }}';
+
+        // Update unread badge more frequently when real-time chat is active
+        if (typeof window.realtimeChat !== 'undefined') {
+            // Override the update frequency for better real-time experience
+            setInterval(updateChatUnreadBadge, 5000); // Update every 5 seconds instead of 30
+        }
+    });
+    </script>
+</body>
+
+</html>

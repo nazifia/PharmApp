@@ -1,0 +1,216 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#4285f4">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/icon-192x192.png' %}">
+    <link rel="icon" type="image/png" href="{% static 'img/icon-192x192.png' %}">
+    <meta name="description" content="Pharmacy Management System with Offline Capabilities">
+    <link rel="stylesheet" href="{% static 'css/offline-indicator.css' %}">
+    {% block extra_css %}{% endblock %}
+    <style>
+        .marquee-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .marquee-text {
+            color: black;
+            padding: 10px;
+            white-space: nowrap;
+        }
+
+        .edit-marquee-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            display: none;
+        }
+
+        .marquee-container:hover .edit-marquee-btn {
+            display: block;
+        }
+
+        #marqueeModal .modal-body {
+            padding: 20px;
+        }
+
+        #marqueeForm input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="connection-status" class="connection-status">
+        <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span class="status-text">Online</span>
+        </div>
+        <div class="sync-status hidden">
+            <span class="sync-icon">↻</span>
+            <span class="sync-text">Syncing...</span>
+        </div>
+    </div>
+
+    <!-- Replace your existing marquee with this new structure -->
+    <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-head text-xs" style="color: red;">INFORMATION
+            <div class="marquee-container">
+                <marquee id="dynamic-marquee" behavior="" direction="">
+                    <h4 class="marquee-text">{% if marquee_text %}{{ marquee_text }}{% else %}WELCOME TO NAZZ PHARMACY{% endif %}</h4>
+                </marquee>
+                {% if user.is_superuser %}
+                <button class="btn btn-sm btn-primary edit-marquee-btn" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#marqueeModal">
+                    <i class="fas fa-edit"></i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Modal for editing marquee -->
+    {% if user.is_superuser %}
+    <div class="modal fade" id="marqueeModal" tabindex="-1" aria-labelledby="marqueeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="marqueeModalLabel">Edit Marquee Text</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="marqueeForm" hx-post="{% url 'store:update_marquee' %}" hx-target="#dynamic-marquee">
+                        <div class="mb-3">
+                            <label for="marqueeText" class="form-label">Marquee Text</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="marqueeText" 
+                                   name="marquee_text" 
+                                   value="{% if marquee_text %}{{ marquee_text }}{% else %}WELCOME TO NAZZ PHARMACY{% endif %}"
+                                   required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">PharmApp</a>
+            <a class="nav-link" style="font-weight:bold;color:#007bff;" href="{% url 'chat:chat_view_default' %}">Chatbox</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'chat:chat_view_default' %}">Chat <span id="unread-chat-indicator" class="badge bg-danger" style="display: none;"></span></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'store:logout_user' %}">Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'store:index' %}">Login</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    {% block content %}
+    {% endblock content %}
+
+    <!-- Include floating chatbox for authenticated users -->
+    {% if user.is_authenticated %}
+        {% include 'chat/floating_chatbox.html' %}
+    {% endif %}
+
+    <script src="{% static 'js/offline-storage.js' %}"></script>
+    <script src="{% static 'js/background-sync.js' %}"></script>
+    <script src="{% static 'js/push-notifications.js' %}"></script>
+    <script src="{% static 'js/connection-handler.js' %}"></script>
+
+    {% if user.is_authenticated %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const unreadChatIndicator = document.getElementById('unread-chat-indicator');
+
+            function fetchGlobalUnreadMessages() {
+                fetch("{% url 'chat:unread_messages_count' %}")
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.unread_count > 0) {
+                            unreadChatIndicator.textContent = data.unread_count;
+                            unreadChatIndicator.style.display = 'inline';
+                        } else {
+                            unreadChatIndicator.style.display = 'none';
+                        }
+                    })
+                    .catch(error => console.error('Error fetching global unread messages:', error));
+            }
+
+            // Fetch unread counts periodically
+            if (unreadChatIndicator) { // Only run if the indicator element exists
+                setInterval(fetchGlobalUnreadMessages, 10000); // every 10 seconds
+                fetchGlobalUnreadMessages(); // Initial fetch
+            }
+        });
+    </script>
+    {% endif %}
+
+    <script>
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'dynamic-marquee') {
+                // Close the modal after successful update
+                var modal = bootstrap.Modal.getInstance(document.getElementById('marqueeModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Show success message
+                const toast = new bootstrap.Toast(document.createElement('div'));
+                toast.show();
+            }
+        });
+    </script>
+
+    <!-- PWA Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('{% static "js/sw.js" %}')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        
+                        // Request permission for push notifications
+                        if ('Notification' in window) {
+                            Notification.requestPermission().then(function(permission) {
+                                if (permission === 'granted') {
+                                    console.log('Notification permission granted.');
+                                }
+                            });
+                        }
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

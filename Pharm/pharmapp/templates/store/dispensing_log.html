@@ -1,0 +1,702 @@
+{% extends "partials/base.html" %}
+{% block content %}
+<!-- Include HTMX if not already included in base template -->
+<script src="https://unpkg.com/htmx.org@1.9.2"></script>
+<style>
+    /* Default styles for the main container */
+    .table {
+        color: #333;
+    }
+
+    #main {
+        margin-top: 10px;
+        margin-left: 5px;
+        /* Space from the top */
+    }
+
+    /* Loading indicator styles */
+    .htmx-indicator {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 10px;
+        border-radius: 4px;
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    /* Date picker styles */
+    #searchDate {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    #searchDate:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    /* Enhanced search form styles */
+    .card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 0.75rem 1rem;
+    }
+
+    .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-text {
+        font-size: 0.875rem;
+    }
+
+    /* Search input specific styling */
+    input[name="item_name"] {
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+
+    input[name="item_name"]:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+        transform: translateY(-1px);
+    }
+
+    /* Button styling */
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
+        transform: translateY(-1px);
+    }
+
+    /* Autocomplete suggestions styling */
+    .autocomplete-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .autocomplete-suggestion {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .autocomplete-suggestion:hover,
+    .autocomplete-suggestion.selected {
+        background-color: #f8f9fa;
+    }
+
+    .autocomplete-suggestion:last-child {
+        border-bottom: none;
+    }
+
+    .search-input-container {
+        position: relative;
+    }
+
+    /* Clear filter button styles */
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+        transition: background-color 0.15s ease-in-out;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
+    }
+
+    /* Media Queries */
+    @media (max-width: 992px) {
+        #main {
+            margin-left: 10px;
+            /* Adjust left margin for medium screens */
+            margin-right: 10px;
+            /* Adjust right margin for medium screens */
+        }
+
+        h3 {
+            font-size: 1.8rem;
+            /* Adjust heading size */
+        }
+
+        .table {
+            font-size: 0.95rem;
+            /* Adjust table font size for better fit */
+        }
+
+        .btn {
+            font-size: 0.85rem;
+            /* Adjust button font size */
+        }
+    }
+
+    @media (max-width: 768px) {
+        #main {
+            margin-left: 0;
+            /* Remove left margin for small screens */
+            margin-right: 0;
+            /* Remove right margin for small screens */
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            /* Further adjust heading size */
+        }
+
+        .table {
+            font-size: 0.7rem;
+            /* Further reduce table font size */
+        }
+
+        .btn {
+            font-size: 0.8rem;
+            /* Adjust button font size */
+        }
+
+        /* Stack the date picker and button on small screens */
+        .col-md-4, .col-md-2 {
+            margin-bottom: 10px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        h3 {
+            font-size: 1rem;
+            /* Further adjust heading size */
+        }
+
+        .table {
+            font-size: 0.5rem;
+            /* Further reduce table font size */
+        }
+    }
+</style>
+
+<div class="col-12 offset-md-2 table-responsive" id="main">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="col-md-8 offset-md-3">Dispensing Logs</h3>
+        <div>
+            <a href="{% url 'store:user_dispensing_summary' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-chart-bar"></i> User Summary
+            </a>
+        </div>
+    </div>
+
+    <!-- Enhanced Search and Filter Section -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-search mr-2"></i>Search & Filter Dispensed Items</h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET"
+                          hx-get="{% url 'store:dispensing_log' %}"
+                          hx-target="#logsTable"
+                          hx-trigger="input delay:200ms from:input[name='item_name'], change from:input[name='date_from'], change from:input[name='date_to'], change from:select[name='status'], change from:select[name='user']"
+                          hx-indicator=".htmx-indicator">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="{{ search_form.item_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-pills mr-1"></i>{{ search_form.item_name.label }}
+                                </label>
+                                <div class="search-input-container">
+                                    {{ search_form.item_name }}
+                                    <div id="autocomplete-suggestions" class="autocomplete-suggestions" style="display: none;"></div>
+                                </div>
+                                <small class="form-text text-muted">Search by first few letters of item name</small>
+                            </div>
+                            {% if can_view_all_users %}
+                            <div class="col-md-2">
+                                <label for="{{ search_form.user.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user mr-1"></i>{{ search_form.user.label }}
+                                </label>
+                                {{ search_form.user }}
+                            </div>
+                            {% endif %}
+                            <div class="col-md-2">
+                                <label for="{{ search_form.date_from.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calendar mr-1"></i>{{ search_form.date_from.label }}
+                                </label>
+                                {{ search_form.date_from }}
+                            </div>
+                            <div class="col-md-2">
+                                <label for="{{ search_form.date_to.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calendar mr-1"></i>{{ search_form.date_to.label }}
+                                </label>
+                                {{ search_form.date_to }}
+                            </div>
+                            <div class="col-md-2">
+                                <label for="{{ search_form.status.id_for_label }}" class="form-label">
+                                    <i class="fas fa-info-circle mr-1"></i>{{ search_form.status.label }}
+                                </label>
+                                {{ search_form.status }}
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="button" class="btn btn-secondary btn-sm w-100"
+                                    hx-get="{% url 'store:dispensing_log' %}"
+                                    hx-target="#logsTable"
+                                    hx-trigger="click"
+                                    hx-indicator=".htmx-indicator"
+                                    onclick="document.querySelector('form').reset();">
+                                    <i class="fas fa-times mr-1"></i>Clear All
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Quick Statistics</h6>
+                    <small class="text-muted" id="stats-context">Daily Sales Total</small>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="stats-container">
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <h4 class="text-primary mb-1" id="total-items">-</h4>
+                                <small class="text-muted">Items Dispensed</small>
+                            </div>
+                        </div>
+                        <!-- Total Amount and Total Quantity removed as requested -->
+                        <div class="col-md-2" style="display: none;">
+                            <div class="text-center">
+                                <h4 class="text-success mb-1" id="total-amount">-</h4>
+                                <small class="text-muted">Total Amount</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2" style="display: none;">
+                            <div class="text-center">
+                                <h4 class="text-warning mb-1" id="total-quantity">-</h4>
+                                <small class="text-muted">Total Quantity</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <h4 class="text-info mb-1" id="unique-items">-</h4>
+                                <small class="text-muted">Unique Items</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <h4 class="text-secondary mb-1" id="sales-total">-</h4>
+                                <small class="text-muted" id="sales-label">Sales Total</small>
+                            </div>
+                        </div>
+                        <!-- Daily Sales for Privileged Users -->
+                        <div class="col-md-2" id="daily-sales-column" style="display: none;">
+                            <div class="text-center">
+                                <h4 class="text-success mb-1" id="daily-sales-value">-</h4>
+                                <small class="text-muted">Daily Sales</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <button class="btn btn-outline-primary btn-sm" onclick="loadStats()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div class="row mb-2">
+        <div class="col-md-12">
+            <div class="htmx-indicator" style="display:none">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Searching dispensed items...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="table table-hover" style="box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);">
+        <thead class="table-primary">
+            <tr>
+                <th scope="col">User</th>
+                <th scope="col">Item Name</th>
+                <th scope="col">Brand</th>
+                <th scope="col">Unit</th>
+                <th scope="col">Qty</th>
+                <th scope="col">Rate</th>
+                <th scope="col">Status</th>
+                <th scope="col">Returns Info</th>
+                <th scope="col">Timestamp</th>
+            </tr>
+        </thead>
+        <tbody id="logsTable">
+            {% include 'partials/partials_dispensing_log.html' with logs=logs %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // JavaScript to handle the clear filter button and autocomplete
+    document.addEventListener('DOMContentLoaded', function() {
+        const clearFilterBtn = document.querySelector('button[hx-trigger="click"]');
+        const dateFromInput = document.querySelector('input[name="date_from"]');
+        const dateToInput = document.querySelector('input[name="date_to"]');
+        const itemNameInput = document.querySelector('input[name="item_name"]');
+        const suggestionsContainer = document.getElementById('autocomplete-suggestions');
+        let selectedIndex = -1;
+
+        if (clearFilterBtn) {
+            clearFilterBtn.addEventListener('click', function() {
+                // Clear the date range inputs
+                if (dateFromInput) dateFromInput.value = '';
+                if (dateToInput) dateToInput.value = '';
+            });
+        }
+
+        // Autocomplete functionality for item name search
+        if (itemNameInput) {
+            itemNameInput.addEventListener('input', function() {
+                const query = this.value.trim();
+
+                if (query.length >= 2) {
+                    fetch(`{% url 'store:dispensing_log_search_suggestions' %}?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            showSuggestions(data.suggestions);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching suggestions:', error);
+                            hideSuggestions();
+                        });
+                } else {
+                    hideSuggestions();
+                }
+            });
+
+            itemNameInput.addEventListener('keydown', function(e) {
+                const suggestions = suggestionsContainer.querySelectorAll('.autocomplete-suggestion');
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
+                    updateSelection(suggestions);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(suggestions);
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    suggestions[selectedIndex].click();
+                } else if (e.key === 'Escape') {
+                    hideSuggestions();
+                }
+            });
+
+            itemNameInput.addEventListener('blur', function() {
+                // Delay hiding to allow click on suggestions
+                setTimeout(() => hideSuggestions(), 150);
+            });
+        }
+
+        function showSuggestions(suggestions) {
+            if (suggestions.length === 0) {
+                hideSuggestions();
+                return;
+            }
+
+            suggestionsContainer.innerHTML = '';
+            selectedIndex = -1;
+
+            suggestions.forEach((suggestion, index) => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-suggestion';
+                div.textContent = suggestion;
+                div.addEventListener('click', function() {
+                    itemNameInput.value = suggestion;
+                    hideSuggestions();
+                    // Trigger the HTMX search
+                    itemNameInput.dispatchEvent(new Event('input'));
+                });
+                suggestionsContainer.appendChild(div);
+            });
+
+            suggestionsContainer.style.display = 'block';
+        }
+
+        function hideSuggestions() {
+            suggestionsContainer.style.display = 'none';
+            selectedIndex = -1;
+        }
+
+        function updateSelection(suggestions) {
+            suggestions.forEach((suggestion, index) => {
+                suggestion.classList.toggle('selected', index === selectedIndex);
+            });
+        }
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (itemNameInput && !itemNameInput.contains(e.target) &&
+                suggestionsContainer && !suggestionsContainer.contains(e.target)) {
+                hideSuggestions();
+            }
+        });
+
+        // Load initial statistics
+        loadStats();
+
+        // Show/hide the loading indicator
+        document.body.addEventListener('htmx:beforeRequest', function(event) {
+            const indicator = document.querySelector('.htmx-indicator');
+            if (indicator) {
+                indicator.style.display = 'inline-flex';
+            }
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            const indicator = document.querySelector('.htmx-indicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+
+            // Refresh stats after any HTMX request to ensure they match the filtered data
+            loadStats();
+        });
+    });
+
+    // Function to load statistics based on current search parameters
+    function loadStats() {
+
+
+        // Get all search form parameters to ensure stats match filtered data
+        const form = document.querySelector('form');
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+
+        // Add all form parameters to the stats request
+        for (let [key, value] of formData.entries()) {
+            if (value && value.trim() !== '') {
+                params.append(key, value);
+            }
+        }
+
+        const queryString = params.toString();
+        const statsUrl = `{% url 'store:dispensing_log_stats' %}${queryString ? '?' + queryString : ''}`;
+
+
+        // Show loading state for all stats
+        document.getElementById('total-items').textContent = '...';
+        document.getElementById('total-amount').textContent = '...';
+        document.getElementById('total-quantity').textContent = '...';
+        document.getElementById('unique-items').textContent = '...';
+
+        // Handle the new sales-total element
+        const salesElement = document.getElementById('sales-total');
+        if (salesElement) {
+            salesElement.textContent = '...';
+        }
+
+        // Handle the daily sales element for privileged users
+        const dailySalesElement = document.getElementById('daily-sales-value');
+        if (dailySalesElement) {
+            dailySalesElement.textContent = '...';
+        }
+
+        fetch(statsUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Handle successful response
+
+
+                if (data.error) {
+                    console.warn('Stats API returned error:', data.error);
+                    // Still show the data if available
+                }
+
+                // Update stats display based on user permissions
+                if (data.context && data.context.user_restricted) {
+                    // For regular users, show available statistics but hide Total Amount and Total Quantity
+                    document.getElementById('total-items').textContent = data.total_items_dispensed || 0;
+                    document.getElementById('total-amount').textContent = '-'; // Hidden as requested
+                    document.getElementById('total-quantity').textContent = '-'; // Hidden as requested
+                    document.getElementById('unique-items').textContent = data.unique_items || 0;
+
+                    // Update daily sales for regular users (only show if available)
+                    const salesElement = document.getElementById('sales-total');
+                    const salesLabelElement = document.getElementById('sales-label');
+
+                    // Set label to "Daily Sales" for regular users
+                    salesLabelElement.textContent = 'Daily Sales';
+
+                    if (data.daily_total_sales !== undefined && data.daily_total_sales !== null) {
+                        salesElement.textContent = `₦${data.daily_total_sales.toLocaleString()}`;
+                    } else {
+                        salesElement.textContent = '-';
+                    }
+
+                    // Hide the daily sales column for regular users
+                    const dailySalesColumn = document.getElementById('daily-sales-column');
+                    if (dailySalesColumn) {
+                        dailySalesColumn.style.display = 'none';
+                    }
+
+                    // Show visible statistics columns for regular users (Total Amount and Total Quantity remain hidden)
+                    const statsContainer = document.getElementById('stats-container');
+                    const statColumns = statsContainer.querySelectorAll('.col-md-2');
+                    statColumns.forEach((col, index) => {
+                        // Show Items Dispensed (0), Unique Items (3), Sales Total (4), and Refresh button (6)
+                        // Hide Total Amount (1), Total Quantity (2), and Daily Sales (5) for regular users
+                        if (index === 1 || index === 2 || index === 5) {
+                            col.style.display = 'none'; // Keep Total Amount, Total Quantity, and Daily Sales hidden
+                        } else {
+                            col.style.display = 'block';
+                            col.className = index === 0 || index === 3 || index === 4 ? 'col-md-3' : 'col-md-3'; // Adjust column sizes
+                        }
+                    });
+                } else {
+                    // For privileged users, show detailed statistics (but Total Amount and Total Quantity remain hidden)
+                    document.getElementById('total-items').textContent = data.total_items_dispensed || 0;
+                    document.getElementById('total-amount').textContent = '-'; // Hidden as requested
+                    document.getElementById('total-quantity').textContent = '-'; // Hidden as requested
+                    document.getElementById('unique-items').textContent = data.unique_items || 0;
+
+                    // Update sales total (keep existing behavior)
+                    const salesElement = document.getElementById('sales-total');
+                    const salesLabelElement = document.getElementById('sales-label');
+
+                    // Set label to "Monthly Sales" for privileged users
+                    salesLabelElement.textContent = 'Monthly Sales';
+
+                    if (data.monthly_total_sales !== undefined && data.monthly_total_sales !== null) {
+                        salesElement.textContent = `₦${data.monthly_total_sales.toLocaleString()}`;
+                    } else {
+                        salesElement.textContent = '-';
+                    }
+
+                    // Show and update the dedicated Daily Sales column for privileged users
+                    const dailySalesColumn = document.getElementById('daily-sales-column');
+                    const dailySalesValue = document.getElementById('daily-sales-value');
+
+                    if (dailySalesColumn && dailySalesValue) {
+                        dailySalesColumn.style.display = 'block';
+                        if (data.daily_total_sales !== undefined && data.daily_total_sales !== null) {
+                            dailySalesValue.textContent = `₦${data.daily_total_sales.toLocaleString()}`;
+                        } else {
+                            dailySalesValue.textContent = '-';
+                        }
+                    }
+
+                    // Show visible statistics columns for privileged users (Total Amount and Total Quantity remain hidden)
+                    const statsContainer = document.getElementById('stats-container');
+                    const statColumns = statsContainer.querySelectorAll('.col-md-2');
+                    statColumns.forEach((col, index) => {
+                        // Show Items Dispensed (0), Unique Items (3), Monthly Sales (4), Daily Sales (5), and Refresh button (6)
+                        // Hide Total Amount (1) and Total Quantity (2) as requested
+                        if (index === 1 || index === 2) {
+                            col.style.display = 'none'; // Keep Total Amount and Total Quantity hidden
+                        } else {
+                            col.style.display = 'block';
+                            // Adjust column sizes to accommodate the new daily sales column
+                            if (index === 0 || index === 3 || index === 4 || index === 5) {
+                                col.className = 'col-md-2'; // Keep original size for better fit
+                            } else {
+                                col.className = 'col-md-2';
+                            }
+                        }
+                    });
+                }
+
+                // Update context indicator
+                const contextElement = document.getElementById('stats-context');
+                if (data.context && data.context.period) {
+                    contextElement.textContent = data.context.period;
+
+                    // Change color based on whether filters are applied
+                    if (data.is_filtered) {
+                        contextElement.className = 'text-warning';
+                        contextElement.innerHTML = '<i class="fas fa-filter"></i> ' + data.context.period;
+                    } else {
+                        contextElement.className = 'text-muted';
+                        contextElement.textContent = data.context.period;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading stats:', error);
+                document.getElementById('total-items').textContent = '0';
+                document.getElementById('total-amount').textContent = '₦0';
+                document.getElementById('total-quantity').textContent = '0';
+                document.getElementById('unique-items').textContent = '0';
+
+                // Handle the new sales-total element
+                const salesElement = document.getElementById('sales-total');
+                if (salesElement) {
+                    salesElement.textContent = '-';
+                }
+
+                document.getElementById('stats-context').textContent = 'Error Loading Stats';
+
+                // Show user-friendly error message
+                const statsContainer = document.getElementById('stats-container');
+                if (statsContainer) {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'col-12 text-center text-muted';
+                    errorMsg.innerHTML = '<small><i class="fas fa-exclamation-triangle"></i> Unable to load statistics</small>';
+                    statsContainer.appendChild(errorMsg);
+
+                    // Remove error message after 5 seconds
+                    setTimeout(() => {
+                        if (errorMsg.parentNode) {
+                            errorMsg.parentNode.removeChild(errorMsg);
+                        }
+                    }, 5000);
+                }
+            });
+    }
+</script>
+{% endblock %}

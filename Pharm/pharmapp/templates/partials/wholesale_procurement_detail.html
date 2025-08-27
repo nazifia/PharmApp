@@ -1,0 +1,241 @@
+{% extends "partials/base.html" %}
+{% load static %}
+{% block content %}
+<head>
+    <link href="{% static 'css/receipt_print.css' %}" rel="stylesheet">
+    <script src="{% static 'htmx/htmx.min.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<style>
+    .table {
+        color: #333;
+    }
+
+    .receipt-container {
+        width: auto;
+        padding: 5em;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h3 {
+        color: #333;
+        text-align: center;
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+
+    p {
+        font-size: 16px;
+        margin: 10px 0;
+    }
+
+    p strong {
+        color: #555;
+    }
+
+    .table {
+        font-size: 14px;
+    }
+
+    .status-draft {
+        color: #ff9800;
+        font-weight: bold;
+    }
+
+    .status-completed {
+        color: #4caf50;
+        font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+        .receipt-container {
+            margin: 10px;
+            padding: 15px;
+        }
+
+        h3 {
+            font-size: 20px;
+        }
+
+        p {
+            font-size: 14px;
+        }
+
+        .table {
+            font-size: 12px;
+        }
+
+        button {
+            font-size: 14px;
+            width: 100%;
+            margin-top: 10px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .receipt-container {
+            margin: 5px;
+            padding: 10px;
+        }
+
+        h3 {
+            font-size: 18px;
+        }
+
+        p {
+            font-size: 12px;
+        }
+
+        .table {
+            font-size: 10px;
+        }
+
+        button {
+            font-size: 12px;
+            width: 100%;
+        }
+    }
+
+    /* Add print-specific styles */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #receipt, #receipt * {
+            visibility: visible;
+        }
+
+        #receipt {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+    }
+
+    /* Thermal print specific styles */
+    .thermal-print {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+        line-height: 1.2;
+        margin: 0 auto;
+    }
+
+    .thermal-print table {
+        font-size: 10px;
+    }
+
+    /* A4 print specific styles */
+    .a4-print {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        margin: 0 auto;
+    }
+
+    .a4-print table {
+        font-size: 12px;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h2>Wholesale Procurement Details</h2>
+    <div>
+        <a href="{% url 'wholesale:wholesale_procurement_list' %}" class="btn btn-secondary btn-sm">Back to List</a>
+        <a href="{% url 'store:transfer_multiple_store_items' %}" class="btn btn-warning btn-sm">Transfer Items</a>
+        <a href="{% url 'store:dashboard' %}" class="btn btn-secondary btn-sm">Dashboard</a>
+    </div>
+</div>
+
+<div class="receipt-container" id="receipt">
+    <header>
+        <div class="receipt-head">
+            <h3>Nazz Pharmacy</h3>
+            <p>No. 123 FTH Jibia Bypass, Katsina</p>
+            <p>Tel: +234-XXX-XXX-XXXX</p>
+        </div>
+    </header>
+
+    <h2>Wholesale Procurement Details</h2>
+    <p style="text-align: end;"><strong>Supplier:</strong> {{ procurement.supplier.name }}</p>
+    <p style="text-align: end;"><strong>Date:</strong> {{ procurement.date|date:"F j, Y" }}</p>
+    <p style="text-align: end;"><strong>Status:</strong> <span class="status-{{ procurement.status }}">{{ procurement.status|title }}</span></p>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered mt-3">
+            <thead class="table-secondary">
+                <tr>
+                    <th scope="col">SN</th>
+                    <th scope="col">Item Name</th>
+                    <th scope="col">D/form</th>
+                    <th scope="col">Brand</th>
+                    <th scope="col">Unit</th>
+                    <th scope="col">Rate</th>
+                    <th scope="col">Quantity</th>
+                    <th scope="col">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in procurement.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.item_name|upper }}</td>
+                    <td>{{ item.dosage_form|upper }}</td>
+                    <td>{{ item.brand|upper }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td>₦{{ item.cost_price }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>₦{{ item.subtotal|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No items found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <p style="text-align: end;"><strong>Total Amount: ₦{{ total|floatformat:2 }}</strong></p>
+
+    <footer>
+        <p>___Official Procurement Record___</p>
+        <p>This is a computer-generated document</p>
+        <small>{{ procurement.date|date:"F j, Y" }}</small>
+    </footer>
+</div>
+
+<div class="action-buttons no-print mt-3">
+    <button onclick="window.print()" class="btn btn-sm btn-primary">
+        <i class="fas fa-print"></i> Print
+    </button>
+    <button onclick="downloadPDF()" class="btn btn-sm btn-success">
+        <i class="fas fa-download"></i> Download PDF
+    </button>
+    <button class="btn btn-info btn-sm" onclick="window.location.reload()">
+        <i class="fas fa-redo"></i> Reset
+    </button>
+
+    {% if procurement.status == 'draft' %}
+    <a href="{% url 'wholesale:add_wholesale_procurement' %}?draft_id={{ procurement.id }}" class="btn btn-warning btn-sm">
+        <i class="fas fa-edit"></i> Continue Editing
+    </a>
+    {% endif %}
+</div>
+
+<script>
+    function downloadPDF() {
+        window.print();
+    }
+</script>
+{% endblock %}

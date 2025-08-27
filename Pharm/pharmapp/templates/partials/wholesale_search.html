@@ -1,0 +1,44 @@
+{% load permission_tags %}
+{% for item in items %}
+<tr>
+    <td><a class="btn btn-sm btn-info" data-toggle="modal" data-target="#editWholesaleItemModal"
+            hx-get="{% url 'wholesale:edit_wholesale_item' item.id %}"
+            hx-target="#editWholesaleItemModal .modal-content">Edit</a>
+
+        <a class="btn btn-sm btn-warning" data-toggle="modal" data-target="#returnWholesaleItemModal"
+            hx-get="{% url 'wholesale:return_wholesale_item' item.id %}"
+            hx-target="#returnWholesaleItemModal .modal-content">Return</a>
+
+        {% if user|can_delete_items %}
+        <a href="{% url 'wholesale:delete_wholesale_item' item.id %}"
+            onclick="return confirm('Are you sure you want to delete {{item.name}} from Store?')"
+            class="btn btn-sm btn-danger">X</a>
+        {% endif %}
+    </td>
+    <td>{{item.name|title}}</td>
+    <td>{{item.dosage_form|title}}</td>
+    <td>{{item.brand}}</td>
+    <td>{{item.unit}}</td>
+    {% if user.is_superuser or is_staff %}
+    <td>{{item.cost}}</td>
+    {% endif %}
+    <td>{{item.price}}</td>
+    <td>{{item.stock}}</td>
+    <td>{{item.exp_date}}</td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="9" class="text-center py-4">
+        <div class="text-muted">
+            <i class="fas fa-search fa-2x mb-2"></i>
+            <p class="mb-0">
+                {% if request.GET.search %}
+                    No items found matching "<strong>{{ request.GET.search }}</strong>"
+                {% else %}
+                    No wholesale items available
+                {% endif %}
+            </p>
+        </div>
+    </td>
+</tr>
+{% endfor %}

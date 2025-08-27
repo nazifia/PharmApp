@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmApp - Offline</title>
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+    <style>
+        .offline-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .offline-icon {
+            font-size: 5rem;
+            color: #4e73df;
+            margin-bottom: 20px;
+        }
+        
+        .retry-btn {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">
+            <i class="fas fa-wifi-slash"></i>
+        </div>
+        <h1>Offline Mode</h1>
+        <p class="lead">You are currently offline. The application is still functional with limited capabilities.</p>
+        <p>Some features may be unavailable until you're back online.</p>
+        
+        <div class="mt-4">
+            <button class="btn btn-primary retry-btn" onclick="retryConnection()">
+                <i class="fas fa-sync-alt"></i> Retry Connection
+            </button>
+        </div>
+        
+        <div class="mt-4">
+            <h5>Available Offline Features:</h5>
+            <ul class="text-left">
+                <li>View previously accessed data</li>
+                <li>Review saved forms</li>
+                <li>Access settings</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function retryConnection() {
+            if (navigator.onLine) {
+                window.location.reload();
+            } else {
+                alert('You are still offline. Please check your internet connection.');
+            }
+        }
+        
+        // Reload page when connection is restored
+        window.addEventListener('online', () => {
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>

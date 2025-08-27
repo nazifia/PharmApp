@@ -1,0 +1,64 @@
+{% for log in logs %}
+<tr>
+    <td>{{ log.user.get_full_name|default:log.user.username }}</td>
+    <td><strong>{{ log.name }}</strong></td>
+    <td>{{ log.brand|default:"N/A" }}</td>
+    <td>{{ log.unit|default:"N/A" }}</td>
+    <td>{{ log.quantity|floatformat:2 }}</td>
+    <td>
+        {% if log.discount_amount > 0 %}
+            <span class="text-success">₦{{ log.rate_per_unit|floatformat:2 }}</span>
+            <small class="text-muted d-block">
+                <s>₦{{ log.original_rate_per_unit|floatformat:2 }}</s>
+                <span class="text-danger">(-₦{{ log.discount_amount|floatformat:2 }})</span>
+            </small>
+        {% else %}
+            ₦{{ log.rate_per_unit|floatformat:2 }}
+        {% endif %}
+    </td>
+    <td>
+        <span class="badge {% if log.status == 'Dispensed' %}badge-success{% elif log.status == 'Returned' %}badge-danger{% else %}badge-warning{% endif %}">
+            {{ log.get_status_display }}
+        </span>
+    </td>
+    <td>
+        {% with return_info=log.return_summary %}
+            {% if return_info.return_type == 'fully_returned' %}
+                <div class="text-danger">
+                    <i class="fas fa-undo"></i>
+                    <small>{{ return_info.status_display }}</small>
+                    <br><small class="text-muted">100% returned</small>
+                </div>
+            {% elif return_info.return_type == 'partially_returned' %}
+                <div class="text-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <small>{{ return_info.status_display }}</small>
+                </div>
+            {% elif return_info.return_type == 'separate_returns' %}
+                <div class="text-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <small>{{ return_info.status_display }}</small>
+                    <br><small class="text-muted">{{ return_info.return_percentage|floatformat:1 }}% returned</small>
+                </div>
+            {% elif return_info.return_type == 'no_returns' %}
+                <span class="text-muted"><small>{{ return_info.status_display }}</small></span>
+            {% else %}
+                <span class="text-muted"><small>{{ return_info.status_display }}</small></span>
+            {% endif %}
+        {% endwith %}
+    </td>
+    <td>{{ log.created_at|date:"M d, Y H:i" }}</td>
+</tr>
+{% empty %}
+<tr>
+    <td style="text-align: center;" colspan="9">
+        <div class="text-muted py-3">
+            <i class="fas fa-search fa-2x mb-2"></i>
+            <br>
+            No dispensed items found matching your search criteria.
+            <br>
+            <small>Try adjusting your search terms or date range.</small>
+        </div>
+    </td>
+</tr>
+{% endfor %}

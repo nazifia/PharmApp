@@ -1,0 +1,212 @@
+{% extends "partials/base.html" %}
+
+{% block content %}
+
+<h3 style="color: red;">Select for: {{ customer.name }}</h3>
+<h4>Wallet Balance: ₦ {{ wallet_balance }}</h4>
+
+<!-- Action selection (purchase or return) -->
+<div class="mb-4">
+    <label for="action" class="form-label" style="font-weight: bold;">Select Action:</label>
+    <select id="action" class="form-select form-control" name="action" form="item-form"
+        style="background-color: rgb(252, 182, 182); width:auto">
+        <option value="purchase" selected>Purchase</option>
+        <option value="return">Return</option>
+    </select>
+</div>
+
+<!-- Search field to filter items -->
+<div class="mb-3">
+    <input type="text" class="form-control" id="wholesale-item-search" name="q" placeholder="Search for items..."
+        hx-get="{% url 'wholesale:search_wholesale_items' %}" hx-trigger="keyup changed delay:300ms"
+        hx-target="#for-customer" hx-swap="innerHTML" hx-indicator=".htmx-indicator"
+        style="background-color: rgb(210, 247, 253);">
+    <div class="htmx-indicator" style="display:none">
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <small>Searching...</small>
+    </div>
+</div>
+
+
+
+<form method="post" action="" id="item-form">
+    {% csrf_token %}
+    <div id="item-selection">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>Item</th>
+                    <th>D/form</th>
+                    <th>Brand</th>
+                    <th>Unit</th>
+                    <th>Price</th>
+                    <th>Stock Available</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody id="for-customer">
+                {% for item in items %}
+                <tr>
+                    <td>
+                        <input type="checkbox" name="item_ids" value="{{ item.id }}">
+                    </td>
+                    <td>{{ item.name|title }}</td>
+                    <td>{{ item.dosage_form|title }}</td>
+                    <td>{{ item.brand|title }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td>{{ item.price }}</td>
+                    <td>{{ item.stock }}</td>
+                    <td>
+                        <input type="number" name="quantities" min="1" max="{{ item.stock_quantity }}" value="1"
+                            class="form-control input-sm" disabled>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Payment Method and Status Selection -->
+    <div class="row mt-4 mb-3">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="payment_method" class="form-label" style="font-weight: bold;">Payment Method:</label>
+                <select id="payment_method" name="payment_method" class="form-select form-control" style="background-color: rgb(210, 247, 253); width:auto">
+                    <option value="Cash" selected>Cash</option>
+                    <option value="Wallet">Wallet</option>
+                    <option value="Transfer">Transfer</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="status" class="form-label" style="font-weight: bold;">Payment Status:</label>
+                <select id="status" name="status" class="form-select form-control" style="background-color: rgb(210, 247, 253); width:auto">
+                    <option value="Paid" selected>Paid</option>
+                    <option value="Unpaid">Unpaid</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success">Proceed with Action</button>
+</form>
+
+<script>
+    // Global object to store selected items across searches
+    let selectedItems = {};
+
+    // Function to save item selection state
+    function saveItemSelection(itemId, isChecked, quantity) {
+        if (isChecked) {
+            selectedItems[itemId] = {
+                checked: true,
+                quantity: quantity || 1
+            };
+        } else {
+            delete selectedItems[itemId];
+        }
+        console.log('Selected items:', selectedItems);
+    }
+
+    // Function to restore item selections after content swap
+    function restoreItemSelections() {
+        Object.keys(selectedItems).forEach(function(itemId) {
+            const checkbox = document.querySelector(`input[type="checkbox"][value="${itemId}"]`);
+            const quantityInput = checkbox ? checkbox.closest('tr').querySelector('input[type="number"]') : null;
+
+            if (checkbox && quantityInput) {
+                checkbox.checked = selectedItems[itemId].checked;
+                quantityInput.disabled = !checkbox.checked;
+                quantityInput.value = selectedItems[itemId].quantity;
+            }
+        });
+    }
+
+    // Function to add hidden inputs for selected items not visible in current search
+    function addHiddenInputsForSelectedItems() {
+        // Remove existing hidden inputs first
+        document.querySelectorAll('.hidden-selected-item').forEach(el => el.remove());
+
+        const form = document.getElementById('item-form');
+        const visibleItemIds = Array.from(document.querySelectorAll('input[type="checkbox"][name="item_ids"]'))
+            .map(cb => cb.value);
+
+        Object.keys(selectedItems).forEach(function(itemId) {
+            if (!visibleItemIds.includes(itemId)) {
+                // Add hidden inputs for items not visible in current search
+                const hiddenItemId = document.createElement('input');
+                hiddenItemId.type = 'hidden';
+                hiddenItemId.name = 'item_ids';
+                hiddenItemId.value = itemId;
+                hiddenItemId.className = 'hidden-selected-item';
+                form.appendChild(hiddenItemId);
+
+                const hiddenQuantity = document.createElement('input');
+                hiddenQuantity.type = 'hidden';
+                hiddenQuantity.name = 'quantities';
+                hiddenQuantity.value = selectedItems[itemId].quantity;
+                hiddenQuantity.className = 'hidden-selected-item';
+                form.appendChild(hiddenQuantity);
+            }
+        });
+    }
+
+    // Function to enable quantity input when checkbox is selected
+    function setupCheckboxListeners() {
+        document.querySelectorAll('input[type="checkbox"][name="item_ids"]').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                const quantityInput = this.closest('tr').querySelector('input[type="number"]');
+                const itemId = this.value;
+                const quantity = quantityInput.value;
+
+                quantityInput.disabled = !this.checked;
+
+                // Save selection state
+                saveItemSelection(itemId, this.checked, quantity);
+
+                // Update hidden inputs
+                addHiddenInputsForSelectedItems();
+            });
+        });
+
+        // Also listen for quantity changes
+        document.querySelectorAll('input[type="number"][name="quantities"]').forEach(function (quantityInput) {
+            quantityInput.addEventListener('change', function () {
+                const checkbox = this.closest('tr').querySelector('input[type="checkbox"]');
+                if (checkbox && checkbox.checked) {
+                    const itemId = checkbox.value;
+                    saveItemSelection(itemId, true, this.value);
+                }
+            });
+        });
+    }
+
+    // Call the function on page load
+    setupCheckboxListeners();
+    restoreItemSelections();
+
+    // Set up HTMX event listener to reinitialize checkbox listeners after search results load
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'for-customer') {
+            setupCheckboxListeners();
+            restoreItemSelections();
+            addHiddenInputsForSelectedItems();
+        }
+    });
+
+    // Update form action dynamically based on selected action
+    const actionSelect = document.getElementById('action');
+    actionSelect.addEventListener('change', function () {
+        const form = document.getElementById('item-form');
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = this.value;
+        form.appendChild(actionInput);
+    });
+</script>
+
+{% endblock %}

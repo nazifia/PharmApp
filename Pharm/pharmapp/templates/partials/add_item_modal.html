@@ -1,0 +1,234 @@
+<div class="modal-header">
+    <h3>ADD NEW ITEM</h3>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">x</button>
+</div>
+<div class="modal-body">
+    <form action="{% url 'store:add_item' %}" method="post">
+        {% csrf_token %}
+        <input type="text" name="name" placeholder=" ENTER ITEM GENERIC NAME" class="form-control mt-3" required>
+        <!-- Hidden input for dosage_form that will be set by the dropdown or custom input -->
+        <input type="hidden" name="dosage_form" id="dosage_form_hidden">
+        <!-- Dosage Form Selection Dropdown -->
+        <select name="dosage_form_select" id="dosage_form_select" class="form-control mt-3" onchange="toggleCustomDosageForm()">
+            <option value="">Select Dosage Form</option>
+            <option value="Tablet">Tablet</option>
+            <option value="Capsule">Capsule</option>
+            <option value="Consumable">Consumable</option>
+            <option value="Cream">Cream</option>
+            <option value="Syrup">Syrup</option>
+            <option value="Patch">Patch</option>
+            <option value="Drops">Drops</option>
+            <option value="Solution">Solution</option>
+            <option value="Suspension">Suspension</option>
+            <option value="Eye-drop">Eye-drop</option>
+            <option value="Ear-drop">Ear-drop</option>
+            <option value="Eye-ointment">Eye-ointment</option>
+            <option value="Galenical">Galenical</option>
+            <option value="Detergents">Detergents</option>
+            <option value="Soaps">Soaps</option>
+            <option value="Drinks">Drinks</option>
+            <option value="Biscuit">Biscuit</option>
+            <option value="BiscuitSweets">BiscuitSweets</option>
+            <option value="Paste">Paste</option>
+            <option value="Table-water">Table-water</option>
+            <option value="Food-item">Food-item</option>
+            <option value="Nasal">Nasal</option>
+            <option value="Injection">Injection</option>
+            <option value="Infusion">Infusion</option>
+            <option value="Inhaler">Inhaler</option>
+            <option value="Vaginal">Vaginal</option>
+            <option value="Rectal">Rectal</option>
+            <option value="custom">Other (specify)</option>
+        </select>
+
+        <!-- Custom Dosage Form input (hidden by default) -->
+        <input type="text" name="custom_dosage_form" id="custom_dosage_form" placeholder="Enter custom dosage form"
+               class="form-control mt-2" style="display: none;">
+        <input type="text" name="brand" placeholder="BRAND NAME" class="form-control mt-3" required>
+        <!-- Hidden input for unit that will be set by the dropdown or custom input -->
+        <input type="hidden" name="unit" id="unit_hidden">
+        <!-- Unit Selection Dropdown -->
+        <select name="unit_select" id="unit_select" class="form-control mt-3" onchange="toggleCustomUnit()">
+            <option value="">Select Unit</option>
+            <option value="Pcs">Pieces</option>
+            <option value="Pack">Packets</option>
+            <option value="Plastic">Plastic</option>
+            <option value="Tab">Tablets</option>
+            <option value="Drops">Drops</option>
+            <option value="Tin">Tins</option>
+            <option value="can">Can</option>
+            <option value="Caps">Capsules</option>
+            <option value="Carton">Cartons</option>
+            <option value="Card">Cards</option>
+            <option value="Bottle">Bottles</option>
+            <option value="Roll">Rolls</option>
+            <option value="Vail">Vail</option>
+            <option value="Amp">Ample</option>
+            <option value="custom">Other (specify)</option>
+        </select>
+
+        <!-- Custom Unit input (hidden by default) -->
+        <input type="text" name="custom_unit" id="custom_unit" placeholder="Enter custom unit"
+               class="form-control mt-2" style="display: none;">
+
+        <input type="number" name="cost" id="cost" step="0.01" placeholder="COST PRICE" class="form-control mt-3"
+            oninput="calculatePrice()" required>
+
+        <!-- Markup Percentage Dropdown -->
+        <select name="markup" id="markup" class="form-control mt-3" onchange="calculatePrice()">
+            <option value="0">Select Markup</option>
+            <option value="2.5">2.5% markup</option>
+            <option value="5">5% markup</option>
+            <option value="7.5">7.5% markup</option>
+            <option value="10">10% markup</option>
+            <option value="12.5">12.5% markup</option>
+            <option value="15">15% markup</option>
+            <option value="17.5">17.5% markup</option>
+            <option value="20">20% markup</option>
+            <option value="22.5">22.5% markup</option>
+            <option value="25">25% markup</option>
+            <option value="27.5">27.5% markup</option>
+            <option value="30">30% markup</option>
+            <option value="32.5">32.5% markup</option>
+            <option value="35">35% markup</option>
+            <option value="37.5">37.5% markup</option>
+            <option value="40">40% markup</option>
+            <option value="42.5">42.5% markup</option>
+            <option value="45">45% markup</option>
+            <option value="47.5">47.5% markup</option>
+            <option value="50">50% markup</option>
+            <option value="52.5">52.5% markup</option>
+            <option value="55">55% markup</option>
+            <option value="57.5">57.5% markup</option>
+            <option value="60">60% markup</option>
+            <option value="62.5">62.5% markup</option>
+            <option value="65">65% markup</option>
+            <option value="67.5">67.5% markup</option>
+            <option value="70">70% markup</option>
+            <option value="72.5">72.5% markup</option>
+            <option value="75">75% markup</option>
+            <option value="77.5">77.5% markup</option>
+            <option value="80">80% markup</option>
+            <option value="82.5">82.5% markup</option>
+            <option value="85">85% markup</option>
+            <option value="87.5">87.5% markup</option>
+            <option value="90">90% markup</option>
+            <option value="92.5">92.5% markup</option>
+            <option value="95">95% markup</option>
+            <option value="97.5">97.5% markup</option>
+            <option value="100">100% markup</option>
+        </select>
+
+        <!-- Selling price field -->
+        <input type="number" name="price" step="0.01" id="price" placeholder="ITEM PRICE" class="form-control mt-3">
+
+        <!-- Manual price override checkbox -->
+        <div class="form-check mt-2 mb-3">
+            <input class="form-check-input" type="checkbox" id="manualPriceOverride" name="manual_price_override">
+            <label class="form-check-label" for="manualPriceOverride">
+                Manually override selling price
+            </label>
+        </div>
+        <input type="number" name="stock" placeholder="STOCK QUANTITY" class="form-control mt-3" required>
+        <input type="date" name="exp_date" class="form-control mt-3" required>
+        <input type="submit" class="btn btn-success btn-sm mt-3" value="Save">
+    </form>
+</div>
+
+<script>
+    // Get references to the elements
+    const costInput = document.getElementById("cost");
+    const markupSelect = document.getElementById("markup");
+    const priceInput = document.getElementById("price");
+    const manualOverrideCheckbox = document.getElementById("manualPriceOverride");
+    const dosageFormSelect = document.getElementById("dosage_form_select");
+    const customDosageFormInput = document.getElementById("custom_dosage_form");
+    const unitSelect = document.getElementById("unit_select");
+    const customUnitInput = document.getElementById("custom_unit");
+
+    // Initialize manual override flag
+    let manualPriceOverride = false;
+
+    // Function to toggle custom dosage form input visibility
+    function toggleCustomDosageForm() {
+        const dosageFormHidden = document.getElementById('dosage_form_hidden');
+
+        if (dosageFormSelect.value === "custom") {
+            customDosageFormInput.style.display = "block";
+            customDosageFormInput.required = true;
+            // Set focus on the custom input field for better UX
+            setTimeout(() => customDosageFormInput.focus(), 100);
+
+            // Update hidden field when custom input changes
+            customDosageFormInput.addEventListener('input', function() {
+                dosageFormHidden.value = this.value;
+            });
+        } else {
+            customDosageFormInput.style.display = "none";
+            customDosageFormInput.required = false;
+            // Set the hidden dosage_form value to the selected option
+            dosageFormHidden.value = dosageFormSelect.value;
+        }
+    }
+
+    // Function to toggle custom unit input visibility
+    function toggleCustomUnit() {
+        const unitHidden = document.getElementById('unit_hidden');
+
+        if (unitSelect.value === "custom") {
+            customUnitInput.style.display = "block";
+            customUnitInput.required = true;
+            // Set focus on the custom input field for better UX
+            setTimeout(() => customUnitInput.focus(), 100);
+
+            // Update hidden field when custom input changes
+            customUnitInput.addEventListener('input', function() {
+                unitHidden.value = this.value;
+            });
+        } else {
+            customUnitInput.style.display = "none";
+            customUnitInput.required = false;
+            // Set the hidden unit value to the selected option
+            unitHidden.value = unitSelect.value;
+        }
+    }
+
+    // Function to calculate price based on cost and markup
+    function calculatePrice() {
+        if (manualPriceOverride) return; // Skip calculation if manual override is enabled
+
+        const cost = parseFloat(costInput.value) || 0;
+        const markupPercentage = parseFloat(markupSelect.value) || 0;
+
+        // Calculate price based on the cost and markup percentage
+        const price = cost + (cost * markupPercentage / 100);
+
+        // Set the calculated price in the price input field
+        priceInput.value = price.toFixed(2);
+    }
+
+    // Add event listener for the manual override checkbox
+    manualOverrideCheckbox.addEventListener('change', function() {
+        manualPriceOverride = this.checked;
+
+        // If manual override is disabled, recalculate the price
+        if (!manualPriceOverride) {
+            calculatePrice();
+        }
+    });
+
+    // Add event listeners for cost and markup changes
+    costInput.addEventListener('input', calculatePrice);
+    markupSelect.addEventListener('change', calculatePrice);
+
+    // Calculate initial price
+    calculatePrice();
+
+    // Initialize the custom field visibility and set initial values
+    toggleCustomDosageForm();
+    toggleCustomUnit();
+
+    // Set initial values for hidden fields
+    document.getElementById('dosage_form_hidden').value = dosageFormSelect.value !== 'custom' ? dosageFormSelect.value : '';
+    document.getElementById('unit_hidden').value = unitSelect.value !== 'custom' ? unitSelect.value : '';
+</script>

@@ -1,0 +1,397 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% load humanize %}
+{% load permission_tags %}
+
+{% block content %}
+
+<style>
+    .table {
+        color: #333;
+        font-size: 1.1em; /* Increased font size */
+    }
+
+    .table th {
+        font-size: 1.15em; /* Slightly larger headers */
+        font-weight: 600;
+    }
+
+    /* Responsive font sizes */
+    @media (max-width: 768px) {
+        .table {
+            font-size: 0.95em;
+        }
+        .table th {
+            font-size: 1em;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .table {
+            font-size: 0.8em;
+        }
+        .table th {
+            font-size: 0.85em;
+        }
+        .table td, .table th {
+            padding: 0.5rem;
+        }
+    }
+
+    .col-md-8 {
+        width: 100%;
+        margin-left: -20px;
+    }
+
+    .col-md-8 button,
+    .col-md-8 a {
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .side-nav {
+        width: 100px;
+        position: sticky;
+        top: 50px;
+        height: calc(100vh - 50px);
+        margin-left: 2em;
+    }
+
+    .side-nav button,
+    .side-nav a {
+        margin: 10px;
+        width: 100px;
+        box-shadow: 2px 5px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .alert-container {
+        margin: 20px 0;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+        padding: 10px 15px;
+        border-radius: 5px;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            grid-template-columns: 1fr;
+        }
+
+        .col-md-8 {
+            width: 100%;
+            margin-left: 0;
+        }
+
+        .side-nav {
+            width: 100%;
+            height: auto;
+            margin-left: 0;
+            margin-bottom: 1em;
+        }
+
+        .side-nav button,
+        .side-nav a {
+            width: 30%;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .container {
+            grid-template-columns: 1fr;
+            margin-top: -2em;
+        }
+
+        .col-md-8 {
+            width: 85%;
+            margin-top: 1.5em;
+        }
+
+        .side-nav {
+            position: relative;
+            width: 100%;
+            height: auto;
+        }
+
+        .side-nav button,
+        .side-nav a {
+            width: 30%;
+            margin: 5px 0;
+        }
+
+        table {
+            font-size: 0.6em;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.5em;
+        }
+    }
+
+    /* Print styles */
+    @media print {
+        .btn,
+        .form-control,
+        .alert-container,
+        .action-buttons,
+        .navbar,
+        .sidebar {
+            display: none !important;
+        }
+        .container {
+            width: 100% !important;
+            max-width: none !important;
+        }
+        .table {
+            font-size: 14px !important; /* Adjusted print font size */
+        }
+        .table th {
+            font-size: 15px !important;
+        }
+    }
+</style>
+
+<!-- Add this in the head section or before closing body -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<a class="btn btn-primary btn-sm "  data-toggle="modal" data-target="#addItemModal" type="button"
+    hx-get="{% url 'store:add_item' %}" hx-target="#addItemModal .modal-content" hx-trigger="click">
+    <i class="fa fa-plus"></i> Add New Item
+</a>
+
+<a class="btn btn-success btn-sm" href="{% url 'store:cart' %}">Dispense Retail</a>
+{% comment %} <a class="btn btn-secondary btn-sm" href="{{request.META.HTTP_REFERER}}">Back</a> {% endcomment %}
+
+<a class="btn btn-warning btn-sm float-right mx-1" href="{% url 'store:transfer_request_list' %}">Requests History</a>
+<a class="btn btn-info btn-sm float-right" href="{% url 'store:pending_transfer_requests' %}">Pending Requests</a>
+<a class="btn btn-primary btn-sm float-right mx-1" href="{% url 'wholesale:create_transfer_request' %}">Send Requests</a>
+
+{% if user.is_superuser %}
+<a class="btn btn-outline-warning btn-sm" href="{% url 'store:adjust_stock_levels' %}">
+    <i class="fa fa-balance-scale"></i> Adjust Stock Levels
+</a>
+{% endif %}
+
+{% if user.is_superuser %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Retail Settings</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="{{ settings_form.low_stock_threshold.id_for_label }}">Low Stock Threshold:</label>
+                {{ settings_form.low_stock_threshold }}
+            </div>
+            <button type="submit" class="btn btn-sm btn-outline-primary mt-2">Update Settings</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="alert-container my-5">
+
+</div>
+
+<div class="col-15">
+    <h2 style="text-align: center;">Retail Items</h2>
+    {% if low_stock_items %}
+    <div class="alert alert-warning" role="alert">
+        <strong>Restocking Alert:</strong> The following items are running low on stock:
+        <ul>
+            {% for item in low_stock_items %}
+            <li>
+                <strong>{{ item.name|title }}</strong>
+                {% if item.brand %} - {{ item.brand|title }}{% endif %}
+                (Stock: {{ item.stock }} {{ item.unit }})
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    <input type="text" class="form-control mb-3 float-right" hx-get="{% url 'store:search_item' %}"
+        hx-trigger="keyup changed delay:300ms" hx-target="#item-list" placeholder="Search items..." name="search"
+        style="background-color: rgb(232, 253, 211); width:auto">
+
+    <div class="action-buttons mb-3 d-flex justify-content-between align-items-center">
+        <div>
+            <a href="{% url 'store:dispensing_log' %}" class="btn btn-info btn-sm">
+                <i class="fas fa-clipboard-list"></i> Dispensing Log
+            </a>
+            <a href="{% url 'store:user_dispensing_summary' %}" class="btn btn-outline-info btn-sm">
+                <i class="fas fa-chart-bar"></i> User Summary
+            </a>
+        </div>
+        <div>
+            <button class="btn btn-primary btn-sm" onclick="printContent('a4')">
+                <i class="fas fa-print"></i> Print A4
+            </button>
+            {% comment %} <button class="btn btn-success btn-sm" onclick="downloadPDF()">
+                <i class="fas fa-download"></i> Download PDF
+            </button> {% endcomment %}
+        </div>
+    </div>
+
+    {% for message in messages %}
+    <div style="text-align: center;" class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    <div class="table-responsive">
+        <table class="table table-hover" id="dataTable" width="100%" cellspacing="0">
+            <thead class="table-secondary">
+                <tr>
+                    <th scope="col">ACTION</th>
+                    <th scope="col">GENERIC</th>
+                    <th scope="col">D/FORM</th>
+                    <th scope="col">BRAND/GEN</th>
+                    <th scope="col">UNIT</th>
+                    {% if user|can_view_financial_data %}
+                    <th scope="col">COST</th>
+                    {% endif %}
+                    <th scope="col">U/PRICE</th>
+                    <th scope="col">STOCK</th>
+                    <th scope="col">EXP DATE</th>
+                </tr>
+            </thead>
+            <tfoot class="table-secondary">
+                <tr>
+                    <th scope="col">ACTION</th>
+                    <th scope="col">GENERIC</th>
+                    <th scope="col">D/FORM</th>
+                    <th scope="col">BRAND/GEN</th>
+                    <th scope="col">UNIT</th>
+                    {% if user|can_view_financial_data %}
+                    <th scope="col">COST</th>
+                    {% endif %}
+                    <th scope="col">U/PRICE</th>
+                    <th scope="col">STOCK</th>
+                    <th scope="col">EXP DATE</th>
+                </tr>
+            </tfoot>
+            <tbody id="item-list">
+                {% for item in items %}
+                <tr>
+                    <td>
+                        <a class="btn btn-sm btn-info" data-toggle="modal" data-target="#editModal"
+                            hx-get="{% url 'store:edit_item' item.id %}" hx-target="#editModal .modal-content">Edit</a>
+
+                        <a class="btn btn-sm btn-warning" data-toggle="modal" data-target="#returnItemModal"
+                            hx-get="{% url 'store:return_item' item.id %}"
+                            hx-target="#returnItemModal .modal-content">Return</a>
+
+                        {% if user|can_delete_items %}
+                        <a href="{% url 'store:delete_item' item.id %}"
+                            onclick="return confirm('Are you sure you want to delete {{item.name|title}} from  Store?')"
+                            class="btn btn-sm btn-danger">x</a>
+                        {% endif %}
+                    </td>
+                    <td>{{item.name}}</td>
+                    <td>{{item.dosage_form|title}}</td>
+                    <td>{{item.brand}}</td>
+                    <td>{{item.unit}}</td>
+                    {% if user|can_view_financial_data %}
+                    <td>{{item.cost|intcomma }}</td>
+                    {% endif %}
+                    <td>{{item.price|intcomma }}</td>
+                    <td>{{item.stock}}</td>
+                    <td>{{item.exp_date}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Item to Store Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+
+
+<!-- Edit Item Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-label="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content"></div>
+    </div>
+</div>
+
+<!-- Return Item Modal -->
+<div class="modal fade" id="returnItemModal" tabindex="-1" aria-label="returnItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content"></div>
+    </div>
+</div>
+
+
+
+<script>
+    function calculatePrice() {
+        const cost = parseFloat(document.getElementById("cost").value) || 0;
+        const markupPercentage = parseFloat(document.getElementById("markup_percentage").value) || 0;
+
+        // Calculate price based on the cost and markup percentage
+        const price = cost + (cost * markupPercentage / 100);
+
+        // Show the calculated price in the price input field
+        document.getElementById("price").value = price.toFixed(2);
+    }
+</script>
+
+<script>
+    function printContent(format) {
+        const originalTitle = document.title;
+        const content = document.querySelector('.col-15');
+
+        // Hide elements we don't want to print
+        const elementsToHide = document.querySelectorAll('.btn, .form-control, .alert-container, .action-buttons');
+        elementsToHide.forEach(el => el.classList.add('d-none'));
+
+        window.print();
+
+        // Restore hidden elements
+        elementsToHide.forEach(el => el.classList.remove('d-none'));
+        document.title = originalTitle;
+    }
+
+    function downloadPDF() {
+        // Show loading indicator
+        const loadingDiv = document.createElement('div');
+        loadingDiv.innerHTML = '<div class="alert alert-info">Generating PDF, please wait...</div>';
+        document.querySelector('.col-15').prepend(loadingDiv);
+
+        const content = document.querySelector('.col-15');
+        const options = {
+            margin: [0.3, 0.3],
+            filename: 'Store_Inventory.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2,
+                logging: true,
+                letterRendering: true
+            },
+            jsPDF: {
+                unit: 'in',
+                format: 'a4',
+                orientation: 'landscape'
+            }
+        };
+
+        // Generate PDF
+        html2pdf().set(options).from(content).save().then(() => {
+            // Remove loading indicator
+            loadingDiv.remove();
+        }).catch(error => {
+            console.error('PDF generation failed:', error);
+            loadingDiv.innerHTML = '<div class="alert alert-danger">PDF generation failed. Please try again.</div>';
+            setTimeout(() => loadingDiv.remove(), 3000);
+        });
+    }
+</script>
+
+{% endblock %}

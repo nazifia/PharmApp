@@ -1,0 +1,103 @@
+<!-- templates/store/transfer_request_list.html -->
+{% extends "partials/base.html" %}
+{% load humanize %}
+{% block content %}
+<div class="container mt-4">
+  <h2>All Transfer Requests & Transfers</h2>
+
+  <!-- Search Form -->
+  <form method="get" class="mb-3">
+    <div class="form-group">
+      <label for="search_date">Search by Date (YYYY-MM-DD):</label>
+      <input type="date" id="search_date" name="date" class="form-control" value="{{ search_date }}">
+    </div>
+    <button type="submit" class="btn btn-sm btn-primary">Search</button>
+    <a href="{% url 'store:transfer_request_list' %}" class="btn btn-sm btn-secondary">Clear</a>
+  </form>
+
+  <!-- Transfer Requests Table -->
+  <table class="table shadow table-hover table-responsive">
+    <thead class="table-dark">
+      <tr>
+        <th>ID</th>
+        <th>User</th>
+        <th>Item</th>
+        <th>D/form</th>
+        <th>Unit</th>
+        <th>Direction</th>
+        <th>Req Qty</th>
+        <th>App Qty</th>
+        <th>Unit Cost</th>
+        <th>Total Cost</th>
+        <th>Status</th>
+        <th>Created At</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for transfer in transfers %}
+        <tr>
+          <td>{{ transfer.id }}</td>
+          <td>{{ request.user }}</td>
+          <td>
+            {% if transfer.from_wholesale %}
+              {{ transfer.retail_item.name }}
+            {% else %}
+              {{ transfer.wholesale_item.name }}
+            {% endif %}
+          </td>
+          <td>
+            {% if transfer.from_wholesale %}
+              {{ transfer.retail_item.dosage_form }}
+            {% else %}
+              {{ transfer.wholesale_item.dosage_form }}
+            {% endif %}
+          </td>
+          <td>
+            {% if transfer.from_wholesale %}
+              {{ transfer.retail_item.unit }}
+            {% else %}
+              {{ transfer.wholesale_item.unit }}
+            {% endif %}
+          </td>
+          <td>
+            {% if transfer.from_wholesale %}
+              Wholesale → Retail
+            {% else %}
+              Retail → Wholesale
+            {% endif %}
+          </td>
+          <td>{{ transfer.requested_quantity }}</td>
+          <td>{{ transfer.approved_quantity|default:"N/A" }}</td>
+          <td>
+            {% if transfer.from_wholesale %}
+              ₦{{ transfer.retail_item.cost|intcomma }}
+            {% else %}
+              ₦{{ transfer.wholesale_item.cost|intcomma }}
+            {% endif %}
+          </td>
+          <td>
+            {% if transfer.total_cost %}
+              ₦{{ transfer.total_cost|intcomma }}
+            {% else %}
+              N/A
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge {% if transfer.status == 'pending' %}bg-warning{% elif transfer.status == 'approved' %}bg-success{% else %}bg-danger{% endif %}">
+              {{ transfer.status|title }}
+            </span>
+          </td>
+          <td>{{ transfer.created_at|date:"d-m-Y H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="12">No transfers found.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+
+

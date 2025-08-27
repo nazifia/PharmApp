@@ -1,0 +1,601 @@
+{% extends 'partials/base.html' %}
+{% load math_filters %}
+{% block content %}
+
+<style>
+    .table {
+        color: #333;
+    }
+
+    .container {
+        display: grid;
+        grid-template-columns: 1fr 5fr;
+        margin-top: 0em;
+    }
+
+    .col-md-8 {
+        width: 80em;
+        margin-left: 2em;
+    }
+
+    .col-md-8 button,
+    .col-md-8 a {
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .side-nav {
+        width: 80px;
+        position: sticky;
+        top: 50px;
+        height: calc(100vh - 50px);
+        margin-left: -2em;
+    }
+
+    .side-nav button,
+    .side-nav a {
+        margin: 10px;
+        width: 100px;
+        box-shadow: 2px 5px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Media query for tablets */
+    @media (max-width: 768px) {
+        .container {
+            grid-template-columns: 1fr;
+            margin-top: 0.5em;
+        }
+
+        .col-md-8 {
+            width: 100%;
+            margin-left: 0;
+            margin-top: -18em;
+        }
+
+        .side-nav {
+            margin-left: 0;
+            width: 100%;
+        }
+    }
+
+    /* Media query for mobile devices */
+    @media (max-width: 480px) {
+        .container {
+            display: block;
+            margin-top: 0.5em;
+        }
+
+        .col-md-8 {
+            width: 100%;
+            margin-left: 0;
+            margin-top: -18em;
+        }
+
+        .side-nav {
+            position: relative;
+            width: 30%;
+            margin-bottom: 0;
+        }
+
+        .side-nav button,
+        .side-nav a {
+            width: 100%;
+        }
+
+        .cart-table table {
+            font-size: 10px;
+            max-width: 70%;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="side-nav">
+        <a class="btn btn-primary btn-sm" data-toggle="modal" data-target="#wholesaleDispenseModal"
+            hx-get="{% url 'wholesale:dispense_wholesale' %}" hx-target="#wholesaleDispenseModal .modal-body">
+            AddTo Wholesale Cart
+        </a>
+        <a class="btn btn-sm btn-warning" href="{% url 'wholesale:wholesale_cart' %}">View Wholesale cart</a>
+        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#paymentModal">Generate Receipt</button>
+
+        <!-- Updated Clear Cart form with better confirmation and feedback -->
+        <form id="clearCartForm" method="POST" action="{% url 'wholesale:clear_wholesale_cart' %}"
+              onsubmit="return confirmClearCart(event);">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-dark btn-sm" id="clearCartBtn">
+                Clear Cart
+            </button>
+        </form>
+
+        <a class="btn btn-secondary btn-sm" href="{{ request.META.HTTP_REFERER }}">Back</a>
+    </div>
+
+    <div class="col-md-8 offset-md-3 cart-table table-responsive">
+        <h3 style="text-align: center;">Wholesale Cart</h3>
+
+        <!-- Message display with auto-hide -->
+        {% if messages %}
+        <div id="messages-container">
+            {% for message in messages %}
+            <div style="text-align: center;" class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if cart_items %}
+
+        <table class="table table-hover" id="dataTable" width="100%" cellspacing="0">
+            <thead class="table-primary">
+                <tr>
+                    <th scope="col">S/no</th>
+                    <th scope="col">Generic</th>
+                    <th scope="col">D/form</th>
+                    <th scope="col">Brand</th>
+                    <th scope="col">Qty (Unit)</th>
+                    <th scope="col">Rate</th>
+                    <th scope="col">Subtotal</th>
+                    <th scope="col">Reduce-by</th>
+                    <th scope="col">Discount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cart_item in cart_items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ cart_item.item.name|title }}</td>
+                    <td>{{ cart_item.item.dosage_form|title }}</td>
+                    <td>{{ cart_item.item.brand }}</td>
+                    <td>{{ cart_item.quantity }} ({{ cart_item.item.unit }})</td> <!-- Display Quantity and Unit -->
+                    <td>{{ cart_item.item.price }}</td>
+                    <td>{{ cart_item.subtotal|floatformat:2 }}</td>
+                    <td>
+                        <!-- Form for Adjusting Quantity -->
+                        <form action="{% url 'wholesale:update_wholesale_cart_quantity' cart_item.id %}" method="post">
+                            {% csrf_token %}
+                            <input type="number" name="quantity" min="0.5" step="0.5" value="{{ cart_item.quantity }}" id="quantity"
+                                style="width: 70px; border-radius: 3px;">
+                            <button class="btn btn-outline-danger btn-sm mb-2" type="submit">Reduce</button>
+                        </form>
+                    </td>
+                    <td>
+                        <!-- Form for Applying Discount -->
+                        <form action="" method="post">
+                        {% csrf_token %}
+                        <!-- Use unique input name for each item using cart_item.id -->
+                        <input type="number" step="0.01" name="discount_amount-{{ cart_item.id }}"
+                        value="{{ cart_item.discount_amount|default:0 }}" id="discount_amount-{{ cart_item.id }}" min="0"
+                        style="width: 70px; border-radius: 3px;" max="{{ cart_item.price|mul:cart_item.quantity }}">
+                        <button class="btn btn-outline-info btn-sm mb-2" type="submit">Apply</button>
+                        </form>
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+
+        <h6>TOTAL PRICE: ₦ <span id="totalPrice">{{ total_price|floatformat:2 }}</span></h6>
+        {% if total_discount > 0 %}
+        <h6>DISCOUNT: ₦ <span id="totalDiscount">{{ total_discount|floatformat:2 }}</span></h6>
+        <h5>TOTAL AFTER DISCOUNT: ₦ <span id="totalAfterDiscount">{{ total_discounted_price|floatformat:2 }}</span></h5>
+        {% endif %}
+        {% else %}
+        <div class="col-md-8 offset-md-3">
+            <h3 style="text-align: center; color:blue">No item found in the cart</h3>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Enhanced JavaScript for cart functionality -->
+<script>
+    // Improved clear cart confirmation
+    function confirmClearCart(event) {
+        event.preventDefault();
+
+        if (document.querySelectorAll('#dataTable tbody tr').length === 0) {
+            alert('Cart is already empty.');
+            return false;
+        }
+
+        const confirmed = confirm("Are you sure you want to clear the cart? This will:\n" +
+            "- Remove all items from cart\n" +
+            "- Return items to stock\n" +
+            "- Reverse any pending transactions\n" +
+            "\nThis action cannot be undone.");
+
+        if (confirmed) {
+            // Disable the clear cart button to prevent double submission
+            document.getElementById('clearCartBtn').disabled = true;
+            document.getElementById('clearCartForm').submit();
+        }
+        return false;
+    }
+
+    // Auto-hide messages after 5 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            const messages = document.querySelectorAll('.alert');
+            messages.forEach(function(message) {
+                const alert = new bootstrap.Alert(message);
+                alert.close();
+            });
+        }, 5000);
+    });
+
+    // Prevent form resubmission on page refresh
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+
+    // Update payment method and status handling
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up event listener for when the payment modal is shown
+        $('#paymentModal').on('show.bs.modal', function () {
+            // Check if there's a wholesale customer
+            const hasCustomer = {% if wholesale_customer %}true{% else %}false{% endif %};
+
+            // Set default values based on customer presence
+            const paymentMethodSelect = document.getElementById('payment_method');
+            const statusSelect = document.getElementById('status');
+
+            if (paymentMethodSelect) {
+                if (hasCustomer) {
+                    // Find and select the Wallet option for registered customers
+                    for (let i = 0; i < paymentMethodSelect.options.length; i++) {
+                        if (paymentMethodSelect.options[i].value === 'Wallet') {
+                            paymentMethodSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                } else {
+                    // Find and select the Cash option for walk-in customers
+                    for (let i = 0; i < paymentMethodSelect.options.length; i++) {
+                        if (paymentMethodSelect.options[i].value === 'Cash') {
+                            paymentMethodSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (statusSelect) {
+                // Find and select the Paid option for all customers
+                for (let i = 0; i < statusSelect.options.length; i++) {
+                    if (statusSelect.options[i].value === 'Paid') {
+                        statusSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // Log initial values
+            console.log('Initial payment method:', paymentMethodSelect ? paymentMethodSelect.value : 'N/A');
+            console.log('Initial status:', statusSelect ? statusSelect.value : 'N/A');
+        });
+
+        // Get references to form elements
+        const paymentForm = document.getElementById('paymentForm');
+        const paymentMethodSelect = document.getElementById('payment_method');
+        const statusSelect = document.getElementById('status');
+
+        // Create hidden fields for selected values
+        const selectedPaymentMethodHidden = document.createElement('input');
+        selectedPaymentMethodHidden.type = 'hidden';
+        selectedPaymentMethodHidden.name = 'selected_payment_method';
+        if (paymentForm) paymentForm.appendChild(selectedPaymentMethodHidden);
+
+        const selectedStatusHidden = document.createElement('input');
+        selectedStatusHidden.type = 'hidden';
+        selectedStatusHidden.name = 'selected_status';
+        if (paymentForm) paymentForm.appendChild(selectedStatusHidden);
+
+        // Update debug info and hidden fields when payment method changes
+        if (paymentMethodSelect) {
+            paymentMethodSelect.addEventListener('change', function() {
+                const value = this.value;
+                if (selectedPaymentMethodHidden) {
+                    selectedPaymentMethodHidden.value = value;
+                }
+                console.log('Payment method changed to:', value);
+            });
+        }
+
+        // Update debug info and hidden fields when status changes
+        if (statusSelect) {
+            statusSelect.addEventListener('change', function() {
+                const value = this.value;
+                if (selectedStatusHidden) {
+                    selectedStatusHidden.value = value;
+                }
+                console.log('Payment status changed to:', value);
+            });
+        }
+
+        // Initialize hidden fields with current values
+        if (paymentMethodSelect) {
+            // Get the pre-selected value
+            const initialPaymentMethod = paymentMethodSelect.value;
+            console.log('Initial payment method:', initialPaymentMethod);
+
+            if (selectedPaymentMethodHidden) {
+                selectedPaymentMethodHidden.value = initialPaymentMethod;
+            }
+        }
+        if (statusSelect) {
+            // Get the pre-selected value
+            const initialStatus = statusSelect.value;
+            console.log('Initial status:', initialStatus);
+
+            if (selectedStatusHidden) {
+                selectedStatusHidden.value = initialStatus;
+            }
+        }
+
+        // Submit form handler
+        if (paymentForm) {
+            paymentForm.addEventListener('submit', function(e) {
+                // Temporarily stop the form submission
+                e.preventDefault();
+
+                // Get the current values from the select elements
+                const paymentMethodValue = paymentMethodSelect ? paymentMethodSelect.value : 'Cash';
+                const statusValue = statusSelect ? statusSelect.value : 'Paid';
+
+                // Remove any existing hidden fields with the same names to avoid duplicates
+                const existingHiddenFields = paymentForm.querySelectorAll('input[type="hidden"][name="payment_method"], input[type="hidden"][name="status"]');
+                existingHiddenFields.forEach(field => field.remove());
+
+                // Create new hidden input fields with the selected values
+                // This ensures they are submitted with the form
+                const paymentMethodInput = document.createElement('input');
+                paymentMethodInput.type = 'hidden';
+                paymentMethodInput.name = 'payment_method';
+                paymentMethodInput.value = paymentMethodValue;
+                paymentForm.appendChild(paymentMethodInput);
+
+                const statusInput = document.createElement('input');
+                statusInput.type = 'hidden';
+                statusInput.name = 'status';
+                statusInput.value = statusValue;
+                paymentForm.appendChild(statusInput);
+
+                // Also update the existing select elements
+                if (paymentMethodSelect) {
+                    paymentMethodSelect.value = paymentMethodValue;
+                }
+                if (statusSelect) {
+                    statusSelect.value = statusValue;
+                }
+
+                // Also update the hidden fields as a backup
+                if (selectedPaymentMethodHidden) {
+                    selectedPaymentMethodHidden.value = paymentMethodValue;
+                }
+                if (selectedStatusHidden) {
+                    selectedStatusHidden.value = statusValue;
+                }
+
+                // Log form values before submission
+                console.log('Form submitted with:');
+                console.log('Payment Method:', paymentMethodValue);
+                console.log('Status:', statusValue);
+                console.log('Hidden Payment Method:', selectedPaymentMethodHidden ? selectedPaymentMethodHidden.value : 'N/A');
+                console.log('Hidden Status:', selectedStatusHidden ? selectedStatusHidden.value : 'N/A');
+                console.log('Buyer Name:', document.getElementById('buyer_name') ? document.getElementById('buyer_name').value : 'N/A');
+
+                // Add a direct console log of the final form data
+                console.log('FINAL FORM DATA:');
+                const formData = new FormData(paymentForm);
+                for (let [key, value] of formData.entries()) {
+                    console.log(`${key}: ${value}`);
+                }
+
+                // Submit with a small delay to ensure all DOM updates are complete
+                setTimeout(() => {
+                    paymentForm.submit();
+                }, 100);
+            });
+        }
+    });
+</script>
+
+<!-- Dispense Modal -->
+<div class="modal fade" id="wholesaleDispenseModal" tabindex="-1"
+     aria-labelledby="wholesaleDispenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>SELECT ITEM FOR WHOLESALE</h3>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Method Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>SELECT PAYMENT METHOD</h3>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'wholesale:wholesale_receipt' %}" id="paymentForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="payment_type"><strong>Payment Type:</strong></label>
+                        <select name="payment_type" id="payment_type" class="form-control" onchange="togglePaymentOptions()">
+                            <option value="single">Single Payment Method</option>
+                            <option value="split">Split Payment</option>
+                        </select>
+                    </div>
+
+                    <!-- Single Payment Method Options -->
+                    <div id="single_payment_options">
+                        <div class="form-group">
+                            <label for="payment_method"><strong>Payment Method:</strong></label>
+                            <select name="payment_method" id="payment_method" class="form-control" required data-original-name="payment_method">
+                                <option value="Cash" {% if not wholesale_customer %}selected{% endif %}>Cash</option>
+                                <option value="Transfer">Bank Transfer</option>
+                                <option value="Wallet" {% if wholesale_customer %}selected{% endif %}>Customer Wallet</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="status"><strong>Payment Status:</strong></label>
+                            <select name="status" id="status" class="form-control" required data-original-name="status">
+                                <option value="Paid" selected>Paid</option>
+                                <option value="Unpaid">Unpaid</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Split Payment Options -->
+                    <div id="split_payment_options" style="display: none;">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                First Payment
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="payment_method_1"><strong>Payment Method:</strong></label>
+                                    <select name="payment_method_1" id="payment_method_1" class="form-control" onchange="validateWalletPayment()">
+                                        <option value="Cash">Cash</option>
+                                        <option value="Transfer">Bank Transfer</option>
+                                        <option value="Wallet" {% if wholesale_customer %}selected{% endif %}>Customer Wallet {% if wholesale_customer %}(Balance: ₦{{ wholesale_customer.wholesale_customer_wallet.balance|floatformat:2 }}){% endif %}</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="payment_amount_1"><strong>Amount:</strong></label>
+                                    <input type="number" step="0.01" class="form-control" id="payment_amount_1" name="payment_amount_1" placeholder="Enter amount" onchange="updateRemainingAmount()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                Second Payment
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="payment_method_2"><strong>Payment Method:</strong></label>
+                                    <select name="payment_method_2" id="payment_method_2" class="form-control" onchange="validateWalletPayment()">
+                                        <option value="Cash">Cash</option>
+                                        <option value="Transfer">Bank Transfer</option>
+                                        <option value="Wallet" {% if wholesale_customer %}selected{% endif %}>Customer Wallet {% if wholesale_customer %}(Balance: ₦{{ wholesale_customer.wholesale_customer_wallet.balance|floatformat:2 }}){% endif %}</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="payment_amount_2"><strong>Amount (Remaining: <span id="remaining_amount">{{ total_price }}</span>):</strong></label>
+                                    <input type="number" step="0.01" class="form-control" id="payment_amount_2" name="payment_amount_2" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="split_status"><strong>Overall Payment Status:</strong></label>
+                            <select name="split_status" id="split_status" class="form-control">
+                                <option value="Paid" selected>Paid</option>
+                                <option value="Unpaid">Unpaid</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="buyer_name"><strong>Buyer's Name:</strong></label>
+                        <input type="text" name="buyer_name" id="buyer_name" class="form-control" placeholder="WALK-IN CUSTOMER">
+                    </div>
+                    <div class="form-group">
+                        <label for="buyer_address"><strong>Buyer's Address:</strong></label>
+                        <input type="text" name="buyer_address" id="buyer_address" class="form-control" placeholder="Address">
+                    </div>
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">Generate Receipt</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <script>
+                function togglePaymentOptions() {
+                    var paymentType = document.getElementById('payment_type').value;
+                    if (paymentType === 'single') {
+                        document.getElementById('single_payment_options').style.display = 'block';
+                        document.getElementById('split_payment_options').style.display = 'none';
+                    } else {
+                        document.getElementById('single_payment_options').style.display = 'none';
+                        document.getElementById('split_payment_options').style.display = 'block';
+                        // Initialize the remaining amount
+                        var totalPrice = parseFloat('{{ total_price }}');
+                        document.getElementById('remaining_amount').textContent = totalPrice.toFixed(2);
+                    }
+                }
+
+                function updateRemainingAmount() {
+                    var totalPrice = parseFloat('{{ total_price }}');
+                    var firstPayment = parseFloat(document.getElementById('payment_amount_1').value) || 0;
+                    var remaining = totalPrice - firstPayment;
+
+                    // Update the remaining amount display
+                    document.getElementById('remaining_amount').textContent = remaining.toFixed(2);
+
+                    // Update the second payment amount
+                    document.getElementById('payment_amount_2').value = remaining.toFixed(2);
+
+                    // Validate wallet payment if customer is registered
+                    validateWalletPayment();
+                }
+
+                function validateWalletPayment() {
+                    {% if wholesale_customer %}
+                    var walletBalance = parseFloat('{{ wholesale_customer.wholesale_customer_wallet.balance }}');
+                    var payment1Method = document.getElementById('payment_method_1').value;
+                    var payment2Method = document.getElementById('payment_method_2').value;
+                    var payment1Amount = parseFloat(document.getElementById('payment_amount_1').value) || 0;
+                    var payment2Amount = parseFloat(document.getElementById('payment_amount_2').value) || 0;
+
+                    var walletErrorMsg = document.getElementById('wallet-error-msg');
+                    if (!walletErrorMsg) {
+                        walletErrorMsg = document.createElement('div');
+                        walletErrorMsg.id = 'wallet-error-msg';
+                        walletErrorMsg.className = 'alert alert-danger mt-2';
+                        walletErrorMsg.style.display = 'none';
+                        document.getElementById('split_payment_options').appendChild(walletErrorMsg);
+                    }
+
+                    var totalWalletAmount = 0;
+                    if (payment1Method === 'Wallet') {
+                        totalWalletAmount += payment1Amount;
+                    }
+                    if (payment2Method === 'Wallet') {
+                        totalWalletAmount += payment2Amount;
+                    }
+
+                    if (totalWalletAmount > walletBalance) {
+                        walletErrorMsg.textContent = 'Warning: Total wallet payment (₦' + totalWalletAmount.toFixed(2) + ') exceeds available balance (₦' + walletBalance.toFixed(2) + ')';
+                        walletErrorMsg.style.display = 'block';
+                        document.querySelector('button[type="submit"]').disabled = true;
+                    } else {
+                        walletErrorMsg.style.display = 'none';
+                        document.querySelector('button[type="submit"]').disabled = false;
+                    }
+                    {% endif %}
+                }
+            </script>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

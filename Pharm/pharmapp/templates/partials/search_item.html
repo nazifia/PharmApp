@@ -1,0 +1,31 @@
+{% load permission_tags %}
+{% for item in items %}
+<tr>
+    <td>
+        <a class="btn btn-sm btn-info" data-toggle="modal" data-target="#editModal"
+            hx-get="{% url 'store:edit_item' item.id %}" hx-target="#editModal .modal-content">Edit</a>
+
+        <a class="btn btn-sm btn-warning" data-toggle="modal" data-target="#returnItemModal" hx-get="{% url 'store:return_item' item.id %}"
+            hx-target="#returnItemModal .modal-content">Return</a>
+
+        {% if user|can_delete_items %}
+        <a href="{% url 'store:delete_item' item.id %}" onclick="return confirm('Are you sure you want to delete {{item.name|title}} from  Store?')"
+            class="btn btn-sm btn-danger">x</a>
+        {% endif %}
+    </td>
+    <td>{{item.name|title}}</td>
+    <td>{{item.dosage_form|title}}</td>
+    <td>{{item.brand|upper}}</td>
+    <td>{{item.unit}}</td>
+    {% if user.is_superuser or is_staff %}
+    <td>{{item.cost}}</td>
+    {% endif %}
+    <td>{{item.price}}</td>
+    <td>{{item.stock}}</td>
+    <td>{{item.exp_date}}</td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="6" style="text-align: center;">No item found matching "{{ request.GET.search }}"</td>
+</tr>
+{% endfor %}

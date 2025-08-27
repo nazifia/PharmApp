@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+{% load static %}
+{% load humanize %}
+{% load custom_filters %}
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt - {{ receipt.receipt_id }}</title>
+    <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/receipt_print.css' %}" rel="stylesheet">
+    <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body>
+    <div id="receipt" class="receipt-container">
+        {% block content %}
+        <header>
+            <div class="receipt-head">
+                <h3>Nazz Pharmacy</h3>
+                <p>No. 123 FTH Jibia Bypass, Katsina</p>
+                <p>Tel: +234-XXX-XXX-XXXX</p>
+                <p>Date: {{ receipt.date|date:"F j, Y" }}</p>
+                <p>Receipt Type: <strong>Retail</strong></p>
+                <p>Receipt ID: {{ receipt.receipt_id }}</p>
+                <p>Sales Person: {{ user.username }}</p>
+
+                {% if receipt.payment_method == 'Split' %}
+                <p style="font-size: 1.1em; margin-top: 5px;">Payment Method: <strong style="color: #0066cc;">Split Payment</strong></p>
+                <div style="border: 1px solid #ddd; padding: 8px; margin: 8px 0; border-radius: 5px; background-color: #f8f9fa;">
+                    {% if receipt_payments %}
+                        {% for payment in receipt_payments %}
+                        <p style="margin: 4px 0; font-weight: 500;">
+                            <span style="display: inline-block; width: 80px;">{{ payment.payment_method }}:</span>
+                            <span style="color: #0066cc; font-weight: bold;">₦{{ payment.amount|floatformat:2|intcomma }}</span>
+                        </p>
+                        {% endfor %}
+                    {% elif split_payment_details %}
+                        <p style="margin: 4px 0; font-weight: 500;">
+                            <span style="display: inline-block; width: 80px;">{{ split_payment_details.payment_method_1 }}:</span>
+                            <span style="color: #0066cc; font-weight: bold;">₦{{ split_payment_details.payment_amount_1|floatformat:2|intcomma }}</span>
+                        </p>
+                        <p style="margin: 4px 0; font-weight: 500;">
+                            <span style="display: inline-block; width: 80px;">{{ split_payment_details.payment_method_2 }}:</span>
+                            <span style="color: #0066cc; font-weight: bold;">₦{{ split_payment_details.payment_amount_2|floatformat:2|intcomma }}</span>
+                        </p>
+                    {% else %}
+                        <p style="color: #dc3545; font-style: italic;">Split payment details not available</p>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p style="font-size: 1.1em; margin-top: 5px;">Payment Method: <strong style="color: #0066cc;">{{ receipt.payment_method|default:'Cash' }}</strong></p>
+                {% endif %}
+
+                <p style="font-size: 1.1em; margin-top: 5px;">Payment Status: <strong style="color: {% if receipt.calculated_status == 'Paid' %}#28a745{% elif receipt.calculated_status == 'Partially Paid' %}#ffc107{% else %}#dc3545{% endif %};">{{ receipt.calculated_status|default:'Unpaid' }}</strong></p>
+
+                {% if receipt.wallet_went_negative %}
+                <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 8px; margin: 10px 0; color: #856404;">
+                    <strong>⚠️ NOTICE:</strong> Customer's wallet balance went negative during this transaction.
+                </div>
+                {% endif %}
+
+                <!-- Debug info -->
+                <p style="display: none;">Debug - Payment Method: {{ receipt.payment_method }}, Status: {{ receipt.status }}</p>
+            </div>
+        </header>
+
+        <form id="buyer-info-form" method="POST" action="{% url 'store:receipt_detail' receipt.receipt_id %}"
+            style="text-align: center;">
+            {% csrf_token %}
+            <label for="buyer_name">Buyer's Name:</label>
+            <input type="text" id="buyer_name" name="buyer_name"
+                value="{% if receipt.customer %}{{ receipt.customer.name|upper }}{% elif receipt.buyer_name %}{{ receipt.buyer_name|upper }}{% else %}WALK-IN CUSTOMER{% endif %}"
+                {% if receipt.customer %}readonly{% endif %}
+                placeholder="WALK-IN CUSTOMER"
+                style="border: none; border-bottom:1px solid grey; margin-bottom: 3px; {% if receipt.customer %}background-color: #f0f0f0;{% endif %}">
+            <div class="box">
+                <label for="buyer_address">Buyer's Address:</label>
+                <input type="text" id="buyer_address" name="buyer_address" value="{{ receipt.buyer_address|default:'' }}"
+                    placeholder="Customer Address" style="border: none; border-bottom:1px solid grey;">
+            </div>
+
+
+        </form>
+
+        {% if sales_items %}
+        <div class="table-responsive mt-3">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Item Name</th>
+                        <th class="dosage-form-column">Dosage Form</th>
+                        <th class="brand-column">Brand</th>
+                        <th>Unit</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in sales_items %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.item.name|title }}</td>
+                        <td class="dosage-form-column">{{ item.item.dosage_form|title }}</td>
+                        <td class="brand-column">{{ item.item.brand|title }}</td>
+                        <td>{{ item.item.unit }}</td>
+                        <td>{{ item.quantity|floatformat:2|intcomma }}</td>
+                        <td>₦{{ item.price|intcomma }}</td>
+                        <td>₦{{ item.price|multiply:item.quantity|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="totals" style="text-align: right;">
+                <h6>Total Price: ₦{{ total_price|floatformat:2|intcomma }}</h6>
+                {% if total_discounted_price %}
+                <h4>Total Payable: ₦{{ total_discounted_price|floatformat:2|intcomma }}</h4>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% endblock %}
+
+        <footer>
+            <p>___Thank you for your patronage___</p>
+            <p>This is a computer-generated receipt</p>
+            <small>{{ receipt.date|date:"F j, Y H:i" }}</small>
+        </footer>
+    </div>
+
+
+
+    <div class="action-buttons no-print">
+        <button class="btn btn-primary btn-sm" onclick="printReceipt('thermal')">
+            <i class="fas fa-print"></i> Thermal Print
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="printReceipt('a4')">
+            <i class="fas fa-print"></i> A4 Print
+        </button>
+        <button class="btn btn-success btn-sm" onclick="downloadPDF()">
+            <i class="fas fa-download"></i> Download PDF
+        </button>
+        <button class="btn btn-info btn-sm" onclick="submitFormAndPrint()">
+            <i class="fas fa-save"></i> Save & Print
+        </button>
+        <a href="{{ request.META.HTTP_REFERER }}" class="btn btn-outline-dark btn-sm">Back</a>
+    </div>
+
+    <script>
+        function submitFormAndPrint() {
+            // Log form values before submission
+            const form = document.getElementById('buyer-info-form');
+            console.log('Submitting form with buyer info');
+
+            // Submit the form
+            form.submit();
+
+            // Wait for form submission to complete before printing
+            setTimeout(function () {
+                printReceipt('thermal');
+                window.location.href = "{% url 'store:view_cart' %}";
+            }, 500);
+        }
+
+
+
+        function printReceipt(format) {
+            const receipt = document.getElementById('receipt');
+            const originalTitle = document.title;
+            const originalWidth = receipt.style.width;
+
+            // Store original display values
+            const dosageFormCells = document.querySelectorAll('.dosage-form-column');
+            const brandCells = document.querySelectorAll('.brand-column');
+            const originalDosageDisplayValues = Array.from(dosageFormCells).map(cell => cell.style.display);
+            const originalBrandDisplayValues = Array.from(brandCells).map(cell => cell.style.display);
+
+            if (format === 'thermal') {
+                receipt.style.width = '80mm';
+                receipt.style.margin = '0 auto';
+                receipt.style.padding = '3mm';
+                document.title = 'Thermal_' + originalTitle;
+
+                // Add thermal-specific styles
+                const style = document.createElement('style');
+                style.id = 'thermal-print-styles';
+                style.textContent = `
+                    .thermal-print {
+                        font-family: 'Courier New', monospace;
+                        font-size: 10px;
+                        line-height: 1.3;
+                    }
+                    .thermal-print .receipt-head {
+                        text-align: center;
+                        margin-bottom: 8px;
+                    }
+                    .thermal-print .receipt-head h3 {
+                        font-size: 14px;
+                        font-weight: bold;
+                        margin: 0 0 4px 0;
+                    }
+                    .thermal-print .receipt-head p {
+                        margin: 2px 0;
+                    }
+                    .thermal-print table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 8px 0;
+                    }
+                    .thermal-print table th {
+                        font-weight: bold;
+                        text-align: left;
+                        border-top: 1px solid #000;
+                        border-bottom: 1px solid #000;
+                        padding: 3px 2px;
+                    }
+                    .thermal-print table td {
+                        padding: 3px 2px;
+                        border-bottom: 1px dotted #ccc;
+                    }
+                    .thermal-print table td:first-child {
+                        width: 8%;
+                        text-align: center;
+                    }
+                    .thermal-print table td:nth-child(2) {
+                        width: 42%;
+                    }
+                    .thermal-print table td:nth-child(3) {
+                        width: 15%;
+                        text-align: center;
+                    }
+                    .thermal-print table td:last-child {
+                        width: 35%;
+                        text-align: right;
+                    }
+                    .thermal-print .totals {
+                        margin-top: 8px;
+                        text-align: right;
+                        border-top: 1px solid #000;
+                        padding-top: 5px;
+                    }
+                    .thermal-print .totals h6 {
+                        margin: 3px 0;
+                        font-size: 11px;
+                    }
+                    .thermal-print .totals h4 {
+                        margin: 5px 0;
+                        font-size: 12px;
+                        font-weight: bold;
+                    }
+                    .thermal-print footer {
+                        margin-top: 10px;
+                        text-align: center;
+                        border-top: 1px solid #000;
+                        padding-top: 5px;
+                    }
+                    .thermal-print footer p {
+                        margin: 2px 0;
+                    }
+                    .thermal-print footer small {
+                        font-size: 9px;
+                    }
+                `;
+                document.head.appendChild(style);
+
+                receipt.classList.add('thermal-print');
+
+                // Hide dosage form and brand columns
+                dosageFormCells.forEach(cell => cell.style.display = 'none');
+                brandCells.forEach(cell => cell.style.display = 'none');
+
+            } else {
+                // A4 format settings
+                receipt.style.width = '210mm';
+                receipt.style.padding = '15mm';
+                document.title = 'A4_' + originalTitle;
+
+                // Remove thermal styles
+                const thermalStyles = document.getElementById('thermal-print-styles');
+                if (thermalStyles) thermalStyles.remove();
+
+                receipt.classList.remove('thermal-print');
+
+                // Show all columns
+                dosageFormCells.forEach((cell, index) => {
+                    cell.style.display = originalDosageDisplayValues[index];
+                });
+                brandCells.forEach((cell, index) => {
+                    cell.style.display = originalBrandDisplayValues[index];
+                });
+            }
+
+            window.print();
+
+            // Restore original styles
+            setTimeout(() => {
+                receipt.style.width = originalWidth;
+                receipt.style.margin = '';
+                receipt.style.padding = '';
+                receipt.classList.remove('thermal-print');
+
+                const thermalStyles = document.getElementById('thermal-print-styles');
+                if (thermalStyles) thermalStyles.remove();
+
+                // Restore columns
+                dosageFormCells.forEach((cell, index) => {
+                    cell.style.display = originalDosageDisplayValues[index];
+                });
+                brandCells.forEach((cell, index) => {
+                    cell.style.display = originalBrandDisplayValues[index];
+                });
+
+                document.title = originalTitle;
+            }, 100);
+        }
+
+        function downloadPDF() {
+            const receipt = document.getElementById('receipt');
+            const options = {
+                margin: 10,
+                filename: 'Receipt_{{ receipt.receipt_id }}.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().from(receipt).set(options).save();
+        }
+
+        window.onafterprint = function() {
+            document.title = 'Receipt - {{ receipt.receipt_id }}';
+        };
+    </script>
+</body>
+
+</html>

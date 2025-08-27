@@ -1,0 +1,213 @@
+{% extends "partials/base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-center">Activity Log Dashboard</h1>
+            <p class="text-center text-muted">Monitor user activities across the system</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Activities</h5>
+                    <h2 class="display-4">{{ total_logs }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">{{ filtered_date_label }}</h5>
+                    <h2 class="display-4">{{ today_logs }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        {% if has_date_filter %}
+                            Users in Results
+                        {% else %}
+                            Active Users (7 days)
+                        {% endif %}
+                    </h5>
+                    <h2 class="display-4">{{ active_users }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate Test Logs Button -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <a href="{% url 'userauth:generate_test_logs' %}" class="btn btn-outline-primary">
+                <i class="fa fa-plus-circle"></i> Generate Test Logs
+            </a>
+            <a href="{% url 'admin:userauth_activitylog_changelist' %}" class="btn btn-outline-secondary ml-2">
+                <i class="fa fa-cog"></i> Admin View
+            </a>
+        </div>
+    </div>
+
+    <!-- Enhanced Search and Filter Section -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-search mr-2"></i>Search & Filter Activity Logs</h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{% url 'userauth:activity_dashboard' %}">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="{{ search_form.search_query.id_for_label }}" class="form-label">
+                                    <i class="fas fa-search mr-1"></i>{{ search_form.search_query.label }}
+                                </label>
+                                {{ search_form.search_query }}
+                                <small class="form-text text-muted">Search by action or username</small>
+                            </div>
+                            {% if can_view_all_users %}
+                            <div class="col-md-2">
+                                <label for="{{ search_form.user.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user mr-1"></i>{{ search_form.user.label }}
+                                </label>
+                                {{ search_form.user }}
+                            </div>
+                            {% endif %}
+                            <div class="col-md-2">
+                                <label for="{{ search_form.date.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calendar mr-1"></i>{{ search_form.date.label }}
+                                </label>
+                                {{ search_form.date }}
+                                <small class="form-text text-muted">Single date filter</small>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="{{ search_form.action_type.id_for_label }}" class="form-label">
+                                    <i class="fas fa-info-circle mr-1"></i>{{ search_form.action_type.label }}
+                                </label>
+                                {{ search_form.action_type }}
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary btn-sm mr-2">
+                                    <i class="fas fa-search mr-1"></i>Search
+                                </button>
+                                <a href="{% url 'userauth:activity_dashboard' %}" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-times mr-1"></i>Clear
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Date Range Section -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <h6 class="text-muted">Or use date range:</h6>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ search_form.date_from.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calendar-alt mr-1"></i>{{ search_form.date_from.label }}
+                                </label>
+                                {{ search_form.date_from }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ search_form.date_to.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calendar-alt mr-1"></i>{{ search_form.date_to.label }}
+                                </label>
+                                {{ search_form.date_to }}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Recent Activities</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>User Type</th>
+                                    <th>Action Type</th>
+                                    <th>Action</th>
+                                    <th>Target</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in recent_logs %}
+                                <tr>
+                                    <td>{{ log.user.username }}</td>
+                                    <td>
+                                        {% if log.user.profile.user_type %}
+                                            <span class="badge badge-primary">{{ log.user.profile.user_type }}</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.action_type == 'LOGIN' %}
+                                            <span class="badge badge-success">Login</span>
+                                        {% elif log.action_type == 'LOGOUT' %}
+                                            <span class="badge badge-warning">Logout</span>
+                                        {% elif log.action_type == 'CREATE' %}
+                                            <span class="badge badge-info">Create</span>
+                                        {% elif log.action_type == 'UPDATE' %}
+                                            <span class="badge badge-primary">Update</span>
+                                        {% elif log.action_type == 'DELETE' %}
+                                            <span class="badge badge-danger">Delete</span>
+                                        {% elif log.action_type == 'VIEW' %}
+                                            <span class="badge badge-secondary">View</span>
+                                        {% elif log.action_type == 'EXPORT' %}
+                                            <span class="badge badge-dark">Export</span>
+                                        {% elif log.action_type == 'IMPORT' %}
+                                            <span class="badge badge-light">Import</span>
+                                        {% elif log.action_type == 'TRANSFER' %}
+                                            <span class="badge badge-info">Transfer</span>
+                                        {% elif log.action_type == 'PAYMENT' %}
+                                            <span class="badge badge-success">Payment</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ log.action_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ log.action|truncatechars:50 }}</small>
+                                    </td>
+                                    <td>
+                                        {% if log.target_model %}
+                                            <span class="badge badge-info">{{ log.target_model }}</span>
+                                            {% if log.target_id %}
+                                                <small class="text-muted">#{{ log.target_id }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <small class="text-muted">N/A</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No activity logs found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
