@@ -1,0 +1,38 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'sale.freezed.dart';
+part 'sale.g.dart';
+
+@freezed
+class SaleItemPayload with _$SaleItemPayload {
+  const factory SaleItemPayload({
+    required String barcode, // or item ID depending on Django backend expectation
+    required int quantity,
+    required double unitPrice,
+  }) = _SaleItemPayload;
+
+  factory SaleItemPayload.fromJson(Map<String, dynamic> json) => _$SaleItemPayloadFromJson(json);
+}
+
+@freezed
+class PaymentPayload with _$PaymentPayload {
+  const factory PaymentPayload({
+    @Default(0.0) double cash,
+    @Default(0.0) double bankTransfer,
+    @Default(0.0) double wallet,
+  }) = _PaymentPayload;
+
+  factory PaymentPayload.fromJson(Map<String, dynamic> json) => _$PaymentPayloadFromJson(json);
+}
+
+@freezed
+class CheckoutPayload with _$CheckoutPayload {
+  const factory CheckoutPayload({
+    required List<SaleItemPayload> items,
+    required PaymentPayload payments,
+    String? customerId, // Nullable for walk-in customers
+    required double totalAmount,
+  }) = _CheckoutPayload;
+
+  factory CheckoutPayload.fromJson(Map<String, dynamic> json) => _$CheckoutPayloadFromJson(json);
+}
