@@ -7,8 +7,9 @@ import 'auth_repository.dart';
 
 // ── Token / User state ────────────────────────────────────────────────────────
 
-/// Holds the raw JWT access token in memory.
-final authTokenProvider = StateProvider<String?>((ref) => null);
+// authTokenProvider is defined in api_client.dart and re-exported here for
+// convenience so other files can import from a single auth location.
+export '../../../core/network/api_client.dart' show authTokenProvider;
 
 /// Holds the authenticated [User] profile.
 final currentUserProvider = StateProvider<User?>((ref) => null);

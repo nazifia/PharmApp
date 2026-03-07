@@ -1,41 +1,46 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// Provides the base URL depending on environment
-final baseUrlProvider = Provider<String>((ref) {
-  // TODO: Swap out with production URL when ready
-  return 'http://10.0.2.2:8000/api'; 
+// ── Base URL ─────────────────────────────────────────────────────────────────
+
+/// Resolves the backend base URL for the current platform.
+/// Android emulator uses 10.0.2.2 to reach host localhost.
+/// Web and desktop (Windows/Linux/macOS) use localhost directly.
+final baseUrlProvider = StateProvider<String>((ref) {
+  if (!kIsWeb) {
+    // Mobile (Android/iOS) — check at runtime; default Android emulator IP
+    try {
+      // ignore: do_not_use_environment
+      const env = String.fromEnvironment('API_URL', defaultValue: '');
+      if (env.isNotEmpty) return env;
+    } catch (_) {}
+    return 'http://10.0.2.2:8000/api';
+  }
+  return 'http://localhost:8000/api';
 });
 
-// Provides the secure token (Can be mapped to Isar or flutter_secure_storage later)
-class AuthTokenNotifier extends StateNotifier<String?> {
-  AuthTokenNotifier() : super(null);
+// ── Auth token ────────────────────────────────────────────────────────────────
 
-  void setToken(String token) => state = token;
-  void clearToken() => state = null;
-}
+/// Holds the raw JWT access token in memory.
+/// Single source of truth — imported by both api_client and auth_provider.
+final authTokenProvider = StateProvider<String?>((ref) => null);
 
-final authTokenProvider = StateNotifierProvider<AuthTokenNotifier, String?>((ref) {
-  return AuthTokenNotifier();
-});
+// ── Auth interceptor ──────────────────────────────────────────────────────────
 
-// The Interceptor that attaches the Bearer token to every request
 class AuthInterceptor extends Interceptor {
-  final Ref ref;
+  final Ref _ref;
 
-  AuthInterceptor(this.ref);
+  AuthInterceptor(this._ref);
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final token = ref.read(authTokenProvider);
-    
-    // Attach token if it exists and wasn't explicitly skipped
+    final token = _ref.read(authTokenProvider);
+
     if (token != null && !options.headers.containsKey('skip_auth')) {
       options.headers['Authorization'] = 'Bearer $token';
     }
-    
-    // Add default headers expecting JSON
-    options.headers['Accept'] = 'application/json';
+    options.headers['Accept']       = 'application/json';
     options.headers['Content-Type'] = 'application/json';
 
     super.onRequest(options, handler);
@@ -43,19 +48,19 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    // Automatically log out user if a 401 Unauthorized is caught universally
     if (err.response?.statusCode == 401) {
-      ref.read(authTokenProvider.notifier).clearToken();
-      // TODO: Trigger navigation back to login screen via GoRouter refresh listen
+      // Clear token on 401 — router will redirect to login via auth refresh
+      _ref.read(authTokenProvider.notifier).state = null;
     }
     super.onError(err, handler);
   }
 }
 
-// The core Dio Client Provider injected into Repositories
+// ── Dio provider ──────────────────────────────────────────────────────────────
+
 final dioProvider = Provider<Dio>((ref) {
   final baseUrl = ref.watch(baseUrlProvider);
-  
+
   final dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
@@ -66,10 +71,10 @@ final dioProvider = Provider<Dio>((ref) {
 
   dio.interceptors.addAll([
     AuthInterceptor(ref),
-    // Logging interceptor for debugging network calls in development
     LogInterceptor(
       requestBody: true,
       responseBody: true,
+      // ignore: avoid_print
       logPrint: (obj) => print('DioLog: $obj'),
     ),
   ]);
