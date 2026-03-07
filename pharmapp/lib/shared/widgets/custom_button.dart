@@ -1,11 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+
+// ── Press-animation wrapper ───────────────────────────────────────────────────
+
+class _PressableWidget extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _PressableWidget({required this.child, this.onTap});
+
+  @override
+  State<_PressableWidget> createState() => _PressableWidgetState();
+}
+
+class _PressableWidgetState extends State<_PressableWidget> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown:   (_) => setState(() => _pressed = true),
+      onTapUp:     (_) { setState(() => _pressed = false); widget.onTap?.call(); },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale:    _pressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+// ── CustomButton ──────────────────────────────────────────────────────────────
 
 class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final String text;
-  final IconData? icon;
+  final Widget? icon;          // accepts any Widget (Icon, SvgPicture, etc.)
   final Color? backgroundColor;
   final Color? foregroundColor;
   final Color? borderColor;
@@ -38,84 +69,70 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = EnhancedTheme();
+    final theme   = Theme.of(context);
+    final bgColor = backgroundColor ?? EnhancedTheme.primaryTeal;
 
-    return ScaleAnimatedWidget8(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
+    return _PressableWidget(
+      onTap: (isLoading || onPressed == null) ? null : onPressed,
       child: Container(
         constraints: constraints ??
-          BoxConstraints.tightFor(
-            width: width,
-            height: height ?? 48,
+            BoxConstraints.tightFor(width: width, height: height ?? 48),
+        decoration: BoxDecoration(
+          color: bgColor,
+          border: Border.all(
+            color: borderColor ?? bgColor,
+            width: borderWidth ?? 0,
           ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: isLoading ? null : onPressed,
-            borderRadius: BorderRadius.circular(borderRadius ?? 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: backgroundColor ?? colors.primaryTeal,
-                border: Border.all(
-                  color: borderColor ?? colors.primaryTeal,
-                  width: borderWidth ?? 0,
-                ),
-                borderRadius: BorderRadius.circular(borderRadius ?? 16),
-                boxShadow: [
-                  BoxShadow(
-                    color: backgroundColor!.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              padding: padding ?? const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null)
-                    Icon(
-                      icon,
-                      color: foregroundColor ?? Colors.white,
-                      size: 20,
-                    ),
-                  if (icon != null) const SizedBox(width: 8),
-                  Text(
-                    text,
-                    style: textStyle ??
-                      theme.textTheme.labelLarge?.copyWith(
-                        color: foregroundColor ?? Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                  ),
-                  if (isLoading)
-                    const SizedBox(width: 8),
-                  if (isLoading)
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(foregroundColor ?? Colors.white),
-                      ),
-                    ),
-                ],
-              ),
+          borderRadius: BorderRadius.circular(borderRadius ?? 16),
+          boxShadow: [
+            BoxShadow(
+              color:  bgColor.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
+        ),
+        padding: padding ??
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) icon!,
+            if (icon != null) const SizedBox(width: 8),
+            Text(
+              text,
+              style: textStyle ??
+                  theme.textTheme.labelLarge?.copyWith(
+                    color: foregroundColor ?? Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+            ),
+            if (isLoading) const SizedBox(width: 8),
+            if (isLoading)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      foregroundColor ?? Colors.white),
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 }
 
+// ── CustomOutlineButton ───────────────────────────────────────────────────────
+
 class CustomOutlineButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final String text;
-  final IconData? icon;
+  final Widget? icon;
   final Color? backgroundColor;
   final Color? foregroundColor;
   final Color? borderColor;
@@ -146,80 +163,65 @@ class CustomOutlineButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = EnhancedTheme();
+    final theme   = Theme.of(context);
+    final fgColor = foregroundColor ?? EnhancedTheme.primaryTeal;
 
-    return ScaleAnimatedWidget8(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
+    return _PressableWidget(
+      onTap: isLoading ? null : onPressed,
       child: Container(
-        constraints: BoxConstraints.tightFor(
-          width: width,
-          height: height ?? 48,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: isLoading ? null : onPressed,
-            borderRadius: BorderRadius.circular(borderRadius ?? 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: backgroundColor ?? Colors.transparent,
-                border: Border.all(
-                  color: borderColor ?? colors.primaryTeal,
-                  width: borderWidth ?? 2,
-                ),
-                borderRadius: BorderRadius.circular(borderRadius ?? 16),
-                boxShadow: [
-                  if (backgroundColor != null) ...[
-                    BoxShadow(
-                      color: backgroundColor!.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ],
-              ),
-              padding: padding ?? const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null)
-                    Icon(
-                      icon,
-                      color: foregroundColor ?? colors.primaryTeal,
-                      size: 20,
-                    ),
-                  if (icon != null) const SizedBox(width: 8),
-                  Text(
-                    text,
-                    style: textStyle ??
-                      theme.textTheme.labelLarge?.copyWith(
-                        color: foregroundColor ?? colors.primaryTeal,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                  ),
-                  if (isLoading)
-                    const SizedBox(width: 8),
-                  if (isLoading)
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(foregroundColor ?? colors.primaryTeal),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+        constraints: BoxConstraints.tightFor(width: width, height: height ?? 48),
+        decoration: BoxDecoration(
+          color: backgroundColor ?? Colors.transparent,
+          border: Border.all(
+            color: borderColor ?? EnhancedTheme.primaryTeal,
+            width: borderWidth ?? 2,
           ),
+          borderRadius: BorderRadius.circular(borderRadius ?? 16),
+          boxShadow: backgroundColor != null
+              ? [
+                  BoxShadow(
+                    color:  backgroundColor!.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        padding: padding ??
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) icon!,
+            if (icon != null) const SizedBox(width: 8),
+            Text(
+              text,
+              style: textStyle ??
+                  theme.textTheme.labelLarge?.copyWith(
+                    color: fgColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+            ),
+            if (isLoading) const SizedBox(width: 8),
+            if (isLoading)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(fgColor),
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 }
+
+// ── CustomIconButton ──────────────────────────────────────────────────────────
 
 class CustomIconButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -241,58 +243,39 @@ class CustomIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = EnhancedTheme();
-
-    return ScaleAnimatedWidget8(
-      duration: const Duration(milliseconds: 150),
-      curve: Curves.easeOut,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
+    final sz = size ?? 40.0;
+    return _PressableWidget(
+      onTap: onPressed,
+      child: Container(
+        width: sz,
+        height: sz,
+        decoration: BoxDecoration(
+          color: showBorder ? Colors.transparent : EnhancedTheme.surfaceGlass,
+          border: showBorder
+              ? Border.all(
+                  color: EnhancedTheme.primaryTeal.withOpacity(0.3),
+                  width: 1,
+                )
+              : null,
           borderRadius: borderRadius ?? BorderRadius.circular(12),
-          child: Container(
-            width: size ?? 40,
-            height: size ?? 40,
-            decoration: BoxDecoration(
-              color: showBorder ? Colors.transparent : colors.surfaceGlass,
-              border: showBorder
-                 ? Border.all(
-                      color: colors.primaryTeal.withOpacity(0.3),
-                      width: 1,
-                    )
-                  : null,
-              borderRadius: borderRadius ?? BorderRadius.circular(12),
-              boxShadow: [
-                if (!showBorder) ...[
-                  BoxShadow(
-                    color: colors.primaryTeal.withOpacity(0.1),
-                    blurRadius: 5,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ],
-            ),
-            child: Icon(
-              icon,
-              color: color ?? colors.primaryTeal,
-              size: size ?? 20,
-            ),
-          ),
+        ),
+        child: Icon(
+          icon,
+          color: color ?? EnhancedTheme.primaryTeal,
+          size: sz * 0.5,
         ),
       ),
     );
   }
 }
 
+// ── CustomTextButton ──────────────────────────────────────────────────────────
+
 class CustomTextButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final String text;
   final TextStyle? textStyle;
   final Color? textColor;
-  final Color? highlightColor;
-  final Color? splashColor;
   final double? horizontalPadding;
   final double? verticalPadding;
 
@@ -302,41 +285,35 @@ class CustomTextButton extends StatelessWidget {
     this.onPressed,
     this.textStyle,
     this.textColor,
-    this.highlightColor,
-    this.splashColor,
     this.horizontalPadding,
     this.verticalPadding,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = EnhancedTheme();
+    final theme   = Theme.of(context);
+    final fgColor = textColor ?? EnhancedTheme.primaryTeal;
 
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
         padding: EdgeInsets.symmetric(
           horizontal: horizontalPadding ?? 8,
-          vertical: verticalPadding ?? 4,
+          vertical:   verticalPadding   ?? 4,
         ),
-        backgroundColor: highlightColor,
-        foregroundColor: textColor ?? colors.primaryTeal,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        foregroundColor: fgColor,
+        overlayColor: fgColor.withOpacity(0.1),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        animationDuration: const Duration(milliseconds: 100),
-        overlayColor: splashColor ?? colors.primaryTeal.withOpacity(0.1),
       ),
       child: Text(
         text,
         style: textStyle ??
-          theme.textTheme.labelLarge?.copyWith(
-            color: textColor ?? colors.primaryTeal,
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
+            theme.textTheme.labelLarge?.copyWith(
+              color: fgColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
       ),
     );
   }

@@ -99,7 +99,7 @@ class CustomTextField extends StatelessWidget {
         onEditingComplete: onEditingComplete,
         onFieldSubmitted: onSubmitted,
         validator: validator,
-        cursorColor: cursorColor ?? colors.primaryTeal,
+        cursorColor: cursorColor ?? EnhancedTheme.primaryTeal,
         style: TextStyle(
           color: textColor ?? theme.colorScheme.onSurface,
           fontSize: fontSize ?? 16,
@@ -136,7 +136,7 @@ class CustomTextField extends StatelessWidget {
           contentPadding: contentPadding ??
               const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           filled: filled,
-          fillColor: fillColor ?? colors.surfaceColor,
+          fillColor: fillColor ?? EnhancedTheme.surfaceColor,
           border: OutlineInputBorder(
             borderRadius: borderRadius ?? BorderRadius.circular(16),
             borderSide: BorderSide(
@@ -154,21 +154,21 @@ class CustomTextField extends StatelessWidget {
           focusedBorder: OutlineInputBorder(
             borderRadius: borderRadius ?? BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: focusedBorderColor ?? colors.primaryTeal,
+              color: focusedBorderColor ?? EnhancedTheme.primaryTeal,
               width: borderWidth ?? 2,
             ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: borderRadius ?? BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: errorBorderColor ?? colors.errorRed,
+              color: errorBorderColor ?? EnhancedTheme.errorRed,
               width: borderWidth ?? 2,
             ),
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: borderRadius ?? BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: errorBorderColor ?? colors.errorRed,
+              color: errorBorderColor ?? EnhancedTheme.errorRed,
               width: borderWidth ?? 2,
             ),
           ),
@@ -208,10 +208,10 @@ class CustomSearchField extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: colors.surfaceColor,
+        color: EnhancedTheme.surfaceColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: colors.primaryTeal.withOpacity(0.1),
+          color: EnhancedTheme.primaryTeal.withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -220,7 +220,7 @@ class CustomSearchField extends StatelessWidget {
           const SizedBox(width: 12),
           Icon(
             Icons.search,
-            color: colors.primaryTeal.withOpacity(0.6),
+            color: EnhancedTheme.primaryTeal.withOpacity(0.6),
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -230,7 +230,7 @@ class CustomSearchField extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: hintText,
                 hintStyle: TextStyle(
-                  color: colors.primaryTeal.withOpacity(0.6),
+                  color: EnhancedTheme.primaryTeal.withOpacity(0.6),
                   fontSize: 14,
                 ),
                 border: InputBorder.none,
@@ -252,7 +252,7 @@ class CustomSearchField extends StatelessWidget {
               onPressed: onClear,
               icon: Icon(
                 Icons.clear,
-                color: colors.primaryTeal.withOpacity(0.6),
+                color: EnhancedTheme.primaryTeal.withOpacity(0.6),
                 size: 20,
               ),
               splashRadius: 20,
@@ -303,19 +303,19 @@ class CustomPasswordInput extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: colors.surfaceGlass,
+              color: EnhancedTheme.surfaceGlass,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               obscureText == true ? Icons.visibility : Icons.visibility_off,
-              color: colors.primaryTeal,
+              color: EnhancedTheme.primaryTeal,
               size: 20,
             ),
           ),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         filled: true,
-        fillColor: colors.surfaceColor,
+        fillColor: EnhancedTheme.surfaceColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: Colors.transparent),

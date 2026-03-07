@@ -1,296 +1,143 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:glassmorphism/glassmorphism.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
-import 'package:pharmapp/shared/widgets/custom_button.dart';
-import 'package:pharmapp/core/services/auth_service.dart';
-import 'package:pharmapp/shared/models/user_model.dart';
+import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 
-class RoleSelectionScreen extends ConsumerStatefulWidget {
+class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
 
-  @override
-  ConsumerState<RoleSelectionScreen> createState() => _RoleSelectionScreenState();
-}
+  static const _roles = [
+    {'role': 'Pharmacist',        'desc': 'Manage inventory and daily pharmacy operations.', 'icon': Icons.medical_services, 'color': Color(0xFF0D9488)},
+    {'role': 'Cashier',           'desc': 'Handle sales, payments, and customer transactions.', 'icon': Icons.point_of_sale, 'color': Color(0xFFF59E0B)},
+    {'role': 'Salesperson',       'desc': 'Attend customers and process retail orders.', 'icon': Icons.sell, 'color': Color(0xFF3B82F6)},
+    {'role': 'Admin',             'desc': 'Full access: user management and analytics.', 'icon': Icons.admin_panel_settings, 'color': Color(0xFF8B5CF6)},
+    {'role': 'Wholesale Manager', 'desc': 'Manage bulk orders and wholesale operations.', 'icon': Icons.warehouse, 'color': Color(0xFF06B6D4)},
+  ];
 
-class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
-  User? _currentUser;
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAuthStatus();
-  }
-
-  Future<void> _checkAuthStatus() async {
-    final authService = ref.read(authServiceProvider);
-    final isAuthenticated = await authService.checkAuthStatus();
-    if (isAuthenticated) {
-      _currentUser = authService.currentUser;
-      setState(() {});
-    } else {
-      // Redirect to login if not authenticated
-      ref.read(enhancedThemeProvider.notifier).navigateTo('/login');
-    }
-  }
-
-  Future<void> _selectRole(String role) async {
-    if (_currentUser == null) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final authService = ref.read(authServiceProvider);
-      final updatedUser = _currentUser!.copyWith(role: role);
-
-      // Update user role in backend
-      final success = await authService.updateUserProfile({
-        'role': role,
-      });
-
-      if (success) {
-        // Navigate to appropriate dashboard
-        String route = '/dashboard';
-        if (role == 'Wholesaler') {
-          route = '/wholesale-dashboard';
-        } else if (role == 'Admin') {
-          route = '/admin-dashboard';
-        }
-
-        ref.read(enhancedThemeProvider.notifier).navigateTo(route);
-      } else {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Failed to update user role'),
-            backgroundColor: EnhancedTheme.errorRed,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: EnhancedTheme.errorRed,
-        ),
-      );
+  String _dashboardFor(String role) {
+    switch (role) {
+      case 'Admin':
+      case 'Manager':
+        return '/admin-dashboard';
+      case 'Wholesale Manager':
+      case 'Wholesale Operator':
+      case 'Wholesale Salesperson':
+        return '/wholesale-dashboard';
+      default:
+        return '/dashboard';
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: const Color(0xFF0F172A),
       body: Stack(
         children: [
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFF0F172A),
-                  Color(0xFF1E293B),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 60),
-
-                  // Logo and App Name
-                  Column(
-                    children: [
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: EnhancedTheme.glassLight,
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withOpacity(0.1),
-                              blurRadius: 20,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.local_pharmacy,
-                          size: 48,
-                          color: EnhancedTheme.primaryTeal,
-                        ),
+                  const SizedBox(height: 32),
+                  const Icon(Icons.local_pharmacy_rounded, color: Color(0xFF0D9488), size: 48),
+                  const SizedBox(height: 12),
+                  const Text('Select Your Role',
+                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Text('Choose the role that best describes your position',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+                  const SizedBox(height: 36),
+                  ...(_roles.map((r) {
+                    final color = r['color'] as Color;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _RoleCard(
+                        role:  r['role'] as String,
+                        desc:  r['desc'] as String,
+                        icon:  r['icon'] as IconData,
+                        color: color,
+                        onTap: () => context.go(_dashboardFor(r['role'] as String)),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'PharmApp',
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 28,
-                        ),
-                      ),
-                      const Text(
-                        'Select Your Role',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 60),
-
-                  // Role Cards
-                  Column(
-                    children: [
-                      RoleCard(
-                        role: 'Pharmacist',
-                        description: 'Manage inventory, process prescriptions, and handle daily pharmacy operations.',
-                        color: EnhancedTheme.primaryTeal,
-                        icon: Icons.medical_services,
-                        onPressed: () => _selectRole('Pharmacist'),
-                      ),
-                      const SizedBox(height: 16),
-                      RoleCard(
-                        role: 'Cashier',
-                        description: 'Handle sales, process payments, and manage customer transactions.',
-                        color: EnhancedTheme.accentOrange,
-                        icon: Icons.shopping_cart,
-                        onPressed: () => _selectRole('Cashier'),
-                      ),
-                      const SizedBox(height: 16),
-                      RoleCard(
-                        role: 'Admin',
-                        description: 'Full access to all features including user management and analytics.',
-                        color: EnhancedTheme.accentPurple,
-                        icon: Icons.admin_panel_settings,
-                        onPressed: () => _selectRole('Admin'),
-                      ),
-                      const SizedBox(height: 16),
-                      RoleCard(
-                        role: 'Wholesaler',
-                        description: 'Manage bulk orders, supplier relationships, and wholesale operations.',
-                        color: EnhancedTheme.accentCyan,
-                        icon: Icons.monetization_on,
-                        onPressed: () => _selectRole('Wholesaler'),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Footer
-                  Column(
-                    children: [
-                      const Text(
-                        'Pharmacy Management Made Simple',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '© 2026 PharmApp. All rights reserved.',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  })),
                 ],
               ),
             ),
           ),
-
-          if (_isLoading)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 }
 
-class RoleCard extends StatelessWidget {
+class _RoleCard extends StatelessWidget {
   final String role;
-  final String description;
-  final Color color;
+  final String desc;
   final IconData icon;
-  final VoidCallback onPressed;
+  final Color color;
+  final VoidCallback onTap;
 
-  const RoleCard({
-    super.key,
+  const _RoleCard({
     required this.role,
-    required this.description,
-    required this.color,
+    required this.desc,
     required this.icon,
-    required this.onPressed,
+    required this.color,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return EnhancedTheme.glassContainer(
-      context,
-      borderRadius: BorderRadius.circular(20),
-      padding: const EdgeInsets.all(24),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onPressed,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: color.withOpacity(0.3), width: 2),
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.07),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withOpacity(0.12)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: color.withOpacity(0.3)),
+                  ),
+                  child: Icon(icon, color: color, size: 26),
                 ),
-                child: Icon(
-                  icon,
-                  size: 28,
-                  color: color,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(role, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 3),
+                      Text(desc, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                role,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 20,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white54,
-                  fontSize: 14,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+                Icon(Icons.arrow_forward_ios, color: color.withOpacity(0.6), size: 14),
+              ],
+            ),
           ),
         ),
       ),

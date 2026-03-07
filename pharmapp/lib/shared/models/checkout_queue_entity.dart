@@ -1,5 +1,4 @@
 import 'package:isar/isar.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'dart:convert';
 import 'sale.dart';
 
@@ -10,21 +9,25 @@ class CheckoutQueueEntity {
   Id id = Isar.autoIncrement;
 
   late DateTime createdAt;
-  
-  // Storing the JSON payload string directly since it's an offline cache
+
+  /// The full checkout payload serialised as JSON for offline caching.
   late String payloadJson;
-  
-  // Track sync status to avoid duplicate submissions
+
+  /// Tracks whether this record has been synced to the server.
   bool isSynced = false;
 
-  // Conversion helpers
-  @ignore
-  CheckoutPayload get payload => CheckoutPayload.fromJson(jsonDecode(payloadJson));
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  /// Deserialises the stored JSON back to a [CheckoutPayload].
+  /// Defined as a regular method (not a getter) so Isar does not try
+  /// to analyse its return type.
+  CheckoutPayload decodePayload() =>
+      CheckoutPayload.fromJson(jsonDecode(payloadJson) as Map<String, dynamic>);
 
   static CheckoutQueueEntity fromPayload(CheckoutPayload payload) {
     return CheckoutQueueEntity()
-      ..createdAt = DateTime.now()
+      ..createdAt  = DateTime.now()
       ..payloadJson = jsonEncode(payload.toJson())
-      ..isSynced = false;
+      ..isSynced   = false;
   }
 }

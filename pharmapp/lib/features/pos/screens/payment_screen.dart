@@ -1,12 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:glassmorphism/glassmorphism.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
-import 'package:pharmapp/shared/widgets/custom_button.dart';
-import 'package:pharmapp/shared/widgets/cart_item_widget.dart';
-import 'package:pharmapp/shared/widgets/split_payment_dialog.dart';
-import 'package:pharmapp/shared/models/cart_item.dart';
-import 'package:pharmapp/shared/models/payment_model.dart';
+
+enum _PayMethod { cash, card, wallet, split }
 
 class PaymentScreen extends ConsumerStatefulWidget {
   const PaymentScreen({super.key});
@@ -16,554 +14,319 @@ class PaymentScreen extends ConsumerStatefulWidget {
 }
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
-  final List<CartItem> _cartItems = [];
-  double _totalAmount = 0.0;
-  double _discountAmount = 0.0;
-  double _taxAmount = 0.0;
-  double _finalAmount = 0.0;
-  PaymentMethod _selectedPaymentMethod = PaymentMethod.cash;
-  bool _isLoading = false;
-  bool _showSplitPayment = false;
+  _PayMethod _method = _PayMethod.cash;
+  bool _processing = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadCartItems();
+  // Mock cart — in production this would come from a cart provider
+  static const _lines = [
+    {'name': 'Paracetamol 500mg', 'qty': 2, 'price': 75.0},
+    {'name': 'Vitamin C 500mg',   'qty': 1, 'price': 450.0},
+    {'name': 'ORS Sachet',        'qty': 3, 'price': 25.0},
+  ];
+
+  double get _subtotal => _lines.fold(0, (s, l) => s + (l['qty'] as int) * (l['price'] as double));
+  double get _tax      => _subtotal * 0.05;
+  double get _total    => _subtotal + _tax;
+
+  void _confirm() async {
+    setState(() => _processing = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+    setState(() => _processing = false);
+    _showSuccessSheet();
   }
 
-  void _loadCartItems() {
-    // TODO: Load actual cart items from provider
-    // For demo purposes, we'll use mock data
-    setState(() {
-      _cartItems.addAll([
-        CartItem(
-          id: 1,
-          userId: 1,
-          itemId: 1,
-          quantity: 2,
-          unitPrice: 75.0,
-          subtotal: 150.0,
-          discount: 15.0,
-          total: 135.0,
-          status: 'active',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          isWholesale: false,
-          customerPhone: null,
-          customerName: null,
-        ),
-        CartItem(
-          id: 2,
-          userId: 1,
-          itemId: 2,
-          quantity: 1,
-          unitPrice: 125.0,
-          subtotal: 125.0,
-          discount: 0.0,
-          total: 125.0,
-          status: 'active',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          isWholesale: false,
-          customerPhone: null,
-          customerName: null,
-        ),
-      ]);
-
-      _calculateTotals();
-    });
-  }
-
-  void _calculateTotals() {
-    _totalAmount = _cartItems.fold(0.0, (sum, item) => sum + item.total);
-    _discountAmount = _cartItems.fold(0.0, (sum, item) => sum + item.discount);
-    _taxAmount = _totalAmount * 0.05; // 5% tax
-    _finalAmount = _totalAmount + _taxAmount - _discountAmount;
-  }
-
-  void _handlePayment() {
-    setState(() => _isLoading = true);
-
-    try {
-      // TODO: Process payment
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Payment processing...'),
-          backgroundColor: EnhancedTheme.infoBlue,
-        ),
-      );
-
-      // Navigate to receipt or success screen
-      context.read(enhancedThemeProvider.notifier).navigateTo('/receipt');
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Payment failed: $e'),
-          backgroundColor: EnhancedTheme.errorRed,
-        ),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _handleSplitPayment() {
-    setState(() {
-      _showSplitPayment = true;
-      _selectedPaymentMethod = PaymentMethod.split;
-    });
-  }
-
-  void _handlePaymentOption(PaymentMethod method) {
-    setState(() {
-      _selectedPaymentMethod = method;
-      _showSplitPayment = method == PaymentMethod.split;
-    });
+  void _showSuccessSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isDismissible: false,
+      builder: (_) => _SuccessSheet(
+        total: _total,
+        method: _method,
+        onDone: () {
+          Navigator.pop(context);
+          context.go('/dashboard/pos');
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: EnhancedTheme.primaryDark,
-      appBar: AppBar(
-        backgroundColor: EnhancedTheme.surfaceColor,
-        elevation: 0,
-        title: const Text(
-          'Payment',
-          style: TextStyle(color: Colors.white),
-        ),
-        centerTitle: true,
-      ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Cart Items
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Cart Items (${_cartItems.length})',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (_cartItems.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: EnhancedTheme.glassLight,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Text(
-                            'Your cart is empty',
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 14,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        )
-                      else
-                        ..._cartItems.map((item) {
-                          return CartItemWidget(
-                            item: item,
-                            showRemoveButton: false,
-                            showQuantityControls: false,
-                          );
-                        }).toList(),
-                    ],
-                  ),
+      body: Stack(children: [
+        Container(decoration: const BoxDecoration(gradient: LinearGradient(
+            colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
+            begin: Alignment.topLeft, end: Alignment.bottomRight))),
+        SafeArea(child: Column(children: [
+          // ── Header ──────────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
+            child: Row(children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                onPressed: () => context.pop(),
+              ),
+              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Payment', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                Text('Review and confirm', style: TextStyle(color: Colors.white54, fontSize: 11)),
+              ])),
+            ]),
+          ),
 
-                  const SizedBox(height: 24),
+          Expanded(child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-                  // Payment Summary
-                  EnhancedTheme.glassContainer(
-                    context,
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Payment Summary',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 18,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Summary Rows
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Subtotal',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.white54,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              '₹${_totalAmount.toStringAsFixed(2)}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Discount',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: EnhancedTheme.warningAmber,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              '-₹${_discountAmount.toStringAsFixed(2)}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: EnhancedTheme.warningAmber,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Tax (5%)',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: EnhancedTheme.infoBlue,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              '₹${_taxAmount.toStringAsFixed(2)}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: EnhancedTheme.infoBlue,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Divider(
-                          color: Colors.white54,
-                          height: 1,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Total',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              '₹${_finalAmount.toStringAsFixed(2)}',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: EnhancedTheme.successGreen,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+              // ── Order summary ──────────────────────────────────────────────
+              const Text('Order Summary', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Payment Methods
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Select Payment Method',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      PaymentMethodCard(
-                        method: PaymentMethod.cash,
-                        isSelected: _selectedPaymentMethod == PaymentMethod.cash,
-                        onTap: () => _handlePaymentOption(PaymentMethod.cash),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      PaymentMethodCard(
-                        method: PaymentMethod.card,
-                        isSelected: _selectedPaymentMethod == PaymentMethod.card,
-                        onTap: () => _handlePaymentOption(PaymentMethod.card),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      PaymentMethodCard(
-                        method: PaymentMethod.wallet,
-                        isSelected: _selectedPaymentMethod == PaymentMethod.wallet,
-                        onTap: () => _handlePaymentOption(PaymentMethod.wallet),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      PaymentMethodCard(
-                        method: PaymentMethod.split,
-                        isSelected: _selectedPaymentMethod == PaymentMethod.split,
-                        onTap: () => _handlePaymentOption(PaymentMethod.split),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Customer Information
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Customer Information',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      EnhancedTheme.glassContainer(
-                        context,
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            CustomTextField(
-                              labelText: 'Customer Name (Optional)',
-                              hintText: 'Enter customer name',
-                              keyboardType: TextInputType.text,
+                    child: Column(children: [
+                      ..._lines.asMap().entries.map((e) => Column(children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(children: [
+                            Container(
+                              width: 36, height: 36,
+                              decoration: BoxDecoration(
+                                color: EnhancedTheme.primaryTeal.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.medication_rounded, color: EnhancedTheme.primaryTeal, size: 18),
                             ),
-                            const SizedBox(height: 12),
-                            CustomTextField(
-                              labelText: 'Phone Number (Optional)',
-                              hintText: '+91 98765 43210',
-                              keyboardType: TextInputType.phone,
-                            ),
-                          ],
+                            const SizedBox(width: 12),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(e.value['name'] as String,
+                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                              Text('₹${(e.value['price'] as double).toStringAsFixed(0)} × ${e.value['qty']}',
+                                  style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 11)),
+                            ])),
+                            Text('₹${((e.value['price'] as double) * (e.value['qty'] as int)).toStringAsFixed(0)}',
+                                style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w700)),
+                          ]),
                         ),
-                      ),
-                    ],
+                        if (e.key < _lines.length - 1)
+                          Divider(height: 1, color: Colors.white.withOpacity(0.07)),
+                      ])),
+                    ]),
                   ),
-                ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Totals ────────────────────────────────────────────────────
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    ),
+                    child: Column(children: [
+                      _totalRow('Subtotal', '₹${_subtotal.toStringAsFixed(2)}', Colors.white54),
+                      const SizedBox(height: 8),
+                      _totalRow('Tax (5%)',  '₹${_tax.toStringAsFixed(2)}',     EnhancedTheme.infoBlue),
+                      const SizedBox(height: 12),
+                      Divider(color: Colors.white.withOpacity(0.12), height: 1),
+                      const SizedBox(height: 12),
+                      _totalRow('Total', '₹${_total.toStringAsFixed(2)}', EnhancedTheme.successGreen,
+                          valueFontSize: 20, valueBold: true),
+                    ]),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // ── Payment method ────────────────────────────────────────────
+              const Text('Payment Method', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              Row(children: [
+                _methodChip(_PayMethod.cash,   Icons.money_rounded,              'Cash'),
+                const SizedBox(width: 8),
+                _methodChip(_PayMethod.card,   Icons.credit_card_rounded,        'Card'),
+                const SizedBox(width: 8),
+                _methodChip(_PayMethod.wallet, Icons.account_balance_wallet_rounded, 'Wallet'),
+                const SizedBox(width: 8),
+                _methodChip(_PayMethod.split,  Icons.call_split_rounded,         'Split'),
+              ]),
+              const SizedBox(height: 20),
+
+              // ── Customer info (optional) ──────────────────────────────────
+              const Text('Customer (Optional)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              _glassInput('Customer name', Icons.person_outline_rounded),
+              const SizedBox(height: 10),
+              _glassInput('Phone number', Icons.phone_outlined, type: TextInputType.phone),
+              const SizedBox(height: 32),
+            ]),
+          )),
+
+          // ── Confirm button ─────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                onPressed: _processing ? null : _confirm,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EnhancedTheme.primaryTeal,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: EnhancedTheme.primaryTeal.withOpacity(0.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                icon: _processing
+                    ? const SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.check_circle_rounded, size: 20),
+                label: Text(
+                  _processing ? 'Processing…' : 'Confirm Payment  ₹${_total.toStringAsFixed(2)}',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
               ),
             ),
           ),
+        ])),
+      ]),
+    );
+  }
 
-          // Checkout Button
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: EnhancedTheme.surfaceColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: CustomButton(
-                onPressed: _isLoading ? null : _handlePayment,
-                text: _isLoading ? 'Processing...' : 'Complete Payment',
-                isLoading: _isLoading,
-                backgroundColor: EnhancedTheme.primaryTeal,
-              ),
+  Widget _totalRow(String label, String value, Color valueColor,
+      {double valueFontSize = 14, bool valueBold = false}) {
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(label, style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 13)),
+      Text(value, style: TextStyle(color: valueColor, fontSize: valueFontSize,
+          fontWeight: valueBold ? FontWeight.w800 : FontWeight.w600)),
+    ]);
+  }
+
+  Widget _methodChip(_PayMethod method, IconData icon, String label) {
+    final active = _method == method;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _method = method),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: active ? EnhancedTheme.primaryTeal.withOpacity(0.2) : Colors.white.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: active ? EnhancedTheme.primaryTeal : Colors.white.withOpacity(0.1),
+              width: active ? 1.5 : 1,
             ),
           ),
+          child: Column(children: [
+            Icon(icon, color: active ? EnhancedTheme.primaryTeal : Colors.white38, size: 18),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(
+              color: active ? EnhancedTheme.primaryTeal : Colors.white38,
+              fontSize: 10, fontWeight: FontWeight.w600,
+            )),
+          ]),
+        ),
+      ),
+    );
+  }
 
-          if (_showSplitPayment)
-            SplitPaymentDialog(
-              totalAmount: _finalAmount,
-              onConfirm: (payment) {
-                setState(() {
-                  _showSplitPayment = false;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Split payment: ${payment.paymentBreakdown}'),
-                    backgroundColor: EnhancedTheme.infoBlue,
-                  ),
-                );
-              },
-              onCancel: () {
-                setState(() {
-                  _showSplitPayment = false;
-                  _selectedPaymentMethod = PaymentMethod.cash;
-                });
-              },
+  Widget _glassInput(String hint, IconData icon, {TextInputType? type}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: TextField(
+          keyboardType: type,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+            prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.35), size: 18),
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.07),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
-        ],
+            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+        ),
       ),
     );
   }
 }
 
-class PaymentMethodCard extends StatelessWidget {
-  final PaymentMethod method;
-  final bool isSelected;
-  final VoidCallback onTap;
+// ── Success bottom sheet ──────────────────────────────────────────────────────
 
-  const PaymentMethodCard({
-    super.key,
-    required this.method,
-    required this.isSelected,
-    required this.onTap,
-  });
+class _SuccessSheet extends StatelessWidget {
+  final double total;
+  final _PayMethod method;
+  final VoidCallback onDone;
+
+  const _SuccessSheet({required this.total, required this.method, required this.onDone});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = EnhancedTheme();
-
-    final methodData = {
-      PaymentMethod.cash: {
-        'icon': Icons.account_balance_wallet,
-        'color': colors.primaryTeal,
-        'title': 'Cash',
-        'description': 'Pay with cash',
-      },
-      PaymentMethod.card: {
-        'icon': Icons.credit_card,
-        'color': colors.accentCyan,
-        'title': 'Card',
-        'description': 'Credit/Debit Card',
-      },
-      PaymentMethod.wallet: {
-        'icon': Icons.account_balance_wallet,
-        'color': colors.successGreen,
-        'title': 'Wallet',
-        'description': 'Use wallet balance',
-      },
-      PaymentMethod.split: {
-        'icon': Icons.split,
-        'color': colors.warningAmber,
-        'title': 'Split',
-        'description': 'Multiple payment methods',
-      },
+    final methodLabels = {
+      _PayMethod.cash:   'Cash',
+      _PayMethod.card:   'Card',
+      _PayMethod.wallet: 'Wallet',
+      _PayMethod.split:  'Split',
     };
 
-    return EnhancedTheme.glassContainer(
-      context,
-      padding: const EdgeInsets.all(16),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isSelected ? methodData[method]!['color'] : colors.surfaceGlass,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? methodData[method]!['color']! : colors.primaryTeal.withOpacity(0.3),
-                width: 2,
-              ),
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: EnhancedTheme.successGreen.withOpacity(0.3)),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 64, height: 64,
+          decoration: BoxDecoration(
+            color: EnhancedTheme.successGreen.withOpacity(0.15),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.check_rounded, color: EnhancedTheme.successGreen, size: 32),
+        ),
+        const SizedBox(height: 16),
+        const Text('Payment Successful!',
+            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Text('₹${total.toStringAsFixed(2)} via ${methodLabels[method]}',
+            style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 14)),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton(
+            onPressed: onDone,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: EnhancedTheme.primaryTeal,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    methodData[method]!['icon'],
-                    color: isSelected ? Colors.white : methodData[method]!['color'],
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        methodData[method]!['title'],
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: isSelected ? Colors.white : colors.primaryTeal,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        methodData[method]!['description'],
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: isSelected ? Colors.white54 : colors.primaryTeal.withOpacity(0.6),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isSelected)
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      size: 16,
-                      color: EnhancedTheme.primaryTeal,
-                    ),
-                  ),
-              ],
-            ),
+            child: const Text('New Sale', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ),
-      ),
+      ]),
     );
   }
-}
-
-enum PaymentMethod {
-  cash,
-  card,
-  wallet,
-  split,
 }
