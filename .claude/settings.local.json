@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(dart analyze:*)",
+      "Bash(grep:*)",
+      "Bash(flutter devices:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter build:*)",
+      "Bash(for f in \"C:/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/features/auth/login_screen.dart\" \"C:/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/features/customers/customer_list_screen.dart\" \"C:/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/features/dashboard/dashboard_screen.dart\" \"C:/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/features/inventory/inventory_screen.dart\" \"C:/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/shared/models/user_model.dart\" \"C:/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/shared/models/item_model.dart\" \"C:/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/shared/models/sale_model.dart\")",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/**)",
+      "Bash(done)",
+      "Bash(rm:*)"
+    ]
+  }
+}
