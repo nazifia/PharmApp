@@ -36,7 +36,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = authState == AuthFlowState.authenticated;
       final loc = state.matchedLocation;
 
-      const publicRoutes = ['/login', '/verify-code', '/role-selection', '/setup'];
+      const publicRoutes = ['/login', '/role-selection', '/setup'];
 
       if (publicRoutes.contains(loc)) {
         if (isAuthenticated) {

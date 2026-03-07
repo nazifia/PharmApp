@@ -176,7 +176,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
         : ref.watch(inventoryListProvider);
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddItemSheet(context),
         backgroundColor: EnhancedTheme.primaryTeal,
@@ -184,9 +184,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
         label: const Text('Add Item'),
       ),
       body: Stack(children: [
-        Container(decoration: const BoxDecoration(gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight, stops: [0, 0.5, 1]))),
+        Container(decoration: context.bgGradient),
         SafeArea(child: Column(children: [
           _buildHeader(context),
           _buildSearchBar(),
@@ -216,15 +214,15 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   Widget _buildHeader(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
-      IconButton(icon: const Icon(Icons.arrow_back_rounded, color: Colors.white), onPressed: () => context.pop()),
+      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.pop()),
       const SizedBox(width: 4),
-      const Expanded(child: Text('Inventory', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600))),
+      Expanded(child: Text('Inventory', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600))),
       IconButton(
-        icon: Icon(_isGrid ? Icons.list_rounded : Icons.grid_view_rounded, color: Colors.white70),
+        icon: Icon(_isGrid ? Icons.list_rounded : Icons.grid_view_rounded, color: context.subLabelColor),
         onPressed: () => setState(() => _isGrid = !_isGrid),
       ),
       IconButton(
-        icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+        icon: Icon(Icons.refresh_rounded, color: context.subLabelColor),
         onPressed: () => ref.invalidate(inventoryListProvider),
       ),
     ]),
@@ -266,11 +264,11 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
-              color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.07),
+              color: active ? EnhancedTheme.primaryTeal : context.cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.15)),
+              border: Border.all(color: active ? EnhancedTheme.primaryTeal : context.borderColor),
             ),
-            child: Text(f, style: TextStyle(color: active ? Colors.white : Colors.white.withValues(alpha: 0.6),
+            child: Text(f, style: TextStyle(color: active ? Colors.white : context.subLabelColor,
                 fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         );
@@ -311,9 +309,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: exp ? 0.04 : 0.07),
+              color: exp ? context.cardColor.withValues(alpha: 0.5) : context.cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: exp ? EnhancedTheme.errorRed.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.1)),
+              border: Border.all(color: exp ? EnhancedTheme.errorRed.withValues(alpha: 0.3) : context.borderColor),
             ),
             child: Row(children: [
               Container(width: 46, height: 46,
@@ -321,10 +319,10 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                 child: Icon(Icons.medication_rounded, color: sc, size: 22)),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(item.name, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(item.name, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text('${item.brand}  ·  ${item.dosageForm}',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12)),
+                    style: TextStyle(color: context.subLabelColor, fontSize: 12)),
               ])),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text('₹${item.price.toStringAsFixed(0)}',
@@ -349,18 +347,18 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              color: context.cardColor, borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.borderColor),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Container(width: 40, height: 40,
                 decoration: BoxDecoration(color: sc.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
                 child: Icon(Icons.medication_rounded, color: sc, size: 20)),
               const SizedBox(height: 10),
-              Text(item.name, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+              Text(item.name, style: TextStyle(color: context.labelColor, fontSize: 12, fontWeight: FontWeight.w600),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
-              Text(item.brand, style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11)),
+              Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
               const Spacer(),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Text('₹${item.price.toStringAsFixed(0)}',
@@ -387,8 +385,8 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   );
 
   Widget _emptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-    Icon(Icons.inventory_2_outlined, color: Colors.white.withValues(alpha: 0.2), size: 64),
+    Icon(Icons.inventory_2_outlined, color: context.hintColor, size: 64),
     const SizedBox(height: 16),
-    Text('No items found', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 16)),
+    Text('No items found', style: TextStyle(color: context.subLabelColor, fontSize: 16)),
   ]));
 }

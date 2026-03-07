@@ -4,8 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/models/user.dart';
 
-/// Clean Riverpod-based auth service – uses Django OTP flow via Dio.
-/// No Firebase dependency.
 class AuthService {
   final Ref _ref;
 
@@ -22,12 +20,8 @@ class AuthService {
 
   // ── Auth actions ─────────────────────────────────────────────────────────────
 
-  Future<void> submitPhoneNumber(String phone) async {
-    await _ref.read(authFlowProvider.notifier).submitPhoneNumber(phone);
-  }
-
-  Future<void> verifyOtp(String phone, String otp) async {
-    await _ref.read(authFlowProvider.notifier).verifyOtp(phone, otp);
+  Future<void> login(String phone, String password) async {
+    await _ref.read(authFlowProvider.notifier).login(phone, password);
   }
 
   /// Restores session from persistent storage (call on app startup).
@@ -39,8 +33,7 @@ class AuthService {
 
       if (token != null && userData != null) {
         final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
-        _ref.read(currentUserProvider.notifier).state = user;
-        _ref.read(authTokenProvider.notifier).state   = token;
+        _ref.read(authFlowProvider.notifier).restoreSession(token, user);
         return true;
       }
     } catch (_) {}

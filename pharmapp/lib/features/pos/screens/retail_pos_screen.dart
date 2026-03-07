@@ -40,19 +40,17 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     final cartCount    = cart.fold(0, (s, c) => s + c.quantity);
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(children: [
-        Container(decoration: const BoxDecoration(gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight))),
+        Container(decoration: context.bgGradient),
         SafeArea(child: Column(children: [
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
             child: Row(children: [
-              IconButton(icon: const Icon(Icons.arrow_back_rounded, color: Colors.white), onPressed: () => context.pop()),
+              IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.pop()),
               const SizedBox(width: 4),
-              const Expanded(child: Text('Retail POS', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600))),
+              Expanded(child: Text('Retail POS', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600))),
               if (cartCount > 0) GestureDetector(
                 onTap: _checkout,
                 child: Container(
@@ -134,12 +132,12 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: outOfStock
-                  ? Colors.white.withValues(alpha: 0.03)
+                  ? context.cardColor.withValues(alpha: 0.3)
                   : inCart > 0
                       ? EnhancedTheme.primaryTeal.withValues(alpha: 0.12)
-                      : Colors.white.withValues(alpha: 0.07),
+                      : context.cardColor,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: inCart > 0 ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.1)),
+              border: Border.all(color: inCart > 0 ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4) : context.borderColor),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -153,7 +151,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               ]),
               const Spacer(),
               Text(item.name, style: TextStyle(
-                  color: outOfStock ? Colors.white30 : Colors.white,
+                  color: outOfStock ? context.hintColor : context.labelColor,
                   fontSize: 12, fontWeight: FontWeight.w600),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),

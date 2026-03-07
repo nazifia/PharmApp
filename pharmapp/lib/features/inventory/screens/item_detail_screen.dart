@@ -132,11 +132,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     final itemAsync = ref.watch(itemDetailProvider(itemId));
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(children: [
-        Container(decoration: const BoxDecoration(gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight, stops: [0, 0.5, 1]))),
+        Container(decoration: context.bgGradient),
         SafeArea(child: itemAsync.when(
           loading: () => Column(children: [
             _header(context, null),
@@ -161,9 +159,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   Widget _header(BuildContext context, Item? item) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
-      IconButton(icon: const Icon(Icons.arrow_back_rounded, color: Colors.white), onPressed: () => context.pop()),
+      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.pop()),
       Expanded(child: Text(item?.name ?? 'Item Details',
-          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+          style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600),
           overflow: TextOverflow.ellipsis)),
     ]),
   );
@@ -190,9 +188,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
               child: Icon(Icons.medication_rounded, color: stockColor, size: 36)),
             const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(item.name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(item.name, style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
-              Text(item.brand, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 13)),
+              Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 13)),
               const SizedBox(height: 8),
               _chip(item.dosageForm, EnhancedTheme.primaryTeal),
             ])),
@@ -264,8 +262,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alpha: 0.11))),
+        decoration: BoxDecoration(color: context.cardColor,
+            borderRadius: BorderRadius.circular(18), border: Border.all(color: context.borderColor)),
         child: child)));
 
   Widget _metricCard(String label, String value, Color color, IconData icon) => ClipRRect(
@@ -280,21 +278,21 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           const SizedBox(height: 6),
           Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
           const SizedBox(height: 2),
-          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10), textAlign: TextAlign.center),
+          Text(label, style: TextStyle(color: context.hintColor, fontSize: 10), textAlign: TextAlign.center),
         ]))));
 
   Widget _detailRow(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 10),
     child: Row(children: [
-      SizedBox(width: 120, child: Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13))),
-      Expanded(child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500), textAlign: TextAlign.right)),
+      SizedBox(width: 120, child: Text(label, style: TextStyle(color: context.subLabelColor, fontSize: 13))),
+      Expanded(child: Text(value, style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w500), textAlign: TextAlign.right)),
     ]));
 
   Widget _sectionTitle(String t) => Padding(
     padding: const EdgeInsets.only(bottom: 10),
-    child: Text(t, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)));
+    child: Text(t, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)));
 
-  Widget _divider() => Divider(height: 1, color: Colors.white.withValues(alpha: 0.07));
+  Widget _divider() => Divider(height: 1, color: context.dividerColor);
 
   Widget _chip(String label, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

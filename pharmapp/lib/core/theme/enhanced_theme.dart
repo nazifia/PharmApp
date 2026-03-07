@@ -23,6 +23,67 @@ class EnhancedTheme {
   static const Color infoBlue         = Color(0xFF3B82F6);
 
   // ── ThemeData ────────────────────────────────────────────────────────────────
+
+  static ThemeData get enhancedDarkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryTeal,
+        brightness: Brightness.dark,
+        surface: surfaceColor,
+        surfaceTint: Colors.transparent,
+      ),
+      scaffoldBackgroundColor: primaryDark,
+      textTheme: TextTheme(
+        displayLarge: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+        titleLarge:   GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white),
+        bodyLarge:    GoogleFonts.inter(color: Colors.white70),
+        bodyMedium:   GoogleFonts.inter(color: Colors.white54),
+        labelLarge:   GoogleFonts.inter(color: Colors.white54, fontWeight: FontWeight.w500),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.06),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+          borderSide: BorderSide(color: primaryTeal, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryTeal,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
+          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 16),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: surfaceColor,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        margin: const EdgeInsets.all(8),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: Colors.black.withValues(alpha: 0.85),
+        actionTextColor: accentCyan,
+        contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+      ),
+    );
+  }
+
   static ThemeData get enhancedLightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -198,6 +259,57 @@ class EnhancedTheme {
   }
 }
 
-/// Placeholder provider for theme state. Kept for backwards compat with any
-/// widget that already reads it; actual navigation uses go_router.
+/// Placeholder provider kept for backwards compatibility.
 final enhancedThemeProvider = Provider<bool>((ref) => true);
+
+// ── Theme-aware BuildContext extension ────────────────────────────────────────
+
+extension PharmContext on BuildContext {
+  bool get isDark => Theme.of(this).brightness == Brightness.dark;
+
+  /// Scaffold / page background colour.
+  Color get scaffoldBg =>
+      isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9);
+
+  /// Full-page gradient decoration used inside the background Stack.
+  BoxDecoration get bgGradient => BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF0A0F1E), const Color(0xFF0F172A), const Color(0xFF1E293B)]
+              : [const Color(0xFFF8FAFC), const Color(0xFFEFF6FF), const Color(0xFFE0F2FE)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      );
+
+  /// Glass-card background fill.
+  Color get cardColor => isDark
+      ? Colors.white.withValues(alpha: 0.07)
+      : Colors.white.withValues(alpha: 0.85);
+
+  /// Glass-card border colour.
+  Color get borderColor => isDark
+      ? Colors.white.withValues(alpha: 0.10)
+      : Colors.black.withValues(alpha: 0.07);
+
+  /// Primary label text colour.
+  Color get labelColor => isDark ? Colors.white : Colors.black87;
+
+  /// Secondary / sub-label text colour.
+  Color get subLabelColor => isDark
+      ? Colors.white.withValues(alpha: 0.50)
+      : Colors.black54;
+
+  /// Hint / tertiary text colour.
+  Color get hintColor => isDark
+      ? Colors.white.withValues(alpha: 0.35)
+      : Colors.black.withValues(alpha: 0.35);
+
+  /// Divider line colour.
+  Color get dividerColor => isDark
+      ? Colors.white.withValues(alpha: 0.07)
+      : Colors.black.withValues(alpha: 0.06);
+
+  /// Icon colour on background (not on accent).
+  Color get iconOnBg => isDark ? Colors.white : Colors.black87;
+}

@@ -86,21 +86,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final cart = ref.watch(cartProvider);
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(children: [
-        Container(decoration: const BoxDecoration(gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight))),
+        Container(decoration: context.bgGradient),
         SafeArea(child: Column(children: [
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
             child: Row(children: [
-              IconButton(icon: const Icon(Icons.arrow_back_rounded, color: Colors.white), onPressed: () => context.pop()),
+              IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.pop()),
               const SizedBox(width: 4),
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Payment', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
-                Text('Complete the transaction', style: TextStyle(color: Colors.white54, fontSize: 11)),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Payment', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
+                Text('Complete the transaction', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
               ])),
             ]),
           ),
@@ -110,15 +108,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
               // Cart items
-              const Text('Order Summary', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+              Text('Order Summary', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
               const SizedBox(height: 10),
               ClipRRect(borderRadius: BorderRadius.circular(16),
                 child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
+                        color: context.cardColor, borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: context.borderColor)),
                     child: Column(children: [
                       if (cart.isEmpty)
                         Padding(
@@ -129,14 +127,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         ...cart.map((c) => Padding(
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Row(children: [
-                            Expanded(child: Text(c.item.name, style: const TextStyle(color: Colors.white, fontSize: 13))),
-                            Text('×${c.quantity}', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
+                            Expanded(child: Text(c.item.name, style: TextStyle(color: context.labelColor, fontSize: 13))),
+                            Text('×${c.quantity}', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
                             const SizedBox(width: 12),
                             Text('₹${c.subtotal.toStringAsFixed(0)}',
                                 style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w600)),
                           ]),
                         )),
-                      Divider(color: Colors.white.withValues(alpha: 0.1), height: 20),
+                      Divider(color: context.dividerColor, height: 20),
                       _totalsRow('Subtotal', '₹${_subtotal.toStringAsFixed(2)}'),
                       const SizedBox(height: 6),
                       _totalsRow('Tax (5%)', '₹${_tax.toStringAsFixed(2)}', dimmed: true),
@@ -149,7 +147,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               const SizedBox(height: 24),
 
               // Payment method
-              const Text('Payment Method', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+              Text('Payment Method', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
               Wrap(spacing: 10, runSpacing: 10, children: [
                 _methodChip(_PayMethod.cash,   Icons.payments_rounded,    'Cash'),
@@ -183,10 +181,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
       Text(label, style: TextStyle(
-          color: dimmed ? Colors.white38 : Colors.white.withValues(alpha: 0.7),
+          color: dimmed ? context.hintColor : context.subLabelColor,
           fontSize: large ? 16 : 13, fontWeight: large ? FontWeight.w700 : FontWeight.normal)),
       Text(value, style: TextStyle(
-          color: large ? EnhancedTheme.primaryTeal : Colors.white,
+          color: large ? EnhancedTheme.primaryTeal : context.labelColor,
           fontSize: large ? 18 : 13, fontWeight: FontWeight.w700)),
     ]);
 
@@ -198,15 +196,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         decoration: BoxDecoration(
-          color: active ? EnhancedTheme.primaryTeal.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.07),
+          color: active ? EnhancedTheme.primaryTeal.withValues(alpha: 0.2) : context.cardColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.15), width: 1.5),
+          border: Border.all(color: active ? EnhancedTheme.primaryTeal : context.borderColor, width: 1.5),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, color: active ? EnhancedTheme.primaryTeal : Colors.white54, size: 18),
+          Icon(icon, color: active ? EnhancedTheme.primaryTeal : context.subLabelColor, size: 18),
           const SizedBox(width: 8),
           Text(label, style: TextStyle(
-              color: active ? EnhancedTheme.primaryTeal : Colors.white54,
+              color: active ? EnhancedTheme.primaryTeal : context.subLabelColor,
               fontSize: 13, fontWeight: FontWeight.w600)),
         ]),
       ),

@@ -49,12 +49,10 @@ class ReportsHubScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(
         children: [
-          Container(decoration: const BoxDecoration(gradient: LinearGradient(
-              colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-              begin: Alignment.topLeft, end: Alignment.bottomRight))),
+          Container(decoration: context.bgGradient),
           SafeArea(child: Column(children: [
 
             // Header
@@ -62,13 +60,13 @@ class ReportsHubScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
               child: Row(children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                  icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
                   onPressed: () => context.pop(),
                 ),
                 const SizedBox(width: 4),
-                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Reports', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
-                  Text('Analytics & business insights', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Reports', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
+                  Text('Analytics & business insights', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                 ])),
               ]),
             ),
@@ -98,7 +96,7 @@ class ReportsHubScreen extends ConsumerWidget {
                           const SizedBox(height: 4),
                           Text(k['label'] as String,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 9)),
+                              style: TextStyle(color: context.hintColor, fontSize: 9)),
                         ]),
                       ),
                     ),
@@ -106,8 +104,8 @@ class ReportsHubScreen extends ConsumerWidget {
                 ))).toList()),
                 const SizedBox(height: 24),
 
-                const Text('Select Report', style: TextStyle(
-                    color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                Text('Select Report', style: TextStyle(
+                    color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
 
                 // Report cards
@@ -171,11 +169,11 @@ class _ReportCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(title, style: const TextStyle(
-                      color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                  Text(title, style: TextStyle(
+                      color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
                   Text(subtitle, style: TextStyle(
-                      color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                      color: context.subLabelColor, fontSize: 12)),
                 ])),
                 Icon(Icons.arrow_forward_ios_rounded, color: color.withOpacity(0.6), size: 16),
               ]),

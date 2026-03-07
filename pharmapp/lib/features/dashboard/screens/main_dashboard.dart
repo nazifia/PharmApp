@@ -64,18 +64,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.of(context).size.width > 800;
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-                stops: [0.0, 0.5, 1.0],
-              ),
-            ),
-          ),
+          Container(decoration: context.bgGradient),
           SafeArea(child: wide ? _wideLayout() : _narrowLayout()),
         ],
       ),
@@ -84,7 +76,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   Widget _wideLayout() => Row(children: [
     _buildNavRail(),
-    const VerticalDivider(width: 1, color: Colors.white12),
+    VerticalDivider(width: 1, color: context.dividerColor),
     Expanded(child: _content()),
   ]);
 
@@ -98,11 +90,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
       selectedIndex: _selectedIndex,
       onDestinationSelected: _onNavTap,
       labelType: NavigationRailLabelType.all,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: context.isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
       selectedIconTheme: const IconThemeData(color: Color(0xFF0D9488)),
-      unselectedIconTheme: IconThemeData(color: Colors.white.withOpacity(0.35)),
+      unselectedIconTheme: IconThemeData(color: context.subLabelColor),
       selectedLabelTextStyle: const TextStyle(color: Color(0xFF0D9488), fontSize: 11, fontWeight: FontWeight.w600),
-      unselectedLabelTextStyle: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 11),
+      unselectedLabelTextStyle: TextStyle(color: context.subLabelColor, fontSize: 11),
       leading: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Container(
@@ -143,8 +135,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B).withOpacity(0.95),
-            border: const Border(top: BorderSide(color: Colors.white12)),
+            color: context.isDark
+                ? const Color(0xFF1E293B).withValues(alpha: 0.95)
+                : const Color(0xFFE2E8F0).withValues(alpha: 0.95),
+            border: Border(top: BorderSide(color: context.dividerColor)),
           ),
           child: BottomNavigationBar(
             currentIndex: _selectedIndex,
@@ -152,7 +146,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             selectedItemColor: const Color(0xFF0D9488),
-            unselectedItemColor: Colors.white38,
+            unselectedItemColor: context.hintColor,
             type: BottomNavigationBarType.fixed,
             selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
             unselectedLabelStyle: const TextStyle(fontSize: 10),
@@ -189,12 +183,12 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           // ── Header ────────────────────────────────────────────────────────
           Row(children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('$greeting!', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+              Text('$greeting!', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
               const SizedBox(height: 2),
-              Text(user?.phoneNumber ?? 'User', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+              Text(user?.phoneNumber ?? 'User', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
               Text(DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
-                  style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 12)),
+                  style: TextStyle(color: context.hintColor, fontSize: 12)),
             ])),
             GestureDetector(
               onTap: () => context.go('/dashboard/settings'),
@@ -293,7 +287,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   Widget _sectionHeader(String title, VoidCallback onSeeAll) {
     return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+      Text(title, style: TextStyle(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
       GestureDetector(
         onTap: onSeeAll,
         child: const Text('See all', style: TextStyle(color: Color(0xFF0D9488), fontSize: 12, fontWeight: FontWeight.w500)),
@@ -314,8 +308,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
       ),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(s['inv'] as String, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-        Text(s['cust'] as String, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 11)),
+        Text(s['inv'] as String, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
+        Text(s['cust'] as String, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
       ])),
       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
         Text(s['amt'] as String, style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w700, fontSize: 14)),
@@ -337,8 +331,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
       ),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(s['name'] as String, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-        Text(s['brand'] as String, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 11)),
+        Text(s['name'] as String, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
+        Text(s['brand'] as String, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
       ])),
       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
         Text('$stock units', style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 14)),
@@ -356,9 +350,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withOpacity(0.09)),
+            border: Border.all(color: context.borderColor),
           ),
           child: child,
         ),

@@ -3,55 +3,32 @@ import '../../../shared/models/user.dart';
 
 class AuthRepository {
   final Dio _dio;
-
   AuthRepository(this._dio);
 
-  // 1. Initial Login Request: Send Phone, wait for OTP
-  Future<void> requestOtp(String phoneNumber) async {
+  /// Authenticates with phone number + password.
+  /// Expects Django response: `{ "access": "...", "user": { ... } }`
+  Future<Map<String, dynamic>> login(
+      String phoneNumber, String password) async {
     try {
       final response = await _dio.post(
-        '/auth/login/', // Adjust to exact Django URL
-        data: {'phone_number': phoneNumber},
+        '/auth/login/',
+        data: {'phone_number': phoneNumber, 'password': password},
         options: Options(headers: {'skip_auth': true}),
       );
-      
-      if (response.statusCode != 200) {
-        throw Exception('Failed to send OTP: ${response.data}');
-      }
+      final data = response.data as Map<String, dynamic>;
+      final token = data['access'] as String;
+      final user  = User.fromJson(data['user'] as Map<String, dynamic>);
+      return {'token': token, 'user': user};
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }
   }
 
-  // 2. Verify OTP and Retrieve JWT + User Profile
-  Future<Map<String, dynamic>> verifyOtp(String phoneNumber, String otpCode) async {
-    try {
-      final response = await _dio.post(
-        '/auth/verify-otp/', // Adjust to exact Django URL
-        data: {'phone_number': phoneNumber, 'otp': otpCode},
-         options: Options(headers: {'skip_auth': true}),
-      );
-      
-      if (response.statusCode == 200) {
-        // Expected payload: { 'access': '...', 'refresh': '...', 'user': {...} }
-        final data = response.data;
-        final token = data['access'];
-        final user = User.fromJson(data['user']);
-
-        return {'token': token, 'user': user};
-      } else {
-         throw Exception('Invalid OTP');
-      }
-    } on DioException catch (e) {
-       throw Exception(_handleDioError(e));
-    }
-  }
-
-  // 3. Optional: Verify Token validity on app startup or refresh
+  /// Fetches the profile for the currently authenticated user.
   Future<User> fetchCurrentUser() async {
     try {
       final response = await _dio.get('/auth/me/');
-      return User.fromJson(response.data);
+      return User.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }
@@ -59,15 +36,18 @@ class AuthRepository {
 
   String _handleDioError(DioException error) {
     if (error.response != null) {
-      // Backend returned an error response (e.g., 400 Bad Request)
-      if (error.response?.data is Map) {
-         final message = error.response?.data['detail'] ?? error.response?.data['error'] ?? 'Unknown API Error';
-         return message.toString();
+      final body = error.response?.data;
+      if (body is Map) {
+        final msg = body['detail'] ??
+            body['error'] ??
+            (body['non_field_errors'] is List
+                ? (body['non_field_errors'] as List).first
+                : null) ??
+            'Invalid credentials';
+        return msg.toString();
       }
-      return 'Received invalid status code: ${error.response?.statusCode}';
-    } else {
-      // Network or Timeout issue
-      return 'Network Error: Please check your connection.';
+      return 'Server error ${error.response?.statusCode}';
     }
+    return 'Network error: please check your connection.';
   }
 }

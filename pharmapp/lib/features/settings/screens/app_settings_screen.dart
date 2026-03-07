@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/theme/theme_provider.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 
 class AppSettingsScreen extends ConsumerStatefulWidget {
@@ -17,7 +18,6 @@ class AppSettingsScreen extends ConsumerStatefulWidget {
 
 class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _darkMode             = true;
   String _language           = 'English';
 
   late final TextEditingController _apiUrlCtrl;
@@ -49,7 +49,8 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProvider);
+    final user      = ref.watch(currentUserProvider);
+    final isDark    = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     return Scaffold(
       backgroundColor: EnhancedTheme.primaryDark,
@@ -77,8 +78,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                         _switchTile(
                           Icons.dark_mode_outlined, 'Dark Mode',
                           'Adjust the app appearance',
-                          _darkMode,
-                          (v) => setState(() => _darkMode = v),
+                          isDark,
+                          (v) => ref.read(themeModeProvider.notifier)
+                              .setMode(v ? ThemeMode.dark : ThemeMode.light),
                         ),
                         _divider(),
                         _switchTile(

@@ -7,8 +7,6 @@ import 'auth_repository.dart';
 
 // ── Token / User state ────────────────────────────────────────────────────────
 
-// authTokenProvider is defined in api_client.dart and re-exported here for
-// convenience so other files can import from a single auth location.
 export '../../../core/network/api_client.dart' show authTokenProvider;
 
 /// Holds the authenticated [User] profile.
@@ -23,14 +21,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 // ── Auth flow state ───────────────────────────────────────────────────────────
 
-enum AuthFlowState {
-  initial,
-  requestingOtp,
-  otpSent,
-  verifyingOtp,
-  authenticated,
-  error,
-}
+enum AuthFlowState { initial, loggingIn, authenticated, error }
 
 class AuthNotifier extends StateNotifier<AuthFlowState> {
   final Ref _ref;
@@ -40,37 +31,20 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
 
   String? get errorMessage => _errorMessage;
 
-  // 1 ─ Send OTP ───────────────────────────────────────────────────────────────
-  Future<void> submitPhoneNumber(String phone) async {
+  /// Direct phone + password login (no OTP).
+  Future<void> login(String phone, String password) async {
     _errorMessage = null;
-    state = AuthFlowState.requestingOtp;
+    state = AuthFlowState.loggingIn;
 
     try {
-      await _ref.read(authRepositoryProvider).requestOtp(phone);
-      state = AuthFlowState.otpSent;
-    } catch (e) {
-      _errorMessage = _friendly(e);
-      state = AuthFlowState.error;
-    }
-  }
+      final result = await _ref.read(authRepositoryProvider).login(phone, password);
 
-  // 2 ─ Verify OTP ─────────────────────────────────────────────────────────────
-  Future<void> verifyOtp(String phone, String otp) async {
-    _errorMessage = null;
-    state = AuthFlowState.verifyingOtp;
-
-    try {
-      final result = await _ref.read(authRepositoryProvider).verifyOtp(phone, otp);
-
-      // Store JWT
       final String token = result['token'] as String;
-      _ref.read(authTokenProvider.notifier).state = token;
+      final User   user  = result['user']  as User;
 
-      // Store user profile
-      final User user = result['user'] as User;
+      _ref.read(authTokenProvider.notifier).state   = token;
       _ref.read(currentUserProvider.notifier).state = user;
 
-      // Persist for session restoration on next launch
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token',   token);
       await prefs.setString('current_user', jsonEncode(user.toJson()));
@@ -80,6 +54,14 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
       _errorMessage = _friendly(e);
       state = AuthFlowState.error;
     }
+  }
+
+  /// Called by [AuthService.checkAuthStatus] to restore a persisted session
+  /// without going through the login network call.
+  void restoreSession(String token, User user) {
+    _ref.read(authTokenProvider.notifier).state   = token;
+    _ref.read(currentUserProvider.notifier).state = user;
+    state = AuthFlowState.authenticated;
   }
 
   void resetFlow() {

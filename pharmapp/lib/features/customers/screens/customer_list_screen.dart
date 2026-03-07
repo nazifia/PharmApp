@@ -144,7 +144,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     final customersAsync = ref.watch(customerListProvider);
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddCustomerSheet(context),
         backgroundColor: EnhancedTheme.primaryTeal,
@@ -152,9 +152,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
         label: const Text('Add Customer'),
       ),
       body: Stack(children: [
-        Container(decoration: const BoxDecoration(gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight, stops: [0, 0.5, 1]))),
+        Container(decoration: context.bgGradient),
         SafeArea(child: Column(children: [
           _buildHeader(context, customersAsync.value?.length),
           _buildSearchBar(),
@@ -193,9 +191,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   Widget _buildHeader(BuildContext context, int? count) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
-      IconButton(icon: const Icon(Icons.arrow_back_rounded, color: Colors.white), onPressed: () => context.pop()),
+      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.pop()),
       const SizedBox(width: 4),
-      const Expanded(child: Text('Customers', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600))),
+      Expanded(child: Text('Customers', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600))),
       if (count != null) Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -205,7 +203,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
         ),
         child: Text('$count total', style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.w600)),
       ),
-      IconButton(icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+      IconButton(icon: Icon(Icons.refresh_rounded, color: context.subLabelColor),
           onPressed: () => ref.invalidate(customerListProvider)),
     ]),
   );
@@ -245,12 +243,12 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
-              color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.07),
+              color: active ? EnhancedTheme.primaryTeal : context.cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.15)),
+              border: Border.all(color: active ? EnhancedTheme.primaryTeal : context.borderColor),
             ),
             child: Text(f, style: TextStyle(
-                color: active ? Colors.white : Colors.white.withValues(alpha: 0.6),
+                color: active ? Colors.white : context.subLabelColor,
                 fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         );
@@ -268,11 +266,11 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
           decoration: BoxDecoration(
             color: c.outstandingDebt > 0
                 ? EnhancedTheme.errorRed.withValues(alpha: 0.06)
-                : Colors.white.withValues(alpha: 0.07),
+                : context.cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: c.outstandingDebt > 0
                 ? EnhancedTheme.errorRed.withValues(alpha: 0.25)
-                : Colors.white.withValues(alpha: 0.1)),
+                : context.borderColor),
           ),
           child: Row(children: [
             CircleAvatar(
@@ -285,9 +283,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(c.name, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              Text(c.name, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
-              Text(c.phone, style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12)),
+              Text(c.phone, style: TextStyle(color: context.subLabelColor, fontSize: 12)),
               const SizedBox(height: 6),
               Wrap(spacing: 6, children: [
                 _chip(c.type, c.isWholesale ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal),
@@ -298,8 +296,8 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               ]),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('${c.totalPurchases}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-              Text('purchases', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)),
+              Text('${c.totalPurchases}', style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
+              Text('purchases', style: TextStyle(color: context.hintColor, fontSize: 10)),
             ]),
           ]),
         ),
