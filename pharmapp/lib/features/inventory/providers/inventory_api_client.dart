@@ -3,47 +3,79 @@ import '../../../shared/models/item.dart';
 
 class InventoryApiClient {
   final Dio _dio;
-
   InventoryApiClient(this._dio);
 
-  Future<List<Item>> fetchInventory() async {
-    try {
-      final response = await _dio.get('/inventory/items/'); // Adjust to your actual Django endpoint
-      
-      if (response.statusCode == 200) {
-        // Assuming the Django API returns a JSON array of items or a paginated response
-        final data = response.data;
-        List<dynamic> results = data;
-        
-        // Handle DRF pagination object if necessary:
-        if (data is Map<String, dynamic> && data.containsKey('results')) {
-           results = data['results'];
-        }
+  // DRF returns snake_case; Item.fromJson expects camelCase (per generated .g.dart).
+  // This normalizer handles both so the app works with either backend convention.
+  Map<String, dynamic> _normalize(Map<String, dynamic> j) => {
+        'id':               j['id'],
+        'name':             j['name'],
+        'brand':            j['brand'],
+        'dosageForm':       j['dosage_form']        ?? j['dosageForm'],
+        'price':            j['price'],
+        'stock':            j['stock'],
+        'lowStockThreshold': j['low_stock_threshold'] ?? j['lowStockThreshold'],
+        'barcode':          j['barcode'],
+        'expiryDate':       j['expiry_date']        ?? j['expiryDate'],
+      };
 
-        return results.map((e) => Item.fromJson(e)).toList();
-      } else {
-        throw Exception('Failed to load inventory: ${response.statusCode}');
-      }
+  Future<List<Item>> fetchInventory({String? search}) async {
+    try {
+      final res = await _dio.get('/inventory/items/',
+          queryParameters: search != null && search.isNotEmpty
+              ? {'search': search}
+              : null);
+      final data = res.data;
+      final list = data is Map && data.containsKey('results')
+          ? data['results'] as List
+          : data as List;
+      return list.map((e) => Item.fromJson(_normalize(e as Map<String, dynamic>))).toList();
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw Exception('API Error: ${e.response?.statusCode}');
-      } else {
-        throw Exception('Network Error: Could not reach the server.');
-      }
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to load inventory');
     }
   }
-  
-  // Example for future: Searching products by barcode directly from server
+
+  Future<Item> fetchById(int id) async {
+    try {
+      final res = await _dio.get('/inventory/items/$id/');
+      return Item.fromJson(_normalize(res.data as Map<String, dynamic>));
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Item not found');
+    }
+  }
+
   Future<Item?> fetchItemByBarcode(String barcode) async {
-     try {
-       final response = await _dio.get('/inventory/items/', queryParameters: {'barcode': barcode});
-       if (response.statusCode == 200) {
-          final results = response.data is Map ? response.data['results'] : response.data;
-          if (results.isNotEmpty) return Item.fromJson(results[0]);
-       }
-       return null;
-     } catch (e) {
-       return null;
-     }
+    try {
+      final res = await _dio.get('/inventory/items/', queryParameters: {'barcode': barcode});
+      final data = res.data;
+      final list = data is Map && data.containsKey('results')
+          ? data['results'] as List
+          : data as List;
+      if (list.isEmpty) return null;
+      return Item.fromJson(_normalize(list[0] as Map<String, dynamic>));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Item> createItem(Map<String, dynamic> data) async {
+    try {
+      final res = await _dio.post('/inventory/items/', data: data);
+      return Item.fromJson(_normalize(res.data as Map<String, dynamic>));
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to create item');
+    }
+  }
+
+  Future<Item> adjustStock(int itemId, int adjustment, String reason) async {
+    try {
+      final res = await _dio.post('/inventory/items/$itemId/adjust-stock/', data: {
+        'adjustment': adjustment,
+        'reason': reason,
+      });
+      return Item.fromJson(_normalize(res.data as Map<String, dynamic>));
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to adjust stock');
+    }
   }
 }

@@ -15,14 +15,17 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 });
 
 /// Fetches the full inventory from the backend.
-/// Screens that need live data should watch this provider.
 final inventoryListProvider = FutureProvider<List<Item>>((ref) {
-  return ref.watch(inventoryRepositoryProvider).fetchAll();
+  return ref.watch(inventoryApiProvider).fetchInventory();
 });
 
-/// Searches inventory; pass query via a family parameter.
+/// Searches inventory by keyword.
 final inventorySearchProvider =
     FutureProvider.family<List<Item>, String>((ref, query) {
-  if (query.isEmpty) return ref.watch(inventoryRepositoryProvider).fetchAll();
-  return ref.watch(inventoryRepositoryProvider).search(query);
+  return ref.watch(inventoryApiProvider).fetchInventory(search: query);
+});
+
+/// Single item by ID.
+final itemDetailProvider = FutureProvider.family<Item, int>((ref, id) {
+  return ref.watch(inventoryApiProvider).fetchById(id);
 });

@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -18,12 +20,31 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   bool _darkMode             = true;
   String _language           = 'English';
 
-  final _apiUrlCtrl = TextEditingController(text: 'https://api.pharmapp.com');
+  late final TextEditingController _apiUrlCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final currentUrl = ref.read(baseUrlProvider);
+    _apiUrlCtrl = TextEditingController(text: currentUrl);
+  }
 
   @override
   void dispose() {
     _apiUrlCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveApiUrl() async {
+    final url = _apiUrlCtrl.text.trim();
+    if (url.isEmpty) return;
+    ref.read(baseUrlProvider.notifier).state = url;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('api_base_url', url);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('API URL saved'), backgroundColor: EnhancedTheme.successGreen));
+    }
   }
 
   @override
