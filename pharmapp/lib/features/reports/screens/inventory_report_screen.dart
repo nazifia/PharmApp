@@ -10,10 +10,10 @@ class InventoryReportScreen extends ConsumerWidget {
   const InventoryReportScreen({super.key});
 
   String _fmtValue(double v) {
-    if (v >= 10000000) return '₹${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000)   return '₹${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)     return '₹${(v / 1000).toStringAsFixed(1)}K';
-    return '₹${v.toStringAsFixed(0)}';
+    if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
+    if (v >= 100000)   return '₦${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 1000)     return '₦${(v / 1000).toStringAsFixed(1)}K';
+    return '₦${v.toStringAsFixed(0)}';
   }
 
   @override
@@ -59,14 +59,14 @@ class InventoryReportScreen extends ConsumerWidget {
                 child: const Text('Retry',
                     style: TextStyle(color: EnhancedTheme.primaryTeal))),
             ])),
-            data: (data) => _buildBody(data),
+            data: (data) => _buildBody(context, data),
           )),
         ])),
       ]),
     );
   }
 
-  Widget _buildBody(InventoryReportData data) {
+  Widget _buildBody(BuildContext context, InventoryReportData data) {
     final summaryItems = [
       {'label': 'Total SKUs',    'value': '${data.totalSkus}',          'color': EnhancedTheme.primaryTeal,  'icon': Icons.inventory_2_rounded},
       {'label': 'Low Stock',     'value': '${data.lowStock}',           'color': EnhancedTheme.warningAmber, 'icon': Icons.warning_amber_rounded},

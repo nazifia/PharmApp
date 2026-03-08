@@ -53,17 +53,10 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
     final isDark    = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-              ),
-            ),
-          ),
+          Container(decoration: context.bgGradient),
           SafeArea(
             child: Column(
               children: [
@@ -149,7 +142,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
           onPressed: () => context.pop(),
         ),
         const SizedBox(width: 4),
-        const Text('Settings', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
+        Text('Settings', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600)),
       ]),
     );
   }
@@ -162,14 +155,14 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.07),
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.12)),
+            border: Border.all(color: context.borderColor),
           ),
           child: Row(children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: EnhancedTheme.primaryTeal.withOpacity(0.2),
+              backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
               child: Text(
                 (user?.role ?? 'U').isNotEmpty ? user!.role[0].toUpperCase() : 'U',
                 style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 22, fontWeight: FontWeight.bold),
@@ -178,14 +171,14 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
             const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(user?.phoneNumber ?? '—',
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                  style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: EnhancedTheme.primaryTeal.withOpacity(0.12),
+                  color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: EnhancedTheme.primaryTeal.withOpacity(0.3)),
+                  border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
                 ),
                 child: Text(user?.role ?? 'Unknown',
                     style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
@@ -204,15 +197,15 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: context.borderColor),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(title, style: TextStyle(
-                  color: Colors.white.withOpacity(0.5), fontSize: 11,
+                  color: context.subLabelColor, fontSize: 11,
                   fontWeight: FontWeight.w700, letterSpacing: 0.8)),
             ),
             ...children,
@@ -230,36 +223,37 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
         _tileIcon(icon, EnhancedTheme.primaryTeal),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-          Text(sub, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+          Text(title, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(sub, style: TextStyle(color: context.hintColor, fontSize: 12)),
         ])),
         Switch(value: val, onChanged: onChanged,
             activeColor: EnhancedTheme.primaryTeal,
             trackColor: WidgetStateProperty.resolveWith(
                 (s) => s.contains(WidgetState.selected)
-                    ? EnhancedTheme.primaryTeal.withOpacity(0.3)
-                    : Colors.white.withOpacity(0.12))),
+                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.3)
+                    : context.borderColor)),
       ]),
     );
   }
 
   Widget _dropdownTile(IconData icon, String title, String val,
       List<String> opts, ValueChanged<String?> onChanged) {
+    final dropBg = context.isDark ? const Color(0xFF1E293B) : Colors.white;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(children: [
         _tileIcon(icon, EnhancedTheme.accentCyan),
         const SizedBox(width: 14),
         Expanded(child: Text(title,
-            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500))),
+            style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500))),
         DropdownButton<String>(
           value: val, items: opts.map((o) => DropdownMenuItem(value: o,
-              child: Text(o, style: const TextStyle(color: Colors.white, fontSize: 13)))).toList(),
+              child: Text(o, style: TextStyle(color: context.labelColor, fontSize: 13)))).toList(),
           onChanged: onChanged,
-          dropdownColor: const Color(0xFF1E293B),
+          dropdownColor: dropBg,
           underline: const SizedBox(),
-          iconEnabledColor: Colors.white38,
-          style: const TextStyle(color: Colors.white),
+          iconEnabledColor: context.hintColor,
+          style: TextStyle(color: context.labelColor),
         ),
       ]),
     );
@@ -272,19 +266,19 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
         Row(children: [
           _tileIcon(icon, EnhancedTheme.infoBlue),
           const SizedBox(width: 14),
-          Text(title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(title, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
         ]),
         const SizedBox(height: 10),
         TextField(
           controller: ctrl,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
+          style: TextStyle(color: context.labelColor, fontSize: 13),
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.white.withOpacity(0.06),
+            fillColor: context.cardColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.12))),
+                borderSide: BorderSide(color: context.borderColor)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.12))),
+                borderSide: BorderSide(color: context.borderColor)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -295,19 +289,21 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   }
 
   Widget _tapTile(IconData icon, String title, String sub, VoidCallback onTap,
-      {Color iconColor = EnhancedTheme.primaryTeal, Color textColor = Colors.white, Widget? trailing}) {
+      {Color? iconColor, Color? textColor, Widget? trailing}) {
+    final ic = iconColor ?? EnhancedTheme.primaryTeal;
+    final tc = textColor ?? context.labelColor;
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(children: [
-          _tileIcon(icon, iconColor),
+          _tileIcon(icon, ic),
           const SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w500)),
-            Text(sub, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+            Text(title, style: TextStyle(color: tc, fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(sub, style: TextStyle(color: context.hintColor, fontSize: 12)),
           ])),
-          trailing ?? Icon(Icons.chevron_right, color: Colors.white.withOpacity(0.25), size: 18),
+          trailing ?? Icon(Icons.chevron_right, color: context.hintColor, size: 18),
         ]),
       ),
     );
@@ -322,19 +318,19 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   }
 
   Widget _divider() => Divider(
-      height: 1, indent: 66, endIndent: 16, color: Colors.white.withOpacity(0.07));
+      height: 1, indent: 66, endIndent: 16, color: context.dividerColor);
 
   Future<void> _confirmLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text('Logout', style: TextStyle(color: Colors.white)),
-        content: const Text('Are you sure you want to sign out?',
-            style: TextStyle(color: Colors.white70)),
+        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text('Logout', style: TextStyle(color: context.labelColor)),
+        content: Text('Are you sure you want to sign out?',
+            style: TextStyle(color: context.subLabelColor)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-              child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.5)))),
+              child: Text('Cancel', style: TextStyle(color: context.hintColor))),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Logout', style: TextStyle(color: EnhancedTheme.errorRed))),

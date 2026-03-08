@@ -45,7 +45,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(success
-            ? '${_isTopUp ? "Topped up" : "Deducted"} ₹${amount.toStringAsFixed(2)}'
+            ? '${_isTopUp ? "Topped up" : "Deducted"} ₦${amount.toStringAsFixed(2)}'
             : 'Operation failed — please try again'),
         backgroundColor:
             success ? EnhancedTheme.successGreen : EnhancedTheme.errorRed));
@@ -114,7 +114,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           color: EnhancedTheme.successGreen, strokeWidth: 2),
                       error: (_, __) => const Text('—',
                           style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800)),
-                      data: (c) => Text('₹${c.walletBalance.toStringAsFixed(2)}',
+                      data: (c) => Text('₦${c.walletBalance.toStringAsFixed(2)}',
                           style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800)),
                     ),
                     const SizedBox(height: 4),
@@ -174,7 +174,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                               borderSide: BorderSide.none),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
-                          prefixText: '₹ ',
+                          prefixText: '₦ ',
                           prefixStyle: const TextStyle(color: Colors.white70)),
                       )),
                       const SizedBox(width: 10),
@@ -287,7 +287,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('${isCredit ? "+" : ""}₹${tx.amount.abs().toStringAsFixed(0)}',
+              Text('${isCredit ? "+" : ""}₦${tx.amount.abs().toStringAsFixed(0)}',
                   style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
               Text(tx.date,
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 10)),

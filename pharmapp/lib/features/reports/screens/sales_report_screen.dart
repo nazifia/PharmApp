@@ -27,10 +27,10 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   }
 
   String _fmt(double v) {
-    if (v >= 10000000) return '₹${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000)   return '₹${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)     return '₹${(v / 1000).toStringAsFixed(1)}K';
-    return '₹${v.toStringAsFixed(0)}';
+    if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
+    if (v >= 100000)   return '₦${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 1000)     return '₦${(v / 1000).toStringAsFixed(1)}K';
+    return '₦${v.toStringAsFixed(0)}';
   }
 
   @override
@@ -60,14 +60,14 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                 child: const Text('Retry',
                     style: TextStyle(color: EnhancedTheme.primaryTeal))),
             ])),
-            data: (data) => _buildBody(data),
+            data: (data) => _buildBody(context, data),
           )),
         ])),
       ]),
     );
   }
 
-  Widget _buildBody(SalesReportData data) {
+  Widget _buildBody(BuildContext context, SalesReportData data) {
     final grand   = data.totalRetail + data.totalWholesale;
     final maxVal  = data.daily.isEmpty
         ? 1.0
@@ -93,7 +93,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         const SizedBox(height: 20),
 
         // ── Bar chart ────────────────────────────────────────────────────────
-        Text('Sales Breakdown (₹)',
+        Text('Sales Breakdown (₦)',
             style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
         ClipRRect(
@@ -274,7 +274,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
               Text(value,
                   style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w800)),
               Text(label,
-                  style: TextStyle(color: context.hintColor, fontSize: 9),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 9),
                   textAlign: TextAlign.center),
             ]),
           ),
@@ -285,6 +285,6 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     Container(width: 10, height: 10,
         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
     const SizedBox(width: 6),
-    Text(label, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+    Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
   ]);
 }

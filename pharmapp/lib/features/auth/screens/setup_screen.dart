@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/widgets/custom_button.dart';
@@ -25,14 +26,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     super.dispose();
   }
 
-  void _complete() {
+  Future<void> _complete() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-    // TODO: persist name to backend; for now navigate immediately
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (!mounted) return;
-      context.go('/dashboard');
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('display_name', _nameCtrl.text.trim());
+    } catch (_) {}
+    if (!mounted) return;
+    context.go('/dashboard');
   }
 
   @override

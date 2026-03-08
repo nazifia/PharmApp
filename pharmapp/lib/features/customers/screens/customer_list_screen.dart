@@ -290,9 +290,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               Wrap(spacing: 6, children: [
                 _chip(c.type, c.isWholesale ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal),
                 if (c.walletBalance > 0)
-                  _chip('₹${c.walletBalance.toStringAsFixed(0)} wallet', EnhancedTheme.successGreen),
+                  _chip('₦${c.walletBalance.toStringAsFixed(0)} wallet', EnhancedTheme.successGreen),
                 if (c.outstandingDebt > 0)
-                  _chip('₹${c.outstandingDebt.toStringAsFixed(0)} due', EnhancedTheme.errorRed),
+                  _chip('₦${c.outstandingDebt.toStringAsFixed(0)} due', EnhancedTheme.errorRed),
               ]),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [

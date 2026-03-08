@@ -199,7 +199,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
 
           // Key metrics
           Row(children: [
-            Expanded(child: _metricCard('Retail Price', '₹${item.price.toStringAsFixed(0)}', EnhancedTheme.primaryTeal, Icons.sell)),
+            Expanded(child: _metricCard('Retail Price', '₦${item.price.toStringAsFixed(0)}', EnhancedTheme.primaryTeal, Icons.sell)),
             const SizedBox(width: 10),
             Expanded(child: _metricCard('Stock', '$stock units', stockColor, Icons.inventory_2)),
             const SizedBox(width: 10),
@@ -225,7 +225,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           // Pricing
           _sectionTitle('Pricing'),
           _glassCard(child: Column(children: [
-            _detailRow('Retail Price', '₹${item.price.toStringAsFixed(2)}'),
+            _detailRow('Retail Price', '₦${item.price.toStringAsFixed(2)}'),
           ])),
           const SizedBox(height: 24),
 

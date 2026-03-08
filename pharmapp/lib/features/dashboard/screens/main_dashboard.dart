@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 import 'package:pharmapp/shared/widgets/dashboard_card.dart';
 
 class MainDashboard extends ConsumerStatefulWidget {
@@ -18,44 +19,45 @@ class MainDashboard extends ConsumerStatefulWidget {
 class _MainDashboardState extends ConsumerState<MainDashboard> {
   int _selectedIndex = 0;
 
-  // ── Mock data ──────────────────────────────────────────────────────────────
-
-  static const _stats = [
-    {'title': "Today's Revenue", 'value': '₹12,450',  'sub': '+8% from yesterday', 'icon': Icons.monetization_on,  'color': Color(0xFF10B981), 'trend': '+8%',  'pos': true},
-    {'title': 'Items Sold',      'value': '84',        'sub': 'Today',              'icon': Icons.shopping_bag,      'color': Color(0xFF3B82F6), 'trend': '+12%', 'pos': true},
-    {'title': 'Low Stock',       'value': '7',         'sub': 'Need restocking',    'icon': Icons.warning_amber,     'color': Color(0xFFF59E0B), 'trend': null,   'pos': false},
-    {'title': 'Customers',       'value': '152',       'sub': 'Registered total',   'icon': Icons.people,            'color': Color(0xFF8B5CF6), 'trend': '+3',   'pos': true},
-  ];
-
-  static const _recentSales = [
-    {'inv': 'INV-2026-001', 'cust': 'John Doe',     'amt': '₹2,450',  'paid': true,  'ws': false, 'time': '10 min ago'},
-    {'inv': 'INV-2026-002', 'cust': 'Walk-in',       'amt': '₹850',   'paid': true,  'ws': false, 'time': '32 min ago'},
-    {'inv': 'INV-2026-003', 'cust': 'City Clinic',   'amt': '₹18,200','paid': false, 'ws': true,  'time': '1 hr ago'},
-    {'inv': 'INV-2026-004', 'cust': 'Priya Sharma',  'amt': '₹1,100', 'paid': true,  'ws': false, 'time': '2 hr ago'},
-  ];
-
-  static const _lowStock = [
-    {'name': 'Paracetamol 500mg',  'brand': 'Cipla',     'stock': 5, 'min': 20},
-    {'name': 'Amoxicillin 250mg',  'brand': 'Sun Pharma','stock': 3, 'min': 15},
-    {'name': 'Metformin 500mg',    'brand': 'USV',       'stock': 8, 'min': 25},
-    {'name': 'Omeprazole 20mg',    'brand': 'Alkem',     'stock': 2, 'min': 10},
-  ];
-
   // ── Navigation helpers ─────────────────────────────────────────────────────
 
   void _onNavTap(int i) {
     setState(() => _selectedIndex = i);
     switch (i) {
-      case 1: context.go('/dashboard/pos');              break;
-      case 2: context.go('/dashboard/inventory');        break;
-      case 3: context.go('/dashboard/customers');        break;
-      case 4: context.go('/dashboard/reports');           break;
+      case 1: context.go('/dashboard/pos');        break;
+      case 2: context.go('/dashboard/inventory');  break;
+      case 3: context.go('/dashboard/customers');  break;
+      case 4: context.go('/dashboard/reports');    break;
     }
   }
 
   void _logout() {
     ref.read(authServiceProvider).logout();
     context.go('/login');
+  }
+
+  void _showMoreSheet() {
+    final user = ref.read(currentUserProvider);
+    final isAdmin     = user?.role == 'Admin' || user?.role == 'Manager';
+    final isWholesale = user?.role.contains('Wholesale') ?? false;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _MoreFeaturesSheet(
+        isAdmin: isAdmin,
+        isWholesale: isWholesale,
+        onNavigate: (route) { Navigator.pop(context); context.go(route); },
+        onLogout: () { Navigator.pop(context); _logout(); },
+      ),
+    );
+  }
+
+  String _fmt(double v) {
+    if (v >= 100000) return '₦${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 1000)   return '₦${(v / 1000).toStringAsFixed(1)}K';
+    return '₦${v.toStringAsFixed(0)}';
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -120,11 +122,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         ),
       ),
       destinations: const [
-        NavigationRailDestination(icon: Icon(Icons.home_outlined),          selectedIcon: Icon(Icons.home),             label: Text('Home')),
-        NavigationRailDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale),    label: Text('POS')),
-        NavigationRailDestination(icon: Icon(Icons.inventory_2_outlined),   selectedIcon: Icon(Icons.inventory_2),      label: Text('Stock')),
-        NavigationRailDestination(icon: Icon(Icons.people_outline),          selectedIcon: Icon(Icons.people),           label: Text('Customers')),
-        NavigationRailDestination(icon: Icon(Icons.bar_chart_outlined),      selectedIcon: Icon(Icons.bar_chart),        label: Text('Reports')),
+        NavigationRailDestination(icon: Icon(Icons.home_outlined),          selectedIcon: Icon(Icons.home),          label: Text('Home')),
+        NavigationRailDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale), label: Text('POS')),
+        NavigationRailDestination(icon: Icon(Icons.inventory_2_outlined),   selectedIcon: Icon(Icons.inventory_2),   label: Text('Stock')),
+        NavigationRailDestination(icon: Icon(Icons.people_outline),          selectedIcon: Icon(Icons.people),        label: Text('Customers')),
+        NavigationRailDestination(icon: Icon(Icons.bar_chart_outlined),      selectedIcon: Icon(Icons.bar_chart),     label: Text('Reports')),
       ],
     );
   }
@@ -163,17 +165,29 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     );
   }
 
-  Widget _content() {
-    // For index > 0, navigation already happened via go_router.
-    // Always render home content (sub-screens handle their own routes).
-    return _homeContent();
-  }
+  Widget _content() => _homeContent();
 
   Widget _homeContent() {
-    final user  = ref.watch(currentUserProvider);
-    final wide2 = MediaQuery.of(context).size.width > 600;
-    final hour  = DateTime.now().hour;
-    final greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    final user       = ref.watch(currentUserProvider);
+    final salesAsync = ref.watch(salesReportProvider('today'));
+    final invAsync   = ref.watch(inventoryReportProvider);
+    final custAsync  = ref.watch(customerReportProvider);
+    final wide2      = MediaQuery.of(context).size.width > 600;
+    final hour       = DateTime.now().hour;
+    final greeting   = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+    final revenue   = salesAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
+    final lowStock  = invAsync.whenOrNull(data: (d) => d.lowStock) ?? 0;
+    final customers = custAsync.whenOrNull(data: (d) => d.total) ?? 0;
+    final debt      = custAsync.whenOrNull(data: (d) => d.totalDebt) ?? 0.0;
+    final loading   = salesAsync.isLoading || invAsync.isLoading || custAsync.isLoading;
+
+    final stats = [
+      DashboardCard(title: "Today's Revenue", value: loading ? '…' : _fmt(revenue), subtitle: 'Retail + Wholesale', icon: Icons.monetization_on,  color: const Color(0xFF10B981)),
+      DashboardCard(title: 'Low Stock',        value: loading ? '…' : '$lowStock',   subtitle: 'Below threshold',     icon: Icons.warning_amber,    color: const Color(0xFFF59E0B)),
+      DashboardCard(title: 'Customers',        value: loading ? '…' : '$customers',  subtitle: 'Total registered',    icon: Icons.people,           color: const Color(0xFF8B5CF6)),
+      DashboardCard(title: 'Outstanding Debt', value: loading ? '…' : _fmt(debt),    subtitle: 'Total owed',          icon: Icons.money_off,        color: const Color(0xFFEF4444)),
+    ];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
@@ -185,29 +199,13 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('$greeting!', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
               const SizedBox(height: 2),
-              Text(user?.phoneNumber ?? 'User', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
+              Text(user?.phoneNumber ?? 'User',
+                  style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
               Text(DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
                   style: TextStyle(color: context.hintColor, fontSize: 12)),
             ])),
-            GestureDetector(
-              onTap: () => context.go('/dashboard/settings'),
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF0D9488), width: 2),
-                ),
-                child: CircleAvatar(
-                  radius: 22,
-                  backgroundColor: const Color(0xFF0D9488).withOpacity(0.15),
-                  child: Text(
-                    (user?.role ?? 'U').isNotEmpty ? (user!.role[0]).toUpperCase() : 'U',
-                    style: const TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                ),
-              ),
-            ),
+            _buildProfileMenu(user?.role ?? 'U'),
           ]),
           const SizedBox(height: 24),
 
@@ -219,7 +217,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             const SizedBox(width: 10),
             _quickBtn(Icons.people,             'Customers',  const Color(0xFF8B5CF6), () => context.go('/dashboard/customers')),
             const SizedBox(width: 10),
-            _quickBtn(Icons.settings,           'Settings',   Colors.white38,          () => context.go('/dashboard/settings')),
+            _quickBtn(Icons.more_horiz_rounded,  'More',       Colors.white38,          _showMoreSheet),
           ]),
           const SizedBox(height: 24),
 
@@ -231,28 +229,85 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
             childAspectRatio: wide2 ? 1.35 : 1.3,
-            children: _stats.map((s) => DashboardCard(
-              title:    s['title']  as String,
-              value:    s['value']  as String,
-              subtitle: s['sub']    as String,
-              icon:     s['icon']   as IconData,
-              color:    s['color']  as Color,
-              trend:    s['trend']  as String?,
-              trendPositive: s['pos'] as bool,
-            )).toList(),
+            children: stats,
           ),
           const SizedBox(height: 24),
 
-          // ── Recent sales ──────────────────────────────────────────────────
-          _sectionHeader('Recent Sales', () => context.go('/dashboard/reports/sales')),
+          // ── Top Items Today ───────────────────────────────────────────────
+          _sectionHeader('Top Items Today', () => context.go('/dashboard/reports/sales')),
           const SizedBox(height: 12),
-          ..._recentSales.map(_saleRow),
+          salesAsync.when(
+            loading: () => const Center(child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(color: Color(0xFF0D9488)),
+            )),
+            error: (e, _) => _glassRow(child: Text('Failed to load sales data',
+                style: TextStyle(color: context.hintColor, fontSize: 13))),
+            data: (report) {
+              if (report.topItems.isEmpty) {
+                return _glassRow(child: Text('No sales today',
+                    style: TextStyle(color: context.hintColor, fontSize: 13)));
+              }
+              return Column(children: report.topItems.take(4).map((item) =>
+                _glassRow(child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF0D9488).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.medication_rounded, color: Color(0xFF0D9488), size: 16),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(item.name, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text('${item.qty} units sold', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                  ])),
+                  Text(_fmt(item.revenue),
+                      style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w700, fontSize: 14)),
+                ]))
+              ).toList());
+            },
+          ),
           const SizedBox(height: 24),
 
-          // ── Low stock ─────────────────────────────────────────────────────
+          // ── Low Stock Alerts ──────────────────────────────────────────────
           _sectionHeader('Low Stock Alerts', () => context.go('/dashboard/inventory')),
           const SizedBox(height: 12),
-          ..._lowStock.map(_lowStockRow),
+          invAsync.when(
+            loading: () => const Center(child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(color: Color(0xFF0D9488)),
+            )),
+            error: (e, _) => _glassRow(child: Text('Failed to load inventory data',
+                style: TextStyle(color: context.hintColor, fontSize: 13))),
+            data: (report) {
+              if (report.lowStockItems.isEmpty) {
+                return _glassRow(child: Text('All items adequately stocked',
+                    style: TextStyle(color: context.hintColor, fontSize: 13)));
+              }
+              return Column(children: report.lowStockItems.take(4).map((s) {
+                final pct = s.stock / (s.low > 0 ? s.low : 1);
+                final c   = pct < 0.3 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
+                return _glassRow(child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: c.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+                    child: Icon(Icons.warning_amber_rounded, color: c, size: 16),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(s.name, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text('Reorder at ${s.reorder}', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                  ])),
+                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text('${s.stock} units', style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 14)),
+                    Text('Min: ${s.low}', style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 11)),
+                  ]),
+                ]));
+              }).toList());
+            },
+          ),
         ],
       ),
     );
@@ -295,50 +350,74 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     ]);
   }
 
-  Widget _saleRow(Map<String, dynamic> s) {
-    final paid = s['paid'] as bool;
-    final ws   = s['ws']   as bool;
-    final c    = ws ? const Color(0xFF06B6D4) : const Color(0xFF0D9488);
-
-    return _glassRow(child: Row(children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: c.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-        child: Icon(ws ? Icons.business : Icons.person_outline, color: c, size: 16),
+  Widget _buildProfileMenu(String role) {
+    final isAdmin     = role == 'Admin' || role == 'Manager';
+    final isWholesale = role.contains('Wholesale');
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 52),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: const Color(0xFF1E293B),
+      onSelected: (val) {
+        switch (val) {
+          case 'settings':   context.go('/dashboard/settings');    break;
+          case 'admin':      context.go('/admin-dashboard');       break;
+          case 'wholesale':  context.go('/wholesale-dashboard');   break;
+          case 'reports':    context.go('/dashboard/reports');     break;
+          case 'logout':     _logout();                            break;
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(enabled: false, child: Row(children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: const Color(0xFF0D9488).withOpacity(0.2),
+            child: Text(role.isNotEmpty ? role[0].toUpperCase() : 'U',
+                style: const TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 10),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(role, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text('Logged in', style: TextStyle(color: Colors.white38, fontSize: 11)),
+          ]),
+        ])),
+        const PopupMenuDivider(),
+        _menuItem('settings',  Icons.settings_outlined,       'Settings'),
+        _menuItem('reports',   Icons.bar_chart_outlined,      'Reports'),
+        if (isAdmin)
+          _menuItem('admin',     Icons.admin_panel_settings_outlined, 'Admin Dashboard'),
+        if (isWholesale)
+          _menuItem('wholesale', Icons.store_outlined,         'Wholesale Dashboard'),
+        const PopupMenuDivider(),
+        _menuItem('logout',    Icons.logout_rounded,          'Sign Out',  color: const Color(0xFFEF4444)),
+      ],
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFF0D9488), width: 2),
+        ),
+        child: CircleAvatar(
+          radius: 22,
+          backgroundColor: const Color(0xFF0D9488).withOpacity(0.15),
+          child: Text(
+            role.isNotEmpty ? role[0].toUpperCase() : 'U',
+            style: const TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+        ),
       ),
-      const SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(s['inv'] as String, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
-        Text(s['cust'] as String, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-      ])),
-      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        Text(s['amt'] as String, style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w700, fontSize: 14)),
-        _statusChip(paid ? 'Paid' : 'Pending', paid ? const Color(0xFF10B981) : const Color(0xFFF59E0B)),
-      ]),
-    ]));
+    );
   }
 
-  Widget _lowStockRow(Map<String, dynamic> s) {
-    final stock = s['stock'] as int;
-    final min   = s['min']   as int;
-    final c     = (stock / min) < 0.3 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
-
-    return _glassRow(child: Row(children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: c.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-        child: Icon(Icons.warning_amber_rounded, color: c, size: 16),
-      ),
-      const SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(s['name'] as String, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
-        Text(s['brand'] as String, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-      ])),
-      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        Text('$stock units', style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 14)),
-        Text('Min: $min', style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 11)),
+  PopupMenuItem<String> _menuItem(String value, IconData icon, String label, {Color? color}) {
+    final c = color ?? Colors.white70;
+    return PopupMenuItem(
+      value: value,
+      child: Row(children: [
+        Icon(icon, color: c, size: 18),
+        const SizedBox(width: 10),
+        Text(label, style: TextStyle(color: c, fontSize: 13)),
       ]),
-    ]));
+    );
   }
 
   Widget _glassRow({required Widget child}) {
@@ -359,15 +438,127 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
       ),
     );
   }
+}
 
-  Widget _statusChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(6),
+// ── More Features Bottom Sheet ────────────────────────────────────────────────
+
+class _MoreFeaturesSheet extends StatelessWidget {
+  final bool isAdmin;
+  final bool isWholesale;
+  final void Function(String route) onNavigate;
+  final VoidCallback onLogout;
+
+  const _MoreFeaturesSheet({
+    required this.isAdmin,
+    required this.isWholesale,
+    required this.onNavigate,
+    required this.onLogout,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B).withValues(alpha: 0.97),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            // Handle
+            Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('More Features', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(height: 16),
+
+            // Reports section
+            _sectionLabel('Reports'),
+            const SizedBox(height: 8),
+            Row(children: [
+              _featureCard(context, Icons.show_chart,          'Sales',      const Color(0xFF10B981), '/dashboard/reports/sales'),
+              const SizedBox(width: 10),
+              _featureCard(context, Icons.inventory_2_outlined, 'Inventory', const Color(0xFF3B82F6), '/dashboard/reports/inventory'),
+              const SizedBox(width: 10),
+              _featureCard(context, Icons.people_outline,       'Customers', const Color(0xFF8B5CF6), '/dashboard/reports/customers'),
+              const SizedBox(width: 10),
+              _featureCard(context, Icons.trending_up,          'Profit',    const Color(0xFFF59E0B), '/dashboard/reports/profit'),
+            ]),
+            const SizedBox(height: 20),
+
+            // Dashboards section
+            _sectionLabel('Dashboards'),
+            const SizedBox(height: 8),
+            Row(children: [
+              _featureCard(context, Icons.storefront_outlined,  'Retail',    const Color(0xFF0D9488), '/dashboard'),
+              const SizedBox(width: 10),
+              if (isAdmin) ...[
+                _featureCard(context, Icons.admin_panel_settings_outlined, 'Admin', const Color(0xFFEF4444), '/admin-dashboard'),
+                const SizedBox(width: 10),
+              ],
+              if (isWholesale) ...[
+                _featureCard(context, Icons.store_outlined, 'Wholesale', const Color(0xFF06B6D4), '/wholesale-dashboard'),
+                const SizedBox(width: 10),
+              ],
+              _featureCard(context, Icons.settings_outlined, 'Settings', Colors.white38, '/dashboard/settings'),
+            ]),
+            const SizedBox(height: 20),
+
+            // Logout
+            GestureDetector(
+              onTap: onLogout,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+                ),
+                child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 18),
+                  SizedBox(width: 8),
+                  Text('Sign Out', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ),
+          ]),
+        ),
       ),
-      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _sectionLabel(String label) => Align(
+    alignment: Alignment.centerLeft,
+    child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11,
+        fontWeight: FontWeight.w600, letterSpacing: 0.8)),
+  );
+
+  Widget _featureCard(BuildContext context, IconData icon, String label, Color color, String route) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onNavigate(route),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
+          ),
+          child: Column(children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 6),
+            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      ),
     );
   }
 }

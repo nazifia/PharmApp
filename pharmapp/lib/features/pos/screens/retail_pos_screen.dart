@@ -62,7 +62,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   child: Row(children: [
                     const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 18),
                     const SizedBox(width: 6),
-                    Text('$cartCount  ·  ₹${cartTotal.toStringAsFixed(0)}',
+                    Text('$cartCount  ·  ₦${cartTotal.toStringAsFixed(0)}',
                         style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
                   ]),
                 ),
@@ -155,7 +155,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   fontSize: 12, fontWeight: FontWeight.w600),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
-              Text('₹${item.price.toStringAsFixed(0)}',
+              Text('₦${item.price.toStringAsFixed(0)}',
                   style: TextStyle(color: outOfStock ? Colors.white24 : EnhancedTheme.primaryTeal,
                       fontSize: 14, fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
@@ -181,7 +181,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('${cart.fold(0, (s, c) => s + (c.quantity as int))} items in cart',
             style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        Text('₹${total.toStringAsFixed(2)}',
+        Text('₦${total.toStringAsFixed(2)}',
             style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
       ])),
       Row(children: [

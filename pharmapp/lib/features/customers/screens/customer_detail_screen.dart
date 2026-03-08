@@ -100,7 +100,7 @@ class CustomerDetailScreen extends ConsumerWidget {
             Expanded(child: _metricCard(
               'Total Spent',
               customer.totalSpent != null
-                  ? '₹${customer.totalSpent!.toStringAsFixed(0)}'
+                  ? '₦${customer.totalSpent!.toStringAsFixed(0)}'
                   : '—',
               EnhancedTheme.primaryTeal,
               Icons.payments_rounded,
@@ -108,7 +108,7 @@ class CustomerDetailScreen extends ConsumerWidget {
             const SizedBox(width: 10),
             Expanded(child: _metricCard(
               'Wallet',
-              '₹${customer.walletBalance.toStringAsFixed(0)}',
+              '₦${customer.walletBalance.toStringAsFixed(0)}',
               EnhancedTheme.successGreen,
               Icons.account_balance_wallet_rounded,
             )),
@@ -128,7 +128,7 @@ class CustomerDetailScreen extends ConsumerWidget {
               const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.errorRed, size: 20),
               const SizedBox(width: 12),
               Expanded(child: Text(
-                'Outstanding balance: ₹${customer.outstandingDebt.toStringAsFixed(2)}',
+                'Outstanding balance: ₦${customer.outstandingDebt.toStringAsFixed(2)}',
                 style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 13, fontWeight: FontWeight.w600))),
               TextButton(
                 onPressed: () => ScaffoldMessenger.of(context)
@@ -234,7 +234,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('₹${p.total.toStringAsFixed(0)}',
+            Text('₦${p.total.toStringAsFixed(0)}',
                 style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w700)),
             Text(p.status, style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 10)),
           ]),

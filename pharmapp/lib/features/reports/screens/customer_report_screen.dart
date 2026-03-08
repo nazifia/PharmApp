@@ -10,9 +10,9 @@ class CustomerReportScreen extends ConsumerWidget {
   const CustomerReportScreen({super.key});
 
   String _fmt(double v) {
-    if (v >= 100000) return '₹${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)   return '₹${(v / 1000).toStringAsFixed(0)}K';
-    return '₹${v.toStringAsFixed(0)}';
+    if (v >= 100000) return '₦${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 1000)   return '₦${(v / 1000).toStringAsFixed(0)}K';
+    return '₦${v.toStringAsFixed(0)}';
   }
 
   @override

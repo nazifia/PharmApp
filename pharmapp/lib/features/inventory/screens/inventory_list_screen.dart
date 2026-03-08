@@ -78,7 +78,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                 _sheetField(brandCtrl, 'Brand / Manufacturer'),
                 const SizedBox(height: 12),
                 Row(children: [
-                  Expanded(child: _sheetField(priceCtrl, 'Price (₹) *',
+                  Expanded(child: _sheetField(priceCtrl, 'Price (₦) *',
                       keyboardType: TextInputType.number,
                       validator: (v) => double.tryParse(v ?? '') == null ? 'Invalid' : null)),
                   const SizedBox(width: 12),
@@ -325,7 +325,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     style: TextStyle(color: context.subLabelColor, fontSize: 12)),
               ])),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text('₹${item.price.toStringAsFixed(0)}',
+                Text('₦${item.price.toStringAsFixed(0)}',
                     style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 15, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 _stockBadge(item),
@@ -361,7 +361,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
               Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
               const Spacer(),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text('₹${item.price.toStringAsFixed(0)}',
+                Text('₦${item.price.toStringAsFixed(0)}',
                     style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w700)),
                 _stockBadge(item),
               ]),

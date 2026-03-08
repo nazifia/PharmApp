@@ -27,10 +27,10 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
   }
 
   String _fmt(double v) {
-    if (v >= 10000000) return '₹${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000)   return '₹${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)     return '₹${(v / 1000).toStringAsFixed(1)}K';
-    return '₹${v.toStringAsFixed(0)}';
+    if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
+    if (v >= 100000)   return '₦${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 1000)     return '₦${(v / 1000).toStringAsFixed(1)}K';
+    return '₦${v.toStringAsFixed(0)}';
   }
 
   @override

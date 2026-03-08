@@ -40,10 +40,10 @@ class ReportsHubScreen extends ConsumerWidget {
 
   // Mock summary numbers shown on the hub
   static const _kpis = [
-    {'label': "Today's Revenue", 'value': '₹12,450', 'color': EnhancedTheme.primaryTeal},
-    {'label': 'This Month',      'value': '₹2.45L',  'color': EnhancedTheme.accentCyan},
+    {'label': "Today's Revenue", 'value': '₦12,450', 'color': EnhancedTheme.primaryTeal},
+    {'label': 'This Month',      'value': '₦2.45L',  'color': EnhancedTheme.accentCyan},
     {'label': 'Net Margin',      'value': '36.8%',   'color': EnhancedTheme.successGreen},
-    {'label': 'Outstanding',     'value': '₹46K',    'color': EnhancedTheme.errorRed},
+    {'label': 'Outstanding',     'value': '₦46K',    'color': EnhancedTheme.errorRed},
   ];
 
   @override
