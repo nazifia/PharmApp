@@ -59,14 +59,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final walletState      = ref.watch(walletNotifierProvider(_customerId));
     final processing       = walletState is AsyncLoading;
 
-    final balance = customerAsync.value?.walletBalance ?? 0.0;
-
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(children: [
-        Container(decoration: const BoxDecoration(gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight))),
+        Container(decoration: context.bgGradient),
         SafeArea(child: Column(children: [
 
           // ── Header ──────────────────────────────────────────────────────────
@@ -74,12 +70,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
             child: Row(children: [
               IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                  icon: Icon(Icons.arrow_back_rounded, color: context.iconOnBg),
                   onPressed: () => context.pop()),
-              const Expanded(child: Text('Wallet',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600))),
+              Expanded(child: Text('Wallet',
+                  style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600))),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+                icon: Icon(Icons.refresh_rounded, color: context.iconOnBg.withValues(alpha: 0.7)),
                 onPressed: () {
                   ref.invalidate(customerDetailProvider(_customerId));
                   ref.invalidate(walletTransactionsProvider(_customerId));
@@ -119,7 +115,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text('Customer #$_customerId Balance',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 13)),
+                        style: TextStyle(color: context.subLabelColor, fontSize: 13)),
                     const SizedBox(height: 20),
 
                     // Top-up / Deduct toggle
@@ -207,14 +203,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(children: [
-              const Text('Transactions',
-                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+              Text('Transactions',
+                  style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
               const Spacer(),
               transactionsAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error:   (_, __) => const SizedBox.shrink(),
                 data: (txs) => Text('${txs.length} records',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12)),
+                    style: TextStyle(color: context.hintColor, fontSize: 12)),
               ),
             ]),
           ),
@@ -236,7 +232,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             ])),
             data: (txs) => txs.isEmpty
                 ? Center(child: Text('No transactions yet',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4))))
+                    style: TextStyle(color: context.hintColor)))
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     itemCount: txs.length,
@@ -269,9 +265,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.09))),
+            border: Border.all(color: context.borderColor)),
           child: Row(children: [
             Container(
               width: 36, height: 36,
@@ -282,15 +278,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(tx.displayType,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                  style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
               Text(tx.note,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11)),
+                  style: TextStyle(color: context.subLabelColor, fontSize: 11)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text('${isCredit ? "+" : ""}₦${tx.amount.abs().toStringAsFixed(0)}',
                   style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
               Text(tx.date,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 10)),
+                  style: TextStyle(color: context.hintColor, fontSize: 10)),
             ]),
           ]),
         ),

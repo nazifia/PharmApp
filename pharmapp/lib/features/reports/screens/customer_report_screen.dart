@@ -20,27 +20,25 @@ class CustomerReportScreen extends ConsumerWidget {
     final reportAsync = ref.watch(customerReportProvider);
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(children: [
-        Container(decoration: const BoxDecoration(gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight))),
+        Container(decoration: context.bgGradient),
         SafeArea(child: Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
             child: Row(children: [
               IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                  icon: Icon(Icons.arrow_back_rounded, color: context.iconOnBg),
                   onPressed: () => context.pop()),
               const SizedBox(width: 4),
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Customer Report',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600)),
                 Text('Customer analytics & debt tracking',
-                    style: TextStyle(color: Colors.white38, fontSize: 11)),
+                    style: TextStyle(color: context.hintColor, fontSize: 11)),
               ])),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+                icon: Icon(Icons.refresh_rounded, color: context.iconOnBg.withValues(alpha: 0.7)),
                 onPressed: () => ref.invalidate(customerReportProvider)),
             ]),
           ),
@@ -60,14 +58,14 @@ class CustomerReportScreen extends ConsumerWidget {
                 child: const Text('Retry',
                     style: TextStyle(color: EnhancedTheme.primaryTeal))),
             ])),
-            data: (data) => _buildBody(data),
+            data: (data) => _buildBody(context, data),
           )),
         ])),
       ]),
     );
   }
 
-  Widget _buildBody(CustomerReportData data) {
+  Widget _buildBody(BuildContext context, CustomerReportData data) {
     final metrics = [
       {'label': 'Total Customers', 'value': '${data.total}',          'color': EnhancedTheme.primaryTeal,  'icon': Icons.people_rounded},
       {'label': 'Retail',          'value': '${data.retail}',         'color': EnhancedTheme.successGreen, 'icon': Icons.storefront_rounded},
@@ -112,7 +110,7 @@ class CustomerReportScreen extends ConsumerWidget {
                         style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
                     Text(m['label'] as String,
                         style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45), fontSize: 9),
+                            color: context.subLabelColor, fontSize: 9),
                         textAlign: TextAlign.center),
                   ]),
                 ),
@@ -123,8 +121,8 @@ class CustomerReportScreen extends ConsumerWidget {
         const SizedBox(height: 20),
 
         // ── Segments ─────────────────────────────────────────────────────────
-        const Text('Customer Segments',
-            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+        Text('Customer Segments',
+            style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
@@ -133,14 +131,14 @@ class CustomerReportScreen extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
+                color: context.cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
+                border: Border.all(color: context.borderColor)),
               child: Row(children: [
-                Expanded(child: _segBar(
+                Expanded(child: _segBar(context,
                     'Retail', data.retail, total, EnhancedTheme.primaryTeal)),
                 const SizedBox(width: 10),
-                Expanded(child: _segBar(
+                Expanded(child: _segBar(context,
                     'Wholesale', data.wholesale, total, EnhancedTheme.accentCyan)),
               ]),
             ),
@@ -149,14 +147,14 @@ class CustomerReportScreen extends ConsumerWidget {
         const SizedBox(height: 20),
 
         // ── Top customers ─────────────────────────────────────────────────────
-        const Text('Top Customers by Spend',
-            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+        Text('Top Customers by Spend',
+            style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
         if (data.topCustomers.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text('No data',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.4))))
+                style: TextStyle(color: context.hintColor)))
         else
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
@@ -164,9 +162,9 @@ class CustomerReportScreen extends ConsumerWidget {
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: context.cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
+                  border: Border.all(color: context.borderColor)),
                 child: Column(
                   children: data.topCustomers.asMap().entries.map((e) {
                     final isWholesale = e.value.debt > 0;
@@ -186,11 +184,11 @@ class CustomerReportScreen extends ConsumerWidget {
                           const SizedBox(width: 12),
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text(e.value.name,
-                                style: const TextStyle(color: Colors.white,
+                                style: TextStyle(color: context.labelColor,
                                     fontSize: 13, fontWeight: FontWeight.w600)),
                             Text('${e.value.purchases} purchases',
                                 style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.4),
+                                    color: context.hintColor,
                                     fontSize: 11)),
                           ])),
                           Text(_fmt(e.value.spent),
@@ -199,7 +197,7 @@ class CustomerReportScreen extends ConsumerWidget {
                         ]),
                       ),
                       if (e.key < data.topCustomers.length - 1)
-                        Divider(height: 1, color: Colors.white.withValues(alpha: 0.07)),
+                        Divider(height: 1, color: context.dividerColor),
                     ]);
                   }).toList(),
                 ),
@@ -223,19 +221,19 @@ class CustomerReportScreen extends ConsumerWidget {
                       fontSize: 11, fontWeight: FontWeight.w700))),
           ]),
           const SizedBox(height: 10),
-          ...debtors.map(_debtRow),
+          ...debtors.map((c) => _debtRow(context, c)),
         ],
         const SizedBox(height: 24),
       ]),
     );
   }
 
-  Widget _segBar(String label, int count, int total, Color color) {
+  Widget _segBar(BuildContext context, String label, int count, int total, Color color) {
     final pct = count / total;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Expanded(child: Text(label,
-            style: const TextStyle(color: Colors.white,
+            style: TextStyle(color: context.labelColor,
                 fontSize: 12, fontWeight: FontWeight.w500))),
         Text('$count (${(pct * 100).round()}%)',
             style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700)),
@@ -245,14 +243,14 @@ class CustomerReportScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(4),
         child: LinearProgressIndicator(
           value: pct.clamp(0.0, 1.0),
-          backgroundColor: Colors.white.withValues(alpha: 0.08),
+          backgroundColor: context.borderColor,
           valueColor: AlwaysStoppedAnimation<Color>(color),
           minHeight: 8),
       ),
     ]);
   }
 
-  Widget _debtRow(TopCustomer c) => ClipRRect(
+  Widget _debtRow(BuildContext context, TopCustomer c) => ClipRRect(
     borderRadius: BorderRadius.circular(12),
     child: BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),

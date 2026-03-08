@@ -42,17 +42,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final user = ref.watch(currentUserProvider);
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-              ),
-            ),
-          ),
+          Container(decoration: context.bgGradient),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -69,11 +62,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     child: const Icon(Icons.waving_hand_rounded, size: 44, color: EnhancedTheme.primaryTeal),
                   ),
                   const SizedBox(height: 20),
-                  const Text('Welcome to PharmApp',
-                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+                  Text('Welcome to PharmApp',
+                      style: TextStyle(color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Text("Let's complete your profile setup",
-                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+                      style: TextStyle(color: context.subLabelColor, fontSize: 13)),
                   const SizedBox(height: 40),
 
                   ClipRRect(
@@ -83,9 +76,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(28),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.07),
+                          color: context.cardColor,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.12)),
+                          border: Border.all(color: context.borderColor),
                         ),
                         child: Form(
                           key: _formKey,
@@ -96,18 +89,18 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.05),
+                                  color: context.cardColor,
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                  border: Border.all(color: context.borderColor),
                                 ),
                                 child: Row(children: [
                                   const Icon(Icons.phone_outlined, color: EnhancedTheme.primaryTeal, size: 18),
                                   const SizedBox(width: 12),
                                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Text('Phone Number', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 11)),
+                                    Text('Phone Number', style: TextStyle(color: context.hintColor, fontSize: 11)),
                                     const SizedBox(height: 2),
                                     Text(user?.phoneNumber ?? '—',
-                                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                                        style: TextStyle(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
                                   ]),
                                 ]),
                               ),

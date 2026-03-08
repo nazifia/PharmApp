@@ -17,11 +17,9 @@ class CustomerDetailScreen extends ConsumerWidget {
     final salesAsync    = ref.watch(customerSalesProvider(id));
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(children: [
-        Container(decoration: const BoxDecoration(gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight, stops: [0, 0.5, 1]))),
+        Container(decoration: context.bgGradient),
         SafeArea(child: customerAsync.when(
           loading: () => Column(children: [
             _header(context, null, id),
@@ -49,13 +47,13 @@ class CustomerDetailScreen extends ConsumerWidget {
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
       IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: context.iconOnBg),
           onPressed: () => context.pop()),
-      const Expanded(child: Text('Customer Profile',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600))),
+      Expanded(child: Text('Customer Profile',
+          style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600))),
       if (customer != null)
         IconButton(
-          icon: const Icon(Icons.edit_outlined, color: Colors.white70),
+          icon: Icon(Icons.edit_outlined, color: context.iconOnBg.withValues(alpha: 0.7)),
           onPressed: () => ScaffoldMessenger.of(context)
               .showSnackBar(const SnackBar(content: Text('Edit customer — coming soon'))),
         ),
@@ -74,7 +72,7 @@ class CustomerDetailScreen extends ConsumerWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
           // ── Profile hero ────────────────────────────────────────────────────
-          _glassCard(child: Row(children: [
+          _glassCard(context, child: Row(children: [
             CircleAvatar(
               radius: 36,
               backgroundColor: accentColor.withValues(alpha: 0.2),
@@ -85,10 +83,10 @@ class CustomerDetailScreen extends ConsumerWidget {
             const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(customer.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                  style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
               Text(customer.phone,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 13)),
+                  style: TextStyle(color: context.subLabelColor, fontSize: 13)),
               const SizedBox(height: 8),
               _chip(customer.type, accentColor),
             ])),
@@ -98,6 +96,7 @@ class CustomerDetailScreen extends ConsumerWidget {
           // ── Key metrics ─────────────────────────────────────────────────────
           Row(children: [
             Expanded(child: _metricCard(
+              context,
               'Total Spent',
               customer.totalSpent != null
                   ? '₦${customer.totalSpent!.toStringAsFixed(0)}'
@@ -107,6 +106,7 @@ class CustomerDetailScreen extends ConsumerWidget {
             )),
             const SizedBox(width: 10),
             Expanded(child: _metricCard(
+              context,
               'Wallet',
               '₦${customer.walletBalance.toStringAsFixed(0)}',
               EnhancedTheme.successGreen,
@@ -114,6 +114,7 @@ class CustomerDetailScreen extends ConsumerWidget {
             )),
             const SizedBox(width: 10),
             Expanded(child: _metricCard(
+              context,
               'Purchases',
               '${customer.totalPurchases}',
               EnhancedTheme.accentCyan,
@@ -124,7 +125,7 @@ class CustomerDetailScreen extends ConsumerWidget {
           // ── Outstanding debt warning ─────────────────────────────────────────
           if (customer.outstandingDebt > 0) ...[
             const SizedBox(height: 10),
-            _glassCard(child: Row(children: [
+            _glassCard(context, child: Row(children: [
               const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.errorRed, size: 20),
               const SizedBox(width: 12),
               Expanded(child: Text(
@@ -139,30 +140,30 @@ class CustomerDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // ── Contact details ──────────────────────────────────────────────────
-          _sectionTitle('Contact Details'),
-          _glassCard(child: Column(children: [
-            _detailRow('Phone', customer.phone),
+          _sectionTitle(context, 'Contact Details'),
+          _glassCard(context, child: Column(children: [
+            _detailRow(context, 'Phone', customer.phone),
             if (customer.email != null) ...[
-              _divider(),
-              _detailRow('Email', customer.email!),
+              _divider(context),
+              _detailRow(context, 'Email', customer.email!),
             ],
             if (customer.address != null) ...[
-              _divider(),
-              _detailRow('Address', customer.address!),
+              _divider(context),
+              _detailRow(context, 'Address', customer.address!),
             ],
             if (customer.joinDate != null) ...[
-              _divider(),
-              _detailRow('Member Since', customer.joinDate!),
+              _divider(context),
+              _detailRow(context, 'Member Since', customer.joinDate!),
             ],
             if (customer.lastVisit != null) ...[
-              _divider(),
-              _detailRow('Last Visit', customer.lastVisit!),
+              _divider(context),
+              _detailRow(context, 'Last Visit', customer.lastVisit!),
             ],
           ])),
           const SizedBox(height: 16),
 
           // ── Recent purchases ─────────────────────────────────────────────────
-          _sectionTitle('Recent Purchases'),
+          _sectionTitle(context, 'Recent Purchases'),
           salesAsync.when(
             loading: () => const Center(
                 child: Padding(
@@ -172,13 +173,13 @@ class CustomerDetailScreen extends ConsumerWidget {
             error: (e, _) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text('Could not load sales history',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12))),
+                  style: TextStyle(color: context.subLabelColor, fontSize: 12))),
             data: (sales) => sales.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text('No purchase history',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13)))
-                : Column(children: sales.take(10).map(_purchaseRow).toList()),
+                        style: TextStyle(color: context.hintColor, fontSize: 13)))
+                : Column(children: sales.take(10).map((p) => _purchaseRow(context, p)).toList()),
           ),
           const SizedBox(height: 16),
 
@@ -213,7 +214,7 @@ class CustomerDetailScreen extends ConsumerWidget {
     ]);
   }
 
-  Widget _purchaseRow(CustomerSale p) => ClipRRect(
+  Widget _purchaseRow(BuildContext context, CustomerSale p) => ClipRRect(
     borderRadius: BorderRadius.circular(12),
     child: BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -221,17 +222,17 @@ class CustomerDetailScreen extends ConsumerWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.09))),
+          border: Border.all(color: context.borderColor)),
         child: Row(children: [
-          const Icon(Icons.receipt_long_rounded, color: Colors.white38, size: 18),
+          Icon(Icons.receipt_long_rounded, color: context.hintColor, size: 18),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(p.date,
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w500)),
             Text('${p.items} items',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11)),
+                style: TextStyle(color: context.subLabelColor, fontSize: 11)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text('₦${p.total.toStringAsFixed(0)}',
@@ -243,19 +244,19 @@ class CustomerDetailScreen extends ConsumerWidget {
     ),
   );
 
-  Widget _glassCard({required Widget child}) => ClipRRect(
+  Widget _glassCard(BuildContext context, {required Widget child}) => ClipRRect(
     borderRadius: BorderRadius.circular(18),
     child: BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.07),
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.11))),
+          border: Border.all(color: context.borderColor)),
         child: child)));
 
-  Widget _metricCard(String label, String value, Color color, IconData icon) => ClipRRect(
+  Widget _metricCard(BuildContext context, String label, String value, Color color, IconData icon) => ClipRRect(
     borderRadius: BorderRadius.circular(14),
     child: BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -273,25 +274,25 @@ class CustomerDetailScreen extends ConsumerWidget {
               maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
           Text(label,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10),
+              style: TextStyle(color: context.hintColor, fontSize: 10),
               textAlign: TextAlign.center),
         ]))));
 
-  Widget _detailRow(String label, String value) => Padding(
+  Widget _detailRow(BuildContext context, String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 10),
     child: Row(children: [
       SizedBox(width: 110,
-          child: Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13))),
+          child: Text(label, style: TextStyle(color: context.subLabelColor, fontSize: 13))),
       Expanded(child: Text(value,
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w500),
           textAlign: TextAlign.right)),
     ]));
 
-  Widget _sectionTitle(String t) => Padding(
+  Widget _sectionTitle(BuildContext context, String t) => Padding(
     padding: const EdgeInsets.only(bottom: 10),
-    child: Text(t, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)));
+    child: Text(t, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)));
 
-  Widget _divider() => Divider(height: 1, color: Colors.white.withValues(alpha: 0.07));
+  Widget _divider(BuildContext context) => Divider(height: 1, color: context.dividerColor);
 
   Widget _chip(String label, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

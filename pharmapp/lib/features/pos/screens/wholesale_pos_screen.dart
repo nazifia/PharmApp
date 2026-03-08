@@ -108,12 +108,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     });
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       body: Stack(
         children: [
-          Container(decoration: const BoxDecoration(gradient: LinearGradient(
-              colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
-              begin: Alignment.topLeft, end: Alignment.bottomRight))),
+          Container(decoration: context.bgGradient),
           SafeArea(child: Column(children: [
             _header(context),
             Expanded(child: wide
