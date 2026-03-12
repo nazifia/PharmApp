@@ -85,9 +85,9 @@ class ReportsHubScreen extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                         decoration: BoxDecoration(
-                          color: (k['color'] as Color).withOpacity(0.1),
+                          color: (k['color'] as Color).withValues(alpha:0.1),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: (k['color'] as Color).withOpacity(0.25)),
+                          border: Border.all(color: (k['color'] as Color).withValues(alpha:0.25)),
                         ),
                         child: Column(children: [
                           Text(k['value'] as String, style: TextStyle(
@@ -154,15 +154,15 @@ class _ReportCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.07),
+                color: color.withValues(alpha:0.07),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: color.withOpacity(0.2)),
+                border: Border.all(color: color.withValues(alpha:0.2)),
               ),
               child: Row(children: [
                 Container(
                   width: 52, height: 52,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha:0.15),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(icon, color: color, size: 26),
@@ -175,7 +175,7 @@ class _ReportCard extends StatelessWidget {
                   Text(subtitle, style: TextStyle(
                       color: context.subLabelColor, fontSize: 12)),
                 ])),
-                Icon(Icons.arrow_forward_ios_rounded, color: color.withOpacity(0.6), size: 16),
+                Icon(Icons.arrow_forward_ios_rounded, color: color.withValues(alpha:0.6), size: 16),
               ]),
             ),
           ),

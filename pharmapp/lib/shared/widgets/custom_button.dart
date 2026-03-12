@@ -86,7 +86,7 @@ class CustomButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(borderRadius ?? 16),
           boxShadow: [
             BoxShadow(
-              color:  bgColor.withOpacity(0.3),
+              color:  bgColor.withValues(alpha:0.3),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -180,7 +180,7 @@ class CustomOutlineButton extends StatelessWidget {
           boxShadow: backgroundColor != null
               ? [
                   BoxShadow(
-                    color:  backgroundColor!.withOpacity(0.1),
+                    color:  backgroundColor!.withValues(alpha:0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -253,7 +253,7 @@ class CustomIconButton extends StatelessWidget {
           color: showBorder ? Colors.transparent : EnhancedTheme.surfaceGlass,
           border: showBorder
               ? Border.all(
-                  color: EnhancedTheme.primaryTeal.withOpacity(0.3),
+                  color: EnhancedTheme.primaryTeal.withValues(alpha:0.3),
                   width: 1,
                 )
               : null,
@@ -302,7 +302,7 @@ class CustomTextButton extends StatelessWidget {
           vertical:   verticalPadding   ?? 4,
         ),
         foregroundColor: fgColor,
-        overlayColor: fgColor.withOpacity(0.1),
+        overlayColor: fgColor.withValues(alpha:0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),

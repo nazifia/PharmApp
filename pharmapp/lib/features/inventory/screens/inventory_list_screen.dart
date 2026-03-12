@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import '../providers/inventory_provider.dart';
-import '../providers/inventory_api_client.dart';
 
 class InventoryListScreen extends ConsumerStatefulWidget {
   const InventoryListScreen({super.key});
@@ -28,7 +27,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       if (q.isNotEmpty &&
           !item.name.toLowerCase().contains(q) &&
           !item.brand.toLowerCase().contains(q) &&
-          !item.barcode.contains(q)) return false;
+          !item.barcode.contains(q)) {
+        return false;
+      }
       switch (_filter) {
         case 'Low Stock':     return item.stock <= item.lowStockThreshold;
         case 'Expired':       return item.expiryDate != null && item.expiryDate!.isBefore(now);
@@ -126,16 +127,14 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     try {
                       await ref.read(inventoryApiProvider).createItem(data);
                       ref.invalidate(inventoryListProvider);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('${data['name']} added'),
-                          backgroundColor: EnhancedTheme.successGreen));
-                      }
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('${data['name']} added'),
+                        backgroundColor: EnhancedTheme.successGreen));
                     } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('Error: $e'), backgroundColor: EnhancedTheme.errorRed));
-                      }
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('Error: $e'), backgroundColor: EnhancedTheme.errorRed));
                     }
                   },
                   style: ElevatedButton.styleFrom(

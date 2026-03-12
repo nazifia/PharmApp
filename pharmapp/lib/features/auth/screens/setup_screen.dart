@@ -56,8 +56,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     width: 88, height: 88,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      color: EnhancedTheme.primaryTeal.withOpacity(0.12),
-                      border: Border.all(color: EnhancedTheme.primaryTeal.withOpacity(0.3)),
+                      color: EnhancedTheme.primaryTeal.withValues(alpha:0.12),
+                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha:0.3)),
                     ),
                     child: const Icon(Icons.waving_hand_rounded, size: 44, color: EnhancedTheme.primaryTeal),
                   ),

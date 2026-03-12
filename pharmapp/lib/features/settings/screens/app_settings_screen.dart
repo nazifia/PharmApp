@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -33,18 +32,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   void dispose() {
     _apiUrlCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _saveApiUrl() async {
-    final url = _apiUrlCtrl.text.trim();
-    if (url.isEmpty) return;
-    ref.read(baseUrlProvider.notifier).state = url;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('api_base_url', url);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('API URL saved'), backgroundColor: EnhancedTheme.successGreen));
-    }
   }
 
   @override
@@ -227,7 +214,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
           Text(sub, style: TextStyle(color: context.hintColor, fontSize: 12)),
         ])),
         Switch(value: val, onChanged: onChanged,
-            activeColor: EnhancedTheme.primaryTeal,
+            activeThumbColor: EnhancedTheme.primaryTeal,
             trackColor: WidgetStateProperty.resolveWith(
                 (s) => s.contains(WidgetState.selected)
                     ? EnhancedTheme.primaryTeal.withValues(alpha: 0.3)
@@ -312,7 +299,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   Widget _tileIcon(IconData icon, Color color) {
     return Container(
       width: 36, height: 36,
-      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(color: color.withValues(alpha:0.12), borderRadius: BorderRadius.circular(10)),
       child: Icon(icon, color: color, size: 18),
     );
   }
@@ -339,7 +326,8 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
     );
     if (confirmed == true && mounted) {
       await ref.read(authServiceProvider).logout();
-      if (mounted) context.go('/login');
+      if (!context.mounted) return;
+      context.go('/login');
     }
   }
 }

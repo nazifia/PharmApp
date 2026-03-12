@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 
 class CustomTextField extends StatelessWidget {
@@ -80,7 +79,6 @@ class CustomTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = EnhancedTheme();
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -118,15 +116,15 @@ class CustomTextField extends StatelessWidget {
         decoration: InputDecoration(
           labelText: labelText,
           labelStyle: TextStyle(
-            color: textColor ?? theme.colorScheme.onSurface.withOpacity(0.6),
+            color: textColor ?? theme.colorScheme.onSurface.withValues(alpha:0.6),
             fontSize: fontSize ?? 16,
             fontWeight: fontWeight ?? FontWeight.normal,
           ),
           hintText: hintText,
           hintStyle: TextStyle(
             color: textColor != null
-               ? textColor!.withOpacity(0.4)
-                : theme.colorScheme.onSurface.withOpacity(0.4),
+               ? textColor!.withValues(alpha:0.4)
+                : theme.colorScheme.onSurface.withValues(alpha:0.4),
             fontSize: fontSize ?? 16,
             fontWeight: fontWeight ?? FontWeight.normal,
           ),
@@ -140,14 +138,14 @@ class CustomTextField extends StatelessWidget {
           border: OutlineInputBorder(
             borderRadius: borderRadius ?? BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: enabledBorderColor ?? theme.colorScheme.onSurface.withOpacity(0.1),
+              color: enabledBorderColor ?? theme.colorScheme.onSurface.withValues(alpha:0.1),
               width: borderWidth ?? 0,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: borderRadius ?? BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: enabledBorderColor ?? theme.colorScheme.onSurface.withOpacity(0.1),
+              color: enabledBorderColor ?? theme.colorScheme.onSurface.withValues(alpha:0.1),
               width: borderWidth ?? 0,
             ),
           ),
@@ -174,7 +172,7 @@ class CustomTextField extends StatelessWidget {
           ),
           counterText: '',
           counterStyle: TextStyle(
-            color: textColor ?? theme.colorScheme.onSurface.withOpacity(0.6),
+            color: textColor ?? theme.colorScheme.onSurface.withValues(alpha:0.6),
             fontSize: 12,
           ),
         ),
@@ -204,14 +202,13 @@ class CustomSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = EnhancedTheme();
 
     return Container(
       decoration: BoxDecoration(
         color: EnhancedTheme.surfaceColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: EnhancedTheme.primaryTeal.withOpacity(0.1),
+          color: EnhancedTheme.primaryTeal.withValues(alpha:0.1),
           width: 1,
         ),
       ),
@@ -220,7 +217,7 @@ class CustomSearchField extends StatelessWidget {
           const SizedBox(width: 12),
           Icon(
             Icons.search,
-            color: EnhancedTheme.primaryTeal.withOpacity(0.6),
+            color: EnhancedTheme.primaryTeal.withValues(alpha:0.6),
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -230,7 +227,7 @@ class CustomSearchField extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: hintText,
                 hintStyle: TextStyle(
-                  color: EnhancedTheme.primaryTeal.withOpacity(0.6),
+                  color: EnhancedTheme.primaryTeal.withValues(alpha:0.6),
                   fontSize: 14,
                 ),
                 border: InputBorder.none,
@@ -252,7 +249,7 @@ class CustomSearchField extends StatelessWidget {
               onPressed: onClear,
               icon: Icon(
                 Icons.clear,
-                color: EnhancedTheme.primaryTeal.withOpacity(0.6),
+                color: EnhancedTheme.primaryTeal.withValues(alpha:0.6),
                 size: 20,
               ),
               splashRadius: 20,
@@ -286,7 +283,6 @@ class CustomPasswordInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = EnhancedTheme();
 
     return TextFormField(
       controller: controller,

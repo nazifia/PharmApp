@@ -102,7 +102,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         child: Container(
           width: 40, height: 40,
           decoration: BoxDecoration(
-            color: const Color(0xFF0D9488).withOpacity(0.15),
+            color: const Color(0xFF0D9488).withValues(alpha:0.15),
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Icon(Icons.local_pharmacy_rounded, color: Color(0xFF0D9488), size: 22),
@@ -114,7 +114,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           child: Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: IconButton(
-              icon: Icon(Icons.logout_rounded, color: Colors.white.withOpacity(0.4)),
+              icon: Icon(Icons.logout_rounded, color: Colors.white.withValues(alpha:0.4)),
               onPressed: _logout,
               tooltip: 'Logout',
             ),
@@ -253,7 +253,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                        color: const Color(0xFF0D9488).withOpacity(0.12),
+                        color: const Color(0xFF0D9488).withValues(alpha:0.12),
                         borderRadius: BorderRadius.circular(10)),
                     child: const Icon(Icons.medication_rounded, color: Color(0xFF0D9488), size: 16),
                   ),
@@ -292,7 +292,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                 return _glassRow(child: Row(children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: c.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: c.withValues(alpha:0.12), borderRadius: BorderRadius.circular(10)),
                     child: Icon(Icons.warning_amber_rounded, color: c, size: 16),
                   ),
                   const SizedBox(width: 12),
@@ -302,7 +302,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                   ])),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text('${s.stock} units', style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 14)),
-                    Text('Min: ${s.low}', style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 11)),
+                    Text('Min: ${s.low}', style: TextStyle(color: Colors.white.withValues(alpha:0.35), fontSize: 11)),
                   ]),
                 ]));
               }).toList());
@@ -324,9 +324,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: color.withOpacity(0.2)),
+                border: Border.all(color: color.withValues(alpha:0.2)),
               ),
               child: Column(children: [
                 Icon(icon, color: color, size: 20),
@@ -370,7 +370,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         PopupMenuItem(enabled: false, child: Row(children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: const Color(0xFF0D9488).withOpacity(0.2),
+            backgroundColor: const Color(0xFF0D9488).withValues(alpha:0.2),
             child: Text(role.isNotEmpty ? role[0].toUpperCase() : 'U',
                 style: const TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
           ),
@@ -398,7 +398,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         ),
         child: CircleAvatar(
           radius: 22,
-          backgroundColor: const Color(0xFF0D9488).withOpacity(0.15),
+          backgroundColor: const Color(0xFF0D9488).withValues(alpha:0.15),
           child: Text(
             role.isNotEmpty ? role[0].toUpperCase() : 'U',
             style: const TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold, fontSize: 18),

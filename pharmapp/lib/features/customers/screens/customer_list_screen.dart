@@ -26,7 +26,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     return list.where((c) {
       if (q.isNotEmpty &&
           !c.name.toLowerCase().contains(q) &&
-          !c.phone.contains(q)) return false;
+          !c.phone.contains(q)) {
+        return false;
+      }
       switch (_filter) {
         case 'Retail':    return !c.isWholesale;
         case 'Wholesale': return c.isWholesale;
@@ -104,11 +106,10 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                       'phone':        phoneCtrl.text.trim(),
                       'is_wholesale': type == 'Wholesale',
                     });
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(result != null ? '${result.name} added' : 'Failed to add customer'),
-                        backgroundColor: result != null ? EnhancedTheme.successGreen : EnhancedTheme.errorRed));
-                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(result != null ? '${result.name} added' : 'Failed to add customer'),
+                      backgroundColor: result != null ? EnhancedTheme.successGreen : EnhancedTheme.errorRed));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,

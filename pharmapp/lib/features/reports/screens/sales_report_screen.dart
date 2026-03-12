@@ -129,9 +129,9 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                                         color: Colors.white.withValues(alpha: 0.5), fontSize: 7)),
                                 const SizedBox(height: 2),
                                 Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                                  Container(height: rH, decoration: BoxDecoration(
+                                  Container(height: rH, decoration: const BoxDecoration(
                                       color: EnhancedTheme.accentCyan,
-                                      borderRadius: const BorderRadius.vertical(
+                                      borderRadius: BorderRadius.vertical(
                                           top: Radius.circular(4)))),
                                   Container(height: wH, color: EnhancedTheme.accentPurple),
                                 ]),

@@ -138,12 +138,12 @@ class EnhancedTheme {
       cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 0,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha:0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         margin: const EdgeInsets.all(8),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: Colors.black.withOpacity(0.85),
+        backgroundColor: Colors.black.withValues(alpha:0.85),
         actionTextColor: accentCyan,
         contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
       ),
@@ -170,10 +170,10 @@ class EnhancedTheme {
           constraints: constraints,
           padding: padding,
           decoration: BoxDecoration(
-            color: (color ?? Colors.white).withOpacity(opacity ?? 0.08),
+            color: (color ?? Colors.white).withValues(alpha:opacity ?? 0.08),
             borderRadius: br,
             border: Border.all(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha:0.15),
               width: 1.5,
             ),
           ),
@@ -190,13 +190,13 @@ class EnhancedTheme {
     double radius = 8,
   }) {
     return Shimmer.fromColors(
-      baseColor: Colors.white.withOpacity(0.05),
-      highlightColor: Colors.white.withOpacity(0.15),
+      baseColor: Colors.white.withValues(alpha:0.05),
+      highlightColor: Colors.white.withValues(alpha:0.15),
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha:0.1),
           borderRadius: BorderRadius.circular(radius),
         ),
       ),
@@ -236,9 +236,9 @@ class EnhancedTheme {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: color.withValues(alpha:0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

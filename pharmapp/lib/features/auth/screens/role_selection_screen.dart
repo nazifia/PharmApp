@@ -2,8 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pharmapp/core/theme/enhanced_theme.dart';
-import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 
 class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
@@ -58,7 +56,7 @@ class RoleSelectionScreen extends ConsumerWidget {
                   const SizedBox(height: 6),
                   Text('Choose the role that best describes your position',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+                      style: TextStyle(color: Colors.white.withValues(alpha:0.5), fontSize: 13)),
                   const SizedBox(height: 36),
                   ...(_roles.map((r) {
                     final color = r['color'] as Color;
@@ -109,18 +107,18 @@ class _RoleCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.07),
+              color: Colors.white.withValues(alpha:0.07),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withOpacity(0.12)),
+              border: Border.all(color: Colors.white.withValues(alpha:0.12)),
             ),
             child: Row(
               children: [
                 Container(
                   width: 52, height: 52,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha:0.15),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: color.withOpacity(0.3)),
+                    border: Border.all(color: color.withValues(alpha:0.3)),
                   ),
                   child: Icon(icon, color: color, size: 26),
                 ),
@@ -131,11 +129,11 @@ class _RoleCard extends StatelessWidget {
                     children: [
                       Text(role, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 3),
-                      Text(desc, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                      Text(desc, style: TextStyle(color: Colors.white.withValues(alpha:0.5), fontSize: 12)),
                     ],
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios, color: color.withOpacity(0.6), size: 14),
+                Icon(Icons.arrow_forward_ios, color: color.withValues(alpha:0.6), size: 14),
               ],
             ),
           ),

@@ -141,9 +141,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: EnhancedTheme.accentCyan.withOpacity(0.15),
+            color: EnhancedTheme.accentCyan.withValues(alpha:0.15),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: EnhancedTheme.accentCyan.withOpacity(0.3)),
+            border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha:0.3)),
           ),
           child: Text('$_cartCount items',
               style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12, fontWeight: FontWeight.w600)),
@@ -188,9 +188,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Search catalogue…',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 13),
-                prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.4), size: 20),
-                filled: true, fillColor: Colors.white.withOpacity(0.07),
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha:0.35), fontSize: 13),
+                prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha:0.4), size: 20),
+                filled: true, fillColor: Colors.white.withValues(alpha:0.07),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -209,7 +209,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         ])),
         data: (items) => items.isEmpty
             ? Center(child: Text('No items found',
-                style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 14)))
+                style: TextStyle(color: Colors.white.withValues(alpha:0.35), fontSize: 14)))
             : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                 itemCount: items.length,
@@ -231,20 +231,20 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: outOfStock
-                ? Colors.white.withOpacity(0.03)
+                ? Colors.white.withValues(alpha:0.03)
                 : inCart
-                    ? EnhancedTheme.accentCyan.withOpacity(0.08)
-                    : Colors.white.withOpacity(0.06),
+                    ? EnhancedTheme.accentCyan.withValues(alpha:0.08)
+                    : Colors.white.withValues(alpha:0.06),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: inCart
-                ? EnhancedTheme.accentCyan.withOpacity(0.3)
-                : Colors.white.withOpacity(0.09)),
+                ? EnhancedTheme.accentCyan.withValues(alpha:0.3)
+                : Colors.white.withValues(alpha:0.09)),
           ),
           child: Row(children: [
             Container(
               width: 44, height: 44,
               decoration: BoxDecoration(
-                  color: EnhancedTheme.accentCyan.withOpacity(outOfStock ? 0.05 : 0.12),
+                  color: EnhancedTheme.accentCyan.withValues(alpha:outOfStock ? 0.05 : 0.12),
                   borderRadius: BorderRadius.circular(12)),
               child: Icon(Icons.medication_rounded,
                   color: outOfStock ? Colors.white24 : EnhancedTheme.accentCyan, size: 22),
@@ -254,12 +254,12 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               Text(item.name, style: TextStyle(
                   color: outOfStock ? Colors.white30 : Colors.white,
                   fontSize: 13, fontWeight: FontWeight.w600)),
-              Text(item.brand, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 11)),
+              Text(item.brand, style: TextStyle(color: Colors.white.withValues(alpha:0.45), fontSize: 11)),
               Text(outOfStock ? 'Out of stock' : '${item.stock} in stock',
                   style: TextStyle(
                       color: outOfStock
-                          ? EnhancedTheme.errorRed.withOpacity(0.7)
-                          : Colors.white.withOpacity(0.35),
+                          ? EnhancedTheme.errorRed.withValues(alpha:0.7)
+                          : Colors.white.withValues(alpha:0.35),
                       fontSize: 10)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -274,9 +274,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: EnhancedTheme.primaryTeal.withOpacity(0.15),
+                      color: EnhancedTheme.primaryTeal.withValues(alpha:0.15),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: EnhancedTheme.primaryTeal.withOpacity(0.3)),
+                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha:0.3)),
                     ),
                     child: Text(inCart ? '+ More' : 'Add',
                         style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
@@ -296,10 +296,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
         child: wholesaleAsync.when(
           loading: () => const LinearProgressIndicator(color: EnhancedTheme.accentCyan),
-          error: (e, _) => Padding(
-            padding: const EdgeInsets.all(8),
+          error: (e, _) => const Padding(
+            padding: EdgeInsets.all(8),
             child: Text('Failed to load customers',
-                style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 12)),
+                style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 12)),
           ),
           data: (customers) => ClipRRect(
             borderRadius: BorderRadius.circular(14),
@@ -308,15 +308,15 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.07),
+                  color: Colors.white.withValues(alpha:0.07),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withOpacity(0.12)),
+                  border: Border.all(color: Colors.white.withValues(alpha:0.12)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
                     value: _selectedId,
                     hint: Text('Select wholesale customer',
-                        style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13)),
+                        style: TextStyle(color: Colors.white.withValues(alpha:0.4), fontSize: 13)),
                     isExpanded: true,
                     dropdownColor: const Color(0xFF1E293B),
                     iconEnabledColor: Colors.white38,
@@ -339,10 +339,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       // Cart items
       Expanded(child: _cart.isEmpty
           ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.shopping_cart_outlined, color: Colors.white.withOpacity(0.2), size: 52),
+              Icon(Icons.shopping_cart_outlined, color: Colors.white.withValues(alpha:0.2), size: 52),
               const SizedBox(height: 12),
               Text('No items in cart',
-                  style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 14)),
+                  style: TextStyle(color: Colors.white.withValues(alpha:0.35), fontSize: 14)),
             ]))
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -360,14 +360,14 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.07),
+                color: Colors.white.withValues(alpha:0.07),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.12)),
+                border: Border.all(color: Colors.white.withValues(alpha:0.12)),
               ),
               child: Column(children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text('${_cart.length} items  ·  $_cartCount units',
-                      style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 13)),
+                      style: TextStyle(color: Colors.white.withValues(alpha:0.55), fontSize: 13)),
                   Text('₦${_cartTotal.toStringAsFixed(2)}',
                       style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
                 ]),
@@ -406,9 +406,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
+            color: Colors.white.withValues(alpha:0.06),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.09)),
+            border: Border.all(color: Colors.white.withValues(alpha:0.09)),
           ),
           child: Row(children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -417,7 +417,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   maxLines: 1, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 2),
               Text('₦${line.price.toStringAsFixed(0)} × ${line.qty} = ₦${line.total.toStringAsFixed(0)}',
-                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+                  style: TextStyle(color: Colors.white.withValues(alpha:0.5), fontSize: 11)),
             ])),
             Row(children: [
               _qtyBtn(Icons.remove, () => _updateQty(line.id, line.qty - 1)),
@@ -439,9 +439,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     child: Container(
       width: 28, height: 28,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: Colors.white.withValues(alpha:0.15)),
       ),
       child: Icon(icon, color: Colors.white, size: 16),
     ),

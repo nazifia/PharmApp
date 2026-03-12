@@ -66,9 +66,9 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
         _menuItem('reports',  Icons.bar_chart_rounded,  'Reports'),
         _menuItem('retail',   Icons.storefront_rounded,  'Retail Dashboard'),
         const PopupMenuDivider(),
-        PopupMenuItem(
+        const PopupMenuItem(
           value: 'logout',
-          child: Row(children: const [
+          child: Row(children: [
             Icon(Icons.logout_rounded, size: 18, color: EnhancedTheme.errorRed),
             SizedBox(width: 10),
             Text('Sign Out', style: TextStyle(color: EnhancedTheme.errorRed, fontWeight: FontWeight.w600)),

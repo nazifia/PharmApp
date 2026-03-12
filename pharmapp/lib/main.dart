@@ -39,11 +39,11 @@ class _AppStartup extends ConsumerWidget {
       future: ref.read(authServiceProvider).checkAuthStatus(),
       builder: (_, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return MaterialApp(
+          return const MaterialApp(
             debugShowCheckedModeBanner: false,
             home: Scaffold(
               backgroundColor: EnhancedTheme.primaryDark,
-              body: const Center(
+              body: Center(
                 child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal),
               ),
             ),
