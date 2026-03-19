@@ -6,9 +6,18 @@ import 'package:intl/intl.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 import 'package:pharmapp/shared/widgets/dashboard_card.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
+
+final _wholesaleDashProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  try {
+    return await ref.read(posApiProvider).fetchWholesaleDashboard();
+  } catch (_) {
+    return <String, dynamic>{};
+  }
+});
 
 class MainDashboard extends ConsumerStatefulWidget {
   const MainDashboard({super.key});
@@ -19,6 +28,7 @@ class MainDashboard extends ConsumerStatefulWidget {
 
 class _MainDashboardState extends ConsumerState<MainDashboard> {
   int _selectedIndex = 0;
+  bool _showWholesale = false;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // ── Navigation helpers ─────────────────────────────────────────────────────
@@ -172,7 +182,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   Widget _content() => _homeContent();
 
   Widget _homeContent() {
-    final user       = ref.watch(currentUserProvider);
+    final user      = ref.watch(currentUserProvider);
+    final role      = user?.role ?? '';
+    final isWsUser  = role.contains('Wholesale') || (user?.isWholesaleOperator ?? false) || role == 'Admin' || role == 'Manager';
     final salesAsync = ref.watch(salesReportProvider('today'));
     final invAsync   = ref.watch(inventoryReportProvider);
     final custAsync  = ref.watch(customerReportProvider);
@@ -186,7 +198,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     final debt      = custAsync.whenOrNull(data: (d) => d.totalDebt) ?? 0.0;
     final loading   = salesAsync.isLoading || invAsync.isLoading || custAsync.isLoading;
 
-    final stats = [
+    final retailStats = [
       DashboardCard(title: "Today's Revenue", value: loading ? '…' : _fmt(revenue), subtitle: 'Retail + Wholesale', icon: Icons.monetization_on,  color: const Color(0xFF10B981)),
       DashboardCard(title: 'Low Stock',        value: loading ? '…' : '$lowStock',   subtitle: 'Below threshold',     icon: Icons.warning_amber,    color: const Color(0xFFF59E0B)),
       DashboardCard(title: 'Customers',        value: loading ? '…' : '$customers',  subtitle: 'Total registered',    icon: Icons.people,           color: const Color(0xFF8B5CF6)),
@@ -223,23 +235,219 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               Text(DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
                   style: TextStyle(color: context.hintColor, fontSize: 12)),
             ])),
-            _buildProfileMenu(user?.role ?? 'U'),
+            _buildProfileMenu(role),
           ]),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          // ── Quick actions ─────────────────────────────────────────────────
+          // ── Mode Toggle (wholesale users only) ────────────────────────────
+          if (isWsUser) ...[
+            _modeToggle(),
+            const SizedBox(height: 16),
+          ],
+
+          // ══ RETAIL MODE ══════════════════════════════════════════════════
+          if (!_showWholesale) ...[
+            Row(children: [
+              _quickBtn(Icons.add_shopping_cart, 'New Sale',   const Color(0xFF0D9488), () => context.go('/dashboard/pos')),
+              const SizedBox(width: 10),
+              _quickBtn(Icons.inventory_2,        'Inventory',  const Color(0xFF3B82F6), () => context.go('/dashboard/inventory')),
+              const SizedBox(width: 10),
+              _quickBtn(Icons.people,             'Customers',  const Color(0xFF8B5CF6), () => context.go('/dashboard/customers')),
+              const SizedBox(width: 10),
+              _quickBtn(Icons.more_horiz_rounded,  'More',       Colors.white38,          _showMoreSheet),
+            ]),
+            const SizedBox(height: 24),
+            GridView.count(
+              crossAxisCount: wide2 ? 4 : 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: wide2 ? 1.35 : 1.3,
+              children: retailStats,
+            ),
+            const SizedBox(height: 24),
+            _quickAccessPanel(wide2),
+            const SizedBox(height: 24),
+            _sectionHeader('Sales Trend', () => context.go('/dashboard/reports/sales')),
+            const SizedBox(height: 12),
+            _salesTrendChart(salesAsync),
+            const SizedBox(height: 24),
+            _sectionHeader('Top Items Today', () => context.go('/dashboard/reports/sales')),
+            const SizedBox(height: 12),
+            salesAsync.when(
+              loading: () => const Center(child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(color: Color(0xFF0D9488)),
+              )),
+              error: (e, _) => _glassRow(child: Text('Failed to load sales data',
+                  style: TextStyle(color: context.hintColor, fontSize: 13))),
+              data: (report) {
+                if (report.topItems.isEmpty) {
+                  return _glassRow(child: Text('No sales today',
+                      style: TextStyle(color: context.hintColor, fontSize: 13)));
+                }
+                return Column(children: report.topItems.take(4).map((item) =>
+                  _glassRow(child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                          color: const Color(0xFF0D9488).withValues(alpha:0.12),
+                          borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(Icons.medication_rounded, color: Color(0xFF0D9488), size: 16),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(item.name, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text('${item.qty} units sold', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                    ])),
+                    Text(_fmt(item.revenue),
+                        style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w700, fontSize: 14)),
+                  ]))
+                ).toList());
+              },
+            ),
+            const SizedBox(height: 24),
+            _sectionHeader('Low Stock Alerts', () => context.go('/dashboard/inventory')),
+            const SizedBox(height: 12),
+            invAsync.when(
+              loading: () => const Center(child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(color: Color(0xFF0D9488)),
+              )),
+              error: (e, _) => _glassRow(child: Text('Failed to load inventory data',
+                  style: TextStyle(color: context.hintColor, fontSize: 13))),
+              data: (report) {
+                if (report.lowStockItems.isEmpty) {
+                  return _glassRow(child: Text('All items adequately stocked',
+                      style: TextStyle(color: context.hintColor, fontSize: 13)));
+                }
+                return Column(children: report.lowStockItems.take(4).map((s) {
+                  final pct = s.stock / (s.lowStockThreshold > 0 ? s.lowStockThreshold : 1);
+                  final c   = pct < 0.3 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
+                  return _glassRow(child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: c.withValues(alpha:0.12), borderRadius: BorderRadius.circular(10)),
+                      child: Icon(Icons.warning_amber_rounded, color: c, size: 16),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(s.name, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text('Threshold: ${s.lowStockThreshold}', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                    ])),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text('${s.stock} units', style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 14)),
+                    ]),
+                  ]));
+                }).toList());
+              },
+            ),
+          ],
+
+          // ══ WHOLESALE MODE ════════════════════════════════════════════════
+          if (_showWholesale)
+            _wholesaleBody(wide2),
+        ],
+      ),
+    );
+  }
+
+  // ── Mode Toggle ────────────────────────────────────────────────────────────
+
+  Widget _modeToggle() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: Row(children: [
+            _toggleChip('Retail', !_showWholesale, EnhancedTheme.primaryTeal,
+                () => setState(() => _showWholesale = false)),
+            const SizedBox(width: 4),
+            _toggleChip('Wholesale', _showWholesale, EnhancedTheme.accentCyan,
+                () => setState(() => _showWholesale = true)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _toggleChip(String label, bool active, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: active ? color.withValues(alpha: 0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: active ? Border.all(color: color.withValues(alpha: 0.4)) : null,
+          ),
+          child: Center(
+            child: Text(label, style: TextStyle(
+              color: active ? color : context.hintColor,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+              fontSize: 13,
+            )),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Wholesale Body ─────────────────────────────────────────────────────────
+
+  Widget _wholesaleBody(bool wide2) {
+    final wsAsync = ref.watch(_wholesaleDashProvider);
+    return wsAsync.when(
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(48),
+          child: CircularProgressIndicator(color: EnhancedTheme.accentCyan),
+        ),
+      ),
+      error: (e, _) => _glassRow(
+        child: Text('Failed to load wholesale data',
+            style: TextStyle(color: context.hintColor, fontSize: 13))),
+      data: (data) {
+        final todayRevenue    = (data['todayRevenue']      as num?)?.toDouble() ?? 0.0;
+        final totalSales      = (data['totalSales']        as num?)?.toInt()    ?? 0;
+        final wsCustomers     = (data['wholesaleCustomers'] as num?)?.toInt()   ?? 0;
+        final outstandingDebt = (data['outstandingDebt']   as num?)?.toDouble() ?? 0.0;
+        final topProducts     = (data['topProducts']       as List?) ?? [];
+        final lowStockItems   = (data['lowStockItems']     as List?) ?? [];
+        final pendingTransfers = (data['pendingTransfers'] as List?) ?? [];
+
+        final wsStats = [
+          DashboardCard(title: "Today's Revenue", value: _fmt(todayRevenue), subtitle: 'Wholesale',       icon: Icons.monetization_on, color: const Color(0xFF10B981)),
+          DashboardCard(title: 'Total Sales',     value: '$totalSales',      subtitle: 'All time',        icon: Icons.receipt_long,    color: EnhancedTheme.infoBlue),
+          DashboardCard(title: 'WS Customers',    value: '$wsCustomers',     subtitle: 'Wholesale clients', icon: Icons.people,        color: const Color(0xFF8B5CF6)),
+          DashboardCard(title: 'Outstanding Debt',value: _fmt(outstandingDebt), subtitle: 'Total owed',   icon: Icons.money_off,       color: const Color(0xFFEF4444)),
+        ];
+
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Quick actions
           Row(children: [
-            _quickBtn(Icons.add_shopping_cart, 'New Sale',   const Color(0xFF0D9488), () => context.go('/dashboard/pos')),
+            _quickBtn(Icons.point_of_sale_rounded, 'WS Sale',    EnhancedTheme.accentCyan,    () => context.go('/dashboard/wholesale-pos')),
             const SizedBox(width: 10),
-            _quickBtn(Icons.inventory_2,        'Inventory',  const Color(0xFF3B82F6), () => context.go('/dashboard/inventory')),
+            _quickBtn(Icons.receipt_long_rounded,  'WS Sales',   EnhancedTheme.successGreen,  () => context.go('/dashboard/wholesale-sales')),
             const SizedBox(width: 10),
-            _quickBtn(Icons.people,             'Customers',  const Color(0xFF8B5CF6), () => context.go('/dashboard/customers')),
+            _quickBtn(Icons.swap_horiz_rounded,    'Transfers',  EnhancedTheme.warningAmber,  () => context.go('/dashboard/transfers')),
             const SizedBox(width: 10),
-            _quickBtn(Icons.more_horiz_rounded,  'More',       Colors.white38,          _showMoreSheet),
+            _quickBtn(Icons.more_horiz_rounded,    'More',       Colors.white38,              _showMoreSheet),
           ]),
           const SizedBox(height: 24),
 
-          // ── Stats grid ────────────────────────────────────────────────────
+          // Stats grid
           GridView.count(
             crossAxisCount: wide2 ? 4 : 2,
             shrinkWrap: true,
@@ -247,95 +455,179 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
             childAspectRatio: wide2 ? 1.35 : 1.3,
-            children: stats,
+            children: wsStats,
           ),
           const SizedBox(height: 24),
 
-          // ── Quick Access Panel (matching Pharm) ──────────────────────────
-          _quickAccessPanel(wide2),
+          // Wholesale quick access panel
+          _wholesaleQuickAccess(wide2),
           const SizedBox(height: 24),
 
-          // ── Sales Trend ──────────────────────────────────────────────────
-          _sectionHeader('Sales Trend', () => context.go('/dashboard/reports/sales')),
+          // Top products
+          _sectionHeader('Top Products Today', () => context.go('/dashboard/wholesale-sales')),
           const SizedBox(height: 12),
-          _salesTrendChart(salesAsync),
+          if (topProducts.isEmpty)
+            _glassRow(child: Text('No wholesale sales today',
+                style: TextStyle(color: context.hintColor, fontSize: 13)))
+          else
+            Column(children: topProducts.take(4).map((p) {
+              final name = p['name'] as String? ?? '';
+              final qty  = (p['qty']     as num?)?.toInt()    ?? 0;
+              final rev  = (p['revenue'] as num?)?.toDouble() ?? 0.0;
+              return _glassRow(child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.store_rounded, color: EnhancedTheme.accentCyan, size: 16),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text('$qty units sold', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                ])),
+                Text(_fmt(rev), style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700, fontSize: 14)),
+              ]));
+            }).toList()),
           const SizedBox(height: 24),
 
-          // ── Top Items Today ───────────────────────────────────────────────
-          _sectionHeader('Top Items Today', () => context.go('/dashboard/reports/sales')),
+          // Pending transfers
+          _sectionHeader('Pending Transfers', () => context.go('/dashboard/transfers')),
           const SizedBox(height: 12),
-          salesAsync.when(
-            loading: () => const Center(child: Padding(
-              padding: EdgeInsets.all(24),
-              child: CircularProgressIndicator(color: Color(0xFF0D9488)),
-            )),
-            error: (e, _) => _glassRow(child: Text('Failed to load sales data',
-                style: TextStyle(color: context.hintColor, fontSize: 13))),
-            data: (report) {
-              if (report.topItems.isEmpty) {
-                return _glassRow(child: Text('No sales today',
-                    style: TextStyle(color: context.hintColor, fontSize: 13)));
-              }
-              return Column(children: report.topItems.take(4).map((item) =>
-                _glassRow(child: Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                        color: const Color(0xFF0D9488).withValues(alpha:0.12),
-                        borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.medication_rounded, color: Color(0xFF0D9488), size: 16),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(item.name, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13),
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text('${item.qty} units sold', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                  ])),
-                  Text(_fmt(item.revenue),
-                      style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w700, fontSize: 14)),
-                ]))
-              ).toList());
-            },
-          ),
+          if (pendingTransfers.isEmpty)
+            _glassRow(child: Text('No pending transfers',
+                style: TextStyle(color: context.hintColor, fontSize: 13)))
+          else
+            Column(children: pendingTransfers.take(4).map((t) {
+              final itemName = t['itemName'] as String? ?? '';
+              final reqQty   = t['requestedQty'] ?? 0;
+              final unit     = t['unit'] as String? ?? 'Pcs';
+              return _glassRow(child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.warningAmber.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.swap_horiz_rounded, color: EnhancedTheme.warningAmber, size: 16),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(itemName, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text('Requested: $reqQty $unit', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                ])),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.warningAmber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6)),
+                  child: const Text('Pending',
+                      style: TextStyle(color: EnhancedTheme.warningAmber, fontSize: 10, fontWeight: FontWeight.w600)),
+                ),
+              ]));
+            }).toList()),
           const SizedBox(height: 24),
 
-          // ── Low Stock Alerts ──────────────────────────────────────────────
+          // Low stock
           _sectionHeader('Low Stock Alerts', () => context.go('/dashboard/inventory')),
           const SizedBox(height: 12),
-          invAsync.when(
-            loading: () => const Center(child: Padding(
-              padding: EdgeInsets.all(24),
-              child: CircularProgressIndicator(color: Color(0xFF0D9488)),
-            )),
-            error: (e, _) => _glassRow(child: Text('Failed to load inventory data',
-                style: TextStyle(color: context.hintColor, fontSize: 13))),
-            data: (report) {
-              if (report.lowStockItems.isEmpty) {
-                return _glassRow(child: Text('All items adequately stocked',
-                    style: TextStyle(color: context.hintColor, fontSize: 13)));
-              }
-              return Column(children: report.lowStockItems.take(4).map((s) {
-                final pct = s.stock / (s.lowStockThreshold > 0 ? s.lowStockThreshold : 1);
-                final c   = pct < 0.3 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
-                return _glassRow(child: Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: c.withValues(alpha:0.12), borderRadius: BorderRadius.circular(10)),
-                    child: Icon(Icons.warning_amber_rounded, color: c, size: 16),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(s.name, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
-                    Text('Threshold: ${s.lowStockThreshold}', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                  ])),
-                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text('${s.stock} units', style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 14)),
+          if (lowStockItems.isEmpty)
+            _glassRow(child: Text('All items adequately stocked',
+                style: TextStyle(color: context.hintColor, fontSize: 13)))
+          else
+            Column(children: lowStockItems.take(4).map((s) {
+              final name      = s['name']      as String? ?? '';
+              final stock     = (s['stock']    as num?)?.toInt() ?? 0;
+              final threshold = (s['threshold'] as num?)?.toInt() ?? 1;
+              final pct = stock / (threshold > 0 ? threshold : 1);
+              final c   = pct < 0.3 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
+              return _glassRow(child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: c.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.warning_amber_rounded, color: c, size: 16),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                  Text('Threshold: $threshold', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                ])),
+                Text('$stock units', style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 14)),
+              ]));
+            }).toList()),
+        ]);
+      },
+    );
+  }
+
+  Widget _wholesaleQuickAccess(bool wide) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: context.borderColor)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.store_rounded, color: EnhancedTheme.accentCyan, size: 18),
+              const SizedBox(width: 8),
+              Text('Wholesale Quick Access',
+                  style: TextStyle(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+            ]),
+            const SizedBox(height: 14),
+            wide
+                ? Row(children: [
+                    Expanded(child: _quickAccessCard(
+                      'Wholesale Operations', 'Sales & Customers',
+                      Icons.storefront_rounded, EnhancedTheme.accentCyan,
+                      [(Icons.point_of_sale_rounded, 'WS POS', '/dashboard/wholesale-pos'),
+                       (Icons.people_rounded, 'WS Customers', '/dashboard/customers')],
+                    )),
+                    const SizedBox(width: 10),
+                    Expanded(child: _quickAccessCard(
+                      'Inventory & Transfers', 'Stock Management',
+                      Icons.inventory_2_rounded, EnhancedTheme.warningAmber,
+                      [(Icons.swap_horiz_rounded, 'Transfers', '/dashboard/transfers'),
+                       (Icons.inventory_rounded, 'Inventory', '/dashboard/inventory')],
+                    )),
+                    const SizedBox(width: 10),
+                    Expanded(child: _quickAccessCard(
+                      'Sales History', 'Records & Reports',
+                      Icons.receipt_long_rounded, EnhancedTheme.successGreen,
+                      [(Icons.history_rounded, 'WS Sales', '/dashboard/wholesale-sales'),
+                       (Icons.analytics_rounded, 'WS Dashboard', '/wholesale-dashboard')],
+                    )),
+                  ])
+                : Column(children: [
+                    _quickAccessCard(
+                      'Wholesale Operations', 'Sales & Customers',
+                      Icons.storefront_rounded, EnhancedTheme.accentCyan,
+                      [(Icons.point_of_sale_rounded, 'WS POS', '/dashboard/wholesale-pos'),
+                       (Icons.people_rounded, 'WS Customers', '/dashboard/customers')],
+                    ),
+                    const SizedBox(height: 10),
+                    _quickAccessCard(
+                      'Inventory & Transfers', 'Stock Management',
+                      Icons.inventory_2_rounded, EnhancedTheme.warningAmber,
+                      [(Icons.swap_horiz_rounded, 'Transfers', '/dashboard/transfers'),
+                       (Icons.inventory_rounded, 'Inventory', '/dashboard/inventory')],
+                    ),
+                    const SizedBox(height: 10),
+                    _quickAccessCard(
+                      'Sales History', 'Records & Reports',
+                      Icons.receipt_long_rounded, EnhancedTheme.successGreen,
+                      [(Icons.history_rounded, 'WS Sales', '/dashboard/wholesale-sales'),
+                       (Icons.analytics_rounded, 'WS Dashboard', '/wholesale-dashboard')],
+                    ),
                   ]),
-                ]));
-              }).toList());
-            },
-          ),
-        ],
+          ]),
+        ),
       ),
     );
   }

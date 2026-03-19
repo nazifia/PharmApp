@@ -128,6 +128,32 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           ],
                         ),
 
+                        // ══ WHOLESALE ─────────────────────────────────────────
+                        if (isWholesale) ...[
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Wholesale'),
+                          _ExpandableSection(
+                            icon: Icons.store_rounded, label: 'Wholesale',
+                            isExpanded: _expanded.contains('wholesale'),
+                            onToggle: () => _toggle('wholesale'),
+                            children: [
+                              _SubNavItem(icon: Icons.dashboard_rounded, label: 'WS Dashboard', route: '/wholesale-dashboard', onTap: navigate),
+                              _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'WS POS', route: '/dashboard/wholesale-pos', onTap: navigate),
+                              _SubNavItem(icon: Icons.receipt_long_rounded, label: 'WS Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
+                              _SubNavItem(icon: Icons.person_search_rounded, label: 'Sales by User', route: '/dashboard/wholesale-sales', onTap: navigate),
+                              _SubNavItem(icon: Icons.people_rounded, label: 'WS Customers', route: '/dashboard/customers', onTap: navigate),
+                              _SubNavItem(icon: Icons.request_page_rounded, label: 'WS Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
+                              _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
+                              _SubNavItem(icon: Icons.inventory_rounded, label: 'Adjust WS Stock', route: '/dashboard/inventory', onTap: navigate),
+                              _SubNavItem(icon: Icons.warning_amber_rounded, label: 'Low Stock Alerts', route: '/dashboard/inventory', onTap: navigate),
+                              _SubNavItem(icon: Icons.hourglass_bottom_rounded, label: 'Expiry Alerts', route: '/dashboard/inventory', onTap: navigate),
+                              _SubNavItem(icon: Icons.fact_check_rounded, label: 'WS Stock Check', route: '/dashboard/stock-check', onTap: navigate),
+                              _SubNavItem(icon: Icons.star_rounded, label: 'Top Products', route: '/wholesale-dashboard', onTap: navigate),
+                              _SubNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Inventory Value', route: '/wholesale-dashboard', onTap: navigate),
+                            ],
+                          ),
+                        ],
+
                         const SizedBox(height: 4),
                         _SectionDivider(label: 'Inventory'),
 
@@ -208,36 +234,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           ),
                         ],
 
-                        if (isWholesale) ...[
-                          const SizedBox(height: 4),
-                          _SectionDivider(label: 'Wholesale'),
-                          _ExpandableSection(
-                            icon: Icons.store_rounded, label: 'Wholesale',
-                            isExpanded: _expanded.contains('wholesale'),
-                            onToggle: () => _toggle('wholesale'),
-                            children: [
-                              _SubNavItem(icon: Icons.dashboard_rounded, label: 'WS Dashboard', route: '/wholesale-dashboard', onTap: navigate),
-                              _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'WS POS', route: '/dashboard/wholesale-pos', onTap: navigate),
-                              // ── Sales ──
-                              _SubNavItem(icon: Icons.receipt_long_rounded, label: 'WS Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
-                              _SubNavItem(icon: Icons.person_search_rounded, label: 'Sales by User', route: '/dashboard/wholesale-sales', onTap: navigate),
-                              // ── Customers ──
-                              _SubNavItem(icon: Icons.people_rounded, label: 'WS Customers', route: '/dashboard/customers', onTap: navigate),
-                              // ── Payments ──
-                              _SubNavItem(icon: Icons.request_page_rounded, label: 'WS Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
-                              // ── Inventory ──
-                              _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
-                              _SubNavItem(icon: Icons.inventory_rounded, label: 'Adjust WS Stock', route: '/dashboard/inventory', onTap: navigate),
-                              _SubNavItem(icon: Icons.warning_amber_rounded, label: 'Low Stock Alerts', route: '/dashboard/inventory', onTap: navigate),
-                              _SubNavItem(icon: Icons.hourglass_bottom_rounded, label: 'Expiry Alerts', route: '/dashboard/inventory', onTap: navigate),
-                              // ── Quality Control ──
-                              _SubNavItem(icon: Icons.fact_check_rounded, label: 'WS Stock Check', route: '/dashboard/stock-check', onTap: navigate),
-                              // ── Dashboard Insights ──
-                              _SubNavItem(icon: Icons.star_rounded, label: 'Top Products', route: '/wholesale-dashboard', onTap: navigate),
-                              _SubNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Inventory Value', route: '/wholesale-dashboard', onTap: navigate),
-                            ],
-                          ),
-                        ],
                       ],
                     ),
                   ),
