@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -162,7 +163,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Widget _buildHeader(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
-      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.pop()),
+      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
       const SizedBox(width: 4),
       Text('Notifications',
           style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600)),

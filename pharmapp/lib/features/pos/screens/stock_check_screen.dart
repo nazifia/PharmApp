@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -355,7 +356,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
             child: Row(children: [
               IconButton(
                 icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-                onPressed: () => context.pop(),
+                onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
               ),
               const SizedBox(width: 4),
               Text('Stock Checks', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),

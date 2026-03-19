@@ -38,9 +38,9 @@ class EnhancedTheme {
       textTheme: TextTheme(
         displayLarge: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
         titleLarge:   GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white),
-        bodyLarge:    GoogleFonts.inter(color: Colors.white70),
-        bodyMedium:   GoogleFonts.inter(color: Colors.white54),
-        labelLarge:   GoogleFonts.inter(color: Colors.white54, fontWeight: FontWeight.w500),
+        bodyLarge:    GoogleFonts.inter(color: Colors.white),
+        bodyMedium:   GoogleFonts.inter(color: Colors.white70),
+        labelLarge:   GoogleFonts.inter(color: Colors.white70, fontWeight: FontWeight.w500),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -58,7 +58,7 @@ class EnhancedTheme {
           borderSide: BorderSide(color: primaryTeal, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.50)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -297,12 +297,12 @@ extension PharmContext on BuildContext {
 
   /// Secondary / sub-label text colour.
   Color get subLabelColor => isDark
-      ? Colors.white.withValues(alpha: 0.50)
+      ? Colors.white.withValues(alpha: 0.65)
       : Colors.black54;
 
   /// Hint / tertiary text colour.
   Color get hintColor => isDark
-      ? Colors.white.withValues(alpha: 0.35)
+      ? Colors.white.withValues(alpha: 0.50)
       : Colors.black.withValues(alpha: 0.35);
 
   /// Divider line colour.

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import '../providers/inventory_provider.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 class ItemDetailScreen extends ConsumerStatefulWidget {
   const ItemDetailScreen({super.key});
@@ -161,7 +162,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   Widget _header(BuildContext context, Item? item) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
-      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.pop()),
+      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
       Expanded(child: Text(item?.name ?? 'Item Details',
           style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600),
           overflow: TextOverflow.ellipsis)),
@@ -234,7 +235,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           // Actions
           Row(children: [
             Expanded(child: ElevatedButton.icon(
-              onPressed: () => context.pop(),
+              onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),

@@ -72,8 +72,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return cart.fold(0.0, (s, c) => s + c.total);
   }
 
-  double get _tax   => _subtotal * 0.05;
-  double get _total => _subtotal + _tax;
+  double get _total => _subtotal;
 
   // Split amounts from controllers
   double get _splitCash   => double.tryParse(_cashCtrl.text)   ?? 0;
@@ -193,9 +192,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Widget build(BuildContext context) {
     final cart     = ref.watch(cartProvider);
     final selected = ref.watch(selectedCustomerProvider);
-    final subtotal = cart.fold(0.0, (s, c) => s + c.total);
-    final tax      = subtotal * 0.05;
-    final total    = subtotal + tax;
+    final total = cart.fold(0.0, (s, c) => s + c.total);
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -208,7 +205,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             child: Row(children: [
               IconButton(
                 icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-                onPressed: () => context.pop()),
+                onPressed: () => context.canPop() ? context.pop() : context.go('/dashboard/pos')),
               const SizedBox(width: 4),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Payment',
@@ -253,11 +250,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     ]),
                   )),
                 Divider(color: context.dividerColor, height: 20),
-                _totalsRow('Subtotal',  '₦${subtotal.toStringAsFixed(2)}'),
-                const SizedBox(height: 6),
-                _totalsRow('Tax (5%)', '₦${tax.toStringAsFixed(2)}', dimmed: true),
-                const SizedBox(height: 10),
-                _totalsRow('Total',     '₦${total.toStringAsFixed(2)}', large: true),
+                _totalsRow('Total', '₦${total.toStringAsFixed(2)}', large: true),
               ])),
               const SizedBox(height: 20),
 

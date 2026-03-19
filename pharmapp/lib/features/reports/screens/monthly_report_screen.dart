@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ class MonthlyReportScreen extends ConsumerWidget {
             child: Row(children: [
               IconButton(
                 icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-                onPressed: () => context.pop(),
+                onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
               ),
               const SizedBox(width: 4),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

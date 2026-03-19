@@ -48,7 +48,7 @@ class CustomerDetailScreen extends ConsumerWidget {
     child: Row(children: [
       IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: context.iconOnBg),
-          onPressed: () => context.pop()),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/dashboard/customers')),
       Expanded(child: Text('Customer Profile',
           style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600))),
       if (customer != null) ...[
@@ -313,7 +313,7 @@ class CustomerDetailScreen extends ConsumerWidget {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(success ? 'Customer deleted' : 'Delete failed'),
                 backgroundColor: success ? EnhancedTheme.successGreen : EnhancedTheme.errorRed));
-              if (success) context.pop();
+              if (success) { if (context.canPop()) { context.pop(); } else { context.go('/dashboard/customers'); } }
             }
           }, child: const Text('Delete', style: TextStyle(color: EnhancedTheme.errorRed))),
         ],

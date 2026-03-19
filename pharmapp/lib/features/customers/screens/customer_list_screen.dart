@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/customer.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/customer_provider.dart';
 
 class CustomerListScreen extends ConsumerStatefulWidget {
@@ -197,7 +198,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   Widget _buildHeader(BuildContext context, int? count) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
-      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.pop()),
+      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
       const SizedBox(width: 4),
       Expanded(child: Text('Customers', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600))),
       if (count != null) Container(

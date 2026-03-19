@@ -7,6 +7,7 @@ import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/theme/theme_provider.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 class AppSettingsScreen extends ConsumerStatefulWidget {
   const AppSettingsScreen({super.key});
@@ -126,7 +127,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
       child: Row(children: [
         IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-          onPressed: () => context.pop(),
+          onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
         ),
         const SizedBox(width: 4),
         Text('Settings', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600)),

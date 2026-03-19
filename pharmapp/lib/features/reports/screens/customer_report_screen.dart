@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
 
@@ -29,7 +30,7 @@ class CustomerReportScreen extends ConsumerWidget {
             child: Row(children: [
               IconButton(
                   icon: Icon(Icons.arrow_back_rounded, color: context.iconOnBg),
-                  onPressed: () => context.pop()),
+                  onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
               const SizedBox(width: 4),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Customer Report',

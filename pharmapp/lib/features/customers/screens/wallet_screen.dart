@@ -97,7 +97,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             child: Row(children: [
               IconButton(
                   icon: Icon(Icons.arrow_back_rounded, color: context.iconOnBg),
-                  onPressed: () => context.pop()),
+                  onPressed: () => context.canPop() ? context.pop() : context.go('/dashboard/customers')),
               Expanded(child: Text('Wallet',
                   style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600))),
               IconButton(

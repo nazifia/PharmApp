@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
 
@@ -99,7 +100,15 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
     child: Row(children: [
       IconButton(
         icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-        onPressed: () => context.pop(),
+        onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  final user = ref.read(currentUserProvider);
+                  final isWholesale = ['Wholesale Manager', 'Wholesale Operator', 'Wholesale Salesperson'].contains(user?.role);
+                  context.go(isWholesale ? '/wholesale-dashboard' : '/dashboard');
+                }
+              },
       ),
       const SizedBox(width: 4),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

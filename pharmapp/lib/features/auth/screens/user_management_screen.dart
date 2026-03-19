@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/models/user.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 class UserManagementScreen extends ConsumerStatefulWidget {
   const UserManagementScreen({super.key});
@@ -329,7 +330,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   Widget _buildHeader(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
-      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.pop()),
+      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
       const SizedBox(width: 4),
       Expanded(child: Text('User Management',
           style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600))),

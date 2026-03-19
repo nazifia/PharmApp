@@ -35,6 +35,7 @@ import 'package:pharmapp/features/pos/screens/payment_requests_screen.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/auth/screens/user_management_screen.dart';
 import 'package:pharmapp/features/notifications/screens/notifications_screen.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -67,55 +68,62 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/role-selection', name: 'role_select',  builder: (_, __) => const RoleSelectionScreen()),
       GoRoute(path: '/setup',          name: 'setup',        builder: (_, __) => const SetupScreen()),
 
-      // ── Main dashboard (retail) ─────────────────────────────────────────────
-      GoRoute(
-        path: '/dashboard',
-        name: 'dashboard',
-        builder: (_, __) => const MainDashboard(),
+      // ── Authenticated shell (persistent bottom nav bar) ────────────────────
+      ShellRoute(
+        builder: (context, state, child) => AppShell(child: child),
         routes: [
-          GoRoute(path: 'pos',            name: 'retail_pos',     builder: (_, __) => const RetailPOSScreen()),
-          GoRoute(path: 'wholesale-pos',  name: 'wholesale_pos',  builder: (_, __) => const WholesalePOSScreen()),
-          GoRoute(path: 'inventory',      name: 'inventory',      builder: (_, __) => const InventoryListScreen()),
-          GoRoute(path: 'customers',      name: 'customers',      builder: (_, __) => const CustomerListScreen()),
-          GoRoute(path: 'reports',           name: 'reports_hub',      builder: (_, __) => const ReportsHubScreen()),
-          GoRoute(path: 'reports/sales',     name: 'sales_report',     builder: (_, __) => const SalesReportScreen()),
-          GoRoute(path: 'reports/inventory', name: 'inventory_report', builder: (_, __) => const InventoryReportScreen()),
-          GoRoute(path: 'reports/customers', name: 'customer_report',  builder: (_, __) => const CustomerReportScreen()),
-          GoRoute(path: 'reports/profit',    name: 'profit_report',    builder: (_, __) => const ProfitReportScreen()),
-          GoRoute(path: 'reports/monthly',   name: 'monthly_report',   builder: (_, __) => const MonthlyReportScreen()),
-          GoRoute(path: 'settings',          name: 'settings',         builder: (_, __) => const AppSettingsScreen()),
-          GoRoute(path: 'users',           name: 'users',            builder: (_, __) => const UserManagementScreen()),
-          GoRoute(path: 'notifications',   name: 'notifications',    builder: (_, __) => const NotificationsScreen()),
-          GoRoute(path: 'dispensing-log',  name: 'dispensing_log',   builder: (_, __) => const DispensingLogScreen()),
-          GoRoute(path: 'sales',           name: 'sales_history',    builder: (_, __) => const SalesHistoryScreen()),
-          GoRoute(path: 'expenses',        name: 'expenses',         builder: (_, __) => const ExpensesScreen()),
-          GoRoute(path: 'suppliers',       name: 'suppliers',        builder: (_, __) => const SuppliersScreen()),
-          GoRoute(path: 'stock-check',     name: 'stock_check',      builder: (_, __) => const StockCheckScreen()),
-          GoRoute(path: 'payment-requests',name: 'payment_requests', builder: (_, __) => const PaymentRequestsScreen()),
-          GoRoute(path: 'transfers',       name: 'transfers',        builder: (_, __) => const TransfersScreen()),
-          GoRoute(path: 'wholesale-sales', name: 'wholesale_sales',  builder: (_, __) => const WholesaleSalesScreen()),
+
+          // ── Main dashboard (retail) ───────────────────────────────────────
+          GoRoute(
+            path: '/dashboard',
+            name: 'dashboard',
+            builder: (_, __) => const MainDashboard(),
+            routes: [
+              GoRoute(path: 'pos',             name: 'retail_pos',      builder: (_, __) => const RetailPOSScreen()),
+              GoRoute(path: 'wholesale-pos',   name: 'wholesale_pos',   builder: (_, __) => const WholesalePOSScreen()),
+              GoRoute(path: 'inventory',       name: 'inventory',       builder: (_, __) => const InventoryListScreen()),
+              GoRoute(path: 'customers',       name: 'customers',       builder: (_, __) => const CustomerListScreen()),
+              GoRoute(path: 'reports',         name: 'reports_hub',     builder: (_, __) => const ReportsHubScreen()),
+              GoRoute(path: 'reports/sales',   name: 'sales_report',    builder: (_, __) => const SalesReportScreen()),
+              GoRoute(path: 'reports/inventory',name: 'inventory_report',builder: (_, __) => const InventoryReportScreen()),
+              GoRoute(path: 'reports/customers',name: 'customer_report', builder: (_, __) => const CustomerReportScreen()),
+              GoRoute(path: 'reports/profit',  name: 'profit_report',   builder: (_, __) => const ProfitReportScreen()),
+              GoRoute(path: 'reports/monthly', name: 'monthly_report',  builder: (_, __) => const MonthlyReportScreen()),
+              GoRoute(path: 'settings',        name: 'settings',        builder: (_, __) => const AppSettingsScreen()),
+              GoRoute(path: 'users',           name: 'users',           builder: (_, __) => const UserManagementScreen()),
+              GoRoute(path: 'notifications',   name: 'notifications',   builder: (_, __) => const NotificationsScreen()),
+              GoRoute(path: 'dispensing-log',  name: 'dispensing_log',  builder: (_, __) => const DispensingLogScreen()),
+              GoRoute(path: 'sales',           name: 'sales_history',   builder: (_, __) => const SalesHistoryScreen()),
+              GoRoute(path: 'expenses',        name: 'expenses',        builder: (_, __) => const ExpensesScreen()),
+              GoRoute(path: 'suppliers',       name: 'suppliers',       builder: (_, __) => const SuppliersScreen()),
+              GoRoute(path: 'stock-check',     name: 'stock_check',     builder: (_, __) => const StockCheckScreen()),
+              GoRoute(path: 'payment-requests',name: 'payment_requests',builder: (_, __) => const PaymentRequestsScreen()),
+              GoRoute(path: 'transfers',       name: 'transfers',       builder: (_, __) => const TransfersScreen()),
+              GoRoute(path: 'wholesale-sales', name: 'wholesale_sales', builder: (_, __) => const WholesaleSalesScreen()),
+            ],
+          ),
+
+          // ── Admin ─────────────────────────────────────────────────────────
+          GoRoute(
+            path: '/admin-dashboard',
+            name: 'admin_dashboard',
+            builder: (_, __) => const AdminDashboard(),
+            routes: [
+              GoRoute(path: 'reports',  name: 'admin_reports',  builder: (_, __) => const SalesReportScreen()),
+              GoRoute(path: 'settings', name: 'admin_settings', builder: (_, __) => const AppSettingsScreen()),
+            ],
+          ),
+
+          // ── Wholesale ──────────────────────────────────────────────────────
+          GoRoute(path: '/wholesale-dashboard', name: 'wholesale_dashboard', builder: (_, __) => const WholesaleDashboardScreen()),
+
+          // ── Item / Customer detail (inside shell so back nav works) ────────
+          GoRoute(path: '/item/:id',            name: 'item_details',    builder: (_, __) => const ItemDetailScreen()),
+          GoRoute(path: '/customer/:id',        name: 'customer_detail', builder: (_, __) => const CustomerDetailScreen()),
+          GoRoute(path: '/customer/:id/wallet', name: 'customer_wallet', builder: (_, __) => const WalletScreen()),
+          GoRoute(path: '/payment',             name: 'payment',         builder: (_, __) => const PaymentScreen()),
         ],
       ),
-
-      // ── Item / Customer detail ──────────────────────────────────────────────
-      GoRoute(path: '/item/:id',              name: 'item_details',    builder: (_, __) => const ItemDetailScreen()),
-      GoRoute(path: '/customer/:id',          name: 'customer_detail', builder: (_, __) => const CustomerDetailScreen()),
-      GoRoute(path: '/customer/:id/wallet',   name: 'customer_wallet', builder: (_, __) => const WalletScreen()),
-      GoRoute(path: '/payment',               name: 'payment',         builder: (_, __) => const PaymentScreen()),
-
-      // ── Admin ───────────────────────────────────────────────────────────────
-      GoRoute(
-        path: '/admin-dashboard',
-        name: 'admin_dashboard',
-        builder: (_, __) => const AdminDashboard(),
-        routes: [
-          GoRoute(path: 'reports',  name: 'admin_reports',  builder: (_, __) => const SalesReportScreen()),
-          GoRoute(path: 'settings', name: 'admin_settings', builder: (_, __) => const AppSettingsScreen()),
-        ],
-      ),
-
-      // ── Wholesale ───────────────────────────────────────────────────────────
-      GoRoute(path: '/wholesale-dashboard', name: 'wholesale_dashboard', builder: (_, __) => const WholesaleDashboardScreen()),
     ],
     errorBuilder: (context, state) => _ErrorScreen(error: state.error?.toString()),
   );

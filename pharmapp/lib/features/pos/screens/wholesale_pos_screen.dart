@@ -9,6 +9,10 @@ import 'package:pharmapp/shared/models/sale.dart';
 import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../providers/pos_api_provider.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
+
+const _kWalkInId = -1;
+const _kWalkInName = 'Walk-in Customer';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -28,7 +32,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   final List<_CartLine> _cart = [];
   bool _isSubmitting = false;
 
-  double get _cartTotal => _cart.fold(0, (s, l) => s + l.total);
+  double get _cartTotal => _cart.fold(0.0, (s, l) => s + l.total);
   int    get _cartCount => _cart.fold(0, (s, l) => s + l.qty);
 
   @override
@@ -138,7 +142,37 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
+              // Walk-in customer shortcut
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: ListTile(
+                  onTap: () {
+                    setState(() {
+                      _selectedCustomerId = _kWalkInId;
+                      _selectedCustomerName = _kWalkInName;
+                      _selectedCustomerWallet = 0;
+                    });
+                    Navigator.pop(ctx);
+                  },
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  tileColor: _selectedCustomerId == _kWalkInId
+                      ? EnhancedTheme.accentOrange.withValues(alpha: 0.12)
+                      : ctx.cardColor,
+                  leading: CircleAvatar(
+                    backgroundColor: EnhancedTheme.accentOrange.withValues(alpha: 0.2),
+                    child: const Icon(Icons.person_outline, color: EnhancedTheme.accentOrange, size: 20),
+                  ),
+                  title: Text(_kWalkInName,
+                      style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: Text('No account required',
+                      style: TextStyle(color: ctx.hintColor, fontSize: 12)),
+                  trailing: _selectedCustomerId == _kWalkInId
+                      ? const Icon(Icons.check_circle, color: EnhancedTheme.accentOrange)
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 4),
               Expanded(child: Builder(builder: (_) {
                 final q = searchCtrl.text.toLowerCase();
                 final filtered = wsCustomers.where((c) =>
@@ -212,9 +246,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           const SnackBar(content: Text('Cart is empty')));
       return;
     }
-    if (_selectedCustomerId == null) {
+    if (_selectedCustomerName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a wholesale customer')));
+          const SnackBar(content: Text('Please select a customer or choose Walk-in')));
       return;
     }
 
@@ -248,7 +282,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           bankTransfer: payments['bankTransfer'] ?? 0,
           wallet: payments['wallet'] ?? 0,
         ),
-        customerId: _selectedCustomerId,
+        customerId: (_selectedCustomerId == _kWalkInId) ? null : _selectedCustomerId,
         totalAmount: _cartTotal,
         isWholesale: true,
         paymentMethod: method,
@@ -288,6 +322,41 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           SnackBar(content: Text('$e'), backgroundColor: EnhancedTheme.errorRed));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  // ── Send to cashier ────────────────────────────────────────────────────────
+
+  Future<void> _sendToCashier() async {
+    if (_cart.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cart is empty')));
+      return;
+    }
+    final items = _cart.map((l) => {
+      'itemId': l.id,
+      'barcode': l.barcode,
+      'quantity': l.qty,
+      'price': l.price,
+      'discount': l.discount,
+    }).toList();
+    final effectiveCustomerId =
+        (_selectedCustomerId == _kWalkInId) ? null : _selectedCustomerId;
+    try {
+      await ref.read(posApiProvider).sendToCashier(
+        items,
+        customerId: effectiveCustomerId,
+        paymentType: 'wholesale',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Payment request sent to cashier'),
+        backgroundColor: EnhancedTheme.successGreen,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'), backgroundColor: EnhancedTheme.errorRed));
     }
   }
 
@@ -335,7 +404,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     child: Row(children: [
       IconButton(
         icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-        onPressed: () => context.pop(),
+        onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
       ),
       const SizedBox(width: 4),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -727,6 +796,17 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w600)),
                   )),
                 ]),
+                const SizedBox(height: 8),
+                SizedBox(width: double.infinity, child: OutlinedButton.icon(
+                  onPressed: _isSubmitting ? null : _sendToCashier,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: EnhancedTheme.accentOrange,
+                    side: BorderSide(color: EnhancedTheme.accentOrange.withValues(alpha: 0.5)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.send_rounded, size: 16),
+                  label: const Text('Send to Cashier', style: TextStyle(fontWeight: FontWeight.w600)),
+                )),
               ]),
             ),
           ),
@@ -816,7 +896,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
 
   Widget _cartBar() => Container(
     margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     decoration: BoxDecoration(
       color: EnhancedTheme.accentCyan,
       borderRadius: BorderRadius.circular(16),
@@ -826,13 +906,25 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         Text('$_cartCount items  ·  ${_cart.length} lines',
             style: const TextStyle(color: Colors.white70, fontSize: 11)),
         Text('₦${_cartTotal.toStringAsFixed(2)}',
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
       ])),
       TextButton(
         onPressed: () => setState(() => _cart.clear()),
         child: const Text('Clear', style: TextStyle(color: Colors.white70)),
       ),
-      const SizedBox(width: 8),
+      const SizedBox(width: 4),
+      OutlinedButton.icon(
+        onPressed: _isSubmitting ? null : _sendToCashier,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Colors.white54),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        icon: const Icon(Icons.send_rounded, size: 14),
+        label: const Text('Cashier', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+      ),
+      const SizedBox(width: 6),
       ElevatedButton(
         onPressed: _isSubmitting ? null : _showPaymentSheet,
         style: ElevatedButton.styleFrom(

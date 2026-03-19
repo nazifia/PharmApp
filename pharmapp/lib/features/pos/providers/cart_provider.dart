@@ -51,7 +51,7 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     ];
   }
 
-  double get cartTotal => state.fold(0, (sum, c) => sum + c.total);
+  double get cartTotal => state.fold(0.0, (sum, c) => sum + c.total);
 
   void clearCart() => state = [];
 }

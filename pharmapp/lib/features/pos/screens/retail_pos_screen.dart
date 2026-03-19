@@ -8,6 +8,8 @@ import 'package:pharmapp/shared/models/item.dart';
 import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/pos_api_provider.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 class RetailPOSScreen extends ConsumerStatefulWidget {
   const RetailPOSScreen({super.key});
@@ -34,6 +36,35 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       return;
     }
     context.push('/payment');
+  }
+
+  Future<void> _sendToCashier() async {
+    final cart = ref.read(cartProvider);
+    if (cart.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cart is empty')));
+      return;
+    }
+    final items = cart.map((c) => {
+      'itemId': c.item.id,
+      'barcode': c.item.barcode,
+      'quantity': c.quantity,
+      'price': c.item.price,
+      'discount': c.discount,
+    }).toList();
+    final customerId = ref.read(selectedCustomerProvider)?.id;
+    try {
+      await ref.read(posApiProvider).sendToCashier(items, customerId: customerId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Payment request sent to cashier'),
+        backgroundColor: EnhancedTheme.successGreen,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'), backgroundColor: EnhancedTheme.errorRed));
+    }
   }
 
   // ── Customer picker modal ─────────────────────────────────────────────────
@@ -199,7 +230,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     child: Row(children: [
       IconButton(
         icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-        onPressed: () => context.pop(),
+        onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
       ),
       const SizedBox(width: 4),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -588,6 +619,17 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                     label: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w600)),
                   )),
                 ]),
+                const SizedBox(height: 8),
+                SizedBox(width: double.infinity, child: OutlinedButton.icon(
+                  onPressed: _sendToCashier,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: EnhancedTheme.accentOrange,
+                    side: BorderSide(color: EnhancedTheme.accentOrange.withValues(alpha: 0.5)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.send_rounded, size: 16),
+                  label: const Text('Send to Cashier', style: TextStyle(fontWeight: FontWeight.w600)),
+                )),
               ]),
             ),
           ),
@@ -681,7 +723,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
 
   Widget _cartBar(List<CartItem> cart, double cartTotal) => Container(
     margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     decoration: BoxDecoration(
       color: EnhancedTheme.primaryTeal,
       borderRadius: BorderRadius.circular(16),
@@ -691,7 +733,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         Text('${cart.fold<int>(0, (s, c) => s + c.quantity)} items  ·  ${cart.length} lines',
             style: const TextStyle(color: Colors.white70, fontSize: 11)),
         Text('₦${cartTotal.toStringAsFixed(2)}',
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
       ])),
       TextButton(
         onPressed: () {
@@ -700,7 +742,19 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         },
         child: const Text('Clear', style: TextStyle(color: Colors.white70)),
       ),
-      const SizedBox(width: 8),
+      const SizedBox(width: 4),
+      OutlinedButton.icon(
+        onPressed: _sendToCashier,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Colors.white54),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        icon: const Icon(Icons.send_rounded, size: 14),
+        label: const Text('Cashier', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+      ),
+      const SizedBox(width: 6),
       ElevatedButton(
         onPressed: _checkout,
         style: ElevatedButton.styleFrom(

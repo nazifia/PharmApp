@@ -27,21 +27,8 @@ class MainDashboard extends ConsumerStatefulWidget {
 }
 
 class _MainDashboardState extends ConsumerState<MainDashboard> {
-  int _selectedIndex = 0;
   bool _showWholesale = false;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  // ── Navigation helpers ─────────────────────────────────────────────────────
-
-  void _onNavTap(int i) {
-    setState(() => _selectedIndex = i);
-    switch (i) {
-      case 1: context.go('/dashboard/pos');        break;
-      case 2: context.go('/dashboard/inventory');  break;
-      case 3: context.go('/dashboard/customers');  break;
-      case 4: context.go('/dashboard/reports');    break;
-    }
-  }
 
   void _logout() {
     ref.read(authServiceProvider).logout();
@@ -76,7 +63,6 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final wide = MediaQuery.of(context).size.width > 800;
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: context.scaffoldBg,
@@ -84,97 +70,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
       body: Stack(
         children: [
           Container(decoration: context.bgGradient),
-          SafeArea(child: wide ? _wideLayout() : _narrowLayout()),
+          SafeArea(child: _content()),
         ],
-      ),
-    );
-  }
-
-  Widget _wideLayout() => Row(children: [
-    _buildNavRail(),
-    VerticalDivider(width: 1, color: context.dividerColor),
-    Expanded(child: _content()),
-  ]);
-
-  Widget _narrowLayout() => Column(children: [
-    Expanded(child: _content()),
-    _bottomNav(),
-  ]);
-
-  Widget _buildNavRail() {
-    return NavigationRail(
-      selectedIndex: _selectedIndex,
-      onDestinationSelected: _onNavTap,
-      labelType: NavigationRailLabelType.all,
-      backgroundColor: context.isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-      selectedIconTheme: const IconThemeData(color: Color(0xFF0D9488)),
-      unselectedIconTheme: IconThemeData(color: context.subLabelColor),
-      selectedLabelTextStyle: const TextStyle(color: Color(0xFF0D9488), fontSize: 11, fontWeight: FontWeight.w600),
-      unselectedLabelTextStyle: TextStyle(color: context.subLabelColor, fontSize: 11),
-      leading: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0D9488).withValues(alpha:0.15),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.local_pharmacy_rounded, color: Color(0xFF0D9488), size: 22),
-        ),
-      ),
-      trailing: Expanded(
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: IconButton(
-              icon: Icon(Icons.logout_rounded, color: Colors.white.withValues(alpha:0.4)),
-              onPressed: _logout,
-              tooltip: 'Logout',
-            ),
-          ),
-        ),
-      ),
-      destinations: const [
-        NavigationRailDestination(icon: Icon(Icons.home_outlined),          selectedIcon: Icon(Icons.home),          label: Text('Home')),
-        NavigationRailDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale), label: Text('POS')),
-        NavigationRailDestination(icon: Icon(Icons.inventory_2_outlined),   selectedIcon: Icon(Icons.inventory_2),   label: Text('Stock')),
-        NavigationRailDestination(icon: Icon(Icons.people_outline),          selectedIcon: Icon(Icons.people),        label: Text('Customers')),
-        NavigationRailDestination(icon: Icon(Icons.bar_chart_outlined),      selectedIcon: Icon(Icons.bar_chart),     label: Text('Reports')),
-      ],
-    );
-  }
-
-  Widget _bottomNav() {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.isDark
-                ? const Color(0xFF1E293B).withValues(alpha: 0.95)
-                : const Color(0xFFE2E8F0).withValues(alpha: 0.95),
-            border: Border(top: BorderSide(color: context.dividerColor)),
-          ),
-          child: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: _onNavTap,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            selectedItemColor: const Color(0xFF0D9488),
-            unselectedItemColor: context.hintColor,
-            type: BottomNavigationBarType.fixed,
-            selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-            unselectedLabelStyle: const TextStyle(fontSize: 10),
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home_outlined),          activeIcon: Icon(Icons.home),          label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.point_of_sale_outlined), activeIcon: Icon(Icons.point_of_sale), label: 'POS'),
-              BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined),   activeIcon: Icon(Icons.inventory_2),   label: 'Stock'),
-              BottomNavigationBarItem(icon: Icon(Icons.people_outline),          activeIcon: Icon(Icons.people),        label: 'Customers'),
-              BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined),      activeIcon: Icon(Icons.bar_chart),     label: 'Reports'),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -795,7 +692,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         final topItems = report.topItems ?? [];
         if (topItems.isEmpty) return const SizedBox.shrink();
 
-        final maxRevenue = topItems.fold<double>(0, (max, item) => item.revenue > max ? item.revenue : max);
+        final maxRevenue = topItems.fold<double>(0.0, (max, item) => item.revenue > max ? item.revenue : max);
         if (maxRevenue <= 0) return const SizedBox.shrink();
 
         return ClipRRect(

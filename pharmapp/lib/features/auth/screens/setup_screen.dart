@@ -47,27 +47,41 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         children: [
           Container(decoration: context.bgGradient),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                children: [
-                  const SizedBox(height: 24),
-                  Container(
-                    width: 88, height: 88,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      color: EnhancedTheme.primaryTeal.withValues(alpha:0.12),
-                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha:0.3)),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+                  child: Row(children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
+                      onPressed: () => context.go('/role-selection'),
                     ),
-                    child: const Icon(Icons.waving_hand_rounded, size: 44, color: EnhancedTheme.primaryTeal),
-                  ),
-                  const SizedBox(height: 20),
-                  Text('Welcome to PharmApp',
-                      style: TextStyle(color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Text("Let's complete your profile setup",
-                      style: TextStyle(color: context.subLabelColor, fontSize: 13)),
-                  const SizedBox(height: 40),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text('Setup',
+                        style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700))),
+                  ]),
+                ),
+                Expanded(child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
+                      Container(
+                        width: 88, height: 88,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          color: EnhancedTheme.primaryTeal.withValues(alpha:0.12),
+                          border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha:0.3)),
+                        ),
+                        child: const Icon(Icons.waving_hand_rounded, size: 44, color: EnhancedTheme.primaryTeal),
+                      ),
+                      const SizedBox(height: 20),
+                      Text('Welcome to PharmApp',
+                          style: TextStyle(color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 8),
+                      Text("Let's complete your profile setup",
+                          style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+                      const SizedBox(height: 40),
 
                   ClipRRect(
                     borderRadius: BorderRadius.circular(24),
@@ -140,8 +154,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
-    );
+    ],
+  ),
+);
   }
 }

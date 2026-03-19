@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
@@ -120,7 +121,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     child: Row(children: [
       IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-          onPressed: () => context.pop()),
+          onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
       const SizedBox(width: 4),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Sales History',
@@ -248,7 +249,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     final totalAmount = (sale['totalAmount'] as num?)?.toDouble() ?? (sale['total_amount'] as num?)?.toDouble() ?? 0;
     final paymentMethod = sale['paymentMethod'] as String? ?? sale['payment_method'] as String? ?? 'cash';
     final status = (sale['status'] as String? ?? 'completed').toLowerCase();
-    final dateStr = sale['createdAt'] as String? ?? sale['created_at'] as String? ?? '';
+    final dateStr = sale['createdAt'] as String? ?? sale['created_at'] as String? ?? sale['created'] as String? ?? '';
 
     Color statusColor;
     String statusLabel;
@@ -440,7 +441,7 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
     final totalAmount = (data['totalAmount'] as num?)?.toDouble() ?? (data['total_amount'] as num?)?.toDouble() ?? 0;
     final paymentMethod = data['paymentMethod'] as String? ?? data['payment_method'] as String? ?? 'cash';
     final status = (data['status'] as String? ?? 'completed').toLowerCase();
-    final dateStr = data['createdAt'] as String? ?? data['created_at'] as String? ?? '';
+    final dateStr = data['createdAt'] as String? ?? data['created_at'] as String? ?? data['created'] as String? ?? '';
     final items = (data['items'] as List<dynamic>?) ?? [];
     final returns = (data['returns'] as List<dynamic>?) ?? [];
 

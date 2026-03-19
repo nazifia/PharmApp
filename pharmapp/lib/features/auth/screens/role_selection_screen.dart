@@ -44,20 +44,34 @@ class RoleSelectionScreen extends ConsumerWidget {
             ),
           ),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 32),
-                  const Icon(Icons.local_pharmacy_rounded, color: Color(0xFF0D9488), size: 48),
-                  const SizedBox(height: 12),
-                  const Text('Select Your Role',
-                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  Text('Choose the role that best describes your position',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white.withValues(alpha:0.5), fontSize: 13)),
-                  const SizedBox(height: 36),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+                  child: Row(children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back_rounded, color: Colors.white),
+                      onPressed: () => context.go('/login'),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text('Select Role',
+                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700))),
+                  ]),
+                ),
+                Expanded(child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 32),
+                      const Icon(Icons.local_pharmacy_rounded, color: Color(0xFF0D9488), size: 48),
+                      const SizedBox(height: 12),
+                      const Text('Select Your Role',
+                          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Text('Choose the role that best describes your position',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white.withValues(alpha:0.5), fontSize: 13)),
+                      const SizedBox(height: 36),
                   ...(_roles.map((r) {
                     final color = r['color'] as Color;
                     return Padding(
@@ -75,9 +89,12 @@ class RoleSelectionScreen extends ConsumerWidget {
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
-    );
+    ],
+  ),
+);
   }
 }
 
