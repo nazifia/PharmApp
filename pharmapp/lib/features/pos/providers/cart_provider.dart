@@ -6,14 +6,16 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   CartNotifier() : super([]);
 
   void addItem(Item item) {
+    if (item.stock == 0) return;
     final existingIndex = state.indexWhere((c) => c.item.id == item.id);
     if (existingIndex >= 0) {
-      // Increment quantity
+      final current = state[existingIndex];
+      if (current.quantity >= item.stock) return; // stock cap
       state = [
         for (int i = 0; i < state.length; i++)
-          if (i == existingIndex) 
+          if (i == existingIndex)
             state[i].copyWith(quantity: state[i].quantity + 1)
-          else 
+          else
             state[i]
       ];
     } else {
@@ -21,25 +23,37 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     }
   }
 
+  void removeItem(int itemId) {
+    state = state.where((c) => c.item.id != itemId).toList();
+  }
+
   void updateQuantity(int itemId, int newQuantity) {
     if (newQuantity <= 0) {
-       state = state.where((c) => c.item.id != itemId).toList();
-       return;
+      removeItem(itemId);
+      return;
     }
     state = [
-      for (final cartItem in state)
-        if (cartItem.item.id == itemId)
-          cartItem.copyWith(quantity: newQuantity)
+      for (final c in state)
+        if (c.item.id == itemId)
+          c.copyWith(quantity: newQuantity.clamp(1, c.item.stock))
         else
-          cartItem
+          c
     ];
   }
 
-  double get cartTotal => state.fold(0, (total, current) => total + current.subtotal);
-
-  void clearCart() {
-    state = [];
+  void updateDiscount(int itemId, double discount) {
+    state = [
+      for (final c in state)
+        if (c.item.id == itemId)
+          c.copyWith(discount: discount.clamp(0.0, c.subtotal))
+        else
+          c
+    ];
   }
+
+  double get cartTotal => state.fold(0, (sum, c) => sum + c.total);
+
+  void clearCart() => state = [];
 }
 
 final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {
@@ -48,7 +62,7 @@ final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {
 
 /// Selected customer for the current POS session
 class SelectedCustomer {
-  final int id;
+  final int    id;
   final String name;
   final double walletBalance;
   const SelectedCustomer({required this.id, required this.name, required this.walletBalance});

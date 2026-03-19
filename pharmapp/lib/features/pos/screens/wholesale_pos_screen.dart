@@ -40,14 +40,17 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   // ── Cart ops ───────────────────────────────────────────────────────────────
 
   void _addToCart(Item item) {
+    if (item.stock == 0) return;
     final idx = _cart.indexWhere((l) => l.id == item.id);
     setState(() {
       if (idx >= 0) {
+        if (_cart[idx].qty >= _cart[idx].stock) return; // stock cap
         _cart[idx] = _cart[idx].copyWith(qty: _cart[idx].qty + 1);
       } else {
         _cart.add(_CartLine(
           id: item.id, name: item.name,
           price: item.price, qty: 1, barcode: item.barcode,
+          stock: item.stock,
         ));
       }
     });
@@ -60,7 +63,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     if (qty <= 0) { _removeFromCart(id); return; }
     setState(() {
       final idx = _cart.indexWhere((l) => l.id == id);
-      if (idx >= 0) _cart[idx] = _cart[idx].copyWith(qty: qty);
+      if (idx >= 0) _cart[idx] = _cart[idx].copyWith(qty: qty.clamp(1, _cart[idx].stock));
     });
   }
 
@@ -506,7 +509,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   }
 
   Widget _catalogueListItem(Item item) {
-    final inCart     = _cart.any((l) => l.id == item.id);
+    final cartLine   = _cart.where((l) => l.id == item.id).firstOrNull;
+    final inCart     = cartLine != null;
+    final atMax      = (cartLine?.qty ?? 0) >= item.stock && item.stock > 0;
     final outOfStock = item.stock == 0;
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
@@ -563,20 +568,23 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   )),
               const SizedBox(height: 4),
               if (!outOfStock)
-                GestureDetector(
-                  onTap: () => _addToCart(item),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
-                    ),
-                    child: Text(inCart ? '+ More' : 'Add',
-                        style: const TextStyle(
-                            color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
-                  ),
-                ),
+                atMax
+                    ? Text('Max in cart',
+                        style: TextStyle(color: EnhancedTheme.warningAmber, fontSize: 10, fontWeight: FontWeight.w600))
+                    : GestureDetector(
+                        onTap: () => _addToCart(item),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(inCart ? '+ More' : 'Add',
+                              style: const TextStyle(
+                                  color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
             ]),
           ]),
         ),
@@ -585,12 +593,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   }
 
   Widget _catalogueGridCard(Item item) {
-    final inCart     = _cart.any((l) => l.id == item.id);
     final cartItem   = _cart.where((l) => l.id == item.id).firstOrNull;
+    final inCart     = cartItem != null;
+    final atMax      = (cartItem?.qty ?? 0) >= item.stock && item.stock > 0;
     final outOfStock = item.stock == 0;
 
     return GestureDetector(
-      onTap: outOfStock ? null : () => _addToCart(item),
+      onTap: (outOfStock || atMax) ? null : () => _addToCart(item),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: BackdropFilter(
@@ -635,11 +644,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                     fontSize: 14, fontWeight: FontWeight.w800,
                   )),
               const SizedBox(height: 2),
-              Text(outOfStock ? 'Out of stock' : '${item.stock} left',
+              Text(outOfStock ? 'Out of stock' : atMax ? 'Max in cart' : '${item.stock} left',
                   style: TextStyle(
                     color: outOfStock
                         ? EnhancedTheme.errorRed.withValues(alpha: 0.7)
-                        : context.hintColor,
+                        : atMax
+                            ? EnhancedTheme.warningAmber
+                            : context.hintColor,
                     fontSize: 10,
                   )),
             ]),
@@ -1206,6 +1217,7 @@ class _CartLine {
   final int    qty;
   final String barcode;
   final double discount;
+  final int    stock;
 
   const _CartLine({
     required this.id,
@@ -1214,12 +1226,13 @@ class _CartLine {
     required this.qty,
     required this.barcode,
     this.discount = 0,
+    this.stock = 9999,
   });
 
   double get total => (price * qty) - discount;
 
   _CartLine copyWith({int? qty, double? discount}) => _CartLine(
-    id: id, name: name, price: price, barcode: barcode,
+    id: id, name: name, price: price, barcode: barcode, stock: stock,
     qty: qty ?? this.qty,
     discount: discount ?? this.discount,
   );

@@ -442,8 +442,28 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
     final status = (data['status'] as String? ?? 'completed').toLowerCase();
     final dateStr = data['createdAt'] as String? ?? data['created_at'] as String? ?? '';
     final items = (data['items'] as List<dynamic>?) ?? [];
-    final payments = (data['payments'] as Map<String, dynamic>?) ?? {};
     final returns = (data['returns'] as List<dynamic>?) ?? [];
+
+    // Build method → amount map from ReceiptPayment list (split payments)
+    // or fall back to flat payment fields for single-method sales
+    final payments = <String, double>{};
+    final paymentsList = data['payments'] as List<dynamic>? ?? [];
+    for (final p in paymentsList) {
+      final pm = p as Map<String, dynamic>;
+      final method = pm['paymentMethod'] as String? ?? 'cash';
+      final amount = (pm['amount'] as num?)?.toDouble() ?? 0;
+      if (amount > 0) payments[method] = (payments[method] ?? 0) + amount;
+    }
+    if (payments.isEmpty) {
+      final pc = (data['paymentCash'] as num?)?.toDouble() ?? 0;
+      final pp = (data['paymentPos'] as num?)?.toDouble() ?? 0;
+      final pt = (data['paymentTransfer'] as num?)?.toDouble() ?? 0;
+      final pw = (data['paymentWallet'] as num?)?.toDouble() ?? 0;
+      if (pc > 0) payments['cash'] = pc;
+      if (pp > 0) payments['pos'] = pp;
+      if (pt > 0) payments['transfer'] = pt;
+      if (pw > 0) payments['wallet'] = pw;
+    }
 
     Color statusColor;
     String statusLabel;

@@ -45,10 +45,10 @@ def checkout(request):
     data = request.data
     customer_id = data.get("customerId")
     cashier_id = data.get("cashierId")
-    is_wholesale = data.get("isWholesale", False)
+    is_wholesale = bool(data.get("isWholesale") or False)
     items_data = data.get("items", [])
     payment = data.get("payment", {})
-    payment_method = data.get("paymentMethod", "cash")
+    payment_method = data.get("paymentMethod") or "cash"
     buyer_name = data.get("buyerName", "")
     buyer_address = data.get("buyerAddress", "")
 
