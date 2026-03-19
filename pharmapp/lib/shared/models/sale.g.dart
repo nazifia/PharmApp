@@ -13,6 +13,7 @@ _$SaleItemPayloadImpl _$$SaleItemPayloadImplFromJson(
       itemId: (json['itemId'] as num?)?.toInt(),
       quantity: (json['quantity'] as num).toInt(),
       price: (json['price'] as num).toDouble(),
+      discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
     );
 
 Map<String, dynamic> _$$SaleItemPayloadImplToJson(
@@ -22,6 +23,7 @@ Map<String, dynamic> _$$SaleItemPayloadImplToJson(
       'itemId': instance.itemId,
       'quantity': instance.quantity,
       'price': instance.price,
+      'discount': instance.discount,
     };
 
 _$PaymentPayloadImpl _$$PaymentPayloadImplFromJson(Map<String, dynamic> json) =>
@@ -51,6 +53,7 @@ _$CheckoutPayloadImpl _$$CheckoutPayloadImplFromJson(
           PaymentPayload.fromJson(json['payment'] as Map<String, dynamic>),
       customerId: (json['customerId'] as num?)?.toInt(),
       isWholesale: json['isWholesale'] as bool?,
+      paymentMethod: json['paymentMethod'] as String?,
       totalAmount: (json['totalAmount'] as num).toDouble(),
     );
 
@@ -61,5 +64,6 @@ Map<String, dynamic> _$$CheckoutPayloadImplToJson(
       'payment': instance.payment,
       'customerId': instance.customerId,
       'isWholesale': instance.isWholesale,
+      'paymentMethod': instance.paymentMethod,
       'totalAmount': instance.totalAmount,
     };

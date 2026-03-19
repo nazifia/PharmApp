@@ -21,5 +21,5 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
 final themeModeProvider =
     StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
-  return ThemeModeNotifier(ThemeMode.dark);
+  return ThemeModeNotifier(ThemeMode.light);
 });

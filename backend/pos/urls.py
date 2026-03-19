@@ -96,6 +96,16 @@ urlpatterns = [
         wholesale_views.wholesale_sale_by_user,
         name="ws-sales-by-user",
     ),
+    path(
+        "wholesale/sales/<int:pk>/",
+        wholesale_views.wholesale_sale_detail,
+        name="ws-sale-detail",
+    ),
+    path(
+        "wholesale/sales/<int:pk>/return/",
+        wholesale_views.wholesale_sale_return,
+        name="ws-sale-return",
+    ),
     path("wholesale/transfers/", wholesale_views.transfer_list, name="ws-transfers"),
     path(
         "wholesale/transfers/<int:pk>/",

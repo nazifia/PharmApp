@@ -10,6 +10,8 @@ import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../providers/pos_api_provider.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+
 class WholesalePOSScreen extends ConsumerStatefulWidget {
   const WholesalePOSScreen({super.key});
 
@@ -18,23 +20,35 @@ class WholesalePOSScreen extends ConsumerStatefulWidget {
 }
 
 class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
-  final _searchCtrl       = TextEditingController();
-  int?   _selectedId;
-  String? _selectedName;
+  final _searchCtrl = TextEditingController();
+  int?   _selectedCustomerId;
+  String? _selectedCustomerName;
+  double  _selectedCustomerWallet = 0;
+  bool    _gridView = false;
   final List<_CartLine> _cart = [];
   bool _isSubmitting = false;
 
   double get _cartTotal => _cart.fold(0, (s, l) => s + l.total);
   int    get _cartCount => _cart.fold(0, (s, l) => s + l.qty);
 
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  // ── Cart ops ───────────────────────────────────────────────────────────────
+
   void _addToCart(Item item) {
     final idx = _cart.indexWhere((l) => l.id == item.id);
     setState(() {
       if (idx >= 0) {
-        _cart[idx] = _cart[idx].copyWithQty(_cart[idx].qty + 1);
+        _cart[idx] = _cart[idx].copyWith(qty: _cart[idx].qty + 1);
       } else {
-        _cart.add(_CartLine(id: item.id, name: item.name,
-            price: item.price, qty: 1, barcode: item.barcode));
+        _cart.add(_CartLine(
+          id: item.id, name: item.name,
+          price: item.price, qty: 1, barcode: item.barcode,
+        ));
       }
     });
   }
@@ -46,36 +60,225 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     if (qty <= 0) { _removeFromCart(id); return; }
     setState(() {
       final idx = _cart.indexWhere((l) => l.id == id);
-      if (idx >= 0) _cart[idx] = _cart[idx].copyWithQty(qty);
+      if (idx >= 0) _cart[idx] = _cart[idx].copyWith(qty: qty);
     });
   }
 
-  Future<void> _checkout() async {
+  void _updateDiscount(int id, double discount) {
+    setState(() {
+      final idx = _cart.indexWhere((l) => l.id == id);
+      if (idx >= 0) _cart[idx] = _cart[idx].copyWith(discount: discount);
+    });
+  }
+
+  // ── Customer picker modal ─────────────────────────────────────────────────
+
+  void _showCustomerPicker(List<Customer> customers) {
+    final searchCtrl = TextEditingController();
+    final wsCustomers = customers.where((c) => c.isWholesale).toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.85,
+        minChildSize: 0.3,
+        builder: (ctx, scrollCtrl) => StatefulBuilder(
+          builder: (ctx, setSheetState) => Container(
+            decoration: BoxDecoration(
+              color: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: ctx.borderColor),
+            ),
+            child: Column(children: [
+              const SizedBox(height: 12),
+              Center(child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: ctx.hintColor, borderRadius: BorderRadius.circular(2)),
+              )),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Row(children: [
+                  Text('Select Customer',
+                      style: TextStyle(color: ctx.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedCustomerId = null;
+                        _selectedCustomerName = null;
+                        _selectedCustomerWallet = 0;
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('Clear', style: TextStyle(color: EnhancedTheme.errorRed)),
+                  ),
+                ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  controller: searchCtrl,
+                  onChanged: (_) => setSheetState(() {}),
+                  style: TextStyle(color: ctx.labelColor),
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or phone…',
+                    hintStyle: TextStyle(color: ctx.hintColor),
+                    prefixIcon: Icon(Icons.search, color: ctx.hintColor, size: 20),
+                    filled: true, fillColor: ctx.cardColor,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(child: Builder(builder: (_) {
+                final q = searchCtrl.text.toLowerCase();
+                final filtered = wsCustomers.where((c) =>
+                    c.name.toLowerCase().contains(q) || c.phone.contains(q)).toList();
+                if (filtered.isEmpty) {
+                  return Center(child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline, color: ctx.hintColor, size: 48),
+                      const SizedBox(height: 12),
+                      Text('No wholesale customers found',
+                          style: TextStyle(color: ctx.subLabelColor, fontSize: 14)),
+                    ],
+                  ));
+                }
+                return ListView.builder(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: filtered.length,
+                  itemBuilder: (_, i) {
+                    final c = filtered[i];
+                    final isSelected = _selectedCustomerId == c.id;
+                    return ListTile(
+                      onTap: () {
+                        setState(() {
+                          _selectedCustomerId = c.id;
+                          _selectedCustomerName = c.name;
+                          _selectedCustomerWallet = c.walletBalance;
+                        });
+                        Navigator.pop(ctx);
+                      },
+                      leading: CircleAvatar(
+                        backgroundColor: EnhancedTheme.accentCyan.withValues(alpha: 0.2),
+                        child: Text(
+                          c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                              color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      title: Text(c.name,
+                          style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
+                      subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(c.phone,
+                            style: TextStyle(color: ctx.subLabelColor, fontSize: 12)),
+                        if (c.walletBalance > 0)
+                          Text('Wallet: ₦${c.walletBalance.toStringAsFixed(0)}',
+                              style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11)),
+                        if (c.outstandingDebt > 0)
+                          Text('Debt: ₦${c.outstandingDebt.toStringAsFixed(0)}',
+                              style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 11)),
+                      ]),
+                      trailing: isSelected
+                          ? const Icon(Icons.check_circle, color: EnhancedTheme.accentCyan)
+                          : null,
+                    );
+                  },
+                );
+              })),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Payment method sheet ──────────────────────────────────────────────────
+
+  void _showPaymentSheet() {
     if (_cart.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Cart is empty')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cart is empty')));
       return;
     }
-    if (_selectedId == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Please select a customer')));
+    if (_selectedCustomerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a wholesale customer')));
       return;
     }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PaymentSheet(
+        total: _cartTotal,
+        walletBalance: _selectedCustomerWallet,
+        customerName: _selectedCustomerName ?? '',
+        onConfirm: (method, payments) => _processCheckout(method, payments),
+      ),
+    );
+  }
+
+  Future<void> _processCheckout(String method, Map<String, double> payments) async {
     setState(() => _isSubmitting = true);
     try {
       final payload = CheckoutPayload(
         items: _cart.map((l) => SaleItemPayload(
-          barcode: l.barcode, itemId: null, quantity: l.qty, price: l.price,
+          barcode: l.barcode,
+          itemId: null,
+          quantity: l.qty,
+          price: l.price,
+          discount: l.discount,
         )).toList(),
-        payment: PaymentPayload(bankTransfer: _cartTotal),
-        customerId: _selectedId,
+        payment: PaymentPayload(
+          cash: payments['cash'] ?? 0,
+          pos: payments['pos'] ?? 0,
+          bankTransfer: payments['bankTransfer'] ?? 0,
+          wallet: payments['wallet'] ?? 0,
+        ),
+        customerId: _selectedCustomerId,
         totalAmount: _cartTotal,
+        isWholesale: true,
+        paymentMethod: method,
       );
-      await ref.read(posApiProvider).submitCheckout(payload);
+      final result = await ref.read(posApiProvider).submitCheckout(payload);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Order placed for $_selectedName — ₦${_cartTotal.toStringAsFixed(2)}')));
-      setState(() { _cart.clear(); _selectedId = null; _selectedName = null; });
+
+      final total = _cartTotal;
+      final name  = _selectedCustomerName ?? 'Customer';
+      final receiptId = result['receiptId'] as String? ?? result['receipt_id'] as String? ?? '';
+      setState(() {
+        _cart.clear();
+        _selectedCustomerId = null;
+        _selectedCustomerName = null;
+        _selectedCustomerWallet = 0;
+      });
+
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (_) => _WholesaleSuccessSheet(
+          total: total,
+          customerName: name,
+          receiptId: receiptId,
+          paymentMethod: method,
+          onDone: () {
+            Navigator.pop(context);
+            _searchCtrl.clear();
+            setState(() {});
+          },
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,8 +288,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     }
   }
 
-  @override
-  void dispose() { _searchCtrl.dispose(); super.dispose(); }
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -94,132 +296,216 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     final customersAsync = ref.watch(customerListProvider);
     final wide = MediaQuery.of(context).size.width > 800;
 
-    // Only wholesale customers
-    final wholesaleAsync = customersAsync.whenData(
-        (list) => list.where((c) => c.isWholesale).toList());
-
-    // Filter by search query
     final filteredAsync = inventoryAsync.whenData((items) {
       final q = _searchCtrl.text.toLowerCase();
       if (q.isEmpty) return items;
       return items.where((i) =>
           i.name.toLowerCase().contains(q) ||
-          i.brand.toLowerCase().contains(q)).toList();
+          i.brand.toLowerCase().contains(q) ||
+          i.barcode.toLowerCase().contains(q)).toList();
     });
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
-      body: Stack(
-        children: [
-          Container(decoration: context.bgGradient),
-          SafeArea(child: Column(children: [
-            _header(context),
-            Expanded(child: wide
-                ? Row(children: [
-                    Expanded(flex: 3, child: _itemsPanel(filteredAsync)),
-                    const VerticalDivider(width: 1, color: Colors.white12),
-                    Expanded(flex: 2, child: _cartPanel(wholesaleAsync)),
+      body: Stack(children: [
+        Container(decoration: context.bgGradient),
+        SafeArea(child: Column(children: [
+          _header(context),
+          _customerRow(context, customersAsync),
+          Expanded(child: wide
+              ? Row(children: [
+                  Expanded(flex: 3, child: _itemsPanel(filteredAsync)),
+                  const VerticalDivider(width: 1, color: Colors.white12),
+                  Expanded(flex: 2, child: _cartPanel()),
+                ])
+              : _mobileLayout(filteredAsync)),
+          if (_cart.isNotEmpty && !wide) _cartBar(),
+        ])),
+      ]),
+    );
+  }
+
+  // ── Header ─────────────────────────────────────────────────────────────────
+
+  Widget _header(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
+    child: Row(children: [
+      IconButton(
+        icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
+        onPressed: () => context.pop(),
+      ),
+      const SizedBox(width: 4),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Wholesale POS',
+            style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600)),
+        Text('Bulk order processing',
+            style: TextStyle(color: context.hintColor, fontSize: 11)),
+      ])),
+      // Grid/List toggle
+      GestureDetector(
+        onTap: () => setState(() => _gridView = !_gridView),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: Icon(
+            _gridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+            color: context.labelColor, size: 18,
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+      if (_cartCount > 0)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: EnhancedTheme.accentCyan.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha: 0.3)),
+          ),
+          child: Text('$_cartCount',
+              style: const TextStyle(
+                  color: EnhancedTheme.accentCyan, fontSize: 12, fontWeight: FontWeight.w600)),
+        ),
+    ]),
+  );
+
+  // ── Customer Row ────────────────────────────────────────────────────────────
+
+  Widget _customerRow(BuildContext context, AsyncValue<List<Customer>> customersAsync) {
+    final hasCustomer = _selectedCustomerId != null;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: GestureDetector(
+        onTap: () {
+          final customers = customersAsync.valueOrNull ?? [];
+          _showCustomerPicker(customers);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: hasCustomer
+                ? EnhancedTheme.accentCyan.withValues(alpha: 0.12)
+                : context.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hasCustomer
+                  ? EnhancedTheme.accentCyan.withValues(alpha: 0.4)
+                  : context.borderColor,
+            ),
+          ),
+          child: Row(children: [
+            Icon(Icons.store_rounded,
+                color: hasCustomer ? EnhancedTheme.accentCyan : context.hintColor, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: hasCustomer
+                ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(_selectedCustomerName!,
+                        style: TextStyle(color: context.labelColor,
+                            fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text('Wallet: ₦${_selectedCustomerWallet.toStringAsFixed(0)}',
+                        style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                   ])
-                : _mobileLayout(filteredAsync, wholesaleAsync)),
-          ])),
-        ],
+                : Text('Select wholesale customer',
+                    style: TextStyle(color: context.hintColor, fontSize: 13))),
+            Icon(Icons.arrow_drop_down_rounded, color: context.hintColor),
+          ]),
+        ),
       ),
     );
   }
 
-  Widget _header(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
-      child: Row(children: [
-        IconButton(icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-            onPressed: () => context.pop()),
-        const SizedBox(width: 4),
-        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Wholesale POS', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
-          Text('Bulk order processing', style: TextStyle(color: Colors.white54, fontSize: 11)),
-        ])),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: EnhancedTheme.accentCyan.withValues(alpha:0.15),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha:0.3)),
-          ),
-          child: Text('$_cartCount items',
-              style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12, fontWeight: FontWeight.w600)),
-        ),
-      ]),
-    );
-  }
+  // ── Mobile layout (tabbed) ─────────────────────────────────────────────────
 
-  Widget _mobileLayout(AsyncValue<List<Item>> filtered,
-      AsyncValue<List<Customer>> wholesale) {
+  Widget _mobileLayout(AsyncValue<List<Item>> filtered) {
     final count = filtered.whenOrNull(data: (l) => l.length) ?? 0;
     return DefaultTabController(
       length: 2,
       child: Column(children: [
-        TabBar(
-          labelColor: EnhancedTheme.accentCyan,
-          unselectedLabelColor: Colors.white38,
-          indicatorColor: EnhancedTheme.accentCyan,
-          tabs: [
-            Tab(text: 'Catalogue ($count)'),
-            Tab(text: 'Cart (${_cart.length})'),
-          ],
+        Container(
+          color: context.isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+          child: TabBar(
+            labelColor: EnhancedTheme.accentCyan,
+            unselectedLabelColor: context.hintColor,
+            indicatorColor: EnhancedTheme.accentCyan,
+            tabs: [
+              Tab(text: 'Catalogue ($count)'),
+              Tab(text: 'Cart (${_cart.length})'),
+            ],
+          ),
         ),
         Expanded(child: TabBarView(children: [
-          _itemsPanel(filtered), _cartPanel(wholesale),
+          _itemsPanel(filtered),
+          _cartPanel(),
         ])),
       ]),
     );
   }
+
+  // ── Items Panel ────────────────────────────────────────────────────────────
 
   Widget _itemsPanel(AsyncValue<List<Item>> filtered) {
     return Column(children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: TextField(
-              controller: _searchCtrl,
-              onChanged: (_) => setState(() {}),
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search catalogue…',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha:0.35), fontSize: 13),
-                prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha:0.4), size: 20),
-                filled: true, fillColor: Colors.white.withValues(alpha:0.07),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
+        child: TextField(
+          controller: _searchCtrl,
+          onChanged: (_) => setState(() {}),
+          style: TextStyle(color: context.labelColor),
+          decoration: InputDecoration(
+            hintText: 'Search items…',
+            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+            prefixIcon: Icon(Icons.search, color: context.hintColor, size: 20),
+            filled: true, fillColor: context.cardColor,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
           ),
         ),
       ),
       Expanded(child: filtered.when(
         loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.accentCyan)),
         error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.cloud_off_rounded, color: Colors.white24, size: 48),
+          Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
           const SizedBox(height: 12),
-          Text('$e', style: const TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
-          TextButton(onPressed: () => ref.invalidate(inventoryListProvider),
-              child: const Text('Retry', style: TextStyle(color: EnhancedTheme.accentCyan))),
+          Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
+          TextButton(
+            onPressed: () => ref.invalidate(inventoryListProvider),
+            child: const Text('Retry', style: TextStyle(color: EnhancedTheme.accentCyan)),
+          ),
         ])),
-        data: (items) => items.isEmpty
-            ? Center(child: Text('No items found',
-                style: TextStyle(color: Colors.white.withValues(alpha:0.35), fontSize: 14)))
-            : ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                itemCount: items.length,
-                itemBuilder: (_, i) => _catalogueItem(items[i]),
-              ),
+        data: (items) {
+          if (items.isEmpty) {
+            return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.inventory_2_outlined, color: context.hintColor, size: 52),
+              const SizedBox(height: 12),
+              Text('No items found', style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+            ]));
+          }
+          return _gridView
+              ? GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+                    mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.1,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (_, i) => _catalogueGridCard(items[i]),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                  itemCount: items.length,
+                  itemBuilder: (_, i) => _catalogueListItem(items[i]),
+                );
+        },
       )),
     ]);
   }
 
-  Widget _catalogueItem(Item item) {
+  Widget _catalogueListItem(Item item) {
     final inCart     = _cart.any((l) => l.id == item.id);
     final outOfStock = item.stock == 0;
     return ClipRRect(
@@ -231,42 +517,50 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: outOfStock
-                ? Colors.white.withValues(alpha:0.03)
+                ? context.cardColor.withValues(alpha: 0.3)
                 : inCart
-                    ? EnhancedTheme.accentCyan.withValues(alpha:0.08)
-                    : Colors.white.withValues(alpha:0.06),
+                    ? EnhancedTheme.accentCyan.withValues(alpha: 0.08)
+                    : context.cardColor,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: inCart
-                ? EnhancedTheme.accentCyan.withValues(alpha:0.3)
-                : Colors.white.withValues(alpha:0.09)),
+            border: Border.all(
+              color: inCart
+                  ? EnhancedTheme.accentCyan.withValues(alpha: 0.3)
+                  : context.borderColor,
+            ),
           ),
           child: Row(children: [
             Container(
               width: 44, height: 44,
               decoration: BoxDecoration(
-                  color: EnhancedTheme.accentCyan.withValues(alpha:outOfStock ? 0.05 : 0.12),
-                  borderRadius: BorderRadius.circular(12)),
+                color: (outOfStock ? context.hintColor : EnhancedTheme.accentCyan)
+                    .withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Icon(Icons.medication_rounded,
-                  color: outOfStock ? Colors.white24 : EnhancedTheme.accentCyan, size: 22),
+                  color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(item.name, style: TextStyle(
-                  color: outOfStock ? Colors.white30 : Colors.white,
-                  fontSize: 13, fontWeight: FontWeight.w600)),
-              Text(item.brand, style: TextStyle(color: Colors.white.withValues(alpha:0.45), fontSize: 11)),
+              Text(item.name,
+                  style: TextStyle(
+                      color: outOfStock ? context.hintColor : context.labelColor,
+                      fontSize: 13, fontWeight: FontWeight.w600)),
+              if (item.brand.isNotEmpty)
+                Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
               Text(outOfStock ? 'Out of stock' : '${item.stock} in stock',
                   style: TextStyle(
-                      color: outOfStock
-                          ? EnhancedTheme.errorRed.withValues(alpha:0.7)
-                          : Colors.white.withValues(alpha:0.35),
-                      fontSize: 10)),
+                    color: outOfStock
+                        ? EnhancedTheme.errorRed.withValues(alpha: 0.7)
+                        : context.hintColor,
+                    fontSize: 10,
+                  )),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text('₦${item.price.toStringAsFixed(0)}',
                   style: TextStyle(
-                      color: outOfStock ? Colors.white24 : EnhancedTheme.accentCyan,
-                      fontSize: 14, fontWeight: FontWeight.w700)),
+                    color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
+                    fontSize: 14, fontWeight: FontWeight.w700,
+                  )),
               const SizedBox(height: 4),
               if (!outOfStock)
                 GestureDetector(
@@ -274,12 +568,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: EnhancedTheme.primaryTeal.withValues(alpha:0.15),
+                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha:0.3)),
+                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
                     ),
                     child: Text(inCart ? '+ More' : 'Add',
-                        style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
+                        style: const TextStyle(
+                            color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
                   ),
                 ),
             ]),
@@ -289,68 +584,88 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     );
   }
 
-  Widget _cartPanel(AsyncValue<List<Customer>> wholesaleAsync) {
-    return Column(children: [
-      // Customer selector
-      Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-        child: wholesaleAsync.when(
-          loading: () => const LinearProgressIndicator(color: EnhancedTheme.accentCyan),
-          error: (e, _) => const Padding(
-            padding: EdgeInsets.all(8),
-            child: Text('Failed to load customers',
-                style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 12)),
-          ),
-          data: (customers) => ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha:0.07),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withValues(alpha:0.12)),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: _selectedId,
-                    hint: Text('Select wholesale customer',
-                        style: TextStyle(color: Colors.white.withValues(alpha:0.4), fontSize: 13)),
-                    isExpanded: true,
-                    dropdownColor: const Color(0xFF1E293B),
-                    iconEnabledColor: Colors.white38,
-                    items: customers.map((c) => DropdownMenuItem(
-                        value: c.id,
-                        child: Text(c.name,
-                            style: const TextStyle(color: Colors.white, fontSize: 13)))).toList(),
-                    onChanged: (v) => setState(() {
-                      _selectedId   = v;
-                      _selectedName = customers.firstWhere((c) => c.id == v).name;
-                    }),
-                  ),
-                ),
+  Widget _catalogueGridCard(Item item) {
+    final inCart     = _cart.any((l) => l.id == item.id);
+    final cartItem   = _cart.where((l) => l.id == item.id).firstOrNull;
+    final outOfStock = item.stock == 0;
+
+    return GestureDetector(
+      onTap: outOfStock ? null : () => _addToCart(item),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: outOfStock
+                  ? context.cardColor.withValues(alpha: 0.3)
+                  : inCart
+                      ? EnhancedTheme.accentCyan.withValues(alpha: 0.08)
+                      : context.cardColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: inCart ? EnhancedTheme.accentCyan.withValues(alpha: 0.4) : context.borderColor,
               ),
             ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Icon(Icons.medication_rounded,
+                    color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan, size: 22),
+                if ((cartItem?.qty ?? 0) > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: EnhancedTheme.accentCyan, borderRadius: BorderRadius.circular(8)),
+                    child: Text('${cartItem!.qty}',
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+              ]),
+              const Spacer(),
+              Text(item.name,
+                  style: TextStyle(
+                    color: outOfStock ? context.hintColor : context.labelColor,
+                    fontSize: 12, fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 4),
+              Text('₦${item.price.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
+                    fontSize: 14, fontWeight: FontWeight.w800,
+                  )),
+              const SizedBox(height: 2),
+              Text(outOfStock ? 'Out of stock' : '${item.stock} left',
+                  style: TextStyle(
+                    color: outOfStock
+                        ? EnhancedTheme.errorRed.withValues(alpha: 0.7)
+                        : context.hintColor,
+                    fontSize: 10,
+                  )),
+            ]),
           ),
         ),
       ),
+    );
+  }
 
-      // Cart items
+  // ── Cart Panel (wide layout only) ─────────────────────────────────────────
+
+  Widget _cartPanel() {
+    return Column(children: [
       Expanded(child: _cart.isEmpty
           ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.shopping_cart_outlined, color: Colors.white.withValues(alpha:0.2), size: 52),
+              Icon(Icons.shopping_cart_outlined, color: context.hintColor, size: 52),
               const SizedBox(height: 12),
-              Text('No items in cart',
-                  style: TextStyle(color: Colors.white.withValues(alpha:0.35), fontSize: 14)),
+              Text('No items in cart', style: TextStyle(color: context.subLabelColor, fontSize: 14)),
             ]))
           : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               itemCount: _cart.length,
               itemBuilder: (_, i) => _cartItem(_cart[i]),
             )),
 
-      // Totals + checkout
+      // Summary + checkout
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
         child: ClipRRect(
@@ -360,35 +675,47 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha:0.07),
+                color: context.cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha:0.12)),
+                border: Border.all(color: context.borderColor),
               ),
               child: Column(children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('${_cart.length} items  ·  $_cartCount units',
-                      style: TextStyle(color: Colors.white.withValues(alpha:0.55), fontSize: 13)),
+                  Text('${_cart.length} lines  ·  $_cartCount units',
+                      style: TextStyle(color: context.subLabelColor, fontSize: 13)),
                   Text('₦${_cartTotal.toStringAsFixed(2)}',
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                      style: TextStyle(color: context.labelColor,
+                          fontSize: 18, fontWeight: FontWeight.w700)),
                 ]),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity, height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: _isSubmitting ? null : _checkout,
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(child: OutlinedButton(
+                    onPressed: () => setState(() {
+                      _cart.clear();
+                    }),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: EnhancedTheme.errorRed,
+                      side: BorderSide(color: EnhancedTheme.errorRed.withValues(alpha: 0.4)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Clear'),
+                  )),
+                  const SizedBox(width: 10),
+                  Expanded(flex: 2, child: ElevatedButton.icon(
+                    onPressed: _isSubmitting ? null : _showPaymentSheet,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: EnhancedTheme.accentCyan,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     icon: _isSubmitting
-                        ? const SizedBox(width: 18, height: 18,
+                        ? const SizedBox(width: 16, height: 16,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                         : const Icon(Icons.check_circle_rounded, size: 18),
-                    label: Text(_isSubmitting ? 'Processing…' : 'Place Wholesale Order',
+                    label: Text(_isSubmitting ? 'Processing…' : 'Checkout',
                         style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ),
-                ),
+                  )),
+                ]),
               ]),
             ),
           ),
@@ -398,6 +725,8 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   }
 
   Widget _cartItem(_CartLine line) {
+    final discountCtrl = TextEditingController(
+        text: line.discount > 0 ? line.discount.toStringAsFixed(0) : '');
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: BackdropFilter(
@@ -406,27 +735,65 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha:0.06),
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha:0.09)),
+            border: Border.all(color: context.borderColor),
           ),
-          child: Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(line.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 2),
-              Text('₦${line.price.toStringAsFixed(0)} × ${line.qty} = ₦${line.total.toStringAsFixed(0)}',
-                  style: TextStyle(color: Colors.white.withValues(alpha:0.5), fontSize: 11)),
-            ])),
+          child: Column(children: [
             Row(children: [
-              _qtyBtn(Icons.remove, () => _updateQty(line.id, line.qty - 1)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text('${line.qty}',
-                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(line.name,
+                    style: TextStyle(color: context.labelColor,
+                        fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text('₦${line.price.toStringAsFixed(0)} × ${line.qty} = ₦${line.total.toStringAsFixed(0)}',
+                    style: TextStyle(color: context.hintColor, fontSize: 11)),
+              ])),
+              Row(children: [
+                _qtyBtn(Icons.remove, () => _updateQty(line.id, line.qty - 1)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('${line.qty}',
+                      style: TextStyle(color: context.labelColor,
+                          fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
+                _qtyBtn(Icons.add, () => _updateQty(line.id, line.qty + 1)),
+              ]),
+            ]),
+            const SizedBox(height: 8),
+            Row(children: [
+              Icon(Icons.discount_outlined, color: context.hintColor, size: 14),
+              const SizedBox(width: 6),
+              Text('Discount:', style: TextStyle(color: context.hintColor, fontSize: 11)),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 80,
+                height: 28,
+                child: TextField(
+                  controller: discountCtrl,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(color: context.labelColor, fontSize: 12),
+                  onChanged: (v) => _updateDiscount(line.id, double.tryParse(v) ?? 0),
+                  decoration: InputDecoration(
+                    hintText: '0',
+                    hintStyle: TextStyle(color: context.hintColor, fontSize: 11),
+                    prefixText: '₦',
+                    prefixStyle: TextStyle(color: context.hintColor, fontSize: 11),
+                    filled: true,
+                    fillColor: context.cardColor,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: context.borderColor)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                ),
               ),
-              _qtyBtn(Icons.add, () => _updateQty(line.id, line.qty + 1)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _removeFromCart(line.id),
+                child: Icon(Icons.close_rounded, color: context.hintColor, size: 18),
+              ),
             ]),
           ]),
         ),
@@ -434,33 +801,426 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     );
   }
 
+  // ── Cart bar (mobile bottom) ───────────────────────────────────────────────
+
+  Widget _cartBar() => Container(
+    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: EnhancedTheme.accentCyan,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Row(children: [
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('$_cartCount items  ·  ${_cart.length} lines',
+            style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        Text('₦${_cartTotal.toStringAsFixed(2)}',
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+      ])),
+      TextButton(
+        onPressed: () => setState(() => _cart.clear()),
+        child: const Text('Clear', style: TextStyle(color: Colors.white70)),
+      ),
+      const SizedBox(width: 8),
+      ElevatedButton(
+        onPressed: _isSubmitting ? null : _showPaymentSheet,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: EnhancedTheme.accentCyan,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w700)),
+      ),
+    ]),
+  );
+
   Widget _qtyBtn(IconData icon, VoidCallback onTap) => GestureDetector(
     onTap: onTap,
     child: Container(
       width: 28, height: 28,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.1),
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha:0.15)),
+        border: Border.all(color: context.borderColor),
       ),
-      child: Icon(icon, color: Colors.white, size: 16),
+      child: Icon(icon, color: context.labelColor, size: 16),
     ),
   );
 }
 
-class _CartLine {
-  final int id;
-  final String name;
-  final double price;
-  final int qty;
-  final String barcode;
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PAYMENT SHEET
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  const _CartLine({
-    required this.id, required this.name,
-    required this.price, required this.qty, required this.barcode,
+class _PaymentSheet extends StatefulWidget {
+  final double total;
+  final double walletBalance;
+  final String customerName;
+  final void Function(String method, Map<String, double> payments) onConfirm;
+
+  const _PaymentSheet({
+    required this.total,
+    required this.walletBalance,
+    required this.customerName,
+    required this.onConfirm,
   });
 
-  double get total => price * qty;
-  _CartLine copyWithQty(int q) =>
-      _CartLine(id: id, name: name, price: price, qty: q, barcode: barcode);
+  @override
+  State<_PaymentSheet> createState() => _PaymentSheetState();
+}
+
+class _PaymentSheetState extends State<_PaymentSheet> {
+  String _method = 'bank_transfer';
+  bool _isSubmitting = false;
+
+  // For split payment
+  final _cashCtrl     = TextEditingController();
+  final _posCtrl      = TextEditingController();
+  final _transferCtrl = TextEditingController();
+  final _walletCtrl   = TextEditingController();
+
+  @override
+  void dispose() {
+    _cashCtrl.dispose();
+    _posCtrl.dispose();
+    _transferCtrl.dispose();
+    _walletCtrl.dispose();
+    super.dispose();
+  }
+
+  Map<String, double> get _payments {
+    switch (_method) {
+      case 'cash':
+        return {'cash': widget.total};
+      case 'pos':
+        return {'pos': widget.total};
+      case 'bank_transfer':
+        return {'bankTransfer': widget.total};
+      case 'wallet':
+        return {'wallet': widget.total};
+      case 'split':
+        return {
+          'cash':         double.tryParse(_cashCtrl.text)     ?? 0,
+          'pos':          double.tryParse(_posCtrl.text)      ?? 0,
+          'bankTransfer': double.tryParse(_transferCtrl.text) ?? 0,
+          'wallet':       double.tryParse(_walletCtrl.text)   ?? 0,
+        };
+      default:
+        return {'bankTransfer': widget.total};
+    }
+  }
+
+  bool get _splitValid {
+    if (_method != 'split') return true;
+    final sum = (_payments.values.fold(0.0, (a, b) => a + b));
+    return (sum - widget.total).abs() < 0.01;
+  }
+
+  String _fmtNaira(double v) {
+    if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000)    return '₦${(v / 1000).toStringAsFixed(1)}K';
+    return '₦${v.toStringAsFixed(2)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+      decoration: BoxDecoration(
+        color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Handle
+          Center(child: Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2)),
+          )),
+          const SizedBox(height: 20),
+
+          Text('Payment Method',
+              style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(widget.customerName,
+              style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+          const SizedBox(height: 20),
+
+          // Order total
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25)),
+            ),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('Order Total',
+                  style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+              Text(_fmtNaira(widget.total),
+                  style: const TextStyle(color: EnhancedTheme.primaryTeal,
+                      fontSize: 22, fontWeight: FontWeight.w800)),
+            ]),
+          ),
+          const SizedBox(height: 20),
+
+          Text('Select Method',
+              style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+
+          // Method chips
+          Wrap(spacing: 10, runSpacing: 10, children: [
+            _methodChip('bank_transfer', 'Bank Transfer', Icons.account_balance_rounded, EnhancedTheme.infoBlue),
+            _methodChip('cash',          'Cash',          Icons.payments_rounded,         EnhancedTheme.successGreen),
+            _methodChip('pos',           'POS / Card',    Icons.credit_card_rounded,      EnhancedTheme.accentPurple),
+            if (widget.walletBalance >= widget.total)
+              _methodChip('wallet', 'Wallet', Icons.account_balance_wallet_rounded, EnhancedTheme.warningAmber),
+            _methodChip('split',         'Split',         Icons.call_split_rounded,       EnhancedTheme.primaryTeal),
+          ]),
+
+          // Wallet balance hint
+          if (widget.walletBalance > 0 && widget.walletBalance < widget.total) ...[
+            const SizedBox(height: 8),
+            Text('Wallet balance (₦${widget.walletBalance.toStringAsFixed(0)}) is less than order total',
+                style: TextStyle(color: context.hintColor, fontSize: 11)),
+          ],
+
+          // Split fields
+          if (_method == 'split') ...[
+            const SizedBox(height: 20),
+            Text('Split Payment',
+                style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            _splitField(_transferCtrl, 'Bank Transfer', Icons.account_balance_rounded, EnhancedTheme.infoBlue),
+            const SizedBox(height: 10),
+            _splitField(_cashCtrl, 'Cash', Icons.payments_rounded, EnhancedTheme.successGreen),
+            const SizedBox(height: 10),
+            _splitField(_posCtrl, 'POS / Card', Icons.credit_card_rounded, EnhancedTheme.accentPurple),
+            const SizedBox(height: 10),
+            _splitField(_walletCtrl, 'Wallet', Icons.account_balance_wallet_rounded, EnhancedTheme.warningAmber),
+            const SizedBox(height: 8),
+            Builder(builder: (_) {
+              final sum = (_payments.values.fold(0.0, (a, b) => a + b));
+              final diff = sum - widget.total;
+              final label = diff.abs() < 0.01
+                  ? 'Balanced ✓'
+                  : diff > 0
+                      ? 'Over by ₦${diff.toStringAsFixed(0)}'
+                      : 'Under by ₦${(-diff).toStringAsFixed(0)}';
+              final color = diff.abs() < 0.01
+                  ? EnhancedTheme.successGreen
+                  : EnhancedTheme.errorRed;
+              return Text(label,
+                  style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600));
+            }),
+          ],
+
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: (_isSubmitting || !_splitValid) ? null : () {
+                setState(() => _isSubmitting = true);
+                Navigator.pop(context);
+                widget.onConfirm(_method, _payments);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: EnhancedTheme.accentCyan,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: _isSubmitting
+                  ? const SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('Confirm ${_fmtNaira(widget.total)}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _methodChip(String value, String label, IconData icon, Color color) {
+    final active = _method == value;
+    return GestureDetector(
+      onTap: () => setState(() => _method = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? color.withValues(alpha: 0.15) : context.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: active ? color : context.borderColor,
+            width: active ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: active ? color : context.subLabelColor, size: 16),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(
+            color: active ? color : context.subLabelColor,
+            fontSize: 13, fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+          )),
+        ]),
+      ),
+    );
+  }
+
+  Widget _splitField(TextEditingController ctrl, String label, IconData icon, Color color) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      style: TextStyle(color: context.labelColor, fontSize: 14),
+      onChanged: (_) => setState(() {}),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: context.hintColor, fontSize: 13),
+        prefixIcon: Icon(icon, color: color, size: 18),
+        prefixText: '₦',
+        prefixStyle: TextStyle(color: context.hintColor),
+        filled: true, fillColor: context.cardColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: context.borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: context.borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: color, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SUCCESS SHEET
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _WholesaleSuccessSheet extends StatelessWidget {
+  final double total;
+  final String customerName;
+  final String receiptId;
+  final String paymentMethod;
+  final VoidCallback onDone;
+
+  const _WholesaleSuccessSheet({
+    required this.total,
+    required this.customerName,
+    required this.receiptId,
+    required this.paymentMethod,
+    required this.onDone,
+  });
+
+  String _fmtNaira(double v) {
+    if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000)    return '₦${(v / 1000).toStringAsFixed(1)}K';
+    return '₦${v.toStringAsFixed(2)}';
+  }
+
+  (IconData, Color) get _methodMeta {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cash':         return (Icons.payments_rounded,                  EnhancedTheme.successGreen);
+      case 'pos':          return (Icons.credit_card_rounded,               EnhancedTheme.accentPurple);
+      case 'wallet':       return (Icons.account_balance_wallet_rounded,    EnhancedTheme.warningAmber);
+      case 'split':        return (Icons.call_split_rounded,                EnhancedTheme.primaryTeal);
+      default:             return (Icons.account_balance_rounded,           EnhancedTheme.infoBlue);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color) = _methodMeta;
+    final label = paymentMethod.replaceAll('_', ' ').toUpperCase();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.all(32),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 72, height: 72,
+          decoration: const BoxDecoration(color: EnhancedTheme.successGreen, shape: BoxShape.circle),
+          child: const Icon(Icons.check_rounded, color: Colors.white, size: 40),
+        ),
+        const SizedBox(height: 20),
+        Text('Order Placed!',
+            style: TextStyle(color: context.labelColor, fontSize: 22, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        Text('${_fmtNaira(total)} for $customerName',
+            style: TextStyle(color: context.subLabelColor, fontSize: 14),
+            textAlign: TextAlign.center),
+        if (receiptId.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(receiptId,
+              style: TextStyle(color: context.hintColor, fontSize: 12)),
+        ],
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, color: color, size: 14),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700)),
+          ]),
+        ),
+        const SizedBox(height: 32),
+        SizedBox(width: double.infinity, child: ElevatedButton(
+          onPressed: onDone,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: EnhancedTheme.successGreen,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          child: const Text('New Order', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+        )),
+      ]),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Cart line model
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CartLine {
+  final int    id;
+  final String name;
+  final double price;
+  final int    qty;
+  final String barcode;
+  final double discount;
+
+  const _CartLine({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.qty,
+    required this.barcode,
+    this.discount = 0,
+  });
+
+  double get total => (price * qty) - discount;
+
+  _CartLine copyWith({int? qty, double? discount}) => _CartLine(
+    id: id, name: name, price: price, barcode: barcode,
+    qty: qty ?? this.qty,
+    discount: discount ?? this.discount,
+  );
 }

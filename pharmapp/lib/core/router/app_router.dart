@@ -22,6 +22,7 @@ import 'package:pharmapp/features/reports/screens/sales_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/inventory_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/customer_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/profit_report_screen.dart';
+import 'package:pharmapp/features/reports/screens/monthly_report_screen.dart';
 import 'package:pharmapp/features/settings/screens/app_settings_screen.dart';
 import 'package:pharmapp/features/inventory/screens/item_detail_screen.dart';
 import 'package:pharmapp/features/pos/screens/payment_screen.dart';
@@ -81,6 +82,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'reports/inventory', name: 'inventory_report', builder: (_, __) => const InventoryReportScreen()),
           GoRoute(path: 'reports/customers', name: 'customer_report',  builder: (_, __) => const CustomerReportScreen()),
           GoRoute(path: 'reports/profit',    name: 'profit_report',    builder: (_, __) => const ProfitReportScreen()),
+          GoRoute(path: 'reports/monthly',   name: 'monthly_report',   builder: (_, __) => const MonthlyReportScreen()),
           GoRoute(path: 'settings',          name: 'settings',         builder: (_, __) => const AppSettingsScreen()),
           GoRoute(path: 'users',           name: 'users',            builder: (_, __) => const UserManagementScreen()),
           GoRoute(path: 'notifications',   name: 'notifications',    builder: (_, __) => const NotificationsScreen()),

@@ -10,6 +10,7 @@ class SaleItemPayload with _$SaleItemPayload {
     required int? itemId,
     required int quantity,
     required double price,
+    @Default(0.0) double discount,
   }) = _SaleItemPayload;
 
   factory SaleItemPayload.fromJson(Map<String, dynamic> json) => _$SaleItemPayloadFromJson(json);
@@ -34,6 +35,7 @@ class CheckoutPayload with _$CheckoutPayload {
     required PaymentPayload payment,
     int? customerId,
     bool? isWholesale,
+    String? paymentMethod,
     required double totalAmount,
   }) = _CheckoutPayload;
 

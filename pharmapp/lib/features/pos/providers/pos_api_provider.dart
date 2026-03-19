@@ -279,6 +279,19 @@ class PosApiClient {
     return res.data as List<dynamic>;
   }
 
+  Future<Map<String, dynamic>> fetchWholesaleSaleDetail(int id) async {
+    final res = await _dio.get('/pos/wholesale/sales/$id/');
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> returnWholesaleItem(int saleId, {required int saleItemId, required int quantity, String refundMethod = 'wallet', String reason = ''}) async {
+    final res = await _dio.post('/pos/wholesale/sales/$saleId/return/', data: {
+      'saleItemId': saleItemId, 'quantity': quantity,
+      'refundMethod': refundMethod, 'reason': reason,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
   Future<List<dynamic>> fetchWholesaleSalesByUser({String? from, String? to}) async {
     final params = <String, dynamic>{};
     if (from != null) params['from'] = from;

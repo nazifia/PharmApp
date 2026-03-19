@@ -11,7 +11,7 @@ from rest_framework import status
 
 from inventory.models import Item
 from customers.models import Customer
-from .models import Sale, SaleItem, TransferRequest
+from .models import Sale, SaleItem, TransferRequest, ReturnRecord, DispensingLog
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -61,12 +61,15 @@ def wholesale_dashboard(request):
 
     return Response(
         {
-            "revenueToday": revenue_today,
+            "todayRevenue": revenue_today,
+            "revenueToday": revenue_today,       # legacy alias
             "totalSales": total_sales,
             "salesToday": today_count,
-            "unitsSoldToday": int(units_today),
+            "unitsSold": int(units_today),
+            "unitsSoldToday": int(units_today),  # legacy alias
             "wholesaleCustomers": total_ws_customers,
-            "wholesaleDebt": ws_debt,
+            "outstandingDebt": ws_debt,
+            "wholesaleDebt": ws_debt,            # legacy alias
             "lowStockItems": [
                 {"name": i.name, "stock": i.stock, "threshold": i.low_stock_threshold}
                 for i in low_stock
@@ -289,6 +292,100 @@ def wholesale_expiry_alert(request):
             for i in items
         ]
     )
+
+
+@api_view(["GET"])
+def wholesale_sale_detail(request, pk):
+    """Detail of a single wholesale sale including items, payments, and returns."""
+    sale = get_object_or_404(
+        Sale.objects.prefetch_related("items", "payments", "returns"),
+        pk=pk, is_wholesale=True,
+    )
+    data = sale.to_api_dict()
+    data["payments"] = [p.to_api_dict() for p in sale.payments.all()]
+    data["returns"] = [r.to_api_dict() for r in sale.returns.all()]
+    return Response(data)
+
+
+@api_view(["POST"])
+def wholesale_sale_return(request, pk):
+    """Return items from a wholesale sale. Restores stock and optionally refunds wallet."""
+    sale = get_object_or_404(Sale, pk=pk, is_wholesale=True)
+    item_id = request.data.get("saleItemId")
+    qty = int(request.data.get("quantity", 0))
+    refund_method = request.data.get("refundMethod", "wallet")
+    reason = request.data.get("reason", "")
+
+    if qty <= 0:
+        return Response(
+            {"detail": "Quantity must be positive"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    sale_item = get_object_or_404(SaleItem, pk=item_id, sale=sale)
+
+    remaining = sale_item.quantity - sale_item.return_qty
+    if qty > remaining:
+        return Response(
+            {"detail": f"Can only return {remaining} more units"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    with transaction.atomic():
+        line_total = (sale_item.price * sale_item.quantity) - sale_item.discount
+        unit_refund = (
+            line_total / sale_item.quantity if sale_item.quantity > 0 else Decimal("0")
+        )
+        refund_amount = unit_refund * qty
+
+        if sale_item.item:
+            sale_item.item.stock += qty
+            sale_item.item.save()
+
+        sale_item.return_qty += qty
+        if sale_item.return_qty >= sale_item.quantity:
+            sale_item.returned = True
+        sale_item.save()
+
+        DispensingLog.objects.filter(
+            sale=sale, item=sale_item.item, name=sale_item.name
+        ).update(status="Returned" if sale_item.returned else "Partially Returned")
+
+        ReturnRecord.objects.create(
+            sale=sale,
+            sale_item=sale_item,
+            quantity=qty,
+            amount=refund_amount,
+            refund_method=refund_method,
+            reason=reason,
+            returned_by=request.user if request.user.is_authenticated else None,
+        )
+
+        if refund_method == "wallet" and sale.customer:
+            from customers.models import WalletTransaction
+            sale.customer.wallet_balance = (
+                Decimal(str(sale.customer.wallet_balance)) + refund_amount
+            )
+            sale.customer.save()
+            WalletTransaction.objects.create(
+                customer=sale.customer,
+                txn_type="topup",
+                amount=refund_amount,
+                note=f"Refund for wholesale return - Receipt {sale.receipt_id}",
+            )
+
+        sale.refresh_from_db()
+        all_returned = all(i.returned for i in sale.items.all())
+        if all_returned:
+            sale.status = "returned"
+        elif sale.returns.count() > 0:
+            sale.status = "partial_return"
+        sale.save()
+
+    sale.refresh_from_db()
+    data = sale.to_api_dict()
+    data["payments"] = [p.to_api_dict() for p in sale.payments.all()]
+    data["returns"] = [r.to_api_dict() for r in sale.returns.all()]
+    return Response(data)
 
 
 @api_view(["GET"])

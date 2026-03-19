@@ -16,7 +16,7 @@ void main() async {
   final savedTheme = prefs.getString('theme_mode');
 
   final initialTheme =
-      savedTheme == 'light' ? ThemeMode.light : ThemeMode.dark;
+      savedTheme == 'dark' ? ThemeMode.dark : ThemeMode.light;
 
   runApp(ProviderScope(
     overrides: [

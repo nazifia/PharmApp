@@ -212,13 +212,13 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
       const SizedBox(height: 10),
       Row(children: [
         Expanded(child: _quickGroup(context, 'Dispensing', [
-          _quickItem(context, Icons.point_of_sale_rounded, 'Wholesale POS', EnhancedTheme.primaryTeal, () => context.push('/wholesale-pos')),
+          _quickItem(context, Icons.point_of_sale_rounded, 'Wholesale POS', EnhancedTheme.primaryTeal, () => context.push('/dashboard/wholesale-pos')),
           _quickItem(context, Icons.history_rounded, 'Sales History', EnhancedTheme.accentCyan, () => context.push('/dashboard/wholesale-sales')),
         ])),
         const SizedBox(width: 10),
         Expanded(child: _quickGroup(context, 'Inventory', [
-          _quickItem(context, Icons.warning_amber_rounded, 'Low Stock', EnhancedTheme.warningAmber, () => context.push('/dashboard/wholesale-sales')),
-          _quickItem(context, Icons.hourglass_bottom_rounded, 'Expiry Alerts', EnhancedTheme.errorRed, () => context.push('/dashboard/wholesale-sales')),
+          _quickItem(context, Icons.warning_amber_rounded, 'Low Stock', EnhancedTheme.warningAmber, () => context.push('/dashboard/inventory')),
+          _quickItem(context, Icons.hourglass_bottom_rounded, 'Expiry Alerts', EnhancedTheme.errorRed, () => context.push('/dashboard/inventory')),
         ])),
         const SizedBox(width: 10),
         Expanded(child: _quickGroup(context, 'Transfers', [

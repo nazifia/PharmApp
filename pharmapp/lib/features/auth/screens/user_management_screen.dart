@@ -16,20 +16,32 @@ class UserManagementScreen extends ConsumerStatefulWidget {
 class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   final _searchCtrl = TextEditingController();
   String _roleFilter = 'All';
-  final _roles = ['All', 'Admin', 'Manager', 'Pharmacist', 'Cashier', 'Salesperson'];
-  final _createRoles = ['Admin', 'Manager', 'Pharmacist', 'Cashier', 'Salesperson'];
+  final _roles = [
+    'All', 'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech',
+    'Salesperson', 'Cashier',
+    'Wholesale Manager', 'Wholesale Operator', 'Wholesale Salesperson',
+  ];
+  final _createRoles = [
+    'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech',
+    'Salesperson', 'Cashier',
+    'Wholesale Manager', 'Wholesale Operator', 'Wholesale Salesperson',
+  ];
 
   @override
   void dispose() { _searchCtrl.dispose(); super.dispose(); }
 
   Color _roleColor(String role) {
     switch (role) {
-      case 'Admin':       return EnhancedTheme.errorRed;
-      case 'Manager':     return EnhancedTheme.warningAmber;
-      case 'Pharmacist':  return EnhancedTheme.primaryTeal;
-      case 'Cashier':     return EnhancedTheme.accentCyan;
-      case 'Salesperson': return EnhancedTheme.accentPurple;
-      default:            return EnhancedTheme.infoBlue;
+      case 'Admin':                return EnhancedTheme.errorRed;
+      case 'Manager':              return EnhancedTheme.warningAmber;
+      case 'Pharmacist':           return EnhancedTheme.primaryTeal;
+      case 'Pharm-Tech':           return EnhancedTheme.successGreen;
+      case 'Cashier':              return EnhancedTheme.accentCyan;
+      case 'Salesperson':          return EnhancedTheme.accentPurple;
+      case 'Wholesale Manager':    return EnhancedTheme.accentOrange;
+      case 'Wholesale Operator':   return EnhancedTheme.infoBlue;
+      case 'Wholesale Salesperson':return const Color(0xFF7C3AED);
+      default:                     return EnhancedTheme.infoBlue;
     }
   }
 

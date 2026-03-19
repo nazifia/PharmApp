@@ -32,7 +32,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     final user        = ref.watch(currentUserProvider);
     final role        = user?.role ?? '';
     final isAdmin     = role == 'Admin' || role == 'Manager';
-    final isWholesale = role.contains('Wholesale');
+    final isWholesale = role.contains('Wholesale') || (user?.isWholesaleOperator ?? false) || isAdmin;
     final isDark      = context.isDark;
     final notifCount  = ref.watch(notificationCountProvider).valueOrNull ?? 0;
 
@@ -160,6 +160,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             _SubNavItem(icon: Icons.inventory_2_outlined, label: 'Inventory Report', route: '/dashboard/reports/inventory', onTap: navigate),
                             _SubNavItem(icon: Icons.people_outline, label: 'Customer Report', route: '/dashboard/reports/customers', onTap: navigate),
                             _SubNavItem(icon: Icons.trending_up_rounded, label: 'Profit Report', route: '/dashboard/reports/profit', onTap: navigate),
+                            _SubNavItem(icon: Icons.calendar_month_rounded, label: 'Monthly Report', route: '/dashboard/reports/monthly', onTap: navigate),
                             if (isWholesale)
                               _SubNavItem(icon: Icons.store_rounded, label: 'Wholesale Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
                           ],
@@ -216,9 +217,24 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             onToggle: () => _toggle('wholesale'),
                             children: [
                               _SubNavItem(icon: Icons.dashboard_rounded, label: 'WS Dashboard', route: '/wholesale-dashboard', onTap: navigate),
-                              _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
+                              _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'WS POS', route: '/dashboard/wholesale-pos', onTap: navigate),
+                              // ── Sales ──
                               _SubNavItem(icon: Icons.receipt_long_rounded, label: 'WS Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
+                              _SubNavItem(icon: Icons.person_search_rounded, label: 'Sales by User', route: '/dashboard/wholesale-sales', onTap: navigate),
+                              // ── Customers ──
                               _SubNavItem(icon: Icons.people_rounded, label: 'WS Customers', route: '/dashboard/customers', onTap: navigate),
+                              // ── Payments ──
+                              _SubNavItem(icon: Icons.request_page_rounded, label: 'WS Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
+                              // ── Inventory ──
+                              _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
+                              _SubNavItem(icon: Icons.inventory_rounded, label: 'Adjust WS Stock', route: '/dashboard/inventory', onTap: navigate),
+                              _SubNavItem(icon: Icons.warning_amber_rounded, label: 'Low Stock Alerts', route: '/dashboard/inventory', onTap: navigate),
+                              _SubNavItem(icon: Icons.hourglass_bottom_rounded, label: 'Expiry Alerts', route: '/dashboard/inventory', onTap: navigate),
+                              // ── Quality Control ──
+                              _SubNavItem(icon: Icons.fact_check_rounded, label: 'WS Stock Check', route: '/dashboard/stock-check', onTap: navigate),
+                              // ── Dashboard Insights ──
+                              _SubNavItem(icon: Icons.star_rounded, label: 'Top Products', route: '/wholesale-dashboard', onTap: navigate),
+                              _SubNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Inventory Value', route: '/wholesale-dashboard', onTap: navigate),
                             ],
                           ),
                         ],

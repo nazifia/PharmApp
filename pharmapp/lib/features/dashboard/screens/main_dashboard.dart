@@ -41,7 +41,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   void _showMoreSheet() {
     final user = ref.read(currentUserProvider);
     final isAdmin     = user?.role == 'Admin' || user?.role == 'Manager';
-    final isWholesale = user?.role.contains('Wholesale') ?? false;
+    final isWholesale = (user?.role.contains('Wholesale') ?? false) || (user?.isWholesaleOperator ?? false) || isAdmin;
 
     showModalBottomSheet(
       context: context,
@@ -575,7 +575,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   Widget _buildProfileMenu(String role) {
     final isAdmin     = role == 'Admin' || role == 'Manager';
-    final isWholesale = role.contains('Wholesale');
+    final isWholesale = role.contains('Wholesale') || isAdmin;
     return PopupMenuButton<String>(
       offset: const Offset(0, 52),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

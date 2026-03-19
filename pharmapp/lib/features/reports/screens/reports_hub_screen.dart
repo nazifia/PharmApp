@@ -37,6 +37,13 @@ class ReportsHubScreen extends ConsumerWidget {
       'color':  EnhancedTheme.successGreen,
       'route':  '/dashboard/reports/profit',
     },
+    {
+      'title':  'Monthly Report',
+      'sub':    'Monthly sales, expenses & net profit',
+      'icon':   Icons.calendar_month_rounded,
+      'color':  EnhancedTheme.warningAmber,
+      'route':  '/dashboard/reports/monthly',
+    },
   ];
 
   String _fmt(double v) {
