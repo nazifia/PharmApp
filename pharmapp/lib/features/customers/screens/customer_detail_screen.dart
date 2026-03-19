@@ -11,8 +11,8 @@ class CustomerDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final idStr      = GoRouterState.of(context).pathParameters['id'] ?? '0';
-    final id         = int.tryParse(idStr) ?? 0;
+    final idStr         = GoRouterState.of(context).pathParameters['id'] ?? '0';
+    final id            = int.tryParse(idStr) ?? 0;
     final customerAsync = ref.watch(customerDetailProvider(id));
     final salesAsync    = ref.watch(customerSalesProvider(id));
 
@@ -22,15 +22,15 @@ class CustomerDetailScreen extends ConsumerWidget {
         Container(decoration: context.bgGradient),
         SafeArea(child: customerAsync.when(
           loading: () => Column(children: [
-            _header(context, null, id),
+            _header(context, null, id, ref),
             const Expanded(child: Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal))),
           ]),
           error: (e, _) => Column(children: [
-            _header(context, null, id),
+            _header(context, null, id, ref),
             Expanded(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.cloud_off_rounded, color: Colors.white.withValues(alpha: 0.3), size: 48),
+              Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
               const SizedBox(height: 12),
-              Text('$e', style: TextStyle(color: Colors.white.withValues(alpha: 0.5)), textAlign: TextAlign.center),
+              Text('$e', style: TextStyle(color: context.subLabelColor), textAlign: TextAlign.center),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => ref.invalidate(customerDetailProvider(id)),
@@ -43,7 +43,7 @@ class CustomerDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _header(BuildContext context, Customer? customer, int id) => Padding(
+  Widget _header(BuildContext context, Customer? customer, int id, WidgetRef ref) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
       IconButton(
@@ -51,12 +51,14 @@ class CustomerDetailScreen extends ConsumerWidget {
           onPressed: () => context.pop()),
       Expanded(child: Text('Customer Profile',
           style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600))),
-      if (customer != null)
+      if (customer != null) ...[
         IconButton(
           icon: Icon(Icons.edit_outlined, color: context.iconOnBg.withValues(alpha: 0.7)),
-          onPressed: () => ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Edit customer — coming soon'))),
-        ),
+          onPressed: () => _showEditSheet(context, ref, customer)),
+        IconButton(
+          icon: Icon(Icons.delete_outline_rounded, color: EnhancedTheme.errorRed.withValues(alpha: 0.7)),
+          onPressed: () => _confirmDelete(context, ref, customer)),
+      ],
     ]),
   );
 
@@ -66,7 +68,7 @@ class CustomerDetailScreen extends ConsumerWidget {
     final accentColor = isWholesale ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal;
 
     return Column(children: [
-      _header(context, customer, customer.id),
+      _header(context, customer, customer.id, ref),
       Expanded(child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -95,31 +97,17 @@ class CustomerDetailScreen extends ConsumerWidget {
 
           // ── Key metrics ─────────────────────────────────────────────────────
           Row(children: [
-            Expanded(child: _metricCard(
-              context,
-              'Total Spent',
-              customer.totalSpent != null
-                  ? '₦${customer.totalSpent!.toStringAsFixed(0)}'
-                  : '—',
-              EnhancedTheme.primaryTeal,
-              Icons.payments_rounded,
-            )),
+            Expanded(child: _metricCard(context, 'Total Spent',
+                customer.totalSpent != null ? '₦${customer.totalSpent!.toStringAsFixed(0)}' : '—',
+                EnhancedTheme.primaryTeal, Icons.payments_rounded)),
             const SizedBox(width: 10),
-            Expanded(child: _metricCard(
-              context,
-              'Wallet',
-              '₦${customer.walletBalance.toStringAsFixed(0)}',
-              EnhancedTheme.successGreen,
-              Icons.account_balance_wallet_rounded,
-            )),
+            Expanded(child: _metricCard(context, 'Wallet',
+                '₦${customer.walletBalance.toStringAsFixed(0)}',
+                EnhancedTheme.successGreen, Icons.account_balance_wallet_rounded)),
             const SizedBox(width: 10),
-            Expanded(child: _metricCard(
-              context,
-              'Purchases',
-              '${customer.totalPurchases}',
-              EnhancedTheme.accentCyan,
-              Icons.shopping_bag_rounded,
-            )),
+            Expanded(child: _metricCard(context, 'Purchases',
+                '${customer.totalPurchases}',
+                EnhancedTheme.accentCyan, Icons.shopping_bag_rounded)),
           ]),
 
           // ── Outstanding debt warning ─────────────────────────────────────────
@@ -132,8 +120,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 'Outstanding balance: ₦${customer.outstandingDebt.toStringAsFixed(2)}',
                 style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 13, fontWeight: FontWeight.w600))),
               TextButton(
-                onPressed: () => ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('Record payment — coming soon'))),
+                onPressed: () => _showPayDebtDialog(context, ref, customer),
                 child: const Text('Pay Now', style: TextStyle(color: EnhancedTheme.errorRed))),
             ])),
           ],
@@ -143,11 +130,11 @@ class CustomerDetailScreen extends ConsumerWidget {
           _sectionTitle(context, 'Contact Details'),
           _glassCard(context, child: Column(children: [
             _detailRow(context, 'Phone', customer.phone),
-            if (customer.email != null) ...[
+            if (customer.email != null && customer.email!.isNotEmpty) ...[
               _divider(context),
               _detailRow(context, 'Email', customer.email!),
             ],
-            if (customer.address != null) ...[
+            if (customer.address != null && customer.address!.isNotEmpty) ...[
               _divider(context),
               _detailRow(context, 'Address', customer.address!),
             ],
@@ -163,13 +150,11 @@ class CustomerDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // ── Recent purchases ─────────────────────────────────────────────────
-          _sectionTitle(context, 'Recent Purchases'),
+          _sectionTitle(context, 'Purchase History'),
           salesAsync.when(
             loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2),
-                )),
+                child: Padding(padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2))),
             error: (e, _) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text('Could not load sales history',
@@ -179,7 +164,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text('No purchase history',
                         style: TextStyle(color: context.hintColor, fontSize: 13)))
-                : Column(children: sales.take(10).map((p) => _purchaseRow(context, p)).toList()),
+                : Column(children: sales.map((p) => _purchaseRow(context, p)).toList()),
           ),
           const SizedBox(height: 16),
 
@@ -197,8 +182,7 @@ class CustomerDetailScreen extends ConsumerWidget {
             )),
             const SizedBox(width: 12),
             Expanded(child: OutlinedButton.icon(
-              onPressed: () => ScaffoldMessenger.of(context)
-                  .showSnackBar(const SnackBar(content: Text('New sale — coming soon'))),
+              onPressed: () => context.push('/customer/${customer.id}/wallet'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: EnhancedTheme.primaryTeal,
                 side: const BorderSide(color: EnhancedTheme.primaryTeal),
@@ -213,6 +197,194 @@ class CustomerDetailScreen extends ConsumerWidget {
       )),
     ]);
   }
+
+  // ── Edit customer sheet ─────────────────────────────────────────────────────
+
+  void _showEditSheet(BuildContext context, WidgetRef ref, Customer customer) {
+    final nameCtrl    = TextEditingController(text: customer.name);
+    final phoneCtrl   = TextEditingController(text: customer.phone);
+    final emailCtrl   = TextEditingController(text: customer.email ?? '');
+    final addressCtrl = TextEditingController(text: customer.address ?? '');
+    bool isWholesale  = customer.isWholesale;
+    final formKey     = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: context.cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  border: Border.all(color: context.borderColor)),
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Center(child: Container(width: 40, height: 4,
+                        decoration: BoxDecoration(color: context.hintColor, borderRadius: BorderRadius.circular(2)))),
+                    const SizedBox(height: 20),
+                    Text('Edit Customer',
+                        style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 20),
+                    _sheetField(nameCtrl, 'Full Name / Business Name', Icons.person_rounded, context,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null),
+                    const SizedBox(height: 14),
+                    _sheetField(phoneCtrl, 'Phone Number', Icons.phone_rounded, context,
+                        keyboardType: TextInputType.phone,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Phone is required' : null),
+                    const SizedBox(height: 14),
+                    _sheetField(emailCtrl, 'Email (optional)', Icons.email_outlined, context,
+                        keyboardType: TextInputType.emailAddress),
+                    const SizedBox(height: 14),
+                    _sheetField(addressCtrl, 'Address (optional)', Icons.location_on_outlined, context),
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      Text('Type:', style: TextStyle(color: context.labelColor, fontSize: 13)),
+                      const SizedBox(width: 12),
+                      _typeChip(ctx, 'Retail', !isWholesale, () => setSheetState(() => isWholesale = false)),
+                      const SizedBox(width: 8),
+                      _typeChip(ctx, 'Wholesale', isWholesale, () => setSheetState(() => isWholesale = true)),
+                    ]),
+                    const SizedBox(height: 20),
+                    SizedBox(width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+                          final data = {
+                            'name': nameCtrl.text.trim(),
+                            'phone': phoneCtrl.text.trim(),
+                            'is_wholesale': isWholesale,
+                            'email': emailCtrl.text.trim(),
+                            'address': addressCtrl.text.trim(),
+                          };
+                          final updated = await ref.read(customerNotifierProvider.notifier)
+                              .updateCustomer(customer.id, data);
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(updated != null ? 'Customer updated' : 'Update failed'),
+                              backgroundColor: updated != null ? EnhancedTheme.successGreen : EnhancedTheme.errorRed));
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: EnhancedTheme.primaryTeal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        child: const Text('Save Changes'),
+                      )),
+                    const SizedBox(height: 8),
+                  ])),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Delete confirmation ─────────────────────────────────────────────────────
+
+  void _confirmDelete(BuildContext context, WidgetRef ref, Customer customer) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Delete Customer', style: TextStyle(color: context.labelColor)),
+        content: Text('Are you sure you want to delete "${customer.name}"? This action cannot be undone.',
+            style: TextStyle(color: context.subLabelColor)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: context.hintColor))),
+          TextButton(onPressed: () async {
+            Navigator.pop(ctx);
+            final success = await ref.read(customerNotifierProvider.notifier).deleteCustomer(customer.id);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(success ? 'Customer deleted' : 'Delete failed'),
+                backgroundColor: success ? EnhancedTheme.successGreen : EnhancedTheme.errorRed));
+              if (success) context.pop();
+            }
+          }, child: const Text('Delete', style: TextStyle(color: EnhancedTheme.errorRed))),
+        ],
+      ),
+    );
+  }
+
+  // ── Record debt payment dialog ──────────────────────────────────────────────
+
+  void _showPayDebtDialog(BuildContext context, WidgetRef ref, Customer customer) {
+    final amountCtrl = TextEditingController();
+    String method = 'cash';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: context.cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Record Debt Payment', style: TextStyle(color: context.labelColor)),
+          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Outstanding: ₦${customer.outstandingDebt.toStringAsFixed(2)}',
+                style: const TextStyle(color: EnhancedTheme.errorRed, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: amountCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: TextStyle(color: context.labelColor),
+              decoration: InputDecoration(
+                hintText: 'Payment amount',
+                prefixText: '₦ ',
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.08),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)),
+            ),
+            const SizedBox(height: 12),
+            Text('Method:', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+            const SizedBox(height: 6),
+            Row(children: ['cash', 'pos', 'transfer'].map((m) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(m.toUpperCase(), style: TextStyle(fontSize: 11)),
+                selected: method == m,
+                onSelected: (_) => setDialogState(() => method = m),
+                selectedColor: EnhancedTheme.primaryTeal,
+                labelStyle: TextStyle(color: method == m ? Colors.white : context.subLabelColor),
+              ),
+            )).toList()),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancel', style: TextStyle(color: context.hintColor))),
+            TextButton(onPressed: () async {
+              final amount = double.tryParse(amountCtrl.text.trim());
+              if (amount == null || amount <= 0) return;
+              Navigator.pop(ctx);
+              final success = await ref.read(walletNotifierProvider(customer.id).notifier)
+                  .recordPayment(amount: amount, method: method);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(success ? 'Payment of ₦${amount.toStringAsFixed(2)} recorded' : 'Payment failed'),
+                  backgroundColor: success ? EnhancedTheme.successGreen : EnhancedTheme.errorRed));
+              }
+            }, child: const Text('Record Payment', style: TextStyle(color: EnhancedTheme.primaryTeal))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Shared helpers ──────────────────────────────────────────────────────────
 
   Widget _purchaseRow(BuildContext context, CustomerSale p) => ClipRRect(
     borderRadius: BorderRadius.circular(12),
@@ -269,13 +441,10 @@ class CustomerDetailScreen extends ConsumerWidget {
         child: Column(children: [
           Icon(icon, color: color, size: 20),
           const SizedBox(height: 6),
-          Text(value,
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700),
+          Text(value, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700),
               maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
-          Text(label,
-              style: TextStyle(color: context.hintColor, fontSize: 10),
-              textAlign: TextAlign.center),
+          Text(label, style: TextStyle(color: context.hintColor, fontSize: 10), textAlign: TextAlign.center),
         ]))));
 
   Widget _detailRow(BuildContext context, String label, String value) => Padding(
@@ -301,4 +470,32 @@ class CustomerDetailScreen extends ConsumerWidget {
       borderRadius: BorderRadius.circular(8),
       border: Border.all(color: color.withValues(alpha: 0.3))),
     child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)));
+
+  Widget _sheetField(TextEditingController ctrl, String hint, IconData icon, BuildContext context,
+      {TextInputType? keyboardType, String? Function(String?)? validator}) =>
+      TextFormField(
+        controller: ctrl,
+        keyboardType: keyboardType,
+        style: TextStyle(color: context.labelColor),
+        validator: validator,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: context.hintColor),
+          prefixIcon: Icon(icon, color: context.hintColor, size: 20),
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.07),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)),
+      );
+
+  Widget _typeChip(BuildContext context, String label, bool selected, VoidCallback onTap) => GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: selected ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10)),
+      child: Text(label,
+          style: TextStyle(color: selected ? Colors.white : context.hintColor, fontSize: 13, fontWeight: FontWeight.w600))));
 }

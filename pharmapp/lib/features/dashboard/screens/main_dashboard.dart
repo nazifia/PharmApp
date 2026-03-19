@@ -8,6 +8,7 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 import 'package:pharmapp/shared/widgets/dashboard_card.dart';
+import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
 class MainDashboard extends ConsumerStatefulWidget {
   const MainDashboard({super.key});
@@ -18,6 +19,7 @@ class MainDashboard extends ConsumerStatefulWidget {
 
 class _MainDashboardState extends ConsumerState<MainDashboard> {
   int _selectedIndex = 0;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // ── Navigation helpers ─────────────────────────────────────────────────────
 
@@ -66,7 +68,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.of(context).size.width > 800;
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: context.scaffoldBg,
+      drawer: const AppDrawer(),
       body: Stack(
         children: [
           Container(decoration: context.bgGradient),
@@ -177,7 +181,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     final greeting   = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
     final revenue   = salesAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
-    final lowStock  = invAsync.whenOrNull(data: (d) => d.lowStock) ?? 0;
+    final lowStock  = invAsync.whenOrNull(data: (d) => d.lowStockCount) ?? 0;
     final customers = custAsync.whenOrNull(data: (d) => d.total) ?? 0;
     final debt      = custAsync.whenOrNull(data: (d) => d.totalDebt) ?? 0.0;
     final loading   = salesAsync.isLoading || invAsync.isLoading || custAsync.isLoading;
@@ -196,6 +200,20 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         children: [
           // ── Header ────────────────────────────────────────────────────────
           Row(children: [
+            if (!wide2)
+              GestureDetector(
+                onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  ),
+                  child: Icon(Icons.menu_rounded, color: context.labelColor, size: 20),
+                ),
+              ),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('$greeting!', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
               const SizedBox(height: 2),
@@ -231,6 +249,16 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             childAspectRatio: wide2 ? 1.35 : 1.3,
             children: stats,
           ),
+          const SizedBox(height: 24),
+
+          // ── Quick Access Panel (matching Pharm) ──────────────────────────
+          _quickAccessPanel(wide2),
+          const SizedBox(height: 24),
+
+          // ── Sales Trend ──────────────────────────────────────────────────
+          _sectionHeader('Sales Trend', () => context.go('/dashboard/reports/sales')),
+          const SizedBox(height: 12),
+          _salesTrendChart(salesAsync),
           const SizedBox(height: 24),
 
           // ── Top Items Today ───────────────────────────────────────────────
@@ -287,7 +315,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                     style: TextStyle(color: context.hintColor, fontSize: 13)));
               }
               return Column(children: report.lowStockItems.take(4).map((s) {
-                final pct = s.stock / (s.low > 0 ? s.low : 1);
+                final pct = s.stock / (s.lowStockThreshold > 0 ? s.lowStockThreshold : 1);
                 final c   = pct < 0.3 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
                 return _glassRow(child: Row(children: [
                   Container(
@@ -298,11 +326,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(s.name, style: TextStyle(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
-                    Text('Reorder at ${s.reorder}', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                    Text('Threshold: ${s.lowStockThreshold}', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                   ])),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text('${s.stock} units', style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 14)),
-                    Text('Min: ${s.low}', style: TextStyle(color: Colors.white.withValues(alpha:0.35), fontSize: 11)),
                   ]),
                 ]));
               }).toList());
@@ -315,7 +342,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   Widget _quickBtn(IconData icon, String label, Color color, VoidCallback onTap) {
     return Expanded(
-      child: GestureDetector(
+      child: _PressableCard(
         onTap: onTap,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
@@ -326,10 +353,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               decoration: BoxDecoration(
                 color: color.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: color.withValues(alpha:0.2)),
+                border: Border.all(color: color.withValues(alpha:0.25)),
               ),
               child: Column(children: [
-                Icon(icon, color: color, size: 20),
+                Icon(icon, color: color, size: 22),
                 const SizedBox(height: 5),
                 Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
               ]),
@@ -340,12 +367,208 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     );
   }
 
+  // ── Quick Access Panel (matching Pharm dashboard) ─────────────────────────
+
+  Widget _quickAccessPanel(bool wide) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: context.borderColor)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.dashboard_rounded, color: EnhancedTheme.primaryTeal, size: 18),
+              const SizedBox(width: 8),
+              Text('Quick Access',
+                  style: TextStyle(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+            ]),
+            const SizedBox(height: 14),
+            wide
+                ? Row(children: [
+                    Expanded(child: _quickAccessCard(
+                      'Dispensing Management', 'Track & Analyze',
+                      Icons.medication_rounded, EnhancedTheme.primaryTeal,
+                      [(Icons.list_alt_rounded, 'Disp. Log', '/dashboard/dispensing-log'),
+                       (Icons.point_of_sale_rounded, 'New Sale', '/dashboard/pos')],
+                    )),
+                    const SizedBox(width: 10),
+                    Expanded(child: _quickAccessCard(
+                      'Store Operations', 'Retail & Wholesale',
+                      Icons.storefront_rounded, EnhancedTheme.successGreen,
+                      [(Icons.shopping_cart_rounded, 'Retail', '/dashboard/pos'),
+                       (Icons.store_rounded, 'Wholesale', '/dashboard/wholesale-pos')],
+                    )),
+                    const SizedBox(width: 10),
+                    Expanded(child: _quickAccessCard(
+                      'Reports & Analytics', 'Business Insights',
+                      Icons.analytics_rounded, EnhancedTheme.accentCyan,
+                      [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
+                       (Icons.calendar_month_rounded, 'Monthly', '/dashboard/reports/profit')],
+                    )),
+                  ])
+                : Column(children: [
+                    _quickAccessCard(
+                      'Dispensing Management', 'Track & Analyze',
+                      Icons.medication_rounded, EnhancedTheme.primaryTeal,
+                      [(Icons.list_alt_rounded, 'Disp. Log', '/dashboard/dispensing-log'),
+                       (Icons.point_of_sale_rounded, 'New Sale', '/dashboard/pos')],
+                    ),
+                    const SizedBox(height: 10),
+                    _quickAccessCard(
+                      'Store Operations', 'Retail & Wholesale',
+                      Icons.storefront_rounded, EnhancedTheme.successGreen,
+                      [(Icons.shopping_cart_rounded, 'Retail', '/dashboard/pos'),
+                       (Icons.store_rounded, 'Wholesale', '/dashboard/wholesale-pos')],
+                    ),
+                    const SizedBox(height: 10),
+                    _quickAccessCard(
+                      'Reports & Analytics', 'Business Insights',
+                      Icons.analytics_rounded, EnhancedTheme.accentCyan,
+                      [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
+                       (Icons.calendar_month_rounded, 'Monthly', '/dashboard/reports/profit')],
+                    ),
+                  ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _quickAccessCard(String title, String subtitle, IconData icon, Color color, List<(IconData, String, String)> actions) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: TextStyle(color: context.labelColor, fontSize: 11, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+            Text(subtitle, style: TextStyle(color: context.subLabelColor, fontSize: 9), overflow: TextOverflow.ellipsis),
+          ])),
+          const SizedBox(width: 4),
+          Icon(icon, color: color.withValues(alpha: 0.4), size: 20),
+        ]),
+        const SizedBox(height: 10),
+        for (final a in actions)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: GestureDetector(
+              onTap: () => context.go(a.$3),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8)),
+                child: Row(children: [
+                  Icon(a.$1, color: color, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(a.$2, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis)),
+                ]),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+
+  // ── Sales Trend Chart ────────────────────────────────────────────────────
+
+  Widget _salesTrendChart(AsyncValue salesAsync) {
+    return salesAsync.when(
+      loading: () => ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 180,
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.borderColor)),
+            child: const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2)),
+          ),
+        ),
+      ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (report) {
+        final topItems = report.topItems ?? [];
+        if (topItems.isEmpty) return const SizedBox.shrink();
+
+        final maxRevenue = topItems.fold<double>(0, (max, item) => item.revenue > max ? item.revenue : max);
+        if (maxRevenue <= 0) return const SizedBox.shrink();
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: context.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: context.borderColor)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Text('Today\'s Top Revenue Items',
+                      style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                  const Spacer(),
+                  Text(_fmt(report.totalRevenue ?? 0),
+                      style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 14, fontWeight: FontWeight.w800)),
+                ]),
+                const SizedBox(height: 16),
+                ...topItems.take(5).map((item) {
+                  final pct = item.revenue / maxRevenue;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(children: [
+                      SizedBox(width: 80, child: Text(item.name,
+                          style: TextStyle(color: context.subLabelColor, fontSize: 11),
+                          maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      const SizedBox(width: 8),
+                      Expanded(child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: pct.clamp(0.0, 1.0),
+                          backgroundColor: Colors.white.withValues(alpha: 0.06),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            EnhancedTheme.primaryTeal.withValues(alpha: 0.7 + 0.3 * pct)),
+                          minHeight: 12),
+                      )),
+                      const SizedBox(width: 8),
+                      SizedBox(width: 70, child: Text(_fmt(item.revenue),
+                          style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w700),
+                          textAlign: TextAlign.right)),
+                    ]),
+                  );
+                }),
+              ]),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _sectionHeader(String title, VoidCallback onSeeAll) {
     return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(title, style: TextStyle(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+      Row(children: [
+        Container(width: 3, height: 16, decoration: BoxDecoration(
+            color: EnhancedTheme.primaryTeal, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text(title, style: TextStyle(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+      ]),
       GestureDetector(
         onTap: onSeeAll,
-        child: const Text('See all', style: TextStyle(color: Color(0xFF0D9488), fontSize: 12, fontWeight: FontWeight.w500)),
+        child: const Text('See all', style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.w500)),
       ),
     ]);
   }
@@ -440,6 +663,36 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   }
 }
 
+// ── Pressable card (scale on tap) ────────────────────────────────────────────
+
+class _PressableCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+  const _PressableCard({required this.child, required this.onTap});
+
+  @override
+  State<_PressableCard> createState() => _PressableCardState();
+}
+
+class _PressableCardState extends State<_PressableCard> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
 // ── More Features Bottom Sheet ────────────────────────────────────────────────
 
 class _MoreFeaturesSheet extends StatelessWidget {
@@ -463,51 +716,53 @@ class _MoreFeaturesSheet extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B).withValues(alpha: 0.97),
+            color: context.isDark
+                ? const Color(0xFF1E293B).withValues(alpha: 0.97)
+                : Colors.white.withValues(alpha: 0.97),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+            border: Border(top: BorderSide(color: context.borderColor)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             // Handle
             Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+                decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
-              child: Text('More Features', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+              child: Text('More Features', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
             ),
             const SizedBox(height: 16),
 
             // Reports section
-            _sectionLabel('Reports'),
+            _sectionLabel(context, 'Reports'),
             const SizedBox(height: 8),
             Row(children: [
-              _featureCard(context, Icons.show_chart,          'Sales',      const Color(0xFF10B981), '/dashboard/reports/sales'),
+              _featureCard(context, Icons.show_chart,          'Sales',      EnhancedTheme.successGreen, '/dashboard/reports/sales'),
               const SizedBox(width: 10),
-              _featureCard(context, Icons.inventory_2_outlined, 'Inventory', const Color(0xFF3B82F6), '/dashboard/reports/inventory'),
+              _featureCard(context, Icons.inventory_2_outlined, 'Inventory', EnhancedTheme.infoBlue,    '/dashboard/reports/inventory'),
               const SizedBox(width: 10),
-              _featureCard(context, Icons.people_outline,       'Customers', const Color(0xFF8B5CF6), '/dashboard/reports/customers'),
+              _featureCard(context, Icons.people_outline,       'Customers', EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
               const SizedBox(width: 10),
-              _featureCard(context, Icons.trending_up,          'Profit',    const Color(0xFFF59E0B), '/dashboard/reports/profit'),
+              _featureCard(context, Icons.trending_up,          'Profit',    EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
             ]),
             const SizedBox(height: 20),
 
             // Dashboards section
-            _sectionLabel('Dashboards'),
+            _sectionLabel(context, 'Dashboards'),
             const SizedBox(height: 8),
             Row(children: [
-              _featureCard(context, Icons.storefront_outlined,  'Retail',    const Color(0xFF0D9488), '/dashboard'),
+              _featureCard(context, Icons.storefront_outlined,  'Retail',    EnhancedTheme.primaryTeal, '/dashboard'),
               const SizedBox(width: 10),
               if (isAdmin) ...[
-                _featureCard(context, Icons.admin_panel_settings_outlined, 'Admin', const Color(0xFFEF4444), '/admin-dashboard'),
+                _featureCard(context, Icons.admin_panel_settings_outlined, 'Admin', EnhancedTheme.errorRed, '/admin-dashboard'),
                 const SizedBox(width: 10),
               ],
               if (isWholesale) ...[
-                _featureCard(context, Icons.store_outlined, 'Wholesale', const Color(0xFF06B6D4), '/wholesale-dashboard'),
+                _featureCard(context, Icons.store_outlined, 'Wholesale', EnhancedTheme.accentCyan, '/wholesale-dashboard'),
                 const SizedBox(width: 10),
               ],
-              _featureCard(context, Icons.settings_outlined, 'Settings', Colors.white38, '/dashboard/settings'),
+              _featureCard(context, Icons.settings_outlined, 'Settings', context.subLabelColor, '/dashboard/settings'),
             ]),
             const SizedBox(height: 20),
 
@@ -535,9 +790,9 @@ class _MoreFeaturesSheet extends StatelessWidget {
     );
   }
 
-  Widget _sectionLabel(String label) => Align(
+  Widget _sectionLabel(BuildContext context, String label) => Align(
     alignment: Alignment.centerLeft,
-    child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11,
+    child: Text(label, style: TextStyle(color: context.subLabelColor, fontSize: 11,
         fontWeight: FontWeight.w600, letterSpacing: 0.8)),
   );
 

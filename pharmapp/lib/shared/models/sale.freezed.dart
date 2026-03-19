@@ -20,10 +20,10 @@ SaleItemPayload _$SaleItemPayloadFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$SaleItemPayload {
-  String get barcode =>
-      throw _privateConstructorUsedError; // or item ID depending on Django backend expectation
+  String get barcode => throw _privateConstructorUsedError;
+  int? get itemId => throw _privateConstructorUsedError;
   int get quantity => throw _privateConstructorUsedError;
-  double get unitPrice => throw _privateConstructorUsedError;
+  double get price => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -37,7 +37,7 @@ abstract class $SaleItemPayloadCopyWith<$Res> {
           SaleItemPayload value, $Res Function(SaleItemPayload) then) =
       _$SaleItemPayloadCopyWithImpl<$Res, SaleItemPayload>;
   @useResult
-  $Res call({String barcode, int quantity, double unitPrice});
+  $Res call({String barcode, int? itemId, int quantity, double price});
 }
 
 /// @nodoc
@@ -54,21 +54,26 @@ class _$SaleItemPayloadCopyWithImpl<$Res, $Val extends SaleItemPayload>
   @override
   $Res call({
     Object? barcode = null,
+    Object? itemId = freezed,
     Object? quantity = null,
-    Object? unitPrice = null,
+    Object? price = null,
   }) {
     return _then(_value.copyWith(
       barcode: null == barcode
           ? _value.barcode
           : barcode // ignore: cast_nullable_to_non_nullable
               as String,
+      itemId: freezed == itemId
+          ? _value.itemId
+          : itemId // ignore: cast_nullable_to_non_nullable
+              as int?,
       quantity: null == quantity
           ? _value.quantity
           : quantity // ignore: cast_nullable_to_non_nullable
               as int,
-      unitPrice: null == unitPrice
-          ? _value.unitPrice
-          : unitPrice // ignore: cast_nullable_to_non_nullable
+      price: null == price
+          ? _value.price
+          : price // ignore: cast_nullable_to_non_nullable
               as double,
     ) as $Val);
   }
@@ -82,7 +87,7 @@ abstract class _$$SaleItemPayloadImplCopyWith<$Res>
       __$$SaleItemPayloadImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String barcode, int quantity, double unitPrice});
+  $Res call({String barcode, int? itemId, int quantity, double price});
 }
 
 /// @nodoc
@@ -97,21 +102,26 @@ class __$$SaleItemPayloadImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? barcode = null,
+    Object? itemId = freezed,
     Object? quantity = null,
-    Object? unitPrice = null,
+    Object? price = null,
   }) {
     return _then(_$SaleItemPayloadImpl(
       barcode: null == barcode
           ? _value.barcode
           : barcode // ignore: cast_nullable_to_non_nullable
               as String,
+      itemId: freezed == itemId
+          ? _value.itemId
+          : itemId // ignore: cast_nullable_to_non_nullable
+              as int?,
       quantity: null == quantity
           ? _value.quantity
           : quantity // ignore: cast_nullable_to_non_nullable
               as int,
-      unitPrice: null == unitPrice
-          ? _value.unitPrice
-          : unitPrice // ignore: cast_nullable_to_non_nullable
+      price: null == price
+          ? _value.price
+          : price // ignore: cast_nullable_to_non_nullable
               as double,
     ));
   }
@@ -121,22 +131,26 @@ class __$$SaleItemPayloadImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$SaleItemPayloadImpl implements _SaleItemPayload {
   const _$SaleItemPayloadImpl(
-      {required this.barcode, required this.quantity, required this.unitPrice});
+      {required this.barcode,
+      required this.itemId,
+      required this.quantity,
+      required this.price});
 
   factory _$SaleItemPayloadImpl.fromJson(Map<String, dynamic> json) =>
       _$$SaleItemPayloadImplFromJson(json);
 
   @override
   final String barcode;
-// or item ID depending on Django backend expectation
+  @override
+  final int? itemId;
   @override
   final int quantity;
   @override
-  final double unitPrice;
+  final double price;
 
   @override
   String toString() {
-    return 'SaleItemPayload(barcode: $barcode, quantity: $quantity, unitPrice: $unitPrice)';
+    return 'SaleItemPayload(barcode: $barcode, itemId: $itemId, quantity: $quantity, price: $price)';
   }
 
   @override
@@ -145,15 +159,16 @@ class _$SaleItemPayloadImpl implements _SaleItemPayload {
         (other.runtimeType == runtimeType &&
             other is _$SaleItemPayloadImpl &&
             (identical(other.barcode, barcode) || other.barcode == barcode) &&
+            (identical(other.itemId, itemId) || other.itemId == itemId) &&
             (identical(other.quantity, quantity) ||
                 other.quantity == quantity) &&
-            (identical(other.unitPrice, unitPrice) ||
-                other.unitPrice == unitPrice));
+            (identical(other.price, price) || other.price == price));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, barcode, quantity, unitPrice);
+  int get hashCode =>
+      Object.hash(runtimeType, barcode, itemId, quantity, price);
 
   @JsonKey(ignore: true)
   @override
@@ -173,18 +188,21 @@ class _$SaleItemPayloadImpl implements _SaleItemPayload {
 abstract class _SaleItemPayload implements SaleItemPayload {
   const factory _SaleItemPayload(
       {required final String barcode,
+      required final int? itemId,
       required final int quantity,
-      required final double unitPrice}) = _$SaleItemPayloadImpl;
+      required final double price}) = _$SaleItemPayloadImpl;
 
   factory _SaleItemPayload.fromJson(Map<String, dynamic> json) =
       _$SaleItemPayloadImpl.fromJson;
 
   @override
   String get barcode;
-  @override // or item ID depending on Django backend expectation
+  @override
+  int? get itemId;
+  @override
   int get quantity;
   @override
-  double get unitPrice;
+  double get price;
   @override
   @JsonKey(ignore: true)
   _$$SaleItemPayloadImplCopyWith<_$SaleItemPayloadImpl> get copyWith =>
@@ -198,6 +216,7 @@ PaymentPayload _$PaymentPayloadFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$PaymentPayload {
   double get cash => throw _privateConstructorUsedError;
+  double get pos => throw _privateConstructorUsedError;
   double get bankTransfer => throw _privateConstructorUsedError;
   double get wallet => throw _privateConstructorUsedError;
 
@@ -213,7 +232,7 @@ abstract class $PaymentPayloadCopyWith<$Res> {
           PaymentPayload value, $Res Function(PaymentPayload) then) =
       _$PaymentPayloadCopyWithImpl<$Res, PaymentPayload>;
   @useResult
-  $Res call({double cash, double bankTransfer, double wallet});
+  $Res call({double cash, double pos, double bankTransfer, double wallet});
 }
 
 /// @nodoc
@@ -230,6 +249,7 @@ class _$PaymentPayloadCopyWithImpl<$Res, $Val extends PaymentPayload>
   @override
   $Res call({
     Object? cash = null,
+    Object? pos = null,
     Object? bankTransfer = null,
     Object? wallet = null,
   }) {
@@ -237,6 +257,10 @@ class _$PaymentPayloadCopyWithImpl<$Res, $Val extends PaymentPayload>
       cash: null == cash
           ? _value.cash
           : cash // ignore: cast_nullable_to_non_nullable
+              as double,
+      pos: null == pos
+          ? _value.pos
+          : pos // ignore: cast_nullable_to_non_nullable
               as double,
       bankTransfer: null == bankTransfer
           ? _value.bankTransfer
@@ -258,7 +282,7 @@ abstract class _$$PaymentPayloadImplCopyWith<$Res>
       __$$PaymentPayloadImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({double cash, double bankTransfer, double wallet});
+  $Res call({double cash, double pos, double bankTransfer, double wallet});
 }
 
 /// @nodoc
@@ -273,6 +297,7 @@ class __$$PaymentPayloadImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? cash = null,
+    Object? pos = null,
     Object? bankTransfer = null,
     Object? wallet = null,
   }) {
@@ -280,6 +305,10 @@ class __$$PaymentPayloadImplCopyWithImpl<$Res>
       cash: null == cash
           ? _value.cash
           : cash // ignore: cast_nullable_to_non_nullable
+              as double,
+      pos: null == pos
+          ? _value.pos
+          : pos // ignore: cast_nullable_to_non_nullable
               as double,
       bankTransfer: null == bankTransfer
           ? _value.bankTransfer
@@ -297,7 +326,10 @@ class __$$PaymentPayloadImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$PaymentPayloadImpl implements _PaymentPayload {
   const _$PaymentPayloadImpl(
-      {this.cash = 0.0, this.bankTransfer = 0.0, this.wallet = 0.0});
+      {this.cash = 0.0,
+      this.pos = 0.0,
+      this.bankTransfer = 0.0,
+      this.wallet = 0.0});
 
   factory _$PaymentPayloadImpl.fromJson(Map<String, dynamic> json) =>
       _$$PaymentPayloadImplFromJson(json);
@@ -307,6 +339,9 @@ class _$PaymentPayloadImpl implements _PaymentPayload {
   final double cash;
   @override
   @JsonKey()
+  final double pos;
+  @override
+  @JsonKey()
   final double bankTransfer;
   @override
   @JsonKey()
@@ -314,7 +349,7 @@ class _$PaymentPayloadImpl implements _PaymentPayload {
 
   @override
   String toString() {
-    return 'PaymentPayload(cash: $cash, bankTransfer: $bankTransfer, wallet: $wallet)';
+    return 'PaymentPayload(cash: $cash, pos: $pos, bankTransfer: $bankTransfer, wallet: $wallet)';
   }
 
   @override
@@ -323,6 +358,7 @@ class _$PaymentPayloadImpl implements _PaymentPayload {
         (other.runtimeType == runtimeType &&
             other is _$PaymentPayloadImpl &&
             (identical(other.cash, cash) || other.cash == cash) &&
+            (identical(other.pos, pos) || other.pos == pos) &&
             (identical(other.bankTransfer, bankTransfer) ||
                 other.bankTransfer == bankTransfer) &&
             (identical(other.wallet, wallet) || other.wallet == wallet));
@@ -330,7 +366,8 @@ class _$PaymentPayloadImpl implements _PaymentPayload {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, cash, bankTransfer, wallet);
+  int get hashCode =>
+      Object.hash(runtimeType, cash, pos, bankTransfer, wallet);
 
   @JsonKey(ignore: true)
   @override
@@ -350,6 +387,7 @@ class _$PaymentPayloadImpl implements _PaymentPayload {
 abstract class _PaymentPayload implements PaymentPayload {
   const factory _PaymentPayload(
       {final double cash,
+      final double pos,
       final double bankTransfer,
       final double wallet}) = _$PaymentPayloadImpl;
 
@@ -358,6 +396,8 @@ abstract class _PaymentPayload implements PaymentPayload {
 
   @override
   double get cash;
+  @override
+  double get pos;
   @override
   double get bankTransfer;
   @override
@@ -375,9 +415,9 @@ CheckoutPayload _$CheckoutPayloadFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$CheckoutPayload {
   List<SaleItemPayload> get items => throw _privateConstructorUsedError;
-  PaymentPayload get payments => throw _privateConstructorUsedError;
-  String? get customerId =>
-      throw _privateConstructorUsedError; // Nullable for walk-in customers
+  PaymentPayload get payment => throw _privateConstructorUsedError;
+  int? get customerId => throw _privateConstructorUsedError;
+  bool? get isWholesale => throw _privateConstructorUsedError;
   double get totalAmount => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -394,11 +434,12 @@ abstract class $CheckoutPayloadCopyWith<$Res> {
   @useResult
   $Res call(
       {List<SaleItemPayload> items,
-      PaymentPayload payments,
-      String? customerId,
+      PaymentPayload payment,
+      int? customerId,
+      bool? isWholesale,
       double totalAmount});
 
-  $PaymentPayloadCopyWith<$Res> get payments;
+  $PaymentPayloadCopyWith<$Res> get payment;
 }
 
 /// @nodoc
@@ -415,8 +456,9 @@ class _$CheckoutPayloadCopyWithImpl<$Res, $Val extends CheckoutPayload>
   @override
   $Res call({
     Object? items = null,
-    Object? payments = null,
+    Object? payment = null,
     Object? customerId = freezed,
+    Object? isWholesale = freezed,
     Object? totalAmount = null,
   }) {
     return _then(_value.copyWith(
@@ -424,14 +466,18 @@ class _$CheckoutPayloadCopyWithImpl<$Res, $Val extends CheckoutPayload>
           ? _value.items
           : items // ignore: cast_nullable_to_non_nullable
               as List<SaleItemPayload>,
-      payments: null == payments
-          ? _value.payments
-          : payments // ignore: cast_nullable_to_non_nullable
+      payment: null == payment
+          ? _value.payment
+          : payment // ignore: cast_nullable_to_non_nullable
               as PaymentPayload,
       customerId: freezed == customerId
           ? _value.customerId
           : customerId // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as int?,
+      isWholesale: freezed == isWholesale
+          ? _value.isWholesale
+          : isWholesale // ignore: cast_nullable_to_non_nullable
+              as bool?,
       totalAmount: null == totalAmount
           ? _value.totalAmount
           : totalAmount // ignore: cast_nullable_to_non_nullable
@@ -441,9 +487,9 @@ class _$CheckoutPayloadCopyWithImpl<$Res, $Val extends CheckoutPayload>
 
   @override
   @pragma('vm:prefer-inline')
-  $PaymentPayloadCopyWith<$Res> get payments {
-    return $PaymentPayloadCopyWith<$Res>(_value.payments, (value) {
-      return _then(_value.copyWith(payments: value) as $Val);
+  $PaymentPayloadCopyWith<$Res> get payment {
+    return $PaymentPayloadCopyWith<$Res>(_value.payment, (value) {
+      return _then(_value.copyWith(payment: value) as $Val);
     });
   }
 }
@@ -458,12 +504,13 @@ abstract class _$$CheckoutPayloadImplCopyWith<$Res>
   @useResult
   $Res call(
       {List<SaleItemPayload> items,
-      PaymentPayload payments,
-      String? customerId,
+      PaymentPayload payment,
+      int? customerId,
+      bool? isWholesale,
       double totalAmount});
 
   @override
-  $PaymentPayloadCopyWith<$Res> get payments;
+  $PaymentPayloadCopyWith<$Res> get payment;
 }
 
 /// @nodoc
@@ -478,8 +525,9 @@ class __$$CheckoutPayloadImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? items = null,
-    Object? payments = null,
+    Object? payment = null,
     Object? customerId = freezed,
+    Object? isWholesale = freezed,
     Object? totalAmount = null,
   }) {
     return _then(_$CheckoutPayloadImpl(
@@ -487,14 +535,18 @@ class __$$CheckoutPayloadImplCopyWithImpl<$Res>
           ? _value._items
           : items // ignore: cast_nullable_to_non_nullable
               as List<SaleItemPayload>,
-      payments: null == payments
-          ? _value.payments
-          : payments // ignore: cast_nullable_to_non_nullable
+      payment: null == payment
+          ? _value.payment
+          : payment // ignore: cast_nullable_to_non_nullable
               as PaymentPayload,
       customerId: freezed == customerId
           ? _value.customerId
           : customerId // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as int?,
+      isWholesale: freezed == isWholesale
+          ? _value.isWholesale
+          : isWholesale // ignore: cast_nullable_to_non_nullable
+              as bool?,
       totalAmount: null == totalAmount
           ? _value.totalAmount
           : totalAmount // ignore: cast_nullable_to_non_nullable
@@ -508,8 +560,9 @@ class __$$CheckoutPayloadImplCopyWithImpl<$Res>
 class _$CheckoutPayloadImpl implements _CheckoutPayload {
   const _$CheckoutPayloadImpl(
       {required final List<SaleItemPayload> items,
-      required this.payments,
+      required this.payment,
       this.customerId,
+      this.isWholesale,
       required this.totalAmount})
       : _items = items;
 
@@ -525,16 +578,17 @@ class _$CheckoutPayloadImpl implements _CheckoutPayload {
   }
 
   @override
-  final PaymentPayload payments;
+  final PaymentPayload payment;
   @override
-  final String? customerId;
-// Nullable for walk-in customers
+  final int? customerId;
+  @override
+  final bool? isWholesale;
   @override
   final double totalAmount;
 
   @override
   String toString() {
-    return 'CheckoutPayload(items: $items, payments: $payments, customerId: $customerId, totalAmount: $totalAmount)';
+    return 'CheckoutPayload(items: $items, payment: $payment, customerId: $customerId, isWholesale: $isWholesale, totalAmount: $totalAmount)';
   }
 
   @override
@@ -543,10 +597,12 @@ class _$CheckoutPayloadImpl implements _CheckoutPayload {
         (other.runtimeType == runtimeType &&
             other is _$CheckoutPayloadImpl &&
             const DeepCollectionEquality().equals(other._items, _items) &&
-            (identical(other.payments, payments) ||
-                other.payments == payments) &&
+            (identical(other.payment, payment) ||
+                other.payment == payment) &&
             (identical(other.customerId, customerId) ||
                 other.customerId == customerId) &&
+            (identical(other.isWholesale, isWholesale) ||
+                other.isWholesale == isWholesale) &&
             (identical(other.totalAmount, totalAmount) ||
                 other.totalAmount == totalAmount));
   }
@@ -556,8 +612,9 @@ class _$CheckoutPayloadImpl implements _CheckoutPayload {
   int get hashCode => Object.hash(
       runtimeType,
       const DeepCollectionEquality().hash(_items),
-      payments,
+      payment,
       customerId,
+      isWholesale,
       totalAmount);
 
   @JsonKey(ignore: true)
@@ -578,8 +635,9 @@ class _$CheckoutPayloadImpl implements _CheckoutPayload {
 abstract class _CheckoutPayload implements CheckoutPayload {
   const factory _CheckoutPayload(
       {required final List<SaleItemPayload> items,
-      required final PaymentPayload payments,
-      final String? customerId,
+      required final PaymentPayload payment,
+      final int? customerId,
+      final bool? isWholesale,
       required final double totalAmount}) = _$CheckoutPayloadImpl;
 
   factory _CheckoutPayload.fromJson(Map<String, dynamic> json) =
@@ -588,10 +646,12 @@ abstract class _CheckoutPayload implements CheckoutPayload {
   @override
   List<SaleItemPayload> get items;
   @override
-  PaymentPayload get payments;
+  PaymentPayload get payment;
   @override
-  String? get customerId;
-  @override // Nullable for walk-in customers
+  int? get customerId;
+  @override
+  bool? get isWholesale;
+  @override
   double get totalAmount;
   @override
   @JsonKey(ignore: true)

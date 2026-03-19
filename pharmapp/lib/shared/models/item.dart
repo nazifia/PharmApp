@@ -11,6 +11,7 @@ class Item with _$Item {
     required String brand,
     required String dosageForm,
     required double price,
+    @Default(0.0) double costPrice,
     required int stock,
     required int lowStockThreshold,
     required String barcode,

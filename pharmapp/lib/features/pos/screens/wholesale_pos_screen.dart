@@ -65,10 +65,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     try {
       final payload = CheckoutPayload(
         items: _cart.map((l) => SaleItemPayload(
-          barcode: l.barcode, quantity: l.qty, unitPrice: l.price,
+          barcode: l.barcode, itemId: null, quantity: l.qty, price: l.price,
         )).toList(),
-        payments: PaymentPayload(bankTransfer: _cartTotal),
-        customerId: _selectedId.toString(),
+        payment: PaymentPayload(bankTransfer: _cartTotal),
+        customerId: _selectedId,
         totalAmount: _cartTotal,
       );
       await ref.read(posApiProvider).submitCheckout(payload);

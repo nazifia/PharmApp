@@ -36,15 +36,25 @@ class _AppStartup extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder(
-      future: ref.read(authServiceProvider).checkAuthStatus(),
+      future: ref.read(authServiceProvider).checkAuthStatus().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => false,
+      ),
       builder: (_, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const MaterialApp(
+          return MaterialApp(
             debugShowCheckedModeBanner: false,
             home: Scaffold(
               backgroundColor: EnhancedTheme.primaryDark,
               body: Center(
-                child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(color: EnhancedTheme.primaryTeal),
+                    const SizedBox(height: 16),
+                    Text('Loading...', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
+                  ],
+                ),
               ),
             ),
           );

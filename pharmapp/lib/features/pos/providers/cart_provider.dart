@@ -45,3 +45,13 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
 final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {
   return CartNotifier();
 });
+
+/// Selected customer for the current POS session
+class SelectedCustomer {
+  final int id;
+  final String name;
+  final double walletBalance;
+  const SelectedCustomer({required this.id, required this.name, required this.walletBalance});
+}
+
+final selectedCustomerProvider = StateProvider<SelectedCustomer?>((ref) => null);

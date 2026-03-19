@@ -25,6 +25,7 @@ mixin _$Item {
   String get brand => throw _privateConstructorUsedError;
   String get dosageForm => throw _privateConstructorUsedError;
   double get price => throw _privateConstructorUsedError;
+  double get costPrice => throw _privateConstructorUsedError;
   int get stock => throw _privateConstructorUsedError;
   int get lowStockThreshold => throw _privateConstructorUsedError;
   String get barcode => throw _privateConstructorUsedError;
@@ -46,6 +47,7 @@ abstract class $ItemCopyWith<$Res> {
       String brand,
       String dosageForm,
       double price,
+      double costPrice,
       int stock,
       int lowStockThreshold,
       String barcode,
@@ -70,6 +72,7 @@ class _$ItemCopyWithImpl<$Res, $Val extends Item>
     Object? brand = null,
     Object? dosageForm = null,
     Object? price = null,
+    Object? costPrice = null,
     Object? stock = null,
     Object? lowStockThreshold = null,
     Object? barcode = null,
@@ -95,6 +98,10 @@ class _$ItemCopyWithImpl<$Res, $Val extends Item>
       price: null == price
           ? _value.price
           : price // ignore: cast_nullable_to_non_nullable
+              as double,
+      costPrice: null == costPrice
+          ? _value.costPrice
+          : costPrice // ignore: cast_nullable_to_non_nullable
               as double,
       stock: null == stock
           ? _value.stock
@@ -129,6 +136,7 @@ abstract class _$$ItemImplCopyWith<$Res> implements $ItemCopyWith<$Res> {
       String brand,
       String dosageForm,
       double price,
+      double costPrice,
       int stock,
       int lowStockThreshold,
       String barcode,
@@ -150,6 +158,7 @@ class __$$ItemImplCopyWithImpl<$Res>
     Object? brand = null,
     Object? dosageForm = null,
     Object? price = null,
+    Object? costPrice = null,
     Object? stock = null,
     Object? lowStockThreshold = null,
     Object? barcode = null,
@@ -175,6 +184,10 @@ class __$$ItemImplCopyWithImpl<$Res>
       price: null == price
           ? _value.price
           : price // ignore: cast_nullable_to_non_nullable
+              as double,
+      costPrice: null == costPrice
+          ? _value.costPrice
+          : costPrice // ignore: cast_nullable_to_non_nullable
               as double,
       stock: null == stock
           ? _value.stock
@@ -205,6 +218,7 @@ class _$ItemImpl implements _Item {
       required this.brand,
       required this.dosageForm,
       required this.price,
+      this.costPrice = 0.0,
       required this.stock,
       required this.lowStockThreshold,
       required this.barcode,
@@ -224,6 +238,9 @@ class _$ItemImpl implements _Item {
   @override
   final double price;
   @override
+  @JsonKey()
+  final double costPrice;
+  @override
   final int stock;
   @override
   final int lowStockThreshold;
@@ -234,7 +251,7 @@ class _$ItemImpl implements _Item {
 
   @override
   String toString() {
-    return 'Item(id: $id, name: $name, brand: $brand, dosageForm: $dosageForm, price: $price, stock: $stock, lowStockThreshold: $lowStockThreshold, barcode: $barcode, expiryDate: $expiryDate)';
+    return 'Item(id: $id, name: $name, brand: $brand, dosageForm: $dosageForm, price: $price, costPrice: $costPrice, stock: $stock, lowStockThreshold: $lowStockThreshold, barcode: $barcode, expiryDate: $expiryDate)';
   }
 
   @override
@@ -248,6 +265,8 @@ class _$ItemImpl implements _Item {
             (identical(other.dosageForm, dosageForm) ||
                 other.dosageForm == dosageForm) &&
             (identical(other.price, price) || other.price == price) &&
+            (identical(other.costPrice, costPrice) ||
+                other.costPrice == costPrice) &&
             (identical(other.stock, stock) || other.stock == stock) &&
             (identical(other.lowStockThreshold, lowStockThreshold) ||
                 other.lowStockThreshold == lowStockThreshold) &&
@@ -259,7 +278,7 @@ class _$ItemImpl implements _Item {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, id, name, brand, dosageForm,
-      price, stock, lowStockThreshold, barcode, expiryDate);
+      price, costPrice, stock, lowStockThreshold, barcode, expiryDate);
 
   @JsonKey(ignore: true)
   @override
@@ -282,6 +301,7 @@ abstract class _Item implements Item {
       required final String brand,
       required final String dosageForm,
       required final double price,
+      final double costPrice,
       required final int stock,
       required final int lowStockThreshold,
       required final String barcode,
@@ -299,6 +319,8 @@ abstract class _Item implements Item {
   String get dosageForm;
   @override
   double get price;
+  @override
+  double get costPrice;
   @override
   int get stock;
   @override

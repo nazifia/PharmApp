@@ -94,8 +94,8 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                           Icons.info_outline, 'About PharmApp',
                           'Version 1.0.0  ·  Build 1',
                           () {},
-                          trailing: const Text('v1.0.0',
-                              style: TextStyle(color: Colors.white38, fontSize: 12)),
+                          trailing: Text('v1.0.0',
+                              style: TextStyle(color: context.hintColor, fontSize: 12)),
                         ),
                       ]),
                       const SizedBox(height: 16),
@@ -125,7 +125,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
       child: Row(children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
           onPressed: () => context.pop(),
         ),
         const SizedBox(width: 4),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 
 class ReportsHubScreen extends ConsumerWidget {
   const ReportsHubScreen({super.key});
@@ -38,16 +39,32 @@ class ReportsHubScreen extends ConsumerWidget {
     },
   ];
 
-  // Mock summary numbers shown on the hub
-  static const _kpis = [
-    {'label': "Today's Revenue", 'value': '₦12,450', 'color': EnhancedTheme.primaryTeal},
-    {'label': 'This Month',      'value': '₦2.45L',  'color': EnhancedTheme.accentCyan},
-    {'label': 'Net Margin',      'value': '36.8%',   'color': EnhancedTheme.successGreen},
-    {'label': 'Outstanding',     'value': '₦46K',    'color': EnhancedTheme.errorRed},
-  ];
+  String _fmt(double v) {
+    if (v >= 100000) return '₦${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 1000)   return '₦${(v / 1000).toStringAsFixed(1)}K';
+    return '₦${v.toStringAsFixed(0)}';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final salesAsync   = ref.watch(salesReportProvider('today'));
+    final salesMonthly = ref.watch(salesReportProvider('month'));
+    final profitAsync  = ref.watch(profitReportProvider('month'));
+    final custAsync    = ref.watch(customerReportProvider);
+
+    final todayRevenue   = salesAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
+    final monthRevenue   = salesMonthly.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
+    final netMargin      = profitAsync.whenOrNull(data: (d) => d.margin) ?? 0.0;
+    final outstanding    = custAsync.whenOrNull(data: (d) => d.totalDebt) ?? 0.0;
+    final isLoading      = salesAsync.isLoading || profitAsync.isLoading || custAsync.isLoading;
+
+    final kpis = [
+      {'label': "Today's Revenue", 'value': isLoading ? '…' : _fmt(todayRevenue), 'color': EnhancedTheme.primaryTeal},
+      {'label': 'This Month',      'value': isLoading ? '…' : _fmt(monthRevenue),  'color': EnhancedTheme.accentCyan},
+      {'label': 'Net Margin',      'value': isLoading ? '…' : '${netMargin.toStringAsFixed(1)}%', 'color': EnhancedTheme.successGreen},
+      {'label': 'Outstanding',     'value': isLoading ? '…' : _fmt(outstanding),   'color': EnhancedTheme.errorRed},
+    ];
+
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       body: Stack(
@@ -75,8 +92,8 @@ class ReportsHubScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-                // KPI row
-                Row(children: _kpis.map((k) => Expanded(child: Padding(
+                // KPI row — live data
+                Row(children: kpis.map((k) => Expanded(child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
@@ -90,9 +107,14 @@ class ReportsHubScreen extends ConsumerWidget {
                           border: Border.all(color: (k['color'] as Color).withValues(alpha:0.25)),
                         ),
                         child: Column(children: [
-                          Text(k['value'] as String, style: TextStyle(
-                              color: k['color'] as Color, fontSize: 13,
-                              fontWeight: FontWeight.w800)),
+                          isLoading
+                              ? SizedBox(height: 16,
+                                  child: LinearProgressIndicator(
+                                      color: k['color'] as Color,
+                                      backgroundColor: (k['color'] as Color).withValues(alpha: 0.1)))
+                              : Text(k['value'] as String, style: TextStyle(
+                                  color: k['color'] as Color, fontSize: 13,
+                                  fontWeight: FontWeight.w800)),
                           const SizedBox(height: 4),
                           Text(k['label'] as String,
                               textAlign: TextAlign.center,
@@ -145,7 +167,7 @@ class _ReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
+      child: _PressableReportCard(
         onTap: onTap,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
@@ -180,6 +202,34 @@ class _ReportCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PressableReportCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+  const _PressableReportCard({required this.child, required this.onTap});
+
+  @override
+  State<_PressableReportCard> createState() => _PressableReportCardState();
+}
+
+class _PressableReportCardState extends State<_PressableReportCard> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: widget.child,
       ),
     );
   }

@@ -13,7 +13,9 @@ import 'package:pharmapp/features/inventory/screens/inventory_list_screen.dart';
 import 'package:pharmapp/features/customers/screens/customer_list_screen.dart';
 import 'package:pharmapp/features/customers/screens/customer_detail_screen.dart';
 import 'package:pharmapp/features/customers/screens/wallet_screen.dart';
-import 'package:pharmapp/features/wholesale/screens/wholesale_dashboard.dart';
+import 'package:pharmapp/features/wholesale/screens/wholesale_dashboard_screen.dart';
+import 'package:pharmapp/features/wholesale/screens/transfers_screen.dart';
+import 'package:pharmapp/features/wholesale/screens/wholesale_sales_screen.dart';
 import 'package:pharmapp/features/admin/screens/admin_dashboard.dart';
 import 'package:pharmapp/features/reports/screens/reports_hub_screen.dart';
 import 'package:pharmapp/features/reports/screens/sales_report_screen.dart';
@@ -23,7 +25,15 @@ import 'package:pharmapp/features/reports/screens/profit_report_screen.dart';
 import 'package:pharmapp/features/settings/screens/app_settings_screen.dart';
 import 'package:pharmapp/features/inventory/screens/item_detail_screen.dart';
 import 'package:pharmapp/features/pos/screens/payment_screen.dart';
+import 'package:pharmapp/features/pos/screens/dispensing_log_screen.dart';
+import 'package:pharmapp/features/pos/screens/sales_history_screen.dart';
+import 'package:pharmapp/features/pos/screens/expenses_screen.dart';
+import 'package:pharmapp/features/pos/screens/suppliers_screen.dart';
+import 'package:pharmapp/features/pos/screens/stock_check_screen.dart';
+import 'package:pharmapp/features/pos/screens/payment_requests_screen.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/auth/screens/user_management_screen.dart';
+import 'package:pharmapp/features/notifications/screens/notifications_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -72,6 +82,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'reports/customers', name: 'customer_report',  builder: (_, __) => const CustomerReportScreen()),
           GoRoute(path: 'reports/profit',    name: 'profit_report',    builder: (_, __) => const ProfitReportScreen()),
           GoRoute(path: 'settings',          name: 'settings',         builder: (_, __) => const AppSettingsScreen()),
+          GoRoute(path: 'users',           name: 'users',            builder: (_, __) => const UserManagementScreen()),
+          GoRoute(path: 'notifications',   name: 'notifications',    builder: (_, __) => const NotificationsScreen()),
+          GoRoute(path: 'dispensing-log',  name: 'dispensing_log',   builder: (_, __) => const DispensingLogScreen()),
+          GoRoute(path: 'sales',           name: 'sales_history',    builder: (_, __) => const SalesHistoryScreen()),
+          GoRoute(path: 'expenses',        name: 'expenses',         builder: (_, __) => const ExpensesScreen()),
+          GoRoute(path: 'suppliers',       name: 'suppliers',        builder: (_, __) => const SuppliersScreen()),
+          GoRoute(path: 'stock-check',     name: 'stock_check',      builder: (_, __) => const StockCheckScreen()),
+          GoRoute(path: 'payment-requests',name: 'payment_requests', builder: (_, __) => const PaymentRequestsScreen()),
+          GoRoute(path: 'transfers',       name: 'transfers',        builder: (_, __) => const TransfersScreen()),
+          GoRoute(path: 'wholesale-sales', name: 'wholesale_sales',  builder: (_, __) => const WholesaleSalesScreen()),
         ],
       ),
 
@@ -93,7 +113,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ── Wholesale ───────────────────────────────────────────────────────────
-      GoRoute(path: '/wholesale-dashboard', name: 'wholesale_dashboard', builder: (_, __) => const WholesaleDashboard()),
+      GoRoute(path: '/wholesale-dashboard', name: 'wholesale_dashboard', builder: (_, __) => const WholesaleDashboardScreen()),
     ],
     errorBuilder: (context, state) => _ErrorScreen(error: state.error?.toString()),
   );

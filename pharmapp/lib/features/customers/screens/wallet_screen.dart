@@ -52,6 +52,32 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     }
   }
 
+  void _confirmReset(BuildContext context, WidgetRef ref, int customerId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Reset Wallet', style: TextStyle(color: Colors.white)),
+        content: const Text('This will set the wallet balance to ₦0.00. Are you sure?',
+            style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+          TextButton(onPressed: () async {
+            Navigator.pop(ctx);
+            final success = await ref.read(walletNotifierProvider(customerId).notifier).resetWallet();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(success ? 'Wallet reset to ₦0.00' : 'Reset failed'),
+                backgroundColor: success ? EnhancedTheme.warningAmber : EnhancedTheme.errorRed));
+            }
+          }, child: const Text('Reset', style: TextStyle(color: EnhancedTheme.warningAmber))),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final customerAsync    = ref.watch(customerDetailProvider(_customerId));
@@ -151,6 +177,18 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                   color: !_isTopUp ? Colors.white : Colors.white54,
                                   fontSize: 13, fontWeight: FontWeight.w600))),
                       )),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _confirmReset(context, ref, _customerId),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.warningAmber.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.3))),
+                          child: const Text('Reset', textAlign: TextAlign.center,
+                              style: TextStyle(color: EnhancedTheme.warningAmber, fontSize: 12, fontWeight: FontWeight.w600))),
+                      ),
                     ]),
                     const SizedBox(height: 12),
 
@@ -221,10 +259,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
             error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               Icon(Icons.cloud_off_rounded,
-                  color: Colors.white.withValues(alpha: 0.3), size: 40),
+                  color: context.hintColor, size: 40),
               const SizedBox(height: 8),
               Text('$e',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
+                  style: TextStyle(color: context.subLabelColor, fontSize: 12),
                   textAlign: TextAlign.center),
               TextButton(
                 onPressed: () => ref.invalidate(walletTransactionsProvider(_customerId)),

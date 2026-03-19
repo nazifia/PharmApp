@@ -28,15 +28,15 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => Dialog(
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Adjust Stock', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+              Text('Adjust Stock', style: TextStyle(color: ctx.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Text('Current stock: $current units',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
+                  style: TextStyle(color: ctx.hintColor, fontSize: 13)),
               const SizedBox(height: 20),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 IconButton(
@@ -45,10 +45,12 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 const SizedBox(width: 8),
                 SizedBox(width: 80, child: TextField(
                   controller: qtyCtrl, keyboardType: TextInputType.number, textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                  style: TextStyle(color: ctx.labelColor, fontSize: 22, fontWeight: FontWeight.w700),
                   decoration: InputDecoration(
-                    filled: true, fillColor: Colors.white.withValues(alpha: 0.07),
+                    filled: true, fillColor: ctx.cardColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: ctx.borderColor)),
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   onChanged: (v) => setDialog(() => adjustment = int.tryParse(v) ?? 0),
@@ -66,19 +68,19 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   fontSize: 13, fontWeight: FontWeight.w600),
               )),
               const SizedBox(height: 20),
-              Text('Reason', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+              Text('Reason', style: TextStyle(color: ctx.subLabelColor, fontSize: 13)),
               const SizedBox(height: 10),
               Wrap(spacing: 8, runSpacing: 8, children: reasons.map((r) => GestureDetector(
                 onTap: () => setDialog(() => reason = r),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
-                    color: reason == r ? EnhancedTheme.accentCyan.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.07),
+                    color: reason == r ? EnhancedTheme.accentCyan.withValues(alpha: 0.2) : ctx.cardColor,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: reason == r ? EnhancedTheme.accentCyan : Colors.white.withValues(alpha: 0.15)),
+                    border: Border.all(color: reason == r ? EnhancedTheme.accentCyan : ctx.borderColor),
                   ),
                   child: Text(r, style: TextStyle(
-                    color: reason == r ? EnhancedTheme.accentCyan : Colors.white54,
+                    color: reason == r ? EnhancedTheme.accentCyan : ctx.subLabelColor,
                     fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
               )).toList()),
@@ -87,7 +89,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 Expanded(child: OutlinedButton(
                   onPressed: () => Navigator.of(ctx).pop(),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white54, side: const BorderSide(color: Colors.white24),
+                    foregroundColor: ctx.subLabelColor,
+                    side: BorderSide(color: ctx.borderColor),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: const Text('Cancel'),
                 )),
@@ -142,9 +145,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           error: (e, _) => Column(children: [
             _header(context, null),
             Expanded(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.error_outline, color: Colors.white.withValues(alpha: 0.3), size: 48),
+              Icon(Icons.error_outline, color: context.hintColor, size: 48),
               const SizedBox(height: 12),
-              Text('$e', style: TextStyle(color: Colors.white.withValues(alpha: 0.5)), textAlign: TextAlign.center),
+              Text('$e', style: TextStyle(color: context.subLabelColor), textAlign: TextAlign.center),
               TextButton(onPressed: () => ref.invalidate(itemDetailProvider(itemId)),
                   child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal))),
             ]))),

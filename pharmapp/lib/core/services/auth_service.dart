@@ -27,7 +27,7 @@ class AuthService {
   /// Restores session from persistent storage (call on app startup).
   Future<bool> checkAuthStatus() async {
     try {
-      final prefs    = await SharedPreferences.getInstance();
+      final prefs    = await SharedPreferences.getInstance().timeout(const Duration(seconds: 3));
       final token    = prefs.getString('auth_token');
       final userData = prefs.getString('current_user');
 

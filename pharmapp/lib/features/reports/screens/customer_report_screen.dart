@@ -67,16 +67,13 @@ class CustomerReportScreen extends ConsumerWidget {
 
   Widget _buildBody(BuildContext context, CustomerReportData data) {
     final metrics = [
-      {'label': 'Total Customers', 'value': '${data.total}',          'color': EnhancedTheme.primaryTeal,  'icon': Icons.people_rounded},
-      {'label': 'Retail',          'value': '${data.retail}',         'color': EnhancedTheme.successGreen, 'icon': Icons.storefront_rounded},
-      {'label': 'Wholesale',       'value': '${data.wholesale}',      'color': EnhancedTheme.accentCyan,   'icon': Icons.store_rounded},
-      {'label': 'Outstanding',     'value': _fmt(data.totalDebt),     'color': EnhancedTheme.errorRed,     'icon': Icons.money_off_rounded},
-      {'label': 'Wallet Balance',  'value': _fmt(data.totalWallet),   'color': EnhancedTheme.accentPurple, 'icon': Icons.account_balance_wallet_rounded},
-      {'label': 'Top Customers',   'value': '${data.topCustomers.length}','color': EnhancedTheme.accentOrange, 'icon': Icons.star_rounded},
+      {'label': 'Total Customers', 'value': '${data.total}',       'color': EnhancedTheme.primaryTeal,  'icon': Icons.people_rounded},
+      {'label': 'Retail',          'value': '${data.retail}',      'color': EnhancedTheme.successGreen, 'icon': Icons.storefront_rounded},
+      {'label': 'Wholesale',       'value': '${data.wholesale}',   'color': EnhancedTheme.accentCyan,   'icon': Icons.store_rounded},
+      {'label': 'Outstanding',     'value': _fmt(data.totalDebt),  'color': EnhancedTheme.errorRed,     'icon': Icons.money_off_rounded},
     ];
 
-    final debtors = data.topCustomers.where((c) => c.debt > 0).toList();
-    final total   = data.total > 0 ? data.total : 1;
+    final total = data.total > 0 ? data.total : 1;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -87,8 +84,8 @@ class CustomerReportScreen extends ConsumerWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3, mainAxisSpacing: 10,
-              crossAxisSpacing: 10, childAspectRatio: 1.3),
+              crossAxisCount: 2, mainAxisSpacing: 10,
+              crossAxisSpacing: 10, childAspectRatio: 1.8),
           itemCount: metrics.length,
           itemBuilder: (_, i) {
             final m     = metrics[i];
@@ -98,19 +95,19 @@ class CustomerReportScreen extends ConsumerWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: color.withValues(alpha: 0.25))),
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(m['icon'] as IconData, color: color, size: 18),
-                    const SizedBox(height: 4),
+                    Icon(m['icon'] as IconData, color: color, size: 20),
+                    const SizedBox(height: 6),
                     Text(m['value'] as String,
-                        style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+                        style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
                     Text(m['label'] as String,
                         style: TextStyle(
-                            color: context.subLabelColor, fontSize: 9),
+                            color: context.subLabelColor, fontSize: 10),
                         textAlign: TextAlign.center),
                   ]),
                 ),
@@ -167,30 +164,20 @@ class CustomerReportScreen extends ConsumerWidget {
                   border: Border.all(color: context.borderColor)),
                 child: Column(
                   children: data.topCustomers.asMap().entries.map((e) {
-                    final isWholesale = e.value.debt > 0;
-                    final accentColor = isWholesale
-                        ? EnhancedTheme.accentCyan
-                        : EnhancedTheme.primaryTeal;
                     return Column(children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         child: Row(children: [
                           CircleAvatar(
                             radius: 16,
-                            backgroundColor: accentColor.withValues(alpha: 0.15),
+                            backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
                             child: Text('${e.key + 1}',
-                                style: TextStyle(color: accentColor,
+                                style: const TextStyle(color: EnhancedTheme.primaryTeal,
                                     fontSize: 12, fontWeight: FontWeight.w700))),
                           const SizedBox(width: 12),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(e.value.name,
-                                style: TextStyle(color: context.labelColor,
-                                    fontSize: 13, fontWeight: FontWeight.w600)),
-                            Text('${e.value.purchases} purchases',
-                                style: TextStyle(
-                                    color: context.hintColor,
-                                    fontSize: 11)),
-                          ])),
+                          Expanded(child: Text(e.value.name,
+                              style: TextStyle(color: context.labelColor,
+                                  fontSize: 13, fontWeight: FontWeight.w600))),
                           Text(_fmt(e.value.spent),
                               style: const TextStyle(color: EnhancedTheme.primaryTeal,
                                   fontSize: 13, fontWeight: FontWeight.w700)),
@@ -204,25 +191,6 @@ class CustomerReportScreen extends ConsumerWidget {
               ),
             ),
           ),
-        const SizedBox(height: 20),
-
-        // ── Outstanding debts ─────────────────────────────────────────────────
-        if (debtors.isNotEmpty) ...[
-          Row(children: [
-            const Expanded(child: Text('Outstanding Debts',
-                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700))),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: EnhancedTheme.errorRed.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6)),
-              child: Text(_fmt(data.totalDebt),
-                  style: const TextStyle(color: EnhancedTheme.errorRed,
-                      fontSize: 11, fontWeight: FontWeight.w700))),
-          ]),
-          const SizedBox(height: 10),
-          ...debtors.map((c) => _debtRow(context, c)),
-        ],
         const SizedBox(height: 24),
       ]),
     );
@@ -249,29 +217,4 @@ class CustomerReportScreen extends ConsumerWidget {
       ),
     ]);
   }
-
-  Widget _debtRow(BuildContext context, TopCustomer c) => ClipRRect(
-    borderRadius: BorderRadius.circular(12),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: EnhancedTheme.errorRed.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.2))),
-        child: Row(children: [
-          const Icon(Icons.money_off_rounded, color: EnhancedTheme.errorRed, size: 18),
-          const SizedBox(width: 12),
-          Expanded(child: Text(c.name,
-              style: const TextStyle(color: Colors.white,
-                  fontSize: 13, fontWeight: FontWeight.w600))),
-          Text(_fmt(c.debt),
-              style: const TextStyle(color: EnhancedTheme.errorRed,
-                  fontSize: 13, fontWeight: FontWeight.w700)),
-        ]),
-      ),
-    ),
-  );
 }

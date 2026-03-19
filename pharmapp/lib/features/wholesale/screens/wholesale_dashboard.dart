@@ -7,6 +7,7 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_api_client.dart';
+import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
 class WholesaleDashboard extends ConsumerStatefulWidget {
   const WholesaleDashboard({super.key});
@@ -16,6 +17,7 @@ class WholesaleDashboard extends ConsumerStatefulWidget {
 }
 
 class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   String _fmt(double v) {
     if (v >= 100000) return '₦${(v / 100000).toStringAsFixed(1)}L';
@@ -114,7 +116,9 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
     ];
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: context.scaffoldBg,
+      drawer: const AppDrawer(),
       body: Stack(children: [
         Container(decoration: context.bgGradient),
         SafeArea(child: Column(children: [
@@ -124,8 +128,10 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
             padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
             child: Row(children: [
               IconButton(
-                  icon: Icon(Icons.arrow_back_rounded, color: context.iconOnBg),
-                  onPressed: () => context.pop()),
+                icon: const Icon(Icons.menu_rounded),
+                color: context.iconOnBg,
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
               const SizedBox(width: 4),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Wholesale',
@@ -312,17 +318,11 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(c.name,
                 style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
-            Text('${c.purchases} purchases',
-                style: TextStyle(color: context.subLabelColor, fontSize: 12)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text(_fmt(c.spent),
                 style: const TextStyle(color: EnhancedTheme.primaryTeal,
                     fontSize: 15, fontWeight: FontWeight.w700)),
-            if (c.debt > 0)
-              Text('Owes ${_fmt(c.debt)}',
-                  style: const TextStyle(color: EnhancedTheme.warningAmber,
-                      fontSize: 10, fontWeight: FontWeight.w600)),
           ]),
         ]),
       ),
@@ -390,19 +390,19 @@ class _WholesaleMoreSheet extends StatelessWidget {
             Text('Reports', style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             Row(children: [
-              _sheetTile(context, Icons.bar_chart_rounded,       'Sales',     EnhancedTheme.primaryTeal,  '/reports/sales'),
-              _sheetTile(context, Icons.inventory_2_rounded,     'Inventory', EnhancedTheme.accentCyan,   '/reports/inventory'),
-              _sheetTile(context, Icons.people_rounded,          'Customers', EnhancedTheme.accentPurple, '/reports/customers'),
-              _sheetTile(context, Icons.savings_rounded,         'Profit',    EnhancedTheme.successGreen, '/reports/profit'),
+              _sheetTile(context, Icons.bar_chart_rounded,       'Sales',     EnhancedTheme.primaryTeal,  '/dashboard/reports/sales'),
+              _sheetTile(context, Icons.inventory_2_rounded,     'Inventory', EnhancedTheme.accentCyan,   '/dashboard/reports/inventory'),
+              _sheetTile(context, Icons.people_rounded,          'Customers', EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
+              _sheetTile(context, Icons.savings_rounded,         'Profit',    EnhancedTheme.successGreen, '/dashboard/reports/profit'),
             ]),
             const SizedBox(height: 20),
 
             Text('Navigate', style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             Row(children: [
-              _sheetTile(context, Icons.storefront_rounded,      'Retail',    EnhancedTheme.primaryTeal,  '/dashboard'),
-              _sheetTile(context, Icons.point_of_sale_rounded,   'Retail POS',EnhancedTheme.accentCyan,   '/pos'),
-              _sheetTile(context, Icons.settings_rounded,        'Settings',  EnhancedTheme.accentPurple, '/settings'),
+              _sheetTile(context, Icons.storefront_rounded,      'Retail',      EnhancedTheme.primaryTeal,  '/dashboard'),
+              _sheetTile(context, Icons.point_of_sale_rounded,   'Retail POS',  EnhancedTheme.accentCyan,   '/dashboard/pos'),
+              _sheetTile(context, Icons.settings_rounded,        'Settings',    EnhancedTheme.accentPurple, '/dashboard/settings'),
             ]),
             const SizedBox(height: 24),
 

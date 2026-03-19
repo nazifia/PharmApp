@@ -16,7 +16,7 @@ class CustomerListScreen extends ConsumerStatefulWidget {
 class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   final _searchCtrl = TextEditingController();
   String _filter    = 'All';
-  final _filters    = ['All', 'Retail', 'Wholesale', 'Wallet'];
+  final _filters    = ['All', 'Retail', 'Wholesale', 'Wallet', 'Debt'];
 
   @override
   void dispose() { _searchCtrl.dispose(); super.dispose(); }
@@ -33,6 +33,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
         case 'Retail':    return !c.isWholesale;
         case 'Wholesale': return c.isWholesale;
         case 'Wallet':    return c.walletBalance > 0;
+        case 'Debt':      return c.outstandingDebt > 0;
         default:          return true;
       }
     }).toList();
@@ -52,18 +53,18 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
         builder: (ctx, setModal) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF1E293B),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            decoration: BoxDecoration(
+              color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             child: Form(
               key: formKey,
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Center(child: Container(width: 40, height: 4,
-                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
+                    decoration: BoxDecoration(color: context.dividerColor, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                const Text('Add Customer', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                Text('Add Customer', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 20),
                 _sheetField(nameCtrl, 'Full Name / Business Name *',
                     validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
@@ -72,7 +73,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                     validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
                 const SizedBox(height: 16),
                 Row(children: [
-                  Text('Type:', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+                  Text('Type:', style: TextStyle(color: ctx.subLabelColor, fontSize: 13)),
                   const SizedBox(width: 12),
                   ...['Retail', 'Wholesale'].map((t) => Padding(
                     padding: const EdgeInsets.only(right: 10),
@@ -83,14 +84,14 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                         decoration: BoxDecoration(
                           color: type == t
                               ? (t == 'Wholesale' ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal)
-                              : Colors.white.withValues(alpha: 0.07),
+                              : ctx.cardColor,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: type == t
                               ? (t == 'Wholesale' ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal)
-                              : Colors.white.withValues(alpha: 0.15)),
+                              : ctx.borderColor),
                         ),
                         child: Text(t, style: TextStyle(
-                            color: type == t ? Colors.white : Colors.white54,
+                            color: type == t ? Colors.white : ctx.subLabelColor,
                             fontSize: 13, fontWeight: FontWeight.w600)),
                       ),
                     ),
@@ -129,12 +130,16 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       {TextInputType keyboardType = TextInputType.text, String? Function(String?)? validator}) {
     return TextFormField(
       controller: ctrl, keyboardType: keyboardType, validator: validator,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
+      style: TextStyle(color: context.labelColor, fontSize: 14),
       decoration: InputDecoration(
-        labelText: label, labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
-        filled: true, fillColor: Colors.white.withValues(alpha: 0.07),
+        labelText: label, labelStyle: TextStyle(color: context.hintColor, fontSize: 13),
+        filled: true, fillColor: context.cardColor,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        errorStyle: const TextStyle(color: Color(0xFFEF4444)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: context.borderColor)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+        errorStyle: const TextStyle(color: EnhancedTheme.errorRed),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
     );
@@ -161,9 +166,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
           Expanded(child: customersAsync.when(
             loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
             error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.cloud_off_rounded, color: Colors.white.withValues(alpha: 0.3), size: 48),
+              Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
               const SizedBox(height: 12),
-              Text('$e', style: TextStyle(color: Colors.white.withValues(alpha: 0.5)), textAlign: TextAlign.center),
+              Text('$e', style: TextStyle(color: context.subLabelColor), textAlign: TextAlign.center),
               const SizedBox(height: 12),
               TextButton(onPressed: () => ref.invalidate(customerListProvider),
                   child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal))),
@@ -172,9 +177,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               final filtered = _applyFilter(customers);
               if (filtered.isEmpty) {
                 return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.people_outline, color: Colors.white.withValues(alpha: 0.2), size: 64),
+                  Icon(Icons.people_outline, color: context.hintColor, size: 64),
                   const SizedBox(height: 16),
-                  Text('No customers found', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 16)),
+                  Text('No customers found', style: TextStyle(color: context.subLabelColor, fontSize: 16)),
                 ]));
               }
               return ListView.builder(
@@ -215,12 +220,12 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: TextField(
           controller: _searchCtrl, onChanged: (_) => setState(() {}),
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.labelColor),
           decoration: InputDecoration(
             hintText: 'Search by name or phone…',
-            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 14),
-            prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha: 0.4)),
-            filled: true, fillColor: Colors.white.withValues(alpha: 0.07),
+            hintStyle: TextStyle(color: context.hintColor, fontSize: 14),
+            prefixIcon: Icon(Icons.search, color: context.hintColor),
+            filled: true, fillColor: context.cardColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
           ),

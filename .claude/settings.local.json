@@ -37,7 +37,10 @@
       "Bash(flutter emulators:*)",
       "Bash(adb:*)",
       "Bash(flutter doctor:*)",
-      "Bash(kill -s USR1 899 2>/dev/null || echo \"Could not send signal\")"
+      "Bash(kill -s USR1 899 2>/dev/null || echo \"Could not send signal\")",
+      "Bash(git config:*)",
+      "Bash(git rm:*)",
+      "Bash(rm -f nul)"
     ]
   }
 }

@@ -6,9 +6,10 @@ part 'sale.g.dart';
 @freezed
 class SaleItemPayload with _$SaleItemPayload {
   const factory SaleItemPayload({
-    required String barcode, // or item ID depending on Django backend expectation
+    required String barcode,
+    required int? itemId,
     required int quantity,
-    required double unitPrice,
+    required double price,
   }) = _SaleItemPayload;
 
   factory SaleItemPayload.fromJson(Map<String, dynamic> json) => _$SaleItemPayloadFromJson(json);
@@ -18,6 +19,7 @@ class SaleItemPayload with _$SaleItemPayload {
 class PaymentPayload with _$PaymentPayload {
   const factory PaymentPayload({
     @Default(0.0) double cash,
+    @Default(0.0) double pos,
     @Default(0.0) double bankTransfer,
     @Default(0.0) double wallet,
   }) = _PaymentPayload;
@@ -29,8 +31,9 @@ class PaymentPayload with _$PaymentPayload {
 class CheckoutPayload with _$CheckoutPayload {
   const factory CheckoutPayload({
     required List<SaleItemPayload> items,
-    required PaymentPayload payments,
-    String? customerId, // Nullable for walk-in customers
+    required PaymentPayload payment,
+    int? customerId,
+    bool? isWholesale,
     required double totalAmount,
   }) = _CheckoutPayload;
 

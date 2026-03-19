@@ -31,7 +31,7 @@ final walletTransactionsProvider =
   return ref.watch(customerApiProvider).fetchWalletTransactions(id);
 });
 
-// ── Customer create / update notifier ─────────────────────────────────────────
+// ── Customer create / update / delete notifier ────────────────────────────────
 
 class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
   final CustomerApiClient _api;
@@ -65,6 +65,19 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
       return null;
     }
   }
+
+  Future<bool> deleteCustomer(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.deleteCustomer(id);
+      _ref.invalidate(customerListProvider);
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
 }
 
 final customerNotifierProvider =
@@ -72,7 +85,7 @@ final customerNotifierProvider =
   return CustomerNotifier(ref.watch(customerApiProvider), ref);
 });
 
-// ── Wallet top-up / deduct notifier ───────────────────────────────────────────
+// ── Wallet top-up / deduct / reset notifier ───────────────────────────────────
 
 class WalletNotifier extends StateNotifier<AsyncValue<void>> {
   final CustomerApiClient _api;
@@ -82,12 +95,16 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
   WalletNotifier(this._api, this._ref, this._customerId)
       : super(const AsyncValue.data(null));
 
+  void _refresh() {
+    _ref.invalidate(customerDetailProvider(_customerId));
+    _ref.invalidate(walletTransactionsProvider(_customerId));
+  }
+
   Future<bool> topUp(double amount) async {
     state = const AsyncValue.loading();
     try {
       await _api.topUpWallet(_customerId, amount);
-      _ref.invalidate(customerDetailProvider(_customerId));
-      _ref.invalidate(walletTransactionsProvider(_customerId));
+      _refresh();
       state = const AsyncValue.data(null);
       return true;
     } catch (e, st) {
@@ -100,8 +117,33 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await _api.deductWallet(_customerId, amount);
-      _ref.invalidate(customerDetailProvider(_customerId));
-      _ref.invalidate(walletTransactionsProvider(_customerId));
+      _refresh();
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+
+  Future<bool> resetWallet() async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.resetWallet(_customerId);
+      _refresh();
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+
+  Future<bool> recordPayment({required double amount, String method = 'cash'}) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.recordPayment(_customerId, amount: amount, method: method);
+      _refresh();
       state = const AsyncValue.data(null);
       return true;
     } catch (e, st) {

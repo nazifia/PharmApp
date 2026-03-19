@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/core/theme/enhanced_theme.dart';
 
 class DashboardCard extends StatelessWidget {
   final String title;
@@ -50,7 +51,7 @@ class DashboardCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha:0.15),
+                        color: color.withValues(alpha:0.18),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(icon, color: color, size: 20),
@@ -61,8 +62,8 @@ class DashboardCard extends StatelessWidget {
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: (trendPositive
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFFEF4444))
+                                  ? EnhancedTheme.successGreen
+                                  : EnhancedTheme.errorRed)
                               .withValues(alpha:0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -74,8 +75,8 @@ class DashboardCard extends StatelessWidget {
                                   ? Icons.trending_up
                                   : Icons.trending_down,
                               color: trendPositive
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFFEF4444),
+                                  ? EnhancedTheme.successGreen
+                                  : EnhancedTheme.errorRed,
                               size: 12,
                             ),
                             const SizedBox(width: 2),
@@ -83,8 +84,8 @@ class DashboardCard extends StatelessWidget {
                               trend!,
                               style: TextStyle(
                                 color: trendPositive
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFFEF4444),
+                                    ? EnhancedTheme.successGreen
+                                    : EnhancedTheme.errorRed,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -101,8 +102,8 @@ class DashboardCard extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       value,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.labelColor,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         letterSpacing: -0.5,
@@ -113,8 +114,8 @@ class DashboardCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.labelColor,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -124,7 +125,7 @@ class DashboardCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha:0.4),
+                    color: context.subLabelColor,
                     fontSize: 11,
                   ),
                   maxLines: 1,

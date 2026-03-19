@@ -1,91 +1,1029 @@
-from django.shortcuts import get_object_or_404
+import uuid
+from decimal import Decimal
+from django.db import transaction
+from django.db.models import Q, Sum, F
 from django.utils import timezone
-from rest_framework.decorators import api_view
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+
 from inventory.models import Item
 from customers.models import Customer, WalletTransaction
-from .models import Sale, SaleItem
+from authapp.models import PharmUser
+from .models import (
+    Cashier,
+    Sale,
+    SaleItem,
+    DispensingLog,
+    PaymentRequest,
+    PaymentRequestItem,
+    ReceiptPayment,
+    ReturnRecord,
+    ExpenseCategory,
+    Expense,
+    Supplier,
+    Procurement,
+    ProcurementItem,
+    StockCheck,
+    StockCheckItem,
+    Notification,
+)
 
 
-@api_view(['POST'])
+# ═══════════════════════════════════════════════════════════════════════════════
+#  CHECKOUT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["POST"])
 def checkout(request):
     """
-    Expected payload (camelCase from Flutter):
-    {
-      "customerId": 1,          // optional
-      "isWholesale": false,
-      "items": [
-        {"barcode": "...", "itemId": 1, "quantity": 2, "price": 50.0}
-      ],
-      "payment": {
-        "cash": 100,
-        "pos": 0,
-        "bankTransfer": 0,
-        "wallet": 0
-      }
-    }
+    Process a sale. Supports split payments, wallet, cashier assignment.
     """
-    data        = request.data
-    customer_id = data.get('customerId')
-    is_wholesale = data.get('isWholesale', False)
-    items_data  = data.get('items', [])
-    payment     = data.get('payment', {})
+    data = request.data
+    customer_id = data.get("customerId")
+    cashier_id = data.get("cashierId")
+    is_wholesale = data.get("isWholesale", False)
+    items_data = data.get("items", [])
+    payment = data.get("payment", {})
+    payment_method = data.get("paymentMethod", "cash")
+    buyer_name = data.get("buyerName", "")
+    buyer_address = data.get("buyerAddress", "")
+
+    if not items_data:
+        return Response(
+            {"detail": "No items in cart"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     customer = None
     if customer_id:
         try:
             customer = Customer.objects.get(pk=customer_id)
         except Customer.DoesNotExist:
-            pass
+            return Response(
+                {"detail": f"Customer {customer_id} not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    # Calculate total
-    total = sum(float(i.get('price', 0)) * int(i.get('quantity', 1)) for i in items_data)
+    cashier = None
+    if cashier_id:
+        try:
+            cashier = Cashier.objects.get(pk=cashier_id, is_active=True)
+        except Cashier.DoesNotExist:
+            return Response(
+                {"detail": f"Cashier {cashier_id} not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    # Create sale
-    sale = Sale.objects.create(
-        customer=customer,
-        total_amount=total,
-        payment_cash=float(payment.get('cash', 0)),
-        payment_pos=float(payment.get('pos', 0)),
-        payment_transfer=float(payment.get('bankTransfer', 0)),
-        payment_wallet=float(payment.get('wallet', 0)),
-        is_wholesale=is_wholesale,
-    )
-
-    # Create sale items and deduct stock
+    # Validate items and stock
+    total = Decimal("0")
+    discount_total = Decimal("0")
+    resolved = []
     for i_data in items_data:
-        item = None
-        item_id = i_data.get('itemId')
-        barcode  = i_data.get('barcode', '')
-        qty      = int(i_data.get('quantity', 1))
-        price    = float(i_data.get('price', 0))
+        item_id = i_data.get("itemId")
+        barcode = i_data.get("barcode", "")
+        qty = int(i_data.get("quantity", 1))
+        price = Decimal(str(i_data.get("price", 0)))
+        discount = Decimal(str(i_data.get("discount", 0)))
 
+        if qty <= 0:
+            return Response(
+                {"detail": "Quantity must be positive"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        item = None
         if item_id:
-            try:
-                item = Item.objects.get(pk=item_id)
-            except Item.DoesNotExist:
-                pass
+            item = Item.objects.filter(pk=item_id).first()
         elif barcode:
             item = Item.objects.filter(barcode=barcode).first()
 
-        if item:
-            item.stock = max(0, item.stock - qty)
-            item.save()
+        if item and item.stock < qty:
+            return Response(
+                {
+                    "detail": f"Insufficient stock for {item.name}: {item.stock} available, {qty} requested"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        SaleItem.objects.create(
-            sale=sale, item=item, quantity=qty, price=price,
-            barcode=barcode,
+        line_total = (price * qty) - discount
+        total += line_total
+        discount_total += discount
+        resolved.append(
+            {
+                "item": item,
+                "qty": qty,
+                "price": price,
+                "discount": discount,
+                "barcode": barcode,
+                "name": i_data.get("name", item.name if item else ""),
+                "brand": i_data.get("brand", item.brand if item else ""),
+                "dosage_form": i_data.get(
+                    "dosageForm", item.dosage_form if item else ""
+                ),
+                "unit": i_data.get("unit", item.unit if item else ""),
+            }
         )
 
-    # Handle wallet payment
-    wallet_used = float(payment.get('wallet', 0))
-    if customer and wallet_used > 0:
-        customer.wallet_balance = float(customer.wallet_balance) - wallet_used
-        customer.last_visit = timezone.now().date()
-        customer.save()
-        WalletTransaction.objects.create(
-            customer=customer, txn_type='purchase',
-            amount=wallet_used, note=f'Sale #{sale.id}')
+    # Validate payment
+    cash = Decimal(str(payment.get("cash", 0)))
+    pos = Decimal(str(payment.get("pos", 0)))
+    transfer = Decimal(str(payment.get("bankTransfer", 0)))
+    wallet = Decimal(str(payment.get("wallet", 0)))
+    payment_total = cash + pos + transfer + wallet
+
+    if payment_total < total:
+        return Response(
+            {"detail": f"Payment ({payment_total}) is less than order total ({total})"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if wallet > 0:
+        if not customer:
+            return Response(
+                {"detail": "Wallet payment requires a customer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if Decimal(str(customer.wallet_balance)) < wallet:
+            return Response(
+                {
+                    "detail": f"Insufficient wallet balance: {customer.wallet_balance} available"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    with transaction.atomic():
+        sale = Sale.objects.create(
+            customer=customer,
+            cashier=cashier,
+            dispenser=request.user if request.user.is_authenticated else None,
+            total_amount=total,
+            discount_total=discount_total,
+            payment_cash=cash,
+            payment_pos=pos,
+            payment_transfer=transfer,
+            payment_wallet=wallet,
+            payment_method=payment_method,
+            is_wholesale=is_wholesale,
+            buyer_name=buyer_name,
+            buyer_address=buyer_address,
+        )
+
+        for ri in resolved:
+            item = ri["item"]
+            qty = ri["qty"]
+            if item:
+                item.stock = max(0, item.stock - qty)
+                item.save()
+
+            SaleItem.objects.create(
+                sale=sale,
+                item=item,
+                name=ri["name"],
+                brand=ri["brand"],
+                dosage_form=ri["dosage_form"],
+                unit=ri["unit"],
+                quantity=qty,
+                price=ri["price"],
+                discount=ri["discount"],
+                barcode=ri["barcode"],
+            )
+
+            DispensingLog.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                sale=sale,
+                item=item,
+                name=ri["name"],
+                brand=ri["brand"],
+                dosage_form=ri["dosage_form"],
+                unit=ri["unit"],
+                quantity=qty,
+                amount=ri["price"] * qty,
+                discount_amount=ri["discount"],
+            )
+
+        if customer and wallet > 0:
+            customer.wallet_balance = Decimal(str(customer.wallet_balance)) - wallet
+            customer.last_visit = timezone.now().date()
+            customer.save()
+            WalletTransaction.objects.create(
+                customer=customer,
+                txn_type="purchase",
+                amount=wallet,
+                note=f"Sale #{sale.id}",
+            )
+
+        if customer:
+            customer.last_visit = timezone.now().date()
+            customer.save()
+
+        # Record split payments
+        if payment_method == "split":
+            for method, amt in [
+                ("cash", cash),
+                ("pos", pos),
+                ("transfer", transfer),
+                ("wallet", wallet),
+            ]:
+                if amt > 0:
+                    ReceiptPayment.objects.create(
+                        receipt=sale, amount=amt, payment_method=method
+                    )
 
     return Response(sale.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  SALES / RECEIPTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET"])
+def sale_list(request):
+    sales = Sale.objects.all().select_related("customer", "cashier")
+    date_from = request.query_params.get("from")
+    date_to = request.query_params.get("to")
+    customer_id = request.query_params.get("customerId")
+    search = request.query_params.get("search", "").strip()
+
+    if date_from:
+        sales = sales.filter(created__date__gte=date_from)
+    if date_to:
+        sales = sales.filter(created__date__lte=date_to)
+    if customer_id:
+        sales = sales.filter(customer_id=customer_id)
+    if search:
+        sales = sales.filter(
+            Q(receipt_id__icontains=search)
+            | Q(customer__name__icontains=search)
+            | Q(buyer_name__icontains=search)
+        )
+
+    return Response([s.to_api_dict() for s in sales[:100]])
+
+
+@api_view(["GET"])
+def sale_detail(request, pk):
+    sale = get_object_or_404(
+        Sale.objects.prefetch_related("items", "payments", "returns"), pk=pk
+    )
+    data = sale.to_api_dict()
+    data["payments"] = [p.to_api_dict() for p in sale.payments.all()]
+    data["returns"] = [r.to_api_dict() for r in sale.returns.all()]
+    return Response(data)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  RETURNS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["POST"])
+def return_item(request, pk):
+    """Return items from a sale. Restores stock and optionally refunds wallet."""
+    sale = get_object_or_404(Sale, pk=pk)
+    item_id = request.data.get("saleItemId")
+    qty = int(request.data.get("quantity", 0))
+    refund_method = request.data.get("refundMethod", "wallet")
+    reason = request.data.get("reason", "")
+
+    if qty <= 0:
+        return Response(
+            {"detail": "Quantity must be positive"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    sale_item = get_object_or_404(SaleItem, pk=item_id, sale=sale)
+
+    remaining = sale_item.quantity - sale_item.return_qty
+    if qty > remaining:
+        return Response(
+            {"detail": f"Can only return {remaining} more units"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    with transaction.atomic():
+        # Calculate refund amount (proportional with discount)
+        line_total = (sale_item.price * sale_item.quantity) - sale_item.discount
+        unit_refund = (
+            line_total / sale_item.quantity if sale_item.quantity > 0 else Decimal("0")
+        )
+        refund_amount = unit_refund * qty
+
+        # Restore stock
+        if sale_item.item:
+            sale_item.item.stock += qty
+            sale_item.item.save()
+
+        # Update sale item
+        sale_item.return_qty += qty
+        if sale_item.return_qty >= sale_item.quantity:
+            sale_item.returned = True
+        sale_item.save()
+
+        # Update dispensing log
+        DispensingLog.objects.filter(
+            sale=sale, item=sale_item.item, name=sale_item.name
+        ).update(status="Returned" if sale_item.returned else "Partially Returned")
+
+        # Create return record
+        ret = ReturnRecord.objects.create(
+            sale=sale,
+            sale_item=sale_item,
+            quantity=qty,
+            amount=refund_amount,
+            refund_method=refund_method,
+            reason=reason,
+            returned_by=request.user if request.user.is_authenticated else None,
+        )
+
+        # Refund
+        if refund_method == "wallet" and sale.customer:
+            sale.customer.wallet_balance = (
+                Decimal(str(sale.customer.wallet_balance)) + refund_amount
+            )
+            sale.customer.save()
+            WalletTransaction.objects.create(
+                customer=sale.customer,
+                txn_type="topup",
+                amount=refund_amount,
+                note=f"Return #{ret.id} from {sale.receipt_id}",
+            )
+
+        # Update sale status
+        all_returned = all(si.returned for si in sale.items.all())
+        any_returned = any(si.returned or si.return_qty > 0 for si in sale.items.all())
+        sale.status = (
+            "returned"
+            if all_returned
+            else ("partial_return" if any_returned else sale.status)
+        )
+        sale.save()
+
+    return Response(
+        {"detail": "Return processed", "refundAmount": float(refund_amount)},
+        status=status.HTTP_200_OK,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  PAYMENT REQUESTS (Dispenser -> Cashier workflow)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["POST"])
+def send_to_cashier(request):
+    """Dispenser sends cart to cashier for payment."""
+    items_data = request.data.get("items", [])
+    customer_id = request.data.get("customerId")
+    cashier_id = request.data.get("cashierId")
+    payment_type = request.data.get("paymentType", "retail")
+
+    if not items_data:
+        return Response({"detail": "No items"}, status=status.HTTP_400_BAD_REQUEST)
+
+    total = Decimal("0")
+    for i in items_data:
+        total += Decimal(str(i.get("price", 0))) * int(i.get("quantity", 1))
+
+    customer = None
+    if customer_id:
+        customer = Customer.objects.filter(pk=customer_id).first()
+
+    cashier = None
+    if cashier_id:
+        cashier = Cashier.objects.filter(pk=cashier_id, is_active=True).first()
+
+    pr = PaymentRequest.objects.create(
+        dispenser=request.user,
+        cashier=cashier,
+        customer=customer,
+        payment_type=payment_type,
+        total_amount=total,
+    )
+
+    for i in items_data:
+        item = None
+        if i.get("itemId"):
+            item = Item.objects.filter(pk=i["itemId"]).first()
+        PaymentRequestItem.objects.create(
+            payment_request=pr,
+            item=item,
+            item_name=i.get("name", item.name if item else ""),
+            brand=i.get("brand", item.brand if item else ""),
+            dosage_form=i.get("dosageForm", item.dosage_form if item else ""),
+            unit=i.get("unit", item.unit if item else ""),
+            quantity=int(i.get("quantity", 1)),
+            unit_price=Decimal(str(i.get("price", 0))),
+        )
+
+    # Notify cashiers
+    cashiers = Cashier.objects.filter(is_active=True)
+    if cashier_id:
+        cashiers = cashiers.filter(pk=cashier_id)
+    for c in cashiers:
+        Notification.objects.create(
+            user=c.user,
+            notif_type="payment_request",
+            priority="high",
+            title="New Payment Request",
+            message=f"Payment request {pr.request_id} for ₦{total} from {request.user.phone_number}",
+        )
+
+    return Response(pr.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+def payment_request_list(request):
+    status_filter = request.query_params.get("status", "")
+    prs = PaymentRequest.objects.all().prefetch_related("items")
+    if status_filter:
+        prs = prs.filter(status=status_filter)
+    return Response([p.to_api_dict() for p in prs[:50]])
+
+
+@api_view(["POST"])
+def accept_payment_request(request, pk):
+    pr = get_object_or_404(PaymentRequest, pk=pk)
+    if pr.status != "pending":
+        return Response(
+            {"detail": f"Request is already {pr.status}"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    pr.status = "accepted"
+    pr.save()
+    return Response(pr.to_api_dict())
+
+
+@api_view(["POST"])
+def reject_payment_request(request, pk):
+    pr = get_object_or_404(PaymentRequest, pk=pk)
+    if pr.status != "pending":
+        return Response(
+            {"detail": f"Request is already {pr.status}"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    pr.status = "rejected"
+    pr.save()
+    return Response(pr.to_api_dict())
+
+
+@api_view(["POST"])
+def complete_payment_request(request, pk):
+    """Cashier completes payment - creates a Sale from the payment request."""
+    pr = get_object_or_404(PaymentRequest.objects.prefetch_related("items"), pk=pk)
+    if pr.status not in ("pending", "accepted"):
+        return Response(
+            {"detail": f"Request is already {pr.status}"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    payment = request.data.get("payment", {})
+    payment_method = request.data.get("paymentMethod", "cash")
+
+    with transaction.atomic():
+        sale = Sale.objects.create(
+            customer=pr.customer,
+            dispenser=pr.dispenser,
+            total_amount=pr.total_amount,
+            payment_cash=Decimal(str(payment.get("cash", 0))),
+            payment_pos=Decimal(str(payment.get("pos", 0))),
+            payment_transfer=Decimal(str(payment.get("bankTransfer", 0))),
+            payment_wallet=Decimal(str(payment.get("wallet", 0))),
+            payment_method=payment_method,
+            buyer_name=pr.buyer_name,
+        )
+
+        for pri in pr.items.all():
+            if pri.item:
+                pri.item.stock = max(0, pri.item.stock - pri.quantity)
+                pri.item.save()
+
+            SaleItem.objects.create(
+                sale=sale,
+                item=pri.item,
+                name=pri.item_name,
+                brand=pri.brand,
+                dosage_form=pri.dosage_form,
+                unit=pri.unit,
+                quantity=pri.quantity,
+                price=pri.unit_price,
+                discount=pri.discount_amount,
+            )
+            DispensingLog.objects.create(
+                user=pr.dispenser,
+                sale=sale,
+                item=pri.item,
+                name=pri.item_name,
+                brand=pri.brand,
+                dosage_form=pri.dosage_form,
+                unit=pri.unit,
+                quantity=pri.quantity,
+                amount=pri.unit_price * pri.quantity,
+                discount_amount=pri.discount_amount,
+            )
+
+        wallet_amt = Decimal(str(payment.get("wallet", 0)))
+        if pr.customer and wallet_amt > 0:
+            pr.customer.wallet_balance = (
+                Decimal(str(pr.customer.wallet_balance)) - wallet_amt
+            )
+            pr.customer.save()
+            WalletTransaction.objects.create(
+                customer=pr.customer,
+                txn_type="purchase",
+                amount=wallet_amt,
+                note=f"Sale #{sale.id}",
+            )
+
+        pr.status = "completed"
+        pr.receipt = sale
+        pr.save()
+
+    return Response(sale.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  DISPENSING LOG
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET"])
+def dispensing_log_list(request):
+    logs = DispensingLog.objects.all().select_related("user", "item")
+    search = request.query_params.get("search", "").strip()
+    date_from = request.query_params.get("from")
+    date_to = request.query_params.get("to")
+
+    if search:
+        logs = logs.filter(Q(name__icontains=search) | Q(brand__icontains=search))
+    if date_from:
+        logs = logs.filter(created_at__date__gte=date_from)
+    if date_to:
+        logs = logs.filter(created_at__date__lte=date_to)
+
+    return Response([l.to_api_dict() for l in logs[:200]])
+
+
+@api_view(["GET"])
+def dispensing_stats(request):
+    today = timezone.now().date()
+    daily = DispensingLog.objects.filter(created_at__date=today).aggregate(
+        count=Sum("quantity"), revenue=Sum("amount")
+    )
+    monthly = DispensingLog.objects.filter(
+        created_at__year=today.year, created_at__month=today.month
+    ).aggregate(count=Sum("quantity"), revenue=Sum("amount"))
+    return Response(
+        {
+            "daily": {
+                "count": daily["count"] or 0,
+                "revenue": float(daily["revenue"] or 0),
+            },
+            "monthly": {
+                "count": monthly["count"] or 0,
+                "revenue": float(monthly["revenue"] or 0),
+            },
+        }
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  EXPENSES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET", "POST"])
+def expense_category_list(request):
+    if request.method == "GET":
+        return Response([c.to_api_dict() for c in ExpenseCategory.objects.all()])
+    cat = ExpenseCategory.objects.create(name=request.data.get("name", ""))
+    return Response(cat.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET", "POST"])
+def expense_list(request):
+    if request.method == "GET":
+        expenses = Expense.objects.all().select_related("category")
+        date_from = request.query_params.get("from")
+        date_to = request.query_params.get("to")
+        if date_from:
+            expenses = expenses.filter(date__gte=date_from)
+        if date_to:
+            expenses = expenses.filter(date__lte=date_to)
+        return Response([e.to_api_dict() for e in expenses])
+
+    data = request.data
+    cat = get_object_or_404(ExpenseCategory, pk=data.get("categoryId"))
+    expense = Expense.objects.create(
+        category=cat,
+        amount=data.get("amount", 0),
+        description=data.get("description", ""),
+        date=data.get("date", timezone.now().date()),
+        created_by=request.user if request.user.is_authenticated else None,
+    )
+    return Response(expense.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(["PUT", "DELETE"])
+def expense_detail(request, pk):
+    expense = get_object_or_404(Expense, pk=pk)
+    if request.method == "DELETE":
+        expense.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    data = request.data
+    expense.amount = data.get("amount", expense.amount)
+    expense.description = data.get("description", expense.description)
+    expense.save()
+    return Response(expense.to_api_dict())
+
+
+@api_view(["GET"])
+def monthly_report(request):
+    """Monthly report with sales, expenses, net profit."""
+    from pos.models import Sale as PosSale
+
+    today = timezone.now().date()
+    month = int(request.query_params.get("month", today.month))
+    year = int(request.query_params.get("year", today.year))
+
+    sales_total = (
+        PosSale.objects.filter(
+            created__year=year,
+            created__month=month,
+            status__in=["completed", "partial_return"],
+        ).aggregate(t=Sum("total_amount"))["t"]
+        or 0
+    )
+
+    expenses_total = (
+        Expense.objects.filter(date__year=year, date__month=month).aggregate(
+            t=Sum("amount")
+        )["t"]
+        or 0
+    )
+
+    return Response(
+        {
+            "month": f"{year}-{month:02d}",
+            "totalSales": float(sales_total),
+            "totalExpenses": float(expenses_total),
+            "netProfit": float(sales_total) - float(expenses_total),
+        }
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  SUPPLIERS & PROCUREMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET", "POST"])
+def supplier_list(request):
+    if request.method == "GET":
+        search = request.query_params.get("search", "").strip()
+        suppliers = Supplier.objects.all()
+        if search:
+            suppliers = suppliers.filter(name__icontains=search)
+        return Response([s.to_api_dict() for s in suppliers])
+    data = request.data
+    supplier = Supplier.objects.create(
+        name=data.get("name", ""),
+        phone=data.get("phone", ""),
+        contact_info=data.get("contactInfo", ""),
+    )
+    return Response(supplier.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET", "PUT", "DELETE"])
+def supplier_detail(request, pk):
+    supplier = get_object_or_404(Supplier, pk=pk)
+    if request.method == "GET":
+        return Response(supplier.to_api_dict())
+    if request.method == "DELETE":
+        supplier.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    data = request.data
+    supplier.name = data.get("name", supplier.name)
+    supplier.phone = data.get("phone", supplier.phone)
+    supplier.contact_info = data.get("contactInfo", supplier.contact_info)
+    supplier.save()
+    return Response(supplier.to_api_dict())
+
+
+@api_view(["GET", "POST"])
+def procurement_list(request):
+    if request.method == "GET":
+        procs = Procurement.objects.all().select_related("supplier")
+        search = request.query_params.get("search", "").strip()
+        if search:
+            procs = procs.filter(
+                Q(supplier__name__icontains=search)
+                | Q(items__item_name__icontains=search)
+            ).distinct()
+        return Response([p.to_api_dict() for p in procs])
+
+    data = request.data
+    supplier = get_object_or_404(Supplier, pk=data.get("supplierId"))
+    items_data = data.get("items", [])
+
+    with transaction.atomic():
+        proc = Procurement.objects.create(
+            supplier=supplier,
+            created_by=request.user if request.user.is_authenticated else None,
+            status=data.get("status", "draft"),
+        )
+        total = Decimal("0")
+        for i in items_data:
+            pi = ProcurementItem.objects.create(
+                procurement=proc,
+                item_name=i.get("itemName", ""),
+                dosage_form=i.get("dosageForm", ""),
+                brand=i.get("brand", ""),
+                unit=i.get("unit", "Pcs"),
+                quantity=int(i.get("quantity", 1)),
+                cost_price=Decimal(str(i.get("costPrice", 0))),
+                markup=Decimal(str(i.get("markup", 0))),
+                expiry_date=i.get("expiryDate"),
+                barcode=i.get("barcode", ""),
+            )
+            total += pi.subtotal
+
+        proc.total = total
+        proc.save()
+
+        # If completed, move items to inventory
+        if proc.status == "completed":
+            _procurement_to_inventory(proc)
+
+    return Response(proc.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
+def complete_procurement(request, pk):
+    """Mark procurement as completed and add items to inventory."""
+    proc = get_object_or_404(Procurement.objects.prefetch_related("items"), pk=pk)
+    if proc.status == "completed":
+        return Response(
+            {"detail": "Already completed"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    with transaction.atomic():
+        proc.status = "completed"
+        proc.save()
+        _procurement_to_inventory(proc)
+
+    return Response(proc.to_api_dict())
+
+
+def _procurement_to_inventory(proc):
+    """Move procurement items into inventory."""
+    for pi in proc.items.all():
+        # Try to match existing item
+        item = Item.objects.filter(
+            name__iexact=pi.item_name,
+            brand__iexact=pi.brand,
+            dosage_form=pi.dosage_form,
+        ).first()
+
+        if item:
+            item.stock += pi.quantity
+            if pi.cost_price:
+                item.cost = pi.cost_price
+            item.save()
+        else:
+            price = pi.cost_price + (pi.cost_price * pi.markup / Decimal("100"))
+            Item.objects.create(
+                name=pi.item_name,
+                brand=pi.brand,
+                dosage_form=pi.dosage_form,
+                unit=pi.unit,
+                cost=pi.cost_price,
+                price=price,
+                markup=pi.markup,
+                stock=pi.quantity,
+                barcode=pi.barcode,
+                expiry_date=pi.expiry_date,
+            )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  STOCK CHECK
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET", "POST"])
+def stock_check_list(request):
+    if request.method == "GET":
+        checks = StockCheck.objects.all()
+        return Response([c.to_api_dict() for c in checks])
+    check = StockCheck.objects.create(
+        created_by=request.user if request.user.is_authenticated else None,
+        status="pending",
+    )
+    return Response(check.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+def stock_check_detail(request, pk):
+    check = get_object_or_404(StockCheck, pk=pk)
+    return Response(check.to_api_dict())
+
+
+@api_view(["POST"])
+def stock_check_add_item(request, pk):
+    check = get_object_or_404(StockCheck, pk=pk)
+    item_id = request.data.get("itemId")
+    item = get_object_or_404(Item, pk=item_id)
+    sci, created = StockCheckItem.objects.get_or_create(
+        stock_check=check, item=item, defaults={"expected_quantity": item.stock}
+    )
+    if not created:
+        return Response(
+            {"detail": "Item already in check"}, status=status.HTTP_400_BAD_REQUEST
+        )
+    check.status = "in_progress"
+    check.save()
+    return Response(sci.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
+def stock_check_update_item(request, pk, item_pk):
+    sci = get_object_or_404(StockCheckItem, pk=item_pk, stock_check_id=pk)
+    sci.actual_quantity = request.data.get("actualQuantity", sci.actual_quantity)
+    sci.status = request.data.get("status", sci.status)
+    sci.save()
+    return Response(sci.to_api_dict())
+
+
+@api_view(["POST"])
+def stock_check_approve(request, pk):
+    check = get_object_or_404(StockCheck, pk=pk)
+    with transaction.atomic():
+        for sci in check.items.all():
+            if (
+                sci.actual_quantity is not None
+                and sci.actual_quantity != sci.expected_quantity
+            ):
+                sci.item.stock = sci.actual_quantity
+                sci.item.save()
+                sci.status = "adjusted"
+                sci.save()
+        check.status = "completed"
+        check.approved_by = request.user if request.user.is_authenticated else None
+        check.approved_at = timezone.now()
+        check.save()
+    return Response(check.to_api_dict())
+
+
+@api_view(["DELETE"])
+def stock_check_delete(request, pk):
+    check = get_object_or_404(StockCheck, pk=pk)
+    check.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  CASHIERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET", "POST"])
+def cashier_list(request):
+    if request.method == "GET":
+        return Response(
+            [c.to_api_dict() for c in Cashier.objects.filter(is_active=True)]
+        )
+    data = request.data
+    user = get_object_or_404(PharmUser, pk=data.get("userId"))
+    cashier = Cashier.objects.create(
+        user=user,
+        name=data.get("name", user.phone_number),
+        cashier_type=data.get("cashierType", "retail"),
+    )
+    return Response(cashier.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  NOTIFICATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET"])
+def notification_list(request):
+    notifs = Notification.objects.filter(user=request.user).order_by("-created_at")[:50]
+    return Response([n.to_api_dict() for n in notifs])
+
+
+@api_view(["POST"])
+def notification_read(request, pk):
+    notif = get_object_or_404(Notification, pk=pk, user=request.user)
+    notif.is_read = True
+    notif.save()
+    return Response(notif.to_api_dict())
+
+
+@api_view(["GET"])
+def notification_count(request):
+    count = Notification.objects.filter(user=request.user, is_read=False).count()
+    return Response({"count": count})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  BARCODE SCANNING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET"])
+def barcode_lookup(request):
+    code = request.query_params.get("code", "").strip()
+    if not code:
+        return Response(
+            {"detail": "No barcode provided"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Try exact barcode match
+    item = Item.objects.filter(barcode=code).first()
+    if item:
+        return Response(item.to_api_dict())
+
+    # Try GTIN match
+    item = Item.objects.filter(gtin=code).first()
+    if item:
+        return Response(item.to_api_dict())
+
+    # Try partial GTIN (without leading zeros)
+    item = Item.objects.filter(gtin__endswith=code.lstrip("0")).first()
+    if item:
+        return Response(item.to_api_dict())
+
+    return Response({"detail": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  USER MANAGEMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET", "POST"])
+def user_list(request):
+    if request.method == "GET":
+        users = PharmUser.objects.all()
+        search = request.query_params.get("search", "").strip()
+        role = request.query_params.get("role", "").strip()
+        if search:
+            users = users.filter(phone_number__icontains=search)
+        if role:
+            users = users.filter(role=role)
+        return Response([u.to_api_dict() for u in users])
+
+    data = request.data
+    phone = data.get("phoneNumber", "").strip()
+    password = data.get("password", "").strip()
+    role = data.get("role", "Cashier")
+
+    if not phone or not password:
+        return Response(
+            {"detail": "Phone and password required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if PharmUser.objects.filter(phone_number=phone).exists():
+        return Response(
+            {"detail": "Phone already registered"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user = PharmUser.objects.create_user(
+        phone_number=phone, password=password, role=role
+    )
+    return Response(user.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET", "PUT", "DELETE"])
+def user_detail(request, pk):
+    user = get_object_or_404(PharmUser, pk=pk)
+    if request.method == "GET":
+        return Response(user.to_api_dict())
+    if request.method == "DELETE":
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    data = request.data
+    user.phone_number = data.get("phoneNumber", user.phone_number)
+    user.role = data.get("role", user.role)
+    user.is_active = data.get("isActive", user.is_active)
+    user.save()
+    return Response(user.to_api_dict())
+
+
+@api_view(["POST"])
+def change_password(request, pk):
+    user = get_object_or_404(PharmUser, pk=pk)
+    new_password = request.data.get("newPassword", "").strip()
+    if len(new_password) < 6:
+        return Response(
+            {"detail": "Password must be at least 6 characters"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    user.set_password(new_password)
+    user.save()
+    return Response({"detail": "Password changed"})

@@ -6,6 +6,7 @@ import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
+import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
 class AdminDashboard extends ConsumerStatefulWidget {
   const AdminDashboard({super.key});
@@ -15,6 +16,7 @@ class AdminDashboard extends ConsumerStatefulWidget {
 }
 
 class _AdminDashboardState extends ConsumerState<AdminDashboard> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   String _fmt(double v) {
     if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
@@ -48,7 +50,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     final customerRpt   = ref.watch(customerReportProvider);
 
     final revenue      = salesToday.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
-    final lowStock     = inventoryRpt.whenOrNull(data: (d) => d.lowStock) ?? 0;
+    final lowStock     = inventoryRpt.whenOrNull(data: (d) => d.lowStockCount) ?? 0;
     final customers    = customerRpt.whenOrNull(data: (d) => d.total) ?? 0;
     final debt         = customerRpt.whenOrNull(data: (d) => d.totalDebt) ?? 0.0;
     final stockValue   = inventoryRpt.whenOrNull(data: (d) => d.stockValue) ?? 0.0;
@@ -63,7 +65,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
       {'label': 'Low Stock Items',  'value': kpiVal('$lowStock'),     'sub': 'Need reorder',         'color': EnhancedTheme.warningAmber, 'icon': Icons.warning_amber_rounded},
       {'label': 'Customers',        'value': kpiVal('$customers'),    'sub': 'Total registered',     'color': EnhancedTheme.accentCyan,   'icon': Icons.people_rounded},
       {'label': 'Outstanding Debt', 'value': kpiVal(_fmt(debt)),      'sub': 'Total customer debt',  'color': EnhancedTheme.errorRed,     'icon': Icons.money_off_rounded},
-      {'label': 'Inventory Value',  'value': kpiVal(_fmt(stockValue)), 'sub': inventoryRpt.whenOrNull(data: (d) => '${d.totalSkus} SKUs') ?? 'Across all SKUs', 'color': EnhancedTheme.accentPurple, 'icon': Icons.inventory_2_rounded},
+      {'label': 'Inventory Value',  'value': kpiVal(_fmt(stockValue)), 'sub': inventoryRpt.whenOrNull(data: (d) => '${d.totalItems} items') ?? 'Across all items', 'color': EnhancedTheme.accentPurple, 'icon': Icons.inventory_2_rounded},
     ];
 
     final quickActions = [
@@ -76,7 +78,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     ];
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: context.scaffoldBg,
+      drawer: const AppDrawer(),
       body: Stack(
         children: [
           Container(decoration: context.bgGradient),
@@ -85,11 +89,24 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(children: [
+                GestureDetector(
+                  onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    child: Icon(Icons.menu_rounded, color: context.iconOnBg, size: 20),
+                  ),
+                ),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Admin Dashboard',
-                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                  Text('Admin Dashboard',
+                      style: TextStyle(color: context.labelColor, fontSize: 22, fontWeight: FontWeight.w800)),
                   Text('Welcome back, ${user?.role ?? 'Admin'}',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12)),
+                      style: TextStyle(color: context.hintColor, fontSize: 12)),
                 ])),
                 // Profile dropdown menu
                 _buildProfileMenu(user?.role ?? 'Admin'),
@@ -131,9 +148,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                                     style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w800)),
                             const SizedBox(height: 2),
                             Text(k['label'] as String,
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                                style: TextStyle(color: context.labelColor, fontSize: 11, fontWeight: FontWeight.w600)),
                             Text(k['sub'] as String,
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)),
+                                style: TextStyle(color: context.hintColor, fontSize: 10)),
                           ]),
                         ),
                       ),
@@ -143,8 +160,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                 const SizedBox(height: 20),
 
                 // ── Quick actions ─────────────────────────────────────────────
-                const Text('Quick Actions',
-                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                Text('Quick Actions',
+                    style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 10),
                 GridView.builder(
                   shrinkWrap: true,
@@ -189,8 +206,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                 const SizedBox(height: 20),
 
                 // ── Top Items Today ───────────────────────────────────────────
-                const Text('Top Items Today',
-                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                Text('Top Items Today',
+                    style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 10),
                 salesToday.when(
                   loading: () => const Center(child: Padding(
@@ -229,10 +246,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                                     const SizedBox(width: 12),
                                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                       Text(e.value.name,
-                                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                          style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600),
                                           maxLines: 1, overflow: TextOverflow.ellipsis),
                                       Text('${e.value.qty} units sold',
-                                          style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11)),
+                                          style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                                     ])),
                                     Text(_fmt(e.value.revenue),
                                         style: const TextStyle(color: EnhancedTheme.successGreen,
@@ -240,7 +257,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                                   ]),
                                 ),
                                 if (e.key < report.topItems.length - 1 && e.key < 4)
-                                  Divider(height: 1, color: Colors.white.withValues(alpha: 0.07)),
+                                  Divider(height: 1, color: context.dividerColor),
                               ])
                             ).toList(),
                           ),
@@ -358,44 +375,46 @@ class _AdminMoreSheet extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B).withValues(alpha: 0.97),
+            color: context.isDark
+                ? const Color(0xFF1E293B).withValues(alpha: 0.97)
+                : Colors.white.withValues(alpha: 0.97),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+            border: Border(top: BorderSide(color: context.borderColor)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+                decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
-              child: Text('More Features', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+              child: Text('More Features', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
             ),
             const SizedBox(height: 16),
 
-            _sectionLabel('Reports'),
+            _sectionLabel(context, 'Reports'),
             const SizedBox(height: 8),
             Row(children: [
-              _card(context, Icons.show_chart,           'Sales',      const Color(0xFF10B981), '/dashboard/reports/sales'),
+              _card(context, Icons.show_chart,           'Sales',      EnhancedTheme.successGreen, '/dashboard/reports/sales'),
               const SizedBox(width: 10),
-              _card(context, Icons.inventory_2_outlined,  'Inventory', const Color(0xFF3B82F6), '/dashboard/reports/inventory'),
+              _card(context, Icons.inventory_2_outlined,  'Inventory', EnhancedTheme.infoBlue,    '/dashboard/reports/inventory'),
               const SizedBox(width: 10),
-              _card(context, Icons.people_outline,        'Customers', const Color(0xFF8B5CF6), '/dashboard/reports/customers'),
+              _card(context, Icons.people_outline,        'Customers', EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
               const SizedBox(width: 10),
-              _card(context, Icons.trending_up,           'Profit',    const Color(0xFFF59E0B), '/dashboard/reports/profit'),
+              _card(context, Icons.trending_up,           'Profit',    EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
             ]),
             const SizedBox(height: 20),
 
-            _sectionLabel('Navigation'),
+            _sectionLabel(context, 'Navigation'),
             const SizedBox(height: 8),
             Row(children: [
-              _card(context, Icons.storefront_outlined,             'Retail',    const Color(0xFF0D9488), '/dashboard'),
+              _card(context, Icons.storefront_outlined,             'Retail',    EnhancedTheme.primaryTeal,  '/dashboard'),
               const SizedBox(width: 10),
-              _card(context, Icons.store_outlined,                  'Wholesale', const Color(0xFF06B6D4), '/wholesale-dashboard'),
+              _card(context, Icons.store_outlined,                  'Wholesale', EnhancedTheme.accentCyan,   '/wholesale-dashboard'),
               const SizedBox(width: 10),
-              _card(context, Icons.point_of_sale_outlined,          'POS',       const Color(0xFF10B981), '/dashboard/pos'),
+              _card(context, Icons.point_of_sale_outlined,          'POS',       EnhancedTheme.successGreen, '/dashboard/pos'),
               const SizedBox(width: 10),
-              _card(context, Icons.settings_outlined,               'Settings',  Colors.white38,          '/admin-dashboard/settings'),
+              _card(context, Icons.settings_outlined,               'Settings',  context.subLabelColor,      '/admin-dashboard/settings'),
             ]),
             const SizedBox(height: 20),
 
@@ -422,9 +441,9 @@ class _AdminMoreSheet extends StatelessWidget {
     );
   }
 
-  Widget _sectionLabel(String label) => Align(
+  Widget _sectionLabel(BuildContext context, String label) => Align(
     alignment: Alignment.centerLeft,
-    child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11,
+    child: Text(label, style: TextStyle(color: context.subLabelColor, fontSize: 11,
         fontWeight: FontWeight.w600, letterSpacing: 0.8)),
   );
 

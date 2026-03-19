@@ -50,5 +50,7 @@ class Customer {
         'name':         name,
         'phone':        phone,
         'is_wholesale': isWholesale,
+        if (email != null)   'email':   email,
+        if (address != null) 'address': address,
       };
 }

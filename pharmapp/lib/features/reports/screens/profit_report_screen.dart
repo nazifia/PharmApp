@@ -106,9 +106,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
   }
 
   Widget _buildBody(BuildContext context, ProfitReportData data) {
-    final maxCatRev = data.byCategory.isEmpty
-        ? 1.0
-        : data.byCategory.map((c) => c.revenue).fold(1.0, (a, b) => a > b ? a : b);
+    final cost = data.revenue > 0 ? data.revenue - data.profit : 0.0;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -119,10 +117,10 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
           Expanded(child: _plCard(context, 'Revenue', _fmt(data.revenue),
               EnhancedTheme.primaryTeal, Icons.trending_up_rounded)),
           const SizedBox(width: 10),
-          Expanded(child: _plCard(context, 'Cost', _fmt(data.cost),
+          Expanded(child: _plCard(context, 'Cost', _fmt(cost),
               EnhancedTheme.errorRed, Icons.trending_down_rounded)),
           const SizedBox(width: 10),
-          Expanded(child: _plCard(context, 'Profit', _fmt(data.grossProfit),
+          Expanded(child: _plCard(context, 'Profit', _fmt(data.profit),
               EnhancedTheme.successGreen, Icons.savings_rounded)),
         ]),
         const SizedBox(height: 10),
@@ -144,14 +142,14 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                     color: EnhancedTheme.successGreen, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Net Profit Margin',
+                  Text('Profit Margin',
                       style: TextStyle(color: context.labelColor,
                           fontSize: 13, fontWeight: FontWeight.w600)),
                   Text('For the selected period',
                       style: TextStyle(
                           color: context.hintColor, fontSize: 11)),
                 ])),
-                Text('${(data.netMargin * 100).toStringAsFixed(1)}%',
+                Text('${data.margin.toStringAsFixed(1)}%',
                     style: const TextStyle(color: EnhancedTheme.successGreen,
                         fontSize: 22, fontWeight: FontWeight.w800)),
               ]),
@@ -160,9 +158,9 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
         ),
         const SizedBox(height: 20),
 
-        // ── Revenue vs Cost by category chart ─────────────────────────────────
-        if (data.byCategory.isNotEmpty) ...[
-          Text('Revenue vs Cost by Category',
+        // ── Revenue breakdown bar ─────────────────────────────────────────────
+        if (data.revenue > 0) ...[
+          Text('Revenue Breakdown',
               style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
           ClipRRect(
@@ -176,55 +174,27 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: context.borderColor)),
                 child: Column(children: [
-                  SizedBox(
-                    height: 140,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: data.byCategory.map((c) {
-                        final revH  = (c.revenue / maxCatRev) * 120;
-                        final costH = (c.cost    / maxCatRev) * 120;
-                        return Expanded(child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                            Text(_fmt(c.revenue - c.cost),
-                                style: TextStyle(
-                                    color: EnhancedTheme.successGreen.withValues(alpha: 0.7),
-                                    fontSize: 7)),
-                            const SizedBox(height: 2),
-                            Stack(alignment: Alignment.bottomCenter, children: [
-                              Container(height: revH,
-                                decoration: BoxDecoration(
-                                  color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3),
-                                  borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(4)))),
-                              Container(height: costH,
-                                decoration: BoxDecoration(
-                                  color: EnhancedTheme.errorRed.withValues(alpha: 0.5),
-                                  borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(3)))),
-                            ]),
-                          ]),
-                        ));
-                      }).toList(),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    _legend(context, EnhancedTheme.errorRed.withValues(alpha: 0.7), 'Cost (${((cost / data.revenue) * 100).round()}%)'),
+                    _legend(context, EnhancedTheme.successGreen, 'Profit (${data.margin.round()}%)'),
+                  ]),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      height: 16,
+                      child: Row(children: [
+                        Expanded(
+                          flex: (cost / data.revenue * 100).round(),
+                          child: Container(color: EnhancedTheme.errorRed.withValues(alpha: 0.6)),
+                        ),
+                        Expanded(
+                          flex: (data.margin).round().clamp(1, 100),
+                          child: Container(color: EnhancedTheme.successGreen),
+                        ),
+                      ]),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(children: data.byCategory.map((c) => Expanded(
-                    child: Text(c.name,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: context.subLabelColor, fontSize: 8)),
-                  )).toList()),
-                  const SizedBox(height: 10),
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    _legend(context, EnhancedTheme.primaryTeal.withValues(alpha: 0.6), 'Revenue'),
-                    const SizedBox(width: 16),
-                    _legend(context, EnhancedTheme.errorRed.withValues(alpha: 0.7), 'Cost'),
-                    const SizedBox(width: 16),
-                    _legend(context, EnhancedTheme.successGreen, 'Profit'),
-                  ]),
                 ]),
               ),
             ),
@@ -232,55 +202,30 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
           const SizedBox(height: 20),
         ],
 
-        // ── Margin by category ────────────────────────────────────────────────
-        Text('Margin by Category',
-            style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 10),
-        if (data.byCategory.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('No category data',
-                style: TextStyle(color: context.hintColor)))
-        else
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: context.cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.borderColor)),
-                child: Column(
-                  children: data.byCategory.map((c) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(children: [
-                      SizedBox(width: 90, child: Text(c.name,
-                          style: TextStyle(color: context.labelColor,
-                              fontSize: 12, fontWeight: FontWeight.w500),
-                          maxLines: 1, overflow: TextOverflow.ellipsis)),
-                      Expanded(child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: c.margin.clamp(0.0, 1.0),
-                          backgroundColor: Colors.white.withValues(alpha: 0.08),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              c.margin > 0.4
-                                  ? EnhancedTheme.successGreen
-                                  : EnhancedTheme.primaryTeal),
-                          minHeight: 8),
-                      )),
-                      const SizedBox(width: 10),
-                      Text('${(c.margin * 100).round()}%',
-                          style: TextStyle(color: context.labelColor,
-                              fontSize: 12, fontWeight: FontWeight.w700)),
-                    ]),
-                  )).toList(),
-                ),
-              ),
+        // ── Info note ─────────────────────────────────────────────────────────
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.accentCyan.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha: 0.2))),
+              child: Row(children: [
+                Icon(Icons.info_outline_rounded,
+                    color: EnhancedTheme.accentCyan, size: 18),
+                const SizedBox(width: 10),
+                Expanded(child: Text(
+                    data.margin > 0
+                        ? 'Profit calculated from item cost prices where available.'
+                        : 'No cost data available. Profit is estimated at 30% of revenue.',
+                    style: TextStyle(color: context.subLabelColor, fontSize: 12))),
+              ]),
             ),
           ),
+        ),
         const SizedBox(height: 24),
       ]),
     );

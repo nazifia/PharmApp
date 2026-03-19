@@ -29,32 +29,53 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   double get _total => _subtotal + _tax;
 
   Future<void> _confirm() async {
+    if (_method == _PayMethod.wallet) {
+      final selected = ref.read(selectedCustomerProvider);
+      if (selected == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Wallet payment requires a customer. Please link a customer in the POS.'),
+          backgroundColor: EnhancedTheme.warningAmber));
+        return;
+      }
+      if (selected.walletBalance < _total) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Insufficient wallet balance: ₦${selected.walletBalance.toStringAsFixed(0)} available'),
+          backgroundColor: EnhancedTheme.errorRed));
+        return;
+      }
+    }
+
     setState(() => _processing = true);
 
     final cart = ref.read(cartProvider);
+    final selected = ref.read(selectedCustomerProvider);
 
     // Build checkout payload
     final payload = CheckoutPayload(
       items: cart.map((c) => SaleItemPayload(
-        barcode:   c.item.barcode,
-        quantity:  c.quantity,
-        unitPrice: c.item.price,
+        barcode:  c.item.barcode,
+        itemId:   c.item.id,
+        quantity: c.quantity,
+        price:    c.item.price,
       )).toList(),
-      payments: PaymentPayload(
+      payment: PaymentPayload(
         cash:         _method == _PayMethod.cash   ? _total : 0,
-        bankTransfer: _method == _PayMethod.card   ? _total : 0,
+        pos:          _method == _PayMethod.card    ? _total : 0,
+        bankTransfer: 0,
         wallet:       _method == _PayMethod.wallet ? _total : 0,
       ),
       totalAmount: _total,
+      customerId: selected?.id,
     );
 
-    final success = await ref.read(checkoutProvider.notifier).processCheckout(payload);
+    final result = await ref.read(checkoutProvider.notifier).processCheckout(payload);
 
     if (!mounted) return;
     setState(() => _processing = false);
 
-    if (success) {
+    if (result != null) {
       ref.read(cartProvider.notifier).clearCart();
+      ref.read(selectedCustomerProvider.notifier).state = null;
       _showSuccessSheet();
     } else {
       final err = ref.read(checkoutProvider).error;
@@ -84,6 +105,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
+    final selected = ref.watch(selectedCustomerProvider);
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -145,6 +167,39 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Linked customer
+              if (selected != null) ...[
+                Text('Customer', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 10),
+                ClipRRect(borderRadius: BorderRadius.circular(14),
+                  child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.accentCyan.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha: 0.25))),
+                      child: Row(children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: EnhancedTheme.accentCyan.withValues(alpha: 0.2),
+                          child: Text(selected.name.isNotEmpty ? selected.name[0] : '?',
+                              style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700))),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(selected.name, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                          Text('Wallet: ₦${selected.walletBalance.toStringAsFixed(0)}', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+                        ])),
+                        GestureDetector(
+                          onTap: () => ref.read(selectedCustomerProvider.notifier).state = null,
+                          child: Icon(Icons.close_rounded, color: context.hintColor, size: 18)),
+                      ]),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Payment method
               Text('Payment Method', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
@@ -220,25 +275,27 @@ class _SuccessSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
-          color: Color(0xFF1E293B), borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28))),
       padding: const EdgeInsets.all(32),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 72, height: 72,
-          decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+          decoration: const BoxDecoration(color: EnhancedTheme.successGreen, shape: BoxShape.circle),
           child: const Icon(Icons.check_rounded, color: Colors.white, size: 40)),
         const SizedBox(height: 20),
-        const Text('Payment Successful!', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+        Text('Payment Successful!', style: TextStyle(color: context.labelColor, fontSize: 22, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         Text('₦${total.toStringAsFixed(2)} received via ${method.name.toUpperCase()}',
-            style: const TextStyle(color: Colors.white54, fontSize: 14), textAlign: TextAlign.center),
+            style: TextStyle(color: context.subLabelColor, fontSize: 14), textAlign: TextAlign.center),
         const SizedBox(height: 32),
         SizedBox(width: double.infinity, child: ElevatedButton(
           onPressed: onDone,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white,
+            backgroundColor: EnhancedTheme.successGreen, foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
           child: const Text('New Sale', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),

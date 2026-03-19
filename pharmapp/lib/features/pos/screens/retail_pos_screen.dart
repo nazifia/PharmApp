@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/item.dart';
+import 'package:pharmapp/shared/models/cart_item.dart';
 import '../../inventory/providers/inventory_provider.dart';
+import '../../customers/providers/customer_provider.dart';
 import '../providers/cart_provider.dart';
 
 class RetailPOSScreen extends ConsumerStatefulWidget {
@@ -29,6 +31,94 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     context.push('/payment');
   }
 
+  void _showCustomerPicker(List customers) {
+    final searchCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.85,
+        minChildSize: 0.3,
+        builder: (ctx, scrollCtrl) {
+          return StatefulBuilder(
+            builder: (ctx, setSheetState) => Container(
+              decoration: BoxDecoration(
+                color: context.cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border.all(color: context.borderColor)),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                Center(child: Container(width: 40, height: 4,
+                    decoration: BoxDecoration(color: context.hintColor, borderRadius: BorderRadius.circular(2)))),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Row(children: [
+                    Text('Select Customer', style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () {
+                        ref.read(selectedCustomerProvider.notifier).state = null;
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('Clear', style: TextStyle(color: EnhancedTheme.errorRed))),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: searchCtrl,
+                    onChanged: (_) => setSheetState(() {}),
+                    style: TextStyle(color: context.labelColor),
+                    decoration: InputDecoration(
+                      hintText: 'Search customers...',
+                      hintStyle: TextStyle(color: context.hintColor),
+                      prefixIcon: Icon(Icons.search, color: context.hintColor, size: 20),
+                      filled: true, fillColor: Colors.white.withValues(alpha: 0.07),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(child: Builder(builder: (_) {
+                  final q = searchCtrl.text.toLowerCase();
+                  final filtered = customers.where((c) =>
+                      c.name.toLowerCase().contains(q) || c.phone.contains(q)).toList();
+                  if (filtered.isEmpty) return Center(child: Text('No customers found', style: TextStyle(color: context.hintColor)));
+                  return ListView.builder(
+                    controller: scrollCtrl,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) {
+                      final c = filtered[i];
+                      final isSelected = ref.read(selectedCustomerProvider)?.id == c.id;
+                      return ListTile(
+                        onTap: () {
+                          ref.read(selectedCustomerProvider.notifier).state = SelectedCustomer(
+                            id: c.id, name: c.name, walletBalance: c.walletBalance);
+                          Navigator.pop(ctx);
+                        },
+                        leading: CircleAvatar(
+                          backgroundColor: (c.isWholesale ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal).withValues(alpha: 0.2),
+                          child: Text(c.name.isNotEmpty ? c.name[0] : '?',
+                              style: TextStyle(color: c.isWholesale ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
+                        ),
+                        title: Text(c.name, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
+                        subtitle: Text(c.phone, style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+                        trailing: isSelected ? const Icon(Icons.check_circle, color: EnhancedTheme.primaryTeal) : null,
+                      );
+                    },
+                  );
+                })),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final query        = _searchCtrl.text;
@@ -37,7 +127,9 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         : ref.watch(inventoryListProvider);
     final cart         = ref.watch(cartProvider);
     final cartTotal    = ref.read(cartProvider.notifier).cartTotal;
-    final cartCount    = cart.fold(0, (s, c) => s + c.quantity);
+    final cartCount    = cart.fold<int>(0, (s, c) => s + c.quantity);
+    final selected     = ref.watch(selectedCustomerProvider);
+    final customersAsync = ref.watch(customerListProvider);
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -70,19 +162,56 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
             ]),
           ),
 
+          // Customer selector
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: GestureDetector(
+              onTap: () {
+                final customers = customersAsync.valueOrNull ?? [];
+                _showCustomerPicker(customers);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected != null
+                      ? EnhancedTheme.accentCyan.withValues(alpha: 0.12)
+                      : Colors.white.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: selected != null
+                      ? EnhancedTheme.accentCyan.withValues(alpha: 0.4)
+                      : Colors.white.withValues(alpha: 0.1))),
+                child: Row(children: [
+                  Icon(Icons.person_rounded,
+                      color: selected != null ? EnhancedTheme.accentCyan : context.hintColor, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(child: selected != null
+                      ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(selected.name,
+                              style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                          Text('Wallet: ₦${selected.walletBalance.toStringAsFixed(0)}',
+                              style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                        ])
+                      : Text('Link a customer (optional)',
+                          style: TextStyle(color: context.hintColor, fontSize: 13))),
+                  Icon(Icons.arrow_drop_down_rounded, color: context.hintColor),
+                ]),
+              ),
+            ),
+          ),
+
           // Search
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: ClipRRect(borderRadius: BorderRadius.circular(14),
               child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: TextField(
                   controller: _searchCtrl, onChanged: (_) => setState(() {}),
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: context.labelColor),
                   decoration: InputDecoration(
                     hintText: 'Search items…',
-                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
-                    prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha: 0.4)),
-                    filled: true, fillColor: Colors.white.withValues(alpha: 0.07),
+                    hintStyle: TextStyle(color: context.hintColor),
+                    prefixIcon: Icon(Icons.search, color: context.hintColor),
+                    filled: true, fillColor: context.cardColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -95,9 +224,9 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           Expanded(child: catalogAsync.when(
             loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
             error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.cloud_off_rounded, color: Colors.white.withValues(alpha: 0.3), size: 48),
+              Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
               const SizedBox(height: 12),
-              Text('$e', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13), textAlign: TextAlign.center),
+              Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
               const SizedBox(height: 8),
               TextButton(onPressed: () => ref.invalidate(inventoryListProvider),
                   child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal))),
@@ -119,8 +248,8 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     );
   }
 
-  Widget _catalogueCard(Item item, cartItems) {
-    final cartItem = (cartItems as List).cast().where((c) => c.item.id == item.id).firstOrNull;
+  Widget _catalogueCard(Item item, List<CartItem> cartItems) {
+    final cartItem = cartItems.where((c) => c.item.id == item.id).firstOrNull;
     final inCart   = cartItem?.quantity ?? 0;
     final outOfStock = item.stock == 0;
 
@@ -161,7 +290,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               const SizedBox(height: 2),
               Text(outOfStock ? 'Out of stock' : '${item.stock} left',
                   style: TextStyle(
-                      color: outOfStock ? EnhancedTheme.errorRed.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.4),
+                      color: outOfStock ? EnhancedTheme.errorRed.withValues(alpha: 0.7) : context.hintColor,
                       fontSize: 10)),
             ]),
           ),
@@ -170,7 +299,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     );
   }
 
-  Widget _cartBar(List cart, double total) => Container(
+  Widget _cartBar(List<CartItem> cart, double total) => Container(
     margin: const EdgeInsets.all(16),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
@@ -179,14 +308,17 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     ),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${cart.fold(0, (s, c) => s + (c.quantity as int))} items in cart',
+        Text('${cart.fold<int>(0, (s, c) => s + c.quantity)} items in cart',
             style: const TextStyle(color: Colors.white70, fontSize: 12)),
         Text('₦${total.toStringAsFixed(2)}',
             style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
       ])),
       Row(children: [
         TextButton(
-          onPressed: () { ref.read(cartProvider.notifier).clearCart(); },
+          onPressed: () {
+            ref.read(cartProvider.notifier).clearCart();
+            ref.read(selectedCustomerProvider.notifier).state = null;
+          },
           child: const Text('Clear', style: TextStyle(color: Colors.white70)),
         ),
         const SizedBox(width: 8),

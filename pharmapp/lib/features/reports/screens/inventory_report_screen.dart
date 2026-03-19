@@ -68,12 +68,9 @@ class InventoryReportScreen extends ConsumerWidget {
 
   Widget _buildBody(BuildContext context, InventoryReportData data) {
     final summaryItems = [
-      {'label': 'Total SKUs',    'value': '${data.totalSkus}',          'color': EnhancedTheme.primaryTeal,  'icon': Icons.inventory_2_rounded},
-      {'label': 'Low Stock',     'value': '${data.lowStock}',           'color': EnhancedTheme.warningAmber, 'icon': Icons.warning_amber_rounded},
-      {'label': 'Out of Stock',  'value': '${data.outOfStock}',         'color': EnhancedTheme.errorRed,     'icon': Icons.remove_shopping_cart_rounded},
-      {'label': 'Expiring Soon', 'value': '${data.expiringSoon}',       'color': EnhancedTheme.accentOrange, 'icon': Icons.event_busy_rounded},
-      {'label': 'Stock Value',   'value': _fmtValue(data.stockValue),   'color': EnhancedTheme.accentCyan,   'icon': Icons.account_balance_rounded},
-      {'label': 'Categories',    'value': '${data.categories}',         'color': EnhancedTheme.accentPurple, 'icon': Icons.category_rounded},
+      {'label': 'Total Items',   'value': '${data.totalItems}',        'color': EnhancedTheme.primaryTeal,  'icon': Icons.inventory_2_rounded},
+      {'label': 'Low Stock',     'value': '${data.lowStockCount}',     'color': EnhancedTheme.warningAmber, 'icon': Icons.warning_amber_rounded},
+      {'label': 'Stock Value',   'value': _fmtValue(data.stockValue),  'color': EnhancedTheme.accentCyan,   'icon': Icons.account_balance_rounded},
     ];
 
     return SingleChildScrollView(
@@ -118,60 +115,6 @@ class InventoryReportScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
 
-        // ── Category breakdown ────────────────────────────────────────────────
-        Text('Stock by Category',
-            style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 10),
-        if (data.categoryBreakdown.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('No category data',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.4))))
-        else
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: context.cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.borderColor)),
-                child: Column(
-                  children: data.categoryBreakdown.map((c) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(children: [
-                        Expanded(child: Text(c.name,
-                            style: TextStyle(color: context.labelColor,
-                                fontSize: 12, fontWeight: FontWeight.w500))),
-                        Text('${c.skus} SKUs',
-                            style: TextStyle(
-                                color: context.subLabelColor, fontSize: 11)),
-                        const SizedBox(width: 10),
-                        Text(_fmtValue(c.value),
-                            style: const TextStyle(color: EnhancedTheme.primaryTeal,
-                                fontSize: 12, fontWeight: FontWeight.w700)),
-                      ]),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: c.pct.clamp(0.0, 1.0),
-                          backgroundColor: Colors.white.withValues(alpha: 0.08),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                              EnhancedTheme.primaryTeal),
-                          minHeight: 6),
-                      ),
-                    ]),
-                  )).toList(),
-                ),
-              ),
-            ),
-          ),
-        const SizedBox(height: 20),
-
         // ── Low stock alerts ─────────────────────────────────────────────────
         Row(children: [
           const Expanded(child: Text('Low Stock Alerts',
@@ -199,7 +142,9 @@ class InventoryReportScreen extends ConsumerWidget {
   }
 
   Widget _lowStockRow(LowStockItem item) {
-    final pct = item.low > 0 ? item.stock / item.low : 0.0;
+    final pct = item.lowStockThreshold > 0
+        ? item.stock / item.lowStockThreshold
+        : 0.0;
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: BackdropFilter(
@@ -232,10 +177,10 @@ class InventoryReportScreen extends ConsumerWidget {
             ])),
             const SizedBox(width: 12),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('${item.stock} / ${item.low}',
+              Text('${item.stock}',
                   style: const TextStyle(color: EnhancedTheme.warningAmber,
                       fontSize: 12, fontWeight: FontWeight.w700)),
-              Text('reorder: ${item.reorder}',
+              Text('threshold: ${item.lowStockThreshold}',
                   style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.4), fontSize: 10)),
             ]),

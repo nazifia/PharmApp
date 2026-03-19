@@ -35,6 +35,10 @@ class WalletTransaction {
         return 'Payment';
       case 'refund':
         return 'Refund';
+      case 'purchase':
+        return 'Purchase';
+      case 'deduct':
+        return 'Deduction';
       default:
         return type;
     }
@@ -110,6 +114,14 @@ class CustomerApiClient {
     }
   }
 
+  Future<void> deleteCustomer(int id) async {
+    try {
+      await _dio.delete('/customers/$id/');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to delete customer');
+    }
+  }
+
   // ── Wallet ──────────────────────────────────────────────────────────────────
 
   Future<List<WalletTransaction>> fetchWalletTransactions(int id) async {
@@ -127,23 +139,35 @@ class CustomerApiClient {
     }
   }
 
-  Future<Customer> topUpWallet(int id, double amount) async {
+  Future<void> topUpWallet(int id, double amount) async {
     try {
-      final res = await _dio.post(
-          '/customers/$id/wallet/topup/', data: {'amount': amount});
-      return Customer.fromJson(res.data as Map<String, dynamic>);
+      await _dio.post('/customers/$id/wallet/topup/', data: {'amount': amount});
     } on DioException catch (e) {
       throw Exception(e.response?.data?['detail'] ?? 'Failed to top up wallet');
     }
   }
 
-  Future<Customer> deductWallet(int id, double amount) async {
+  Future<void> deductWallet(int id, double amount) async {
     try {
-      final res = await _dio.post(
-          '/customers/$id/wallet/deduct/', data: {'amount': amount});
-      return Customer.fromJson(res.data as Map<String, dynamic>);
+      await _dio.post('/customers/$id/wallet/deduct/', data: {'amount': amount});
     } on DioException catch (e) {
       throw Exception(e.response?.data?['detail'] ?? 'Failed to deduct from wallet');
+    }
+  }
+
+  Future<void> resetWallet(int id) async {
+    try {
+      await _dio.post('/customers/$id/wallet/reset/');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to reset wallet');
+    }
+  }
+
+  Future<void> recordPayment(int id, {required double amount, String method = 'cash'}) async {
+    try {
+      await _dio.post('/customers/$id/record-payment/', data: {'amount': amount, 'method': method});
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to record payment');
     }
   }
 

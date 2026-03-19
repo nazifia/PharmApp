@@ -61,18 +61,18 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
         builder: (ctx, setModal) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF1E293B),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            decoration: BoxDecoration(
+              color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
             child: Form(
               key: formKey,
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Center(child: Container(width: 40, height: 4,
-                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
+                    decoration: BoxDecoration(color: context.dividerColor, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                const Text('Add New Item', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                Text('Add New Item', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 20),
                 _sheetField(nameCtrl, 'Item Name *', validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
                 const SizedBox(height: 12),
@@ -101,11 +101,11 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: form == f ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.07),
+                            color: form == f ? EnhancedTheme.primaryTeal : ctx.cardColor,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: form == f ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.15)),
+                            border: Border.all(color: form == f ? EnhancedTheme.primaryTeal : ctx.borderColor),
                           ),
-                          child: Text(f, style: TextStyle(color: form == f ? Colors.white : Colors.white54, fontSize: 11)),
+                          child: Text(f, style: TextStyle(color: form == f ? Colors.white : ctx.subLabelColor, fontSize: 11)),
                         ),
                       ),
                     )).toList()),
@@ -156,13 +156,17 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       {TextInputType keyboardType = TextInputType.text, String? Function(String?)? validator}) {
     return TextFormField(
       controller: ctrl, keyboardType: keyboardType, validator: validator,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
+      style: TextStyle(color: context.labelColor, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
-        filled: true, fillColor: Colors.white.withValues(alpha: 0.07),
+        labelStyle: TextStyle(color: context.hintColor, fontSize: 13),
+        filled: true, fillColor: context.cardColor,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        errorStyle: const TextStyle(color: Color(0xFFEF4444)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: context.borderColor)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+        errorStyle: const TextStyle(color: EnhancedTheme.errorRed),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
     );
@@ -191,9 +195,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
           Expanded(child: inventoryAsync.when(
             loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
             error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.cloud_off_rounded, color: Colors.white.withValues(alpha: 0.3), size: 48),
+              Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
               const SizedBox(height: 12),
-              Text('$e', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+              Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13),
                   textAlign: TextAlign.center),
               const SizedBox(height: 12),
               TextButton(onPressed: () => ref.invalidate(inventoryListProvider),
@@ -234,12 +238,12 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
         child: TextField(
           controller: _searchCtrl,
           onChanged: (_) => setState(() {}),
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.labelColor),
           decoration: InputDecoration(
             hintText: 'Search by name, brand, barcode…',
-            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 14),
-            prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha: 0.4)),
-            filled: true, fillColor: Colors.white.withValues(alpha: 0.07),
+            hintStyle: TextStyle(color: context.hintColor, fontSize: 14),
+            prefixIcon: Icon(Icons.search, color: context.hintColor),
+            filled: true, fillColor: context.cardColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
           ),

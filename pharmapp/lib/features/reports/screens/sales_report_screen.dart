@@ -68,12 +68,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   }
 
   Widget _buildBody(BuildContext context, SalesReportData data) {
-    final grand   = data.totalRetail + data.totalWholesale;
-    final maxVal  = data.daily.isEmpty
-        ? 1.0
-        : data.daily
-            .map((d) => d.retail + d.wholesale)
-            .fold(1.0, (a, b) => a > b ? a : b);
+    final grand = data.totalRevenue;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -90,10 +85,37 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           Expanded(child: _summaryCard('Wholesale', _fmt(data.totalWholesale),
               EnhancedTheme.accentPurple, Icons.store_rounded)),
         ]),
+        const SizedBox(height: 12),
+
+        // ── Total sales count ────────────────────────────────────────────────
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25))),
+              child: Row(children: [
+                const Icon(Icons.receipt_long_rounded,
+                    color: EnhancedTheme.primaryTeal, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Total Transactions',
+                    style: TextStyle(color: context.labelColor,
+                        fontSize: 13, fontWeight: FontWeight.w600))),
+                Text('${data.totalSales}',
+                    style: const TextStyle(color: EnhancedTheme.primaryTeal,
+                        fontSize: 18, fontWeight: FontWeight.w800)),
+              ]),
+            ),
+          ),
+        ),
         const SizedBox(height: 20),
 
-        // ── Bar chart ────────────────────────────────────────────────────────
-        Text('Sales Breakdown (₦)',
+        // ── Retail vs Wholesale breakdown ────────────────────────────────────
+        Text('Sales Breakdown',
             style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
         ClipRRect(
@@ -106,54 +128,15 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                 color: context.cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: context.borderColor)),
-              child: data.daily.isEmpty
+              child: grand <= 0
                   ? Padding(
                       padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Center(child: Text('No data for this period',
                           style: TextStyle(color: context.subLabelColor))))
                   : Column(children: [
-                      SizedBox(
-                        height: 140,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: data.daily.map((d) {
-                            final total = d.retail + d.wholesale;
-                            final barH  = (total / maxVal) * 120;
-                            final rH    = total > 0 ? (d.retail / total) * barH : 0.0;
-                            final wH    = barH - rH;
-                            return Expanded(child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 3),
-                              child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                                Text(_fmt(total),
-                                    style: TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.5), fontSize: 7)),
-                                const SizedBox(height: 2),
-                                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                                  Container(height: rH, decoration: const BoxDecoration(
-                                      color: EnhancedTheme.accentCyan,
-                                      borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(4)))),
-                                  Container(height: wH, color: EnhancedTheme.accentPurple),
-                                ]),
-                              ]),
-                            ));
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(children: data.daily.map((d) => Expanded(
-                        child: Text(d.label,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
-                                fontSize: 9)),
-                      )).toList()),
-                      const SizedBox(height: 10),
-                      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        _legend(EnhancedTheme.accentCyan, 'Retail'),
-                        const SizedBox(width: 20),
-                        _legend(EnhancedTheme.accentPurple, 'Wholesale'),
-                      ]),
+                      _breakdownRow('Retail', data.totalRetail, grand, EnhancedTheme.accentCyan),
+                      const SizedBox(height: 12),
+                      _breakdownRow('Wholesale', data.totalWholesale, grand, EnhancedTheme.accentPurple),
                     ]),
             ),
           ),
@@ -214,6 +197,31 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         const SizedBox(height: 24),
       ]),
     );
+  }
+
+  Widget _breakdownRow(String label, double value, double total, Color color) {
+    final pct = total > 0 ? value / total : 0.0;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(child: Text(label,
+            style: const TextStyle(color: Colors.white,
+                fontSize: 12, fontWeight: FontWeight.w500))),
+        Text('${(pct * 100).round()}%',
+            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700)),
+        const SizedBox(width: 8),
+        Text(_fmt(value),
+            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+      ]),
+      const SizedBox(height: 6),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: LinearProgressIndicator(
+          value: pct.clamp(0.0, 1.0),
+          backgroundColor: Colors.white.withValues(alpha: 0.08),
+          valueColor: AlwaysStoppedAnimation<Color>(color),
+          minHeight: 8),
+      ),
+    ]);
   }
 
   Widget _header(BuildContext context) => Padding(
@@ -280,11 +288,4 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           ),
         ),
       );
-
-  Widget _legend(Color color, String label) => Row(children: [
-    Container(width: 10, height: 10,
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-    const SizedBox(width: 6),
-    Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
-  ]);
 }
