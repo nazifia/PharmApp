@@ -19,12 +19,13 @@ class InventoryApiClient {
         'expiryDate':       j['expiry_date']        ?? j['expiryDate'],
       };
 
-  Future<List<Item>> fetchInventory({String? search}) async {
+  Future<List<Item>> fetchInventory({String? search, String? store}) async {
     try {
+      final params = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      if (store != null && store.isNotEmpty) params['store'] = store;
       final res = await _dio.get('/inventory/items/',
-          queryParameters: search != null && search.isNotEmpty
-              ? {'search': search}
-              : null);
+          queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List

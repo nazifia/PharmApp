@@ -746,45 +746,52 @@ def procurement_list(request):
                 cost_price=Decimal(str(i.get("costPrice", 0))),
                 markup=Decimal(str(i.get("markup", 0))),
                 expiry_date=i.get("expiryDate"),
-                barcode=i.get("barcode", ""),
+                barcode=i.get("barcode") or "",
             )
             total += pi.subtotal
 
         proc.total = total
         proc.save()
 
-        # If completed, move items to inventory
+        # If completed, move items to the specified store inventory
         if proc.status == "completed":
-            _procurement_to_inventory(proc)
+            dest = data.get("destination", "retail")
+            if dest not in ("retail", "wholesale"):
+                dest = "retail"
+            _procurement_to_inventory(proc, destination=dest)
 
     return Response(proc.to_api_dict(), status=status.HTTP_201_CREATED)
 
 
 @api_view(["POST"])
 def complete_procurement(request, pk):
-    """Mark procurement as completed and add items to inventory."""
+    """Mark procurement as completed and add items to inventory (retail or wholesale)."""
     proc = get_object_or_404(Procurement.objects.prefetch_related("items"), pk=pk)
     if proc.status == "completed":
         return Response(
             {"detail": "Already completed"}, status=status.HTTP_400_BAD_REQUEST
         )
+    destination = request.data.get("destination", "retail")
+    if destination not in ("retail", "wholesale"):
+        destination = "retail"
 
     with transaction.atomic():
         proc.status = "completed"
         proc.save()
-        _procurement_to_inventory(proc)
+        _procurement_to_inventory(proc, destination=destination)
 
     return Response(proc.to_api_dict())
 
 
-def _procurement_to_inventory(proc):
-    """Move procurement items into inventory."""
+def _procurement_to_inventory(proc, destination="retail"):
+    """Move procurement items into the specified store inventory (retail or wholesale)."""
     for pi in proc.items.all():
-        # Try to match existing item
+        # Try to match existing item in the same store
         item = Item.objects.filter(
             name__iexact=pi.item_name,
             brand__iexact=pi.brand,
             dosage_form=pi.dosage_form,
+            store=destination,
         ).first()
 
         if item:
@@ -805,6 +812,7 @@ def _procurement_to_inventory(proc):
                 stock=pi.quantity,
                 barcode=pi.barcode,
                 expiry_date=pi.expiry_date,
+                store=destination,
             )
 
 

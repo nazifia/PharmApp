@@ -187,7 +187,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inventoryAsync = ref.watch(inventoryListProvider);
+    final inventoryAsync = ref.watch(retailInventoryProvider);
     final customersAsync = ref.watch(customerListProvider);
     final cart           = ref.watch(cartProvider);
     final cartTotal      = ref.read(cartProvider.notifier).cartTotal;
@@ -371,7 +371,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           const SizedBox(height: 12),
           Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
           TextButton(
-            onPressed: () => ref.invalidate(inventoryListProvider),
+            onPressed: () => ref.invalidate(retailInventoryProvider),
             child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal)),
           ),
         ])),
@@ -663,16 +663,15 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text('₦${c.item.price.toStringAsFixed(0)} × ${c.quantity} = ₦${c.total.toStringAsFixed(0)}',
-                    style: TextStyle(color: context.hintColor, fontSize: 11)),
+                    style: TextStyle(color: context.subLabelColor, fontSize: 11)),
               ])),
               Row(children: [
                 _qtyBtn(Icons.remove,
                     () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity - 1)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('${c.quantity}',
-                      style: TextStyle(color: context.labelColor,
-                          fontSize: 14, fontWeight: FontWeight.w700)),
+                _QtyField(
+                  quantity: c.quantity,
+                  maxStock: c.item.stock,
+                  onChanged: (n) => ref.read(cartProvider.notifier).updateQuantity(c.item.id, n),
                 ),
                 _qtyBtn(Icons.add,
                     () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity + 1)),
@@ -682,7 +681,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
             Row(children: [
               Icon(Icons.discount_outlined, color: context.hintColor, size: 14),
               const SizedBox(width: 6),
-              Text('Discount:', style: TextStyle(color: context.hintColor, fontSize: 11)),
+              Text('Discount:', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
               const SizedBox(width: 8),
               SizedBox(
                 width: 80,
@@ -779,4 +778,90 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       child: Icon(icon, color: context.labelColor, size: 16),
     ),
   );
+}
+
+// ── Editable quantity field ───────────────────────────────────────────────────
+
+class _QtyField extends StatefulWidget {
+  final int quantity;
+  final int maxStock;
+  final ValueChanged<int> onChanged;
+  const _QtyField({required this.quantity, required this.maxStock, required this.onChanged});
+
+  @override
+  State<_QtyField> createState() => _QtyFieldState();
+}
+
+class _QtyFieldState extends State<_QtyField> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: '${widget.quantity}');
+  }
+
+  @override
+  void didUpdateWidget(_QtyField old) {
+    super.didUpdateWidget(old);
+    if (old.quantity != widget.quantity) {
+      final parsed = int.tryParse(_ctrl.text);
+      if (parsed != widget.quantity) {
+        _ctrl.text = '${widget.quantity}';
+        _ctrl.selection = TextSelection.fromPosition(
+            TextPosition(offset: _ctrl.text.length));
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 52,
+      height: 30,
+      child: TextField(
+        controller: _ctrl,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+            color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700),
+        onChanged: (v) {
+          final n = int.tryParse(v);
+          if (n != null && n >= 1) {
+            widget.onChanged(n.clamp(1, widget.maxStock));
+          }
+        },
+        onSubmitted: (v) {
+          final n = int.tryParse(v) ?? widget.quantity;
+          final clamped = n.clamp(1, widget.maxStock);
+          widget.onChanged(clamped);
+          _ctrl.text = '$clamped';
+        },
+        decoration: InputDecoration(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          filled: true,
+          fillColor: context.cardColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: context.borderColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: context.borderColor),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+            borderSide: BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
 }

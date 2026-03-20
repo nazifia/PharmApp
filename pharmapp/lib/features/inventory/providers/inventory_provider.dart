@@ -14,9 +14,19 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   return InventoryRepository(api);
 });
 
-/// Fetches the full inventory from the backend.
+/// Fetches the full inventory from the backend (all stores).
 final inventoryListProvider = FutureProvider<List<Item>>((ref) {
   return ref.watch(inventoryApiProvider).fetchInventory();
+});
+
+/// Fetches only retail store inventory.
+final retailInventoryProvider = FutureProvider<List<Item>>((ref) {
+  return ref.watch(inventoryApiProvider).fetchInventory(store: 'retail');
+});
+
+/// Fetches only wholesale store inventory.
+final wholesaleInventoryProvider = FutureProvider<List<Item>>((ref) {
+  return ref.watch(inventoryApiProvider).fetchInventory(store: 'wholesale');
 });
 
 /// Searches inventory by keyword.

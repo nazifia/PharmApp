@@ -206,6 +206,12 @@ class DispensingLog(models.Model):
         ordering = ["-created_at"]
 
     def to_api_dict(self):
+        dispenser = None
+        if self.user:
+            dispenser = getattr(self.user, "full_name", None) \
+                or getattr(self.user, "get_full_name", lambda: None)() \
+                or getattr(self.user, "phone_number", None) \
+                or str(self.user)
         return {
             "id": self.id,
             "name": self.name,
@@ -216,6 +222,7 @@ class DispensingLog(models.Model):
             "amount": float(self.amount),
             "discount": float(self.discount_amount),
             "status": self.status,
+            "dispenser": dispenser,
             "createdAt": self.created_at.isoformat(),
         }
 

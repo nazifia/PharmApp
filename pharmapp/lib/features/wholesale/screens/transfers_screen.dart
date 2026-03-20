@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
 
@@ -138,12 +139,15 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.07),
+                  color: active ? EnhancedTheme.primaryTeal : context.cardColor,
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: active ? EnhancedTheme.primaryTeal : context.borderColor,
+                  ),
                 ),
                 child: Text(e.value, textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: active ? Colors.white : Colors.white54,
+                        color: active ? Colors.white : context.subLabelColor,
                         fontSize: 12, fontWeight: FontWeight.w600)),
               ),
             ),
@@ -166,9 +170,9 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
         ),
       ),
       error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.cloud_off_rounded, color: Colors.white.withValues(alpha: 0.3), size: 48),
+        Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
         const SizedBox(height: 12),
-        Text('$e', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+        Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13),
             textAlign: TextAlign.center),
         const SizedBox(height: 12),
         TextButton(
@@ -179,10 +183,10 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
       data: (transfers) {
         if (transfers.isEmpty) {
           return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.swap_horiz_rounded, color: Colors.white.withValues(alpha: 0.2), size: 56),
+            Icon(Icons.swap_horiz_rounded, color: context.hintColor, size: 56),
             const SizedBox(height: 12),
             Text('No transfers found',
-                style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+                style: TextStyle(color: context.subLabelColor, fontSize: 15, fontWeight: FontWeight.w500)),
           ]));
         }
         return ListView.builder(
@@ -477,7 +481,7 @@ class _CreateTransferSheet extends ConsumerStatefulWidget {
 }
 
 class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
-  final _itemNameCtrl = TextEditingController();
+  String _itemName = '';
   final _qtyCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   String _unit = 'Pcs';
@@ -486,14 +490,13 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
 
   @override
   void dispose() {
-    _itemNameCtrl.dispose();
     _qtyCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final name = _itemNameCtrl.text.trim();
+    final name = _itemName.trim();
     final qty = int.tryParse(_qtyCtrl.text.trim()) ?? 0;
     if (name.isEmpty || qty <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -548,31 +551,11 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
         Text('New Transfer', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w800)),
         const SizedBox(height: 24),
 
-        // Item Name
+        // Item Name (searchable autocomplete from inventory)
         Text('Item Name', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
-        TextField(
-          controller: _itemNameCtrl,
-          style: TextStyle(color: context.labelColor, fontSize: 14),
-          decoration: InputDecoration(
-            hintText: 'Enter item name',
-            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
-            filled: true,
-            fillColor: context.cardColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: context.borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: context.borderColor),
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(14)),
-              borderSide: BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5),
-            ),
-            contentPadding: const EdgeInsets.all(14),
-          ),
+        _ItemAutocomplete(
+          onSelected: (name) => setState(() => _itemName = name),
         ),
         const SizedBox(height: 16),
 
@@ -638,9 +621,9 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
         Text('Direction', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Row(children: [
-          _directionChip(true, 'From Wholesale', Icons.arrow_upward_rounded),
+          _directionChip(true, 'Wholesale → Retail', Icons.arrow_forward_rounded),
           const SizedBox(width: 10),
-          _directionChip(false, 'To Wholesale', Icons.arrow_downward_rounded),
+          _directionChip(false, 'Retail → Wholesale', Icons.arrow_back_rounded),
         ]),
         const SizedBox(height: 16),
 
@@ -693,11 +676,11 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
   Widget _directionChip(bool isFromWholesale, String label, IconData icon) {
     final active = _fromWholesale == isFromWholesale;
     final color = isFromWholesale ? EnhancedTheme.accentPurple : EnhancedTheme.successGreen;
-    return GestureDetector(
+    return Expanded(child: GestureDetector(
       onTap: () => setState(() => _fromWholesale = isFromWholesale),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: active ? color.withValues(alpha: 0.15) : context.cardColor,
           borderRadius: BorderRadius.circular(14),
@@ -707,13 +690,103 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
           ),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, color: active ? color : context.subLabelColor, size: 18),
-          const SizedBox(width: 8),
-          Text(label, style: TextStyle(
+          Icon(icon, color: active ? color : context.subLabelColor, size: 16),
+          const SizedBox(width: 6),
+          Flexible(child: Text(label, style: TextStyle(
               color: active ? color : context.subLabelColor,
-              fontSize: 13, fontWeight: FontWeight.w600)),
+              fontSize: 12, fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis)),
         ]),
       ),
+    ));
+  }
+}
+
+// ── Inventory Item Autocomplete ───────────────────────────────────────────────
+
+class _ItemAutocomplete extends ConsumerWidget {
+  final ValueChanged<String> onSelected;
+  const _ItemAutocomplete({required this.onSelected});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final inventoryAsync = ref.watch(inventoryListProvider);
+    final items = inventoryAsync.valueOrNull ?? [];
+    final itemNames = items.map((i) => i.name).toSet().toList()..sort();
+
+    return Autocomplete<String>(
+      optionsBuilder: (textEditingValue) {
+        final query = textEditingValue.text.toLowerCase();
+        if (query.isEmpty) return itemNames;
+        return itemNames.where((n) => n.toLowerCase().contains(query));
+      },
+      onSelected: onSelected,
+      fieldViewBuilder: (context, ctrl, focusNode, onFieldSubmitted) {
+        return TextField(
+          controller: ctrl,
+          focusNode: focusNode,
+          onChanged: (v) => onSelected(v),
+          style: TextStyle(color: context.labelColor, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'Search medication...',
+            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+            prefixIcon: Icon(Icons.medication_rounded, color: context.hintColor, size: 18),
+            filled: true,
+            fillColor: context.cardColor,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.borderColor),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+              borderSide: BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.all(14),
+          ),
+        );
+      },
+      optionsViewBuilder: (context, onOptionSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 200),
+              decoration: BoxDecoration(
+                color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: context.borderColor),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))],
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                itemCount: options.length,
+                itemBuilder: (_, i) {
+                  final option = options.elementAt(i);
+                  return InkWell(
+                    onTap: () => onOptionSelected(option),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      child: Row(children: [
+                        Icon(Icons.medication_rounded, color: EnhancedTheme.primaryTeal, size: 16),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(option,
+                            style: TextStyle(color: context.labelColor, fontSize: 14),
+                            overflow: TextOverflow.ellipsis)),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

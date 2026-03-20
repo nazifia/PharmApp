@@ -241,12 +241,15 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 3),
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.07),
+              color: active ? EnhancedTheme.primaryTeal : context.cardColor,
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: active ? EnhancedTheme.primaryTeal : context.borderColor,
+              ),
             ),
             child: Text(e.value, textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: active ? Colors.white : Colors.white54,
+                    color: active ? Colors.white : context.subLabelColor,
                     fontSize: 11, fontWeight: FontWeight.w600)),
           ),
         ));
@@ -267,9 +270,9 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
         ),
       ),
       error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.cloud_off_rounded, color: Colors.white.withValues(alpha: 0.3), size: 48),
+        Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
         const SizedBox(height: 12),
-        Text('$e', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+        Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13),
             textAlign: TextAlign.center),
         const SizedBox(height: 12),
         TextButton(
@@ -280,10 +283,13 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
       data: (entries) {
         if (entries.isEmpty) {
           return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.inbox_rounded, color: Colors.white.withValues(alpha: 0.2), size: 56),
+            Icon(Icons.inbox_rounded, color: context.hintColor, size: 56),
             const SizedBox(height: 12),
             Text('No dispensing records found',
-                style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+                style: TextStyle(color: context.subLabelColor, fontSize: 15, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 4),
+            Text('Try a different date range or search term',
+                style: TextStyle(color: context.hintColor, fontSize: 12)),
           ]));
         }
         return ListView.builder(
@@ -302,7 +308,8 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
     final quantity = entry['quantity'] ?? 0;
     final amount = (entry['amount'] as num?)?.toDouble() ?? 0;
     final status = (entry['status'] as String? ?? 'dispensed').toLowerCase();
-    final dateStr = entry['date'] as String? ?? entry['dispensedAt'] as String? ?? '';
+    final dateStr = entry['createdAt'] as String? ?? entry['date'] as String? ?? entry['dispensedAt'] as String? ?? '';
+    final dispenser = entry['dispenser'] as String? ?? '';
 
     Color statusColor;
     String statusLabel;
@@ -334,48 +341,61 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: context.borderColor),
             ),
-            child: Row(children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.medication_rounded, color: statusColor, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(name,
-                    style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (brand.isNotEmpty)
-                  Text(brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                const SizedBox(height: 4),
-                Row(children: [
-                  Text('Qty: $quantity',
-                      style: TextStyle(color: context.hintColor, fontSize: 11)),
-                  const SizedBox(width: 12),
-                  if (dateStr.isNotEmpty)
-                    Text(_formatDate(dateStr),
-                        style: TextStyle(color: context.hintColor, fontSize: 11)),
-                ]),
-              ])),
-              const SizedBox(width: 8),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(_fmtNaira(amount),
-                    style: const TextStyle(color: EnhancedTheme.primaryTeal,
-                        fontSize: 14, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  width: 40, height: 40,
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(statusLabel,
-                      style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w600)),
+                  child: Icon(Icons.medication_rounded, color: statusColor, size: 20),
                 ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name,
+                      style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  if (brand.isNotEmpty)
+                    Text(brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                ])),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text(_fmtNaira(amount),
+                      style: const TextStyle(color: EnhancedTheme.primaryTeal,
+                          fontSize: 14, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(statusLabel,
+                        style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ]),
+              const SizedBox(height: 8),
+              Row(children: [
+                Icon(Icons.shopping_bag_outlined, color: context.hintColor, size: 12),
+                const SizedBox(width: 4),
+                Text('Qty: $quantity', style: TextStyle(color: context.hintColor, fontSize: 11)),
+                if (dispenser.isNotEmpty) ...[
+                  const SizedBox(width: 12),
+                  Icon(Icons.person_outline_rounded, color: context.hintColor, size: 12),
+                  const SizedBox(width: 4),
+                  Flexible(child: Text(dispenser,
+                      style: TextStyle(color: context.hintColor, fontSize: 11),
+                      overflow: TextOverflow.ellipsis)),
+                ],
+                if (dateStr.isNotEmpty) ...[
+                  const SizedBox(width: 12),
+                  Icon(Icons.access_time_rounded, color: context.hintColor, size: 12),
+                  const SizedBox(width: 4),
+                  Text(_formatTimestamp(dateStr),
+                      style: TextStyle(color: context.hintColor, fontSize: 11)),
+                ],
               ]),
             ]),
           ),
@@ -399,6 +419,18 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
       return '${months[dt.month - 1]} ${dt.day}';
     } catch (_) {
       return raw.length > 10 ? raw.substring(0, 10) : raw;
+    }
+  }
+
+  String _formatTimestamp(String raw) {
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return '${months[dt.month - 1]} ${dt.day}, $hour:$minute';
+    } catch (_) {
+      return raw.length > 16 ? raw.substring(0, 16) : raw;
     }
   }
 }

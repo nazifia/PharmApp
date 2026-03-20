@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
+import 'package:pharmapp/shared/models/item.dart';
 import '../providers/pos_api_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -26,6 +28,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
   Map<String, dynamic>? _selectedCheck;
   List<dynamic> _detailItems = [];
   bool _detailLoading = false;
+  String _detailSearch = '';
 
   @override
   void initState() {
@@ -72,6 +75,21 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       if (!mounted) return;
       _showError('Failed to create: $e');
     }
+  }
+
+  void _showAddItemsSheet(int checkId) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _AddItemsSheet(
+        checkId: checkId,
+        alreadyAdded: _detailItems
+            .map((it) => (it['itemId'] as num?)?.toInt() ?? (it['id'] as num?)?.toInt() ?? 0)
+            .toSet(),
+        onItemAdded: () => _loadDetail(checkId),
+      ),
+    );
   }
 
   Future<void> _approveCheck(int id) async {
@@ -154,6 +172,18 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     final date = (check['createdAt'] as String?) ?? '';
     final checkId = (check['id'] as num?)?.toInt() ?? 0;
 
+    final reconciled = _detailItems.where((it) => (it['status'] as String?) != 'pending').length;
+    final total = _detailItems.length;
+    final progress = total > 0 ? reconciled / total : 0.0;
+
+    final q = _detailSearch.toLowerCase();
+    final filteredItems = q.isEmpty
+        ? _detailItems
+        : _detailItems.where((it) {
+            final name = ((it['itemName'] as String?) ?? (it['name'] as String?) ?? '').toLowerCase();
+            return name.contains(q);
+          }).toList();
+
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       body: Stack(children: [
@@ -164,7 +194,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
             child: Row(children: [
               IconButton(
                 icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-                onPressed: () => setState(() { _selectedCheck = null; _detailItems = []; }),
+                onPressed: () => setState(() { _selectedCheck = null; _detailItems = []; _detailSearch = ''; }),
               ),
               const SizedBox(width: 4),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -176,33 +206,96 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
           ),
           const SizedBox(height: 8),
 
-          // Action buttons
-          if (status == 'in_progress')
+          // Progress indicator
+          if (total > 0)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(width: double.infinity, child: ElevatedButton.icon(
-                onPressed: () => _approveCheck(checkId),
-                icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-                label: const Text('Approve Stock Check'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: EnhancedTheme.successGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text('Progress: $reconciled / $total items reconciled',
+                      style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+                  Text('${(progress * 100).round()}%',
+                      style: const TextStyle(color: EnhancedTheme.primaryTeal,
+                          fontSize: 12, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: context.borderColor,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        progress == 1.0 ? EnhancedTheme.successGreen : EnhancedTheme.primaryTeal),
+                    minHeight: 6,
+                  ),
                 ),
-              )),
+              ]),
             ),
-          if (status == 'in_progress') const SizedBox(height: 8),
+
+          // Search bar
+          if (_detailItems.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: TextField(
+                onChanged: (v) => setState(() => _detailSearch = v),
+                style: TextStyle(color: context.labelColor, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Search items…',
+                  hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+                  prefixIcon: Icon(Icons.search, color: context.hintColor, size: 20),
+                  filled: true,
+                  fillColor: context.cardColor,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+
+          // Action buttons
+          if (status == 'pending' || status == 'in_progress')
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              child: Row(children: [
+                Expanded(child: ElevatedButton.icon(
+                  onPressed: () => _showAddItemsSheet(checkId),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add Items'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: EnhancedTheme.infoBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                )),
+                if (status == 'in_progress') ...[
+                  const SizedBox(width: 10),
+                  Expanded(child: ElevatedButton.icon(
+                    onPressed: () => _approveCheck(checkId),
+                    icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                    label: const Text('Approve'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: EnhancedTheme.successGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  )),
+                ],
+              ]),
+            ),
+          if (status == 'pending' || status == 'in_progress') const SizedBox(height: 8),
 
           // Items list
           Expanded(child: _detailLoading
               ? const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal))
-              : _detailItems.isEmpty
-                  ? _emptyState(Icons.inventory_2_outlined, 'No items in this check')
+              : filteredItems.isEmpty
+                  ? _emptyState(Icons.inventory_2_outlined, 'No items found')
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
-                      itemCount: _detailItems.length,
-                      itemBuilder: (_, i) => _detailItemCard(_detailItems[i], checkId, status),
+                      itemCount: filteredItems.length,
+                      itemBuilder: (_, i) => _detailItemCard(filteredItems[i], checkId, status),
                     )),
         ])),
       ]),
@@ -211,10 +304,11 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
 
   Widget _detailItemCard(dynamic item, int checkId, String checkStatus) {
     final name = (item['itemName'] as String?) ?? (item['name'] as String?) ?? 'Unknown Item';
-    final expected = (item['expectedQuantity'] as num?)?.toInt() ?? 0;
-    final actual = (item['actualQuantity'] as num?)?.toInt();
+    final expected = (item['expectedQuantity'] as num?)?.toInt() ?? (item['expected'] as num?)?.toInt() ?? 0;
+    final actual = (item['actualQuantity'] as num?)?.toInt() ?? (item['actual'] as num?)?.toInt();
     final itemStatus = (item['status'] as String?) ?? 'pending';
-    final itemId = (item['itemId'] as num?)?.toInt() ?? (item['id'] as num?)?.toInt() ?? 0;
+    // item['id'] is the StockCheckItem PK used in the URL; item['itemId'] is the inventory Item FK
+    final itemId = (item['id'] as num?)?.toInt() ?? 0;
     final discrepancy = actual != null ? actual - expected : null;
 
     final _qtyController = TextEditingController(text: actual?.toString() ?? '');
@@ -272,7 +366,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           filled: true,
-                          fillColor: Colors.white.withValues(alpha: 0.06),
+                          fillColor: context.cardColor,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(color: context.borderColor),
@@ -317,6 +411,27 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                   ),
                 ])),
               ]),
+              if (checkStatus == 'in_progress') ...[
+                const SizedBox(height: 10),
+                SizedBox(width: double.infinity, child: ElevatedButton.icon(
+                  onPressed: () {
+                    final q = int.tryParse(_qtyController.text);
+                    if (q != null) {
+                      final s = q == expected ? 'matched' : 'discrepant';
+                      _updateItem(checkId, itemId, q, s);
+                    }
+                  },
+                  icon: const Icon(Icons.save_rounded, size: 16),
+                  label: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: EnhancedTheme.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                )),
+              ],
             ]),
           ),
         ),
@@ -506,5 +621,159 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
         ),
       ),
     ]));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ADD ITEMS SHEET
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _AddItemsSheet extends ConsumerStatefulWidget {
+  final int checkId;
+  final Set<int> alreadyAdded;
+  final VoidCallback onItemAdded;
+  const _AddItemsSheet({
+    required this.checkId,
+    required this.alreadyAdded,
+    required this.onItemAdded,
+  });
+
+  @override
+  ConsumerState<_AddItemsSheet> createState() => _AddItemsSheetState();
+}
+
+class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
+  String _search = '';
+  final _searchCtrl = TextEditingController();
+  final Set<int> _adding = {};
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _addItem(Item item) async {
+    if (_adding.contains(item.id)) return;
+    setState(() => _adding.add(item.id));
+    try {
+      await ref.read(posApiProvider).addStockCheckItem(widget.checkId, item.id);
+      widget.onItemAdded();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${item.name} added to check'),
+          backgroundColor: EnhancedTheme.successGreen,
+          duration: const Duration(seconds: 1),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $e'),
+          backgroundColor: EnhancedTheme.errorRed,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _adding.remove(item.id));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inventoryAsync = ref.watch(inventoryListProvider);
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 16),
+      decoration: BoxDecoration(
+        color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(children: [
+        Center(child: Container(
+          width: 40, height: 4,
+          decoration: BoxDecoration(color: context.hintColor, borderRadius: BorderRadius.circular(2)),
+        )),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(child: Text('Add Items to Check',
+              style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700))),
+          IconButton(
+            icon: Icon(Icons.close_rounded, color: context.hintColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _searchCtrl,
+          onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
+          style: TextStyle(color: context.labelColor, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'Search medications...',
+            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+            prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
+            filled: true,
+            fillColor: context.cardColor,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.borderColor)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.borderColor)),
+            focusedBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Expanded(child: inventoryAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
+          error: (e, _) => Center(child: Text('$e', style: TextStyle(color: context.subLabelColor))),
+          data: (items) {
+            final filtered = items.where((it) {
+              if (widget.alreadyAdded.contains(it.id)) return false;
+              if (_search.isEmpty) return true;
+              return it.name.toLowerCase().contains(_search) ||
+                  it.brand.toLowerCase().contains(_search);
+            }).toList();
+
+            if (filtered.isEmpty) {
+              return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.inventory_2_outlined, color: context.hintColor, size: 48),
+                const SizedBox(height: 12),
+                Text('No items found', style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+              ]));
+            }
+
+            return ListView.builder(
+              itemCount: filtered.length,
+              itemBuilder: (_, i) {
+                final item = filtered[i];
+                final isAdding = _adding.contains(item.id);
+                return ListTile(
+                  leading: Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.medication_rounded, color: EnhancedTheme.primaryTeal, size: 20),
+                  ),
+                  title: Text(item.name, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    '${item.brand} · Stock: ${item.stock}',
+                    style: TextStyle(color: context.hintColor, fontSize: 12),
+                  ),
+                  trailing: isAdding
+                      ? const SizedBox(width: 24, height: 24,
+                          child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2))
+                      : IconButton(
+                          icon: const Icon(Icons.add_circle_rounded, color: EnhancedTheme.primaryTeal, size: 28),
+                          onPressed: () => _addItem(item),
+                        ),
+                );
+              },
+            );
+          },
+        )),
+      ]),
+    );
   }
 }

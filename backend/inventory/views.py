@@ -9,9 +9,12 @@ from .models import Item
 def item_list(request):
     if request.method == "GET":
         search = request.query_params.get("search", "").strip()
+        store = request.query_params.get("store", "").strip()
         items = Item.objects.all().order_by("name")
         if search:
             items = items.filter(name__icontains=search)
+        if store in ("retail", "wholesale"):
+            items = items.filter(store=store)
         return Response([i.to_api_dict() for i in items])
 
     # POST — create

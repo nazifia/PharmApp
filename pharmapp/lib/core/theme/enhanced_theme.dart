@@ -284,26 +284,26 @@ extension PharmContext on BuildContext {
 
   /// Glass-card background fill.
   Color get cardColor => isDark
-      ? Colors.white.withValues(alpha: 0.07)
-      : Colors.white.withValues(alpha: 0.85);
+      ? Colors.white.withValues(alpha: 0.10)
+      : Colors.white.withValues(alpha: 0.90);
 
   /// Glass-card border colour.
   Color get borderColor => isDark
-      ? Colors.white.withValues(alpha: 0.10)
-      : Colors.black.withValues(alpha: 0.07);
+      ? Colors.white.withValues(alpha: 0.16)
+      : Colors.black.withValues(alpha: 0.09);
 
   /// Primary label text colour.
   Color get labelColor => isDark ? Colors.white : Colors.black87;
 
   /// Secondary / sub-label text colour.
   Color get subLabelColor => isDark
-      ? Colors.white.withValues(alpha: 0.65)
-      : Colors.black54;
+      ? Colors.white.withValues(alpha: 0.80)
+      : Colors.black.withValues(alpha: 0.65);
 
   /// Hint / tertiary text colour.
   Color get hintColor => isDark
-      ? Colors.white.withValues(alpha: 0.50)
-      : Colors.black.withValues(alpha: 0.35);
+      ? Colors.white.withValues(alpha: 0.62)
+      : Colors.black.withValues(alpha: 0.42);
 
   /// Divider line colour.
   Color get dividerColor => isDark

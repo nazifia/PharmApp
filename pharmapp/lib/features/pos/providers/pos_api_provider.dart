@@ -153,13 +153,23 @@ class PosApiClient {
     return res.data as List<dynamic>;
   }
 
-  Future<Map<String, dynamic>> createProcurement({required int supplierId, required List<Map<String, dynamic>> items, String status = 'draft'}) async {
-    final res = await _dio.post('/pos/procurements/', data: {'supplierId': supplierId, 'items': items, 'status': status});
+  Future<Map<String, dynamic>> createProcurement({
+    required int supplierId,
+    required List<Map<String, dynamic>> items,
+    String status = 'draft',
+    String destination = 'retail',
+  }) async {
+    final res = await _dio.post('/pos/procurements/', data: {
+      'supplierId': supplierId,
+      'items': items,
+      'status': status,
+      'destination': destination,
+    });
     return res.data as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> completeProcurement(int id) async {
-    final res = await _dio.post('/pos/procurements/$id/complete/');
+  Future<Map<String, dynamic>> completeProcurement(int id, {String destination = 'retail'}) async {
+    final res = await _dio.post('/pos/procurements/$id/complete/', data: {'destination': destination});
     return res.data as Map<String, dynamic>;
   }
 

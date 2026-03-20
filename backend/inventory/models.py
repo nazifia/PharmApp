@@ -62,6 +62,11 @@ BARCODE_TYPE_CHOICES = [
 STATUS_ACTIVE = "active"
 STATUS_INACTIVE = "inactive"
 
+STORE_CHOICES = [
+    ("retail", "Retail"),
+    ("wholesale", "Wholesale"),
+]
+
 
 class Item(models.Model):
     name = models.CharField(max_length=200)
@@ -88,6 +93,10 @@ class Item(models.Model):
     serial_number = models.CharField(max_length=50, blank=True, default="")
     expiry_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, default=STATUS_ACTIVE)
+    store = models.CharField(
+        max_length=20, choices=STORE_CHOICES, default="retail",
+        help_text="Which dispensing store this item belongs to"
+    )
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -120,6 +129,7 @@ class Item(models.Model):
             "serialNumber": self.serial_number,
             "expiryDate": self.expiry_date.isoformat() if self.expiry_date else None,
             "status": self.status,
+            "store": self.store,
         }
 
     def __str__(self):

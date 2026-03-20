@@ -15,7 +15,7 @@ class AppDrawer extends ConsumerStatefulWidget {
 }
 
 class _AppDrawerState extends ConsumerState<AppDrawer> {
-  final Set<String> _expanded = {'operations', 'inventory', 'reports', 'finance', 'procurement', 'admin'};
+  final Set<String> _expanded = {'operations', 'inventory', 'reports', 'finance', 'procurement', 'admin', 'payments'};
 
   void _toggle(String key) {
     setState(() {
@@ -112,6 +112,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           onToggle: () => _toggle('payments'),
                           children: [
                             _SubNavItem(icon: Icons.request_page_rounded, label: 'Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
+                            if (isWholesale)
+                              _SubNavItem(icon: Icons.request_page_rounded, label: 'WS Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
                           ],
                         ),
 
