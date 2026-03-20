@@ -152,6 +152,9 @@ class SaleItem(models.Model):
     returned = models.BooleanField(default=False)
     return_qty = models.IntegerField(default=0)
 
+    def __str__(self):
+        return f"{self.name} ×{self.quantity} [{self.sale.receipt_id}]"
+
     def save(self, *args, **kwargs):
         self.subtotal = (self.price * self.quantity) - self.discount
         super().save(*args, **kwargs)
@@ -201,6 +204,9 @@ class DispensingLog(models.Model):
         ],
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ×{self.quantity} ({self.status})"
 
     class Meta:
         ordering = ["-created_at"]
@@ -264,6 +270,9 @@ class PaymentRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"{self.request_id} — ₦{self.total_amount} ({self.status})"
+
     class Meta:
         ordering = ["-created_at"]
 
@@ -304,6 +313,9 @@ class PaymentRequestItem(models.Model):
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
 
+    def __str__(self):
+        return f"{self.item_name} ×{self.quantity} [{self.payment_request.request_id}]"
+
     def save(self, *args, **kwargs):
         self.subtotal = (self.unit_price * self.quantity) - self.discount_amount
         super().save(*args, **kwargs)
@@ -340,6 +352,9 @@ class ReceiptPayment(models.Model):
     status = models.CharField(max_length=20, default="completed")
     date = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.payment_method.upper()} ₦{self.amount} [{self.receipt.receipt_id}]"
+
     def to_api_dict(self):
         return {
             "id": self.id,
@@ -373,6 +388,9 @@ class ReturnRecord(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Return ×{self.quantity} from {self.sale.receipt_id}"
 
     def to_api_dict(self):
         return {
@@ -412,6 +430,9 @@ class Expense(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.description or self.category.name} — ₦{self.amount} ({self.date})"
 
     class Meta:
         ordering = ["-date"]
@@ -463,6 +484,9 @@ class Procurement(models.Model):
         choices=[("draft", "Draft"), ("completed", "Completed")],
     )
 
+    def __str__(self):
+        return f"#{self.id} {self.supplier} ({self.status})"
+
     def to_api_dict(self):
         return {
             "id": self.id,
@@ -489,6 +513,9 @@ class ProcurementItem(models.Model):
     expiry_date = models.DateField(null=True, blank=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
     barcode = models.CharField(max_length=100, blank=True, default="")
+
+    def __str__(self):
+        return f"{self.item_name} ×{self.quantity} [PO#{self.procurement_id}]"
 
     def save(self, *args, **kwargs):
         self.subtotal = self.cost_price * self.quantity
@@ -534,6 +561,9 @@ class StockCheck(models.Model):
     )
     approved_at = models.DateTimeField(null=True, blank=True)
 
+    def __str__(self):
+        return f"Stock Check #{self.id} — {self.status}"
+
     def to_api_dict(self):
         return {
             "id": self.id,
@@ -560,6 +590,9 @@ class StockCheckItem(models.Model):
             ("adjusted", "Adjusted"),
         ],
     )
+
+    def __str__(self):
+        return f"{self.item.name} (exp:{self.expected_quantity}, act:{self.actual_quantity})"
 
     def to_api_dict(self):
         return {
@@ -608,6 +641,9 @@ class Notification(models.Model):
     )
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"[{self.priority.upper()}] {self.title}"
 
     class Meta:
         ordering = ["-created_at"]
@@ -661,6 +697,10 @@ class TransferRequest(models.Model):
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        direction = "WS→Retail" if self.from_wholesale else "Retail→WS"
+        return f"Transfer #{self.id} {direction}: {self.item_name} ×{self.requested_quantity}"
 
     class Meta:
         ordering = ["-created_at"]
