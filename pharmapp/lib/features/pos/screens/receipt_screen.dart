@@ -143,7 +143,8 @@ class _ReceiptCard extends StatelessWidget {
       saleData['receiptId'] as String? ?? '#${saleData['id']}';
   String get customerName =>
       saleData['customerName'] as String? ?? saleData['buyerName'] as String? ?? 'Walk-in';
-  String get cashierName   => saleData['cashierName'] as String? ?? '—';
+  String get cashierName   => saleData['cashierName']  as String? ?? '';
+  String get dispenserName => saleData['dispenserName'] as String? ?? '';
   String get paymentMethod => saleData['paymentMethod'] as String? ?? 'cash';
   bool   get isWholesale   => saleData['isWholesale'] as bool? ?? false;
   String get status        => saleData['status'] as String? ?? 'completed';
@@ -298,7 +299,9 @@ class _ReceiptCard extends StatelessWidget {
                         valueColor: EnhancedTheme.primaryTeal, bold: true),
                     row('Date & Time', dateStr),
                     row('Customer', customerName),
-                    if (cashierName.isNotEmpty && cashierName != '—')
+                    if (dispenserName.isNotEmpty)
+                      row('Dispenser', dispenserName),
+                    if (cashierName.isNotEmpty)
                       row('Cashier', cashierName),
                     row('Type',
                         isWholesale ? 'Wholesale' : 'Retail',
@@ -566,7 +569,8 @@ Future<Uint8List> _buildPdf(
   final receiptId = data['receiptId'] as String? ?? '#${data['id']}';
   final customerName = data['customerName'] as String? ??
       data['buyerName'] as String? ?? 'Walk-in';
-  final cashierName   = data['cashierName'] as String? ?? '';
+  final cashierName    = data['cashierName']  as String? ?? '';
+  final dispenserName  = data['dispenserName'] as String? ?? '';
   final paymentMethod = data['paymentMethod'] as String? ?? 'cash';
   final isWholesale   = data['isWholesale'] as bool? ?? false;
   final status        = data['status'] as String? ?? 'completed';
@@ -662,6 +666,12 @@ Future<Uint8List> _buildPdf(
           pw.Spacer(),
           pw.Text(customerName, style: pw.TextStyle(font: fontBold, fontSize: 8, color: black)),
         ]),
+        if (dispenserName.isNotEmpty)
+          pw.Row(children: [
+            pw.Text('Dispenser:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            pw.Spacer(),
+            pw.Text(dispenserName, style: pw.TextStyle(font: font, fontSize: 8, color: black)),
+          ]),
         if (cashierName.isNotEmpty)
           pw.Row(children: [
             pw.Text('Cashier:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),

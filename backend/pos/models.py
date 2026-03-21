@@ -112,6 +112,11 @@ class Sale(models.Model):
             "cashierId": self.cashier_id,
             "cashierName": self.cashier.name if self.cashier else "",
             "dispenserId": self.dispenser_id,
+            "dispenserName": (
+                getattr(self.dispenser, "get_full_name", lambda: "")()
+                or getattr(self.dispenser, "phone_number", "")
+                if self.dispenser else ""
+            ),
             "totalAmount": float(self.total_amount),
             "discountTotal": float(self.discount_total),
             "paymentCash": float(self.payment_cash),
