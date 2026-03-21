@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
@@ -555,7 +556,7 @@ class _PayMethodIcon extends StatelessWidget {
 
 // ── PDF builder ───────────────────────────────────────────────────────────────
 
-Future<List<int>> _buildPdf(
+Future<Uint8List> _buildPdf(
     Map<String, dynamic> data, PdfPageFormat format) async {
   final doc = pw.Document();
   final font = await PdfGoogleFonts.nunitoRegular();
