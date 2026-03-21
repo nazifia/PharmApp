@@ -552,9 +552,9 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
     final paymentMethod = data['paymentMethod'] as String? ?? data['payment_method'] as String? ?? 'bank_transfer';
     final status = (data['status'] as String? ?? 'completed').toLowerCase();
     final dateStr = data['createdAt'] as String? ?? data['created_at'] as String? ?? '';
-    final items = (data['items'] as List<dynamic>?) ?? [];
-    final payments = (data['payments'] as Map<String, dynamic>?) ?? {};
-    final returns = (data['returns'] as List<dynamic>?) ?? [];
+    final items    = (data['items']    as List<dynamic>?) ?? [];
+    final payments = (data['payments'] as List<dynamic>?) ?? [];
+    final returns  = (data['returns']  as List<dynamic>?) ?? [];
 
     Color statusColor;
     String statusLabel;
@@ -622,12 +622,12 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
           ...items.map((item) => _itemRow(context, item as Map<String, dynamic>, status)),
         const SizedBox(height: 20),
 
-        // Payments summary
+        // Payments summary (split payments list)
         if (payments.isNotEmpty) ...[
           Text('Payment Breakdown',
               style: TextStyle(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
-          _paymentsSummary(context, payments),
+          _paymentsList(context, payments),
           const SizedBox(height: 20),
         ],
 
@@ -716,15 +716,7 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
     );
   }
 
-  Widget _paymentsSummary(BuildContext context, Map<String, dynamic> payments) {
-    final entries = <MapEntry<String, double>>[];
-    for (final e in payments.entries) {
-      final val = (e.value as num?)?.toDouble() ?? 0;
-      if (val > 0) entries.add(MapEntry(e.key, val));
-    }
-    if (entries.isEmpty) {
-      return Text('No payment breakdown', style: TextStyle(color: context.subLabelColor, fontSize: 12));
-    }
+  Widget _paymentsList(BuildContext context, List<dynamic> payments) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: BackdropFilter(
@@ -736,15 +728,19 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: context.borderColor),
           ),
-          child: Column(children: entries.map((e) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(e.key.toUpperCase(),
-                  style: TextStyle(color: context.subLabelColor, fontSize: 12)),
-              Text(_fmtNaira(e.value),
-                  style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
-            ]),
-          )).toList()),
+          child: Column(children: payments.map((p) {
+            final pm = p as Map<String, dynamic>;
+            final method = (pm['paymentMethod'] as String? ?? pm['payment_method'] as String? ?? '').toUpperCase();
+            final amount = (pm['amount'] as num?)?.toDouble() ?? 0;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text(method, style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+                Text(_fmtNaira(amount),
+                    style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+              ]),
+            );
+          }).toList()),
         ),
       ),
     );
