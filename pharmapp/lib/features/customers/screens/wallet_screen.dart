@@ -233,8 +233,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           child: Text(
                             amt >= 1000 ? '₦${amt ~/ 1000}k' : '₦$amt',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                                color: context.labelColor, fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ))
@@ -246,7 +246,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       Expanded(child: TextField(
                         controller: _amountCtrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600),
                         decoration: InputDecoration(
                           hintText: 'Enter amount…',
                           hintStyle: TextStyle(color: context.hintColor),
@@ -258,7 +258,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           prefixText: '₦ ',
                           prefixStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.80),
+                              color: context.labelColor,
                               fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       )),
@@ -357,10 +357,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         border: Border.all(color: active ? color : context.borderColor),
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, color: active ? Colors.white : Colors.white54, size: 16),
+        Icon(icon, color: active ? Colors.white : context.subLabelColor, size: 16),
         const SizedBox(width: 6),
         Text(label, style: TextStyle(
-            color: active ? Colors.white : Colors.white54,
+            color: active ? Colors.white : context.labelColor,
             fontSize: 13, fontWeight: FontWeight.w600)),
       ]),
     ),
