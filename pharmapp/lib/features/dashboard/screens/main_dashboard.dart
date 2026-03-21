@@ -7,6 +7,7 @@ import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/features/reports/providers/reports_api_client.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 import 'package:pharmapp/shared/widgets/dashboard_card.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
@@ -671,7 +672,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   // ── Sales Trend Chart ────────────────────────────────────────────────────
 
-  Widget _salesTrendChart(AsyncValue salesAsync) {
+  Widget _salesTrendChart(AsyncValue<SalesReportData> salesAsync) {
     return salesAsync.when(
       loading: () => ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -689,10 +690,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
       ),
       error: (e, _) => const SizedBox.shrink(),
       data: (report) {
-        final topItems = report.topItems ?? [];
+        final topItems = report.topItems;
         if (topItems.isEmpty) return const SizedBox.shrink();
 
-        final maxRevenue = topItems.fold<double>(0.0, (max, item) => item.revenue > max ? item.revenue : max);
+        final maxRevenue = topItems.fold<double>(0.0, (double max, TopItem item) => item.revenue > max ? item.revenue : max);
         if (maxRevenue <= 0) return const SizedBox.shrink();
 
         return ClipRRect(
@@ -710,7 +711,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                   Text('Today\'s Top Revenue Items',
                       style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
                   const Spacer(),
-                  Text(_fmt(report.totalRevenue ?? 0),
+                  Text(_fmt(report.totalRevenue),
                       style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 14, fontWeight: FontWeight.w800)),
                 ]),
                 const SizedBox(height: 16),

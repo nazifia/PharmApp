@@ -6,6 +6,7 @@ import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 class AppDrawer extends ConsumerStatefulWidget {
   const AppDrawer({super.key});
@@ -76,7 +77,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       children: [
                         // ══ DASHBOARD ═════════════════════════════════════════
-                        _NavItem(icon: Icons.home_rounded, label: 'Dashboard', route: '/dashboard', onTap: navigate),
+                        _NavItem(icon: Icons.home_rounded, label: 'Dashboard', route: AppShell.roleFallback(ref), onTap: navigate),
 
                         const SizedBox(height: 4),
                         _SectionDivider(label: 'Operations'),

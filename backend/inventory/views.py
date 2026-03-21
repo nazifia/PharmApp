@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.utils.dateparse import parse_date
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -51,7 +52,8 @@ def item_detail(request, pk):
         item.stock = data.get("stock", item.stock)
         item.low_stock_threshold = data.get("lowStockThreshold", item.low_stock_threshold)
         item.barcode = data.get("barcode", item.barcode)
-        item.expiry_date = data.get("expiryDate", item.expiry_date) or None
+        expiry_raw = data.get("expiryDate", item.expiry_date) or None
+        item.expiry_date = parse_date(expiry_raw) if isinstance(expiry_raw, str) else expiry_raw
         item.save()
         return Response(item.to_api_dict())
 

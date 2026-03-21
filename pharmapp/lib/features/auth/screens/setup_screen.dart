@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:pharmapp/shared/widgets/custom_button.dart';
 import 'package:pharmapp/shared/widgets/custom_textfield.dart';
 
@@ -34,7 +35,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       await prefs.setString('display_name', _nameCtrl.text.trim());
     } catch (_) {}
     if (!mounted) return;
-    context.go('/dashboard');
+    context.go(AppShell.roleFallback(ref));
   }
 
   @override

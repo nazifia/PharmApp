@@ -8,8 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Android emulator uses 10.0.2.2 to reach host localhost.
 /// Web and desktop (Windows/Linux/macOS) use localhost directly.
 ///
-/// Run the PharmApp backend on port 8001:
-///   python manage.py runserver 8001
+/// Run the PharmApp backend on port 8000:
+///   python manage.py runserver 8000
 final baseUrlProvider = StateProvider<String>((ref) {
   if (!kIsWeb) {
     // Mobile (Android/iOS) — check at runtime; default Android emulator IP
@@ -18,9 +18,9 @@ final baseUrlProvider = StateProvider<String>((ref) {
       const env = String.fromEnvironment('API_URL', defaultValue: '');
       if (env.isNotEmpty) return env;
     } catch (_) {}
-    return 'http://10.0.2.2:8001/api';
+    return 'http://10.0.2.2:8000/api';
   }
-  return 'http://localhost:8001/api';
+  return 'http://localhost:8000/api';
 });
 
 // ── Auth token ────────────────────────────────────────────────────────────────

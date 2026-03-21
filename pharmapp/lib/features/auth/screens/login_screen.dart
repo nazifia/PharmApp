@@ -16,10 +16,10 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _formKey           = GlobalKey<FormState>();
-  final _phoneController   = TextEditingController();
+  final _formKey            = GlobalKey<FormState>();
+  final _phoneController    = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword    = true;
+  bool _obscurePassword     = true;
 
   late final AnimationController _animCtrl;
   late final Animation<double>   _fadeAnim;
@@ -64,6 +64,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
+  // ── Light-mode constants ──────────────────────────────────────────────────
+  static const _bg1          = Color(0xFFE0F2FE); // light-sky-100
+  static const _bg2          = Color(0xFFF0FAFA); // near-white teal tint
+  static const _bg3          = Color(0xFFF8FAFC); // slate-50
+  static const _textDark     = Color(0xFF0F172A); // slate-900
+  static const _textMid      = Color(0xFF334155); // slate-700
+  static const _textSub      = Color(0xFF64748B); // slate-500
+  static const _textHint     = Color(0xFF94A3B8); // slate-400
+  static const _inputFill    = Color(0xFFF1F5F9); // slate-100
+  static const _inputBorder  = Color(0xFFCBD5E1); // slate-300
+  static const _cardBg       = Colors.white;
+  static const _cardBorder   = Color(0xFFE2E8F0); // slate-200
+  static const _divider      = Color(0xFFE2E8F0);
+
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthFlowState>(authFlowProvider, (prev, next) {
@@ -82,27 +96,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final isLoading = authState == AuthFlowState.loggingIn;
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: _bg3,
       body: Stack(
         children: [
-          // Background gradient
+          // ── Background gradient ──────────────────────────────────────────
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1E293B)],
+                colors: [_bg1, _bg2, _bg3],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
           ),
-          // Decorative blobs
+
+          // ── Decorative blobs ────────────────────────────────────────────
           Positioned(
             top: -80, right: -60,
             child: Container(
               width: 250, height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.08),
+                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
               ),
             ),
           ),
@@ -112,12 +127,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               width: 300, height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: EnhancedTheme.accentCyan.withValues(alpha: 0.06),
+                color: EnhancedTheme.accentCyan.withValues(alpha: 0.09),
               ),
             ),
           ),
 
-          // Main content
+          // ── Main content ────────────────────────────────────────────────
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnim,
@@ -127,13 +142,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   children: [
                     const SizedBox(height: 60),
                     _buildLogo(),
-                    const SizedBox(height: 56),
+                    const SizedBox(height: 48),
                     _buildLoginCard(isLoading),
                     const SizedBox(height: 32),
                     Text(
                       '© 2026 PharmApp  ·  Pharmacy Management System',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 11),
+                      style: TextStyle(color: _textHint.withValues(alpha: 0.8), fontSize: 11),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -155,24 +170,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             borderRadius: BorderRadius.circular(28),
             gradient: LinearGradient(
               colors: [
-                EnhancedTheme.primaryTeal.withValues(alpha: 0.3),
-                EnhancedTheme.accentCyan.withValues(alpha: 0.2),
+                EnhancedTheme.primaryTeal.withValues(alpha: 0.18),
+                EnhancedTheme.accentCyan.withValues(alpha: 0.12),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1.5),
+            border: Border.all(
+              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: const Icon(Icons.local_pharmacy_rounded,
               size: 52, color: EnhancedTheme.primaryTeal),
         ),
         const SizedBox(height: 16),
         const Text('PharmApp',
-            style: TextStyle(color: Colors.white, fontSize: 30,
-                fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+            style: TextStyle(
+                color: _textDark,
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5)),
         const SizedBox(height: 4),
-        Text('Pharmacy Management System',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
+        const Text('Pharmacy Management System',
+            style: TextStyle(color: _textSub, fontSize: 13)),
       ],
     );
   }
@@ -181,13 +209,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.07),
+            color: _cardBg.withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.5),
+            border: Border.all(color: _cardBorder, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 32,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Form(
             key: _formKey,
@@ -195,11 +230,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text('Welcome back',
-                    style: TextStyle(color: Colors.white, fontSize: 22,
+                    style: TextStyle(
+                        color: _textDark,
+                        fontSize: 22,
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                Text('Sign in with your phone number and password',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
+                const Text('Sign in with your phone number and password',
+                    style: TextStyle(color: _textSub, fontSize: 13)),
                 const SizedBox(height: 28),
 
                 // Phone input
@@ -208,6 +245,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   labelText: 'Phone Number',
                   hintText: '+234 801 234 5678',
                   keyboardType: TextInputType.phone,
+                  textColor: _textMid,
+                  fillColor: _inputFill,
+                  enabledBorderColor: _inputBorder,
                   prefixIcon: const Icon(Icons.phone_outlined,
                       color: EnhancedTheme.primaryTeal),
                   validator: (v) {
@@ -224,6 +264,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   labelText: 'Password',
                   hintText: '••••••••',
                   obscureText: _obscurePassword,
+                  textColor: _textMid,
+                  fillColor: _inputFill,
+                  enabledBorderColor: _inputBorder,
                   prefixIcon: const Icon(Icons.lock_outline_rounded,
                       color: EnhancedTheme.primaryTeal),
                   suffixIcon: IconButton(
@@ -231,7 +274,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       _obscurePassword
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.white38,
+                      color: _textHint,
                     ),
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
@@ -257,16 +300,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 ),
 
                 const SizedBox(height: 20),
-                Row(
+                const Row(
                   children: [
-                    Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.12))),
+                    Expanded(child: Divider(color: _divider)),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 12),
                       child: Text('Secure Login',
                           style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.35), fontSize: 11)),
+                              color: _textHint, fontSize: 11)),
                     ),
-                    Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.12))),
+                    Expanded(child: Divider(color: _divider)),
                   ],
                 ),
               ],
