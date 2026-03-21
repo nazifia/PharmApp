@@ -628,7 +628,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
       return;
     }
     final items = _lines.where((l) => l.nameCtrl.text.isNotEmpty).map((l) => {
-      'name': l.nameCtrl.text.trim(),
+      'itemName': l.nameCtrl.text.trim(),
       'brand': l.brandCtrl.text.trim(),
       'dosageForm': l.dosageForm,
       'unit': l.unit,
