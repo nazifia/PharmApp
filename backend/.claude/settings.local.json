@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze:*)",
+      "Bash(python -m py_compile pos/wholesale_views.py pos/urls.py)",
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -rn \"to_api_dict\\\\|sale_detail\\\\|/sales/\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\pos\"\" --include=\"*.py \")"
+    ]
+  }
+}
