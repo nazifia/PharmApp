@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -271,7 +272,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       final payload = CheckoutPayload(
         items: _cart.map((l) => SaleItemPayload(
           barcode: l.barcode,
-          itemId: null,
+          itemId: l.id,
           quantity: l.qty,
           price: l.price,
           discount: l.discount,
@@ -318,8 +319,14 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      final msg = e is DioException
+          ? (e.response?.data is Map && e.response!.data['detail'] != null
+              ? e.response!.data['detail'].toString()
+              : 'Checkout failed (${e.response?.statusCode ?? e.message})')
+          : 'Checkout failed: $e';
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: EnhancedTheme.errorRed));
+          SnackBar(content: Text(msg), backgroundColor: EnhancedTheme.errorRed,
+              duration: const Duration(seconds: 5)));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -355,8 +362,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       ));
     } catch (e) {
       if (!mounted) return;
+      final msg = e is DioException
+          ? (e.response?.data is Map && e.response!.data['detail'] != null
+              ? e.response!.data['detail'].toString()
+              : 'Request failed (${e.response?.statusCode ?? e.message})')
+          : '$e';
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: EnhancedTheme.errorRed));
+          SnackBar(content: Text(msg), backgroundColor: EnhancedTheme.errorRed));
     }
   }
 
@@ -638,7 +650,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               const SizedBox(height: 4),
               if (!outOfStock)
                 atMax
-                    ? Text('Max in cart',
+                    ? const Text('Max in cart',
                         style: TextStyle(color: EnhancedTheme.warningAmber, fontSize: 10, fontWeight: FontWeight.w600))
                     : GestureDetector(
                         onTap: () => _addToCart(item),
