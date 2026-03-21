@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,15 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+
+String _apiError(Object e) {
+  if (e is DioException) {
+    final data = e.response?.data;
+    if (data is Map && data['detail'] != null) return data['detail'].toString();
+    if (data is String && data.isNotEmpty) return data;
+  }
+  return e.toString();
+}
 
 // ── Providers ────────────────────────────────────────────────────────────────
 
@@ -412,7 +422,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed: $e'),
+          content: Text(_apiError(e)),
           backgroundColor: EnhancedTheme.errorRed,
         ));
       }
@@ -432,7 +442,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed: $e'),
+          content: Text(_apiError(e)),
           backgroundColor: EnhancedTheme.errorRed,
         ));
       }
@@ -498,7 +508,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed: $e'),
+          content: Text(_apiError(e)),
           backgroundColor: EnhancedTheme.errorRed,
         ));
       }
@@ -577,7 +587,7 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
       if (mounted) {
         setState(() => _submitting = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed: $e'),
+          content: Text(_apiError(e)),
           backgroundColor: EnhancedTheme.errorRed,
         ));
       }
