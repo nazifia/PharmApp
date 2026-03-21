@@ -216,10 +216,25 @@ def transfer_approve(request, pk):
         return Response(
             {"detail": f"Already {transfer.status}"}, status=status.HTTP_400_BAD_REQUEST
         )
+
+    src_store = "wholesale" if transfer.from_wholesale else "retail"
+    approved_qty = int(request.data.get("approvedQty", transfer.requested_quantity))
+
+    # Warn if approving more than source stock
+    src_item = Item.objects.filter(name__iexact=transfer.item_name, store=src_store).first()
+    if src_item is None:
+        return Response(
+            {"detail": f"Item '{transfer.item_name}' not found in {src_store} store."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if approved_qty > src_item.stock:
+        return Response(
+            {"detail": f"Insufficient stock: only {src_item.stock} available in {src_store}."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     transfer.status = "approved"
-    transfer.approved_quantity = int(
-        request.data.get("approvedQty", transfer.requested_quantity)
-    )
+    transfer.approved_quantity = approved_qty
     transfer.approved_by = request.user if request.user.is_authenticated else None
     transfer.save()
     return Response(transfer.to_api_dict())
@@ -264,13 +279,32 @@ def transfer_receive(request, pk):
             name__iexact=transfer.item_name, store=dst_store
         ).first()
 
-        if src_item:
-            src_item.stock = max(0, src_item.stock - qty)
-            src_item.save()
+        if src_item is None:
+            return Response(
+                {"detail": f"Source item '{transfer.item_name}' not found in {src_store} store."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        if dst_item:
-            dst_item.stock += qty
-            dst_item.save()
+        # If destination store doesn't carry this item yet, create it
+        if dst_item is None:
+            dst_item = Item.objects.create(
+                name=src_item.name,
+                brand=src_item.brand,
+                dosage_form=src_item.dosage_form,
+                unit=src_item.unit,
+                cost=src_item.cost,
+                price=src_item.price,
+                markup=src_item.markup,
+                low_stock_threshold=src_item.low_stock_threshold,
+                store=dst_store,
+                stock=0,
+            )
+
+        src_item.stock = max(0, src_item.stock - qty)
+        src_item.save()
+
+        dst_item.stock += qty
+        dst_item.save()
 
     return Response(transfer.to_api_dict())
 
