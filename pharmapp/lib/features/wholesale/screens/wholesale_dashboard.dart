@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
+import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_api_client.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
@@ -101,6 +103,8 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
     final salesTodayAsync = ref.watch(salesReportProvider('today'));
     final salesMonthAsync = ref.watch(salesReportProvider('month'));
     final customerAsync   = ref.watch(customerReportProvider);
+
+    final wsInventoryAsync = ref.watch(wholesaleInventoryProvider);
 
     final revenue    = salesTodayAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
     final orderCount = salesTodayAsync.whenOrNull(data: (d) => d.topItems.fold<int>(0, (s, i) => s + i.qty)) ?? 0;
@@ -199,6 +203,84 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
                   );
                 },
               ),
+              const SizedBox(height: 20),
+
+              // ── Wholesale Inventory ──────────────────────────────────────────
+              Row(children: [
+                Expanded(child: Text('Wholesale Inventory',
+                    style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700))),
+                TextButton.icon(
+                  onPressed: () => context.push('/dashboard/inventory'),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 14, color: EnhancedTheme.accentCyan),
+                  label: const Text('Manage', style: TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12)),
+                ),
+              ]),
+              const SizedBox(height: 10),
+              wsInventoryAsync.when(
+                loading: () => ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: context.cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: context.borderColor)),
+                      child: const Center(child: CircularProgressIndicator(
+                          color: EnhancedTheme.accentCyan, strokeWidth: 2)),
+                    ),
+                  ),
+                ),
+                error: (e, _) => _errorCard(context, 'Could not load inventory'),
+                data: (items) {
+                  final total    = items.length;
+                  final lowStock = items.where((i) => i.stock > 0 && i.stock <= i.lowStockThreshold).length;
+                  final outStock = items.where((i) => i.stock == 0).length;
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: context.cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: context.borderColor)),
+                        child: Row(children: [
+                          _invStat(context, '$total',     'Total Items',  EnhancedTheme.accentCyan),
+                          _invDivider(context),
+                          _invStat(context, '$lowStock',  'Low Stock',    EnhancedTheme.warningAmber),
+                          _invDivider(context),
+                          _invStat(context, '$outStock',  'Out of Stock', EnhancedTheme.errorRed),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () => context.push('/dashboard/inventory'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha: 0.3)),
+                              ),
+                              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                Icon(Icons.inventory_2_rounded, color: EnhancedTheme.accentCyan, size: 16),
+                                SizedBox(width: 6),
+                                Text('View All', style: TextStyle(color: EnhancedTheme.accentCyan,
+                                    fontSize: 12, fontWeight: FontWeight.w600)),
+                              ]),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              if (wsInventoryAsync.valueOrNull?.any((i) => i.stock == 0 || i.stock <= i.lowStockThreshold) == true) ...[
+                const SizedBox(height: 8),
+                _buildLowStockAlerts(context, wsInventoryAsync.value!),
+              ],
               const SizedBox(height: 20),
 
               // ── Top Wholesale Customers ──────────────────────────────────────
@@ -355,6 +437,44 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
           style: TextStyle(color: context.hintColor, fontSize: 13))),
     ),
   );
+
+  Widget _invStat(BuildContext context, String value, String label, Color color) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w800)),
+        Text(label,  style: TextStyle(color: context.hintColor, fontSize: 10)),
+      ]);
+
+  Widget _invDivider(BuildContext context) => Container(
+    width: 1, height: 32,
+    margin: const EdgeInsets.symmetric(horizontal: 14),
+    color: context.borderColor,
+  );
+
+  Widget _buildLowStockAlerts(BuildContext context, List<Item> items) {
+    final alerts = items.where((i) => i.stock == 0 || i.stock <= i.lowStockThreshold).take(3).toList();
+    return Column(children: alerts.map<Widget>((item) => Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: (item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: (item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber).withValues(alpha: 0.25)),
+      ),
+      child: Row(children: [
+        Icon(item.stock == 0 ? Icons.remove_circle_rounded : Icons.warning_amber_rounded,
+            color: item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber, size: 16),
+        const SizedBox(width: 10),
+        Expanded(child: Text(item.name,
+            style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w500),
+            maxLines: 1, overflow: TextOverflow.ellipsis)),
+        Text(item.stock == 0 ? 'Out of Stock' : '${item.stock} left',
+            style: TextStyle(
+              color: item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber,
+              fontSize: 12, fontWeight: FontWeight.w700)),
+      ]),
+    )).toList());
+  }
 }
 
 // ── Wholesale More Sheet ───────────────────────────────────────────────────────
@@ -400,6 +520,7 @@ class _WholesaleMoreSheet extends StatelessWidget {
             Text('Navigate', style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             Row(children: [
+              _sheetTile(context, Icons.inventory_2_rounded,     'Inventory',   EnhancedTheme.accentCyan,   '/dashboard/inventory'),
               _sheetTile(context, Icons.storefront_rounded,      'Retail',      EnhancedTheme.primaryTeal,  '/dashboard'),
               _sheetTile(context, Icons.point_of_sale_rounded,   'Retail POS',  EnhancedTheme.accentCyan,   '/dashboard/pos'),
               _sheetTile(context, Icons.settings_rounded,        'Settings',    EnhancedTheme.accentPurple, '/dashboard/settings'),

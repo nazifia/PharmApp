@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import '../providers/inventory_provider.dart';
 
 class InventoryListScreen extends ConsumerStatefulWidget {
@@ -26,7 +27,10 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    final role = ref.read(currentUserProvider)?.role ?? '';
+    final isWholesale = ['Wholesale Manager', 'Wholesale Operator', 'Wholesale Salesperson']
+        .contains(role);
+    _tabCtrl = TabController(length: 2, vsync: this, initialIndex: isWholesale ? 1 : 0);
   }
 
   @override

@@ -507,7 +507,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
 
           // Key metrics
           Row(children: [
-            Expanded(child: _metricCard('Retail Price', '₦${item.price.toStringAsFixed(0)}', EnhancedTheme.primaryTeal, Icons.sell_rounded)),
+            Expanded(child: _metricCard('Price', '₦${item.price.toStringAsFixed(0)}', EnhancedTheme.primaryTeal, Icons.sell_rounded)),
             const SizedBox(width: 10),
             Expanded(child: _metricCard('Stock', '${item.stock} units', stockColor, Icons.inventory_2_rounded)),
             const SizedBox(width: 10),
@@ -539,7 +539,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           // Pricing
           _sectionTitle('Pricing'),
           _glassCard(child: Column(children: [
-            _detailRow('Retail Price', '₦${item.price.toStringAsFixed(2)}'),
+            _detailRow('Price', '₦${item.price.toStringAsFixed(2)}'),
             if (item.costPrice > 0) ...[
               _divider(),
               _detailRow('Cost Price', '₦${item.costPrice.toStringAsFixed(2)}'),
