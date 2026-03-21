@@ -6,6 +6,7 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/sale.dart';
 import '../providers/cart_provider.dart';
 import '../providers/pos_api_provider.dart';
+import 'receipt_screen.dart';
 
 enum _PayMethod { cash, card, bankTransfer, wallet, split }
 
@@ -162,7 +163,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     if (result != null) {
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
-      _showSuccessSheet();
+      _showSuccessSheet(result);
     } else {
       final err = ref.read(checkoutProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -172,17 +173,22 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     }
   }
 
-  void _showSuccessSheet() {
+  void _showSuccessSheet(Map<String, dynamic> saleData) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isDismissible: false,
       builder: (_) => _SuccessSheet(
-        total:  _total,
-        method: _method,
+        total:    _total,
+        method:   _method,
+        saleData: saleData,
         onDone: () {
           Navigator.pop(context);
           context.go('/dashboard/pos');
+        },
+        onViewReceipt: () {
+          Navigator.pop(context);
+          showReceiptSheet(context, saleData);
         },
       ),
     );
@@ -458,8 +464,17 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 class _SuccessSheet extends StatelessWidget {
   final double total;
   final _PayMethod method;
+  final Map<String, dynamic> saleData;
   final VoidCallback onDone;
-  const _SuccessSheet({required this.total, required this.method, required this.onDone});
+  final VoidCallback onViewReceipt;
+
+  const _SuccessSheet({
+    required this.total,
+    required this.method,
+    required this.saleData,
+    required this.onDone,
+    required this.onViewReceipt,
+  });
 
   Color get _color {
     switch (method) {
@@ -474,20 +489,22 @@ class _SuccessSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final receiptId = saleData['receiptId'] as String? ?? '';
     return Container(
       decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28))),
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
+        // success circle
         Container(
           width: 72, height: 72,
           decoration: const BoxDecoration(color: EnhancedTheme.successGreen, shape: BoxShape.circle),
           child: const Icon(Icons.check_rounded, color: Colors.white, size: 40)),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         Text('Payment Successful!',
             style: TextStyle(color: context.labelColor, fontSize: 22, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text('₦${total.toStringAsFixed(2)} via',
             style: TextStyle(color: context.subLabelColor, fontSize: 14)),
         const SizedBox(height: 6),
@@ -504,14 +521,34 @@ class _SuccessSheet extends StatelessWidget {
                 style: TextStyle(color: _color, fontSize: 12, fontWeight: FontWeight.w700)),
           ]),
         ),
-        const SizedBox(height: 32),
-        SizedBox(width: double.infinity, child: ElevatedButton(
-          onPressed: onDone,
+        if (receiptId.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(receiptId,
+              style: TextStyle(color: context.hintColor, fontSize: 11,
+                  fontFamily: 'monospace')),
+        ],
+        const SizedBox(height: 24),
+        // ── Buttons
+        SizedBox(width: double.infinity, child: ElevatedButton.icon(
+          onPressed: onViewReceipt,
+          icon: const Icon(Icons.receipt_long_rounded, size: 18),
+          label: const Text('View & Print Receipt',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: EnhancedTheme.successGreen, foregroundColor: Colors.white,
+            backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-          child: const Text('New Sale', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+        )),
+        const SizedBox(height: 10),
+        SizedBox(width: double.infinity, child: OutlinedButton(
+          onPressed: onDone,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: context.labelColor,
+            side: BorderSide(color: context.borderColor),
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+          child: const Text('New Sale',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
         )),
       ]),
     );

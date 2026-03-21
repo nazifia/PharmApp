@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
+import 'receipt_screen.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
 
@@ -566,6 +567,20 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
           Text(paymentMethod.toUpperCase(),
               style: TextStyle(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w500)),
         ]),
+        const SizedBox(height: 20),
+        SizedBox(width: double.infinity, child: ElevatedButton.icon(
+          onPressed: () {
+            Navigator.pop(context);
+            showReceiptSheet(context, data);
+          },
+          icon: const Icon(Icons.receipt_long_rounded, size: 18),
+          label: const Text('View & Print Receipt',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+        )),
       ]),
     );
   }
