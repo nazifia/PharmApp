@@ -136,13 +136,13 @@ class InventoryReportScreen extends ConsumerWidget {
             child: Text('All items adequately stocked',
                 style: TextStyle(color: context.subLabelColor)))
         else
-          ...data.lowStockItems.map(_lowStockRow),
+          ...data.lowStockItems.map((item) => _lowStockRow(context, item)),
         const SizedBox(height: 24),
       ]),
     );
   }
 
-  Widget _lowStockRow(LowStockItem item) {
+  Widget _lowStockRow(BuildContext context, LowStockItem item) {
     final pct = item.lowStockThreshold > 0
         ? item.stock / item.lowStockThreshold
         : 0.0;
