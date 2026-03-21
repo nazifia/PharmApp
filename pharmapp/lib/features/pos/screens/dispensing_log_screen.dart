@@ -143,10 +143,12 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
         ]),
         error: (e, _) => const SizedBox.shrink(),
         data: (stats) {
-          final dailyCount = stats['dailyCount'] ?? 0;
-          final dailyRevenue = (stats['dailyRevenue'] as num?)?.toDouble() ?? 0;
-          final monthlyCount = stats['monthlyCount'] ?? 0;
-          final monthlyRevenue = (stats['monthlyRevenue'] as num?)?.toDouble() ?? 0;
+          final daily   = stats['daily']   as Map<String, dynamic>? ?? {};
+          final monthly = stats['monthly'] as Map<String, dynamic>? ?? {};
+          final dailyCount    = daily['count']     ?? 0;
+          final dailyRevenue  = (daily['revenue']   as num?)?.toDouble() ?? 0;
+          final monthlyCount  = monthly['count']   ?? 0;
+          final monthlyRevenue = (monthly['revenue'] as num?)?.toDouble() ?? 0;
           return Row(children: [
             Expanded(child: _statCard('$dailyCount', 'Daily\nCount', EnhancedTheme.primaryTeal, Icons.today_rounded)),
             const SizedBox(width: 10),
@@ -412,15 +414,6 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
     return '₦${v.toStringAsFixed(0)}';
   }
 
-  String _formatDate(String raw) {
-    try {
-      final dt = DateTime.parse(raw);
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      return '${months[dt.month - 1]} ${dt.day}';
-    } catch (_) {
-      return raw.length > 10 ? raw.substring(0, 10) : raw;
-    }
-  }
 
   String _formatTimestamp(String raw) {
     try {

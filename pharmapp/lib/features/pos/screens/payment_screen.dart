@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -166,9 +167,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       _showSuccessSheet(result);
     } else {
       final err = ref.read(checkoutProvider).error;
+      String errMsg = 'Checkout failed';
+      if (err is DioException) {
+        final data = err.response?.data;
+        if (data is Map && data['detail'] != null) {
+          errMsg = data['detail'].toString();
+        } else {
+          errMsg = 'Checkout failed: ${err.response?.statusCode ?? err.message}';
+        }
+      } else if (err != null) {
+        errMsg = 'Checkout failed: $err';
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Checkout failed: $err'),
+        content: Text(errMsg),
         backgroundColor: EnhancedTheme.errorRed,
+        duration: const Duration(seconds: 5),
       ));
     }
   }
@@ -245,7 +258,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                             style: TextStyle(color: context.labelColor, fontSize: 13)),
                         if (c.discount > 0)
                           Text('-₦${c.discount.toStringAsFixed(0)} disc',
-                              style: TextStyle(color: EnhancedTheme.warningAmber, fontSize: 11)),
+                              style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 11)),
                       ])),
                       Text('×${c.quantity}',
                           style: TextStyle(color: context.subLabelColor, fontSize: 13)),
