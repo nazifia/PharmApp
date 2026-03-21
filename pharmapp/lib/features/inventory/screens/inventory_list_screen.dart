@@ -14,12 +14,37 @@ class InventoryListScreen extends ConsumerStatefulWidget {
   ConsumerState<InventoryListScreen> createState() => _InventoryListScreenState();
 }
 
-class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
+class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
+    with SingleTickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
-  String _filter = 'All';
-  bool   _isGrid  = false;
+  String _filter    = 'All';
+  bool   _isGrid    = false;
+  late final TabController _tabCtrl;
 
   final _filters = ['All', 'Low Stock', 'Expired', 'Expiring Soon'];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _tabCtrl.dispose();
+    super.dispose();
+  }
+
+  String get _currentStore => _tabCtrl.index == 0 ? 'retail' : 'wholesale';
+
+  void _invalidateCurrent() {
+    if (_tabCtrl.index == 0) {
+      ref.invalidate(retailInventoryProvider);
+    } else {
+      ref.invalidate(wholesaleInventoryProvider);
+    }
+  }
 
   List<Item> _applyFilter(List<Item> items) {
     final q   = _searchCtrl.text.toLowerCase();
@@ -42,9 +67,6 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     }).toList();
   }
 
-  @override
-  void dispose() { _searchCtrl.dispose(); super.dispose(); }
-
   void _showAddItemSheet(BuildContext context) {
     final nameCtrl    = TextEditingController();
     final brandCtrl   = TextEditingController();
@@ -52,6 +74,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     final stockCtrl   = TextEditingController();
     final barcodeCtrl = TextEditingController();
     String form       = 'Tablet';
+    String store      = _currentStore; // pre-select current tab's store
     final formKey     = GlobalKey<FormState>();
 
     showModalBottomSheet(
@@ -69,83 +92,117 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
             child: Form(
               key: formKey,
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Center(child: Container(width: 40, height: 4,
-                    decoration: BoxDecoration(color: context.dividerColor, borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 16),
-                Text('Add New Item', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 20),
-                _sheetField(nameCtrl, 'Item Name *', validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
-                const SizedBox(height: 12),
-                _sheetField(brandCtrl, 'Brand / Manufacturer'),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(child: _sheetField(priceCtrl, 'Price (₦) *',
-                      keyboardType: TextInputType.number,
-                      validator: (v) => double.tryParse(v ?? '') == null ? 'Invalid' : null)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _sheetField(stockCtrl, 'Stock Qty *',
-                      keyboardType: TextInputType.number,
-                      validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid' : null)),
-                ]),
-                const SizedBox(height: 12),
-                _sheetField(barcodeCtrl, 'Barcode (optional)', keyboardType: TextInputType.number),
-                const SizedBox(height: 16),
-                // Dosage form chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: ['Tablet','Capsule','Syrup','Inhaler','Sachet','Injection'].map((f) =>
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: GestureDetector(
-                        onTap: () => setModal(() => form = f),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: form == f ? EnhancedTheme.primaryTeal : ctx.cardColor,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: form == f ? EnhancedTheme.primaryTeal : ctx.borderColor),
-                          ),
-                          child: Text(f, style: TextStyle(color: form == f ? Colors.white : ctx.subLabelColor, fontSize: 11)),
+              child: SingleChildScrollView(
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Center(child: Container(width: 40, height: 4,
+                      decoration: BoxDecoration(color: context.dividerColor, borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 16),
+                  Text('Add New Item', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 20),
+                  _sheetField(nameCtrl, 'Item Name *', validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
+                  const SizedBox(height: 12),
+                  _sheetField(brandCtrl, 'Brand / Manufacturer'),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(child: _sheetField(priceCtrl, 'Price (₦) *',
+                        keyboardType: TextInputType.number,
+                        validator: (v) => double.tryParse(v ?? '') == null ? 'Invalid' : null)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _sheetField(stockCtrl, 'Stock Qty *',
+                        keyboardType: TextInputType.number,
+                        validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid' : null)),
+                  ]),
+                  const SizedBox(height: 12),
+                  _sheetField(barcodeCtrl, 'Barcode (optional)', keyboardType: TextInputType.number),
+                  const SizedBox(height: 16),
+                  // Store selector
+                  Text('Store', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Row(children: ['retail', 'wholesale'].map((s) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () => setModal(() => store = s),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: store == s ? EnhancedTheme.primaryTeal : ctx.cardColor,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: store == s ? EnhancedTheme.primaryTeal : ctx.borderColor),
                         ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(store == s ? Icons.check_circle_rounded : Icons.circle_outlined,
+                              size: 14, color: store == s ? Colors.white : ctx.subLabelColor),
+                          const SizedBox(width: 6),
+                          Text(s == 'retail' ? 'Retail' : 'Wholesale',
+                              style: TextStyle(color: store == s ? Colors.white : ctx.subLabelColor,
+                                  fontSize: 13, fontWeight: FontWeight.w600)),
+                        ]),
                       ),
-                    )).toList()),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(width: double.infinity, child: ElevatedButton(
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) return;
-                    final data = {
-                      'name':               nameCtrl.text.trim(),
-                      'brand':              brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
-                      'dosage_form':        form,
-                      'price':              double.parse(priceCtrl.text),
-                      'stock':              int.parse(stockCtrl.text),
-                      'low_stock_threshold': 20,
-                      'barcode':            barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
-                    };
-                    Navigator.of(ctx).pop();
-                    try {
-                      await ref.read(inventoryApiProvider).createItem(data);
-                      ref.invalidate(inventoryListProvider);
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('${data['name']} added'),
-                        backgroundColor: EnhancedTheme.successGreen));
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('Error: $e'), backgroundColor: EnhancedTheme.errorRed));
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  )).toList()),
+                  const SizedBox(height: 16),
+                  // Dosage form chips
+                  Text('Dosage Form', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: ['Tablet','Capsule','Syrup','Inhaler','Sachet','Injection'].map((f) =>
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: GestureDetector(
+                          onTap: () => setModal(() => form = f),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: form == f ? EnhancedTheme.primaryTeal : ctx.cardColor,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: form == f ? EnhancedTheme.primaryTeal : ctx.borderColor),
+                            ),
+                            child: Text(f, style: TextStyle(color: form == f ? Colors.white : ctx.subLabelColor, fontSize: 11)),
+                          ),
+                        ),
+                      )).toList()),
                   ),
-                  child: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w700)),
-                )),
-              ]),
+                  const SizedBox(height: 20),
+                  SizedBox(width: double.infinity, child: ElevatedButton(
+                    onPressed: () async {
+                      if (!formKey.currentState!.validate()) return;
+                      final data = {
+                        'name':               nameCtrl.text.trim(),
+                        'brand':              brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
+                        'dosage_form':        form,
+                        'price':              double.parse(priceCtrl.text),
+                        'stock':              int.parse(stockCtrl.text),
+                        'low_stock_threshold': 20,
+                        'barcode':            barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
+                        'store':              store,
+                      };
+                      Navigator.of(ctx).pop();
+                      try {
+                        await ref.read(inventoryApiProvider).createItem(data);
+                        // Invalidate both providers so lists stay fresh
+                        ref.invalidate(retailInventoryProvider);
+                        ref.invalidate(wholesaleInventoryProvider);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('${data['name']} added to ${(data['store'] as String).toUpperCase()}'),
+                          backgroundColor: EnhancedTheme.successGreen));
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('Error: $e'), backgroundColor: EnhancedTheme.errorRed));
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w700)),
+                  )),
+                ]),
+              ),
             ),
           ),
         ),
@@ -175,10 +232,6 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inventoryAsync = _searchCtrl.text.isNotEmpty
-        ? ref.watch(inventorySearchProvider(_searchCtrl.text))
-        : ref.watch(inventoryListProvider);
-
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       floatingActionButton: FloatingActionButton.extended(
@@ -193,23 +246,52 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
           _buildHeader(context),
           _buildSearchBar(),
           _buildFilterChips(),
-          Expanded(child: inventoryAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
-            error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
-              const SizedBox(height: 12),
-              Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13),
-                  textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              TextButton(onPressed: () => ref.invalidate(inventoryListProvider),
-                  child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal))),
-            ])),
-            data: (items) {
-              final filtered = _applyFilter(items);
-              if (filtered.isEmpty) return _emptyState();
-              return _isGrid ? _buildGrid(filtered) : _buildList(filtered);
-            },
-          )),
+          // ── Store tabs ──────────────────────────────────────────────
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.borderColor),
+            ),
+            child: TabBar(
+              controller: _tabCtrl,
+              onTap: (_) => setState(() {}),
+              indicator: BoxDecoration(
+                color: EnhancedTheme.primaryTeal,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelColor: Colors.white,
+              unselectedLabelColor: context.subLabelColor,
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              tabs: const [
+                Tab(text: 'Retail'),
+                Tab(text: 'Wholesale'),
+              ],
+            ),
+          ),
+          // ── Tab content ─────────────────────────────────────────────
+          Expanded(
+            child: TabBarView(
+              controller: _tabCtrl,
+              children: [
+                _StoreInventoryView(
+                  store: 'retail',
+                  filter: _filter,
+                  isGrid: _isGrid,
+                  applyFilter: _applyFilter,
+                ),
+                _StoreInventoryView(
+                  store: 'wholesale',
+                  filter: _filter,
+                  isGrid: _isGrid,
+                  applyFilter: _applyFilter,
+                ),
+              ],
+            ),
+          ),
         ])),
       ]),
     );
@@ -218,16 +300,20 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   Widget _buildHeader(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
-      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
+      IconButton(
+        icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
+        onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
+      ),
       const SizedBox(width: 4),
-      Expanded(child: Text('Inventory', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600))),
+      Expanded(child: Text('Inventory',
+          style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600))),
       IconButton(
         icon: Icon(_isGrid ? Icons.list_rounded : Icons.grid_view_rounded, color: context.subLabelColor),
         onPressed: () => setState(() => _isGrid = !_isGrid),
       ),
       IconButton(
         icon: Icon(Icons.refresh_rounded, color: context.subLabelColor),
-        onPressed: () => ref.invalidate(inventoryListProvider),
+        onPressed: _invalidateCurrent,
       ),
     ]),
   );
@@ -279,20 +365,65 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       },
     ),
   );
+}
 
-  Widget _buildList(List<Item> items) => ListView.builder(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+// ── Per-store inventory view ──────────────────────────────────────────────────
+
+class _StoreInventoryView extends ConsumerWidget {
+  final String store;
+  final String filter;
+  final bool isGrid;
+  final List<Item> Function(List<Item>) applyFilter;
+
+  const _StoreInventoryView({
+    required this.store,
+    required this.filter,
+    required this.isGrid,
+    required this.applyFilter,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Always use store-filtered provider; search is applied client-side via applyFilter
+    final inventoryAsync = store == 'retail'
+        ? ref.watch(retailInventoryProvider)
+        : ref.watch(wholesaleInventoryProvider);
+
+    return inventoryAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
+      error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
+        const SizedBox(height: 12),
+        Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: () => store == 'retail'
+              ? ref.invalidate(retailInventoryProvider)
+              : ref.invalidate(wholesaleInventoryProvider),
+          child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal)),
+        ),
+      ])),
+      data: (items) {
+        final filtered = applyFilter(items);
+        if (filtered.isEmpty) return _emptyState(context);
+        return isGrid ? _buildGrid(context, filtered) : _buildList(context, filtered);
+      },
+    );
+  }
+
+  Widget _buildList(BuildContext context, List<Item> items) => ListView.builder(
+    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
     itemCount: items.length,
-    itemBuilder: (_, i) => _itemCard(items[i]),
+    itemBuilder: (_, i) => _itemCard(context, items[i]),
   );
 
-  Widget _buildGrid(List<Item> items) => GridView.builder(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+  Widget _buildGrid(BuildContext context, List<Item> items) => GridView.builder(
+    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
       mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.0),
     itemCount: items.length,
-    itemBuilder: (_, i) => _itemGridCard(items[i]),
+    itemBuilder: (_, i) => _itemGridCard(context, items[i]),
   );
 
   Color _stockColor(Item item) {
@@ -301,7 +432,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     return EnhancedTheme.successGreen;
   }
 
-  Widget _itemCard(Item item) {
+  Widget _itemCard(BuildContext context, Item item) {
     final sc  = _stockColor(item);
     final now = DateTime.now();
     final exp = item.expiryDate != null && item.expiryDate!.isBefore(now);
@@ -342,7 +473,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     );
   }
 
-  Widget _itemGridCard(Item item) {
+  Widget _itemGridCard(BuildContext context, Item item) {
     final sc = _stockColor(item);
     return GestureDetector(
       onTap: () => context.push('/item/${item.id}'),
@@ -388,9 +519,10 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
   );
 
-  Widget _emptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+  Widget _emptyState(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
     Icon(Icons.inventory_2_outlined, color: context.hintColor, size: 64),
     const SizedBox(height: 16),
-    Text('No items found', style: TextStyle(color: context.subLabelColor, fontSize: 16)),
+    Text('No ${store == 'retail' ? 'retail' : 'wholesale'} items found',
+        style: TextStyle(color: context.subLabelColor, fontSize: 16)),
   ]));
 }

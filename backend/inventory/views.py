@@ -24,11 +24,12 @@ def item_list(request):
         brand=data.get("brand", ""),
         dosage_form=data.get("dosageForm", ""),
         price=data.get("price", 0),
-        cost_price=data.get("costPrice", 0),
+        cost=data.get("costPrice", 0),
         stock=data.get("stock", 0),
         low_stock_threshold=data.get("lowStockThreshold", 10),
         barcode=data.get("barcode", ""),
         expiry_date=data.get("expiryDate") or None,
+        store=data.get("store", "retail"),
     )
     return Response(item.to_api_dict(), status=status.HTTP_201_CREATED)
 
@@ -46,11 +47,9 @@ def item_detail(request, pk):
         item.brand = data.get("brand", item.brand)
         item.dosage_form = data.get("dosageForm", item.dosage_form)
         item.price = data.get("price", item.price)
-        item.cost_price = data.get("costPrice", item.cost_price)
+        item.cost = data.get("costPrice", item.cost)
         item.stock = data.get("stock", item.stock)
-        item.low_stock_threshold = data.get(
-            "lowStockThreshold", item.low_stock_threshold
-        )
+        item.low_stock_threshold = data.get("lowStockThreshold", item.low_stock_threshold)
         item.barcode = data.get("barcode", item.barcode)
         item.expiry_date = data.get("expiryDate", item.expiry_date) or None
         item.save()

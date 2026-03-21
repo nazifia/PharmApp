@@ -13,6 +13,7 @@ class InventoryApiClient {
         'brand':            j['brand'],
         'dosageForm':       j['dosage_form']        ?? j['dosageForm'],
         'price':            j['price'],
+        'costPrice':        j['cost']               ?? j['costPrice'] ?? 0,
         'stock':            j['stock'],
         'lowStockThreshold': j['low_stock_threshold'] ?? j['lowStockThreshold'],
         'barcode':          j['barcode'],
@@ -65,6 +66,23 @@ class InventoryApiClient {
       return Item.fromJson(_normalize(res.data as Map<String, dynamic>));
     } on DioException catch (e) {
       throw Exception(e.response?.data?['detail'] ?? 'Failed to create item');
+    }
+  }
+
+  Future<Item> updateItem(int itemId, Map<String, dynamic> data) async {
+    try {
+      final res = await _dio.patch('/inventory/items/$itemId/', data: data);
+      return Item.fromJson(_normalize(res.data as Map<String, dynamic>));
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to update item');
+    }
+  }
+
+  Future<void> deleteItem(int itemId) async {
+    try {
+      await _dio.delete('/inventory/items/$itemId/');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to delete item');
     }
   }
 

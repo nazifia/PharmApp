@@ -46,8 +46,8 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
     return PopupMenuButton<String>(
       onSelected: (val) {
         switch (val) {
-          case 'settings':   context.push('/settings'); break;
-          case 'reports':    context.push('/reports'); break;
+          case 'settings':   context.push('/dashboard/settings'); break;
+          case 'reports':    context.push('/dashboard/reports'); break;
           case 'retail':     context.go('/dashboard'); break;
           case 'admin':      context.go('/admin-dashboard'); break;
           case 'logout':     _logout(); break;
@@ -103,7 +103,7 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
     final customerAsync   = ref.watch(customerReportProvider);
 
     final revenue    = salesTodayAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
-    final orderCount = salesTodayAsync.whenOrNull(data: (d) => d.topItems.fold(0, (s, i) => s + i.qty)) ?? 0;
+    final orderCount = salesTodayAsync.whenOrNull(data: (d) => d.topItems.fold<int>(0, (s, i) => s + i.qty)) ?? 0;
     final wsCustomers = customerAsync.whenOrNull(data: (d) => d.wholesale) ?? 0;
     final isLoading  = salesTodayAsync.isLoading || customerAsync.isLoading;
 
@@ -140,7 +140,7 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
                     style: TextStyle(color: context.hintColor, fontSize: 11)),
               ])),
               ElevatedButton.icon(
-                onPressed: () => context.push('/wholesale-pos'),
+                onPressed: () => context.push('/dashboard/wholesale-pos'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EnhancedTheme.accentCyan,
                   foregroundColor: Colors.white,
