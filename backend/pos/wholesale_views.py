@@ -248,14 +248,29 @@ def transfer_receive(request, pk):
     with transaction.atomic():
         transfer.status = "received"
         transfer.save()
-        # Update stock
-        item = Item.objects.filter(name__iexact=transfer.item_name).first()
-        if item:
-            if transfer.from_wholesale:
-                item.stock = max(0, item.stock - transfer.approved_quantity)
-            else:
-                item.stock += transfer.approved_quantity
-            item.save()
+
+        qty = transfer.approved_quantity
+        if transfer.from_wholesale:
+            # Wholesale → Retail: deduct from wholesale, add to retail
+            src_store, dst_store = "wholesale", "retail"
+        else:
+            # Retail → Wholesale: deduct from retail, add to wholesale
+            src_store, dst_store = "retail", "wholesale"
+
+        src_item = Item.objects.filter(
+            name__iexact=transfer.item_name, store=src_store
+        ).first()
+        dst_item = Item.objects.filter(
+            name__iexact=transfer.item_name, store=dst_store
+        ).first()
+
+        if src_item:
+            src_item.stock = max(0, src_item.stock - qty)
+            src_item.save()
+
+        if dst_item:
+            dst_item.stock += qty
+            dst_item.save()
 
     return Response(transfer.to_api_dict())
 
