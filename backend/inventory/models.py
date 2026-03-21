@@ -134,3 +134,19 @@ class Item(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.brand})" if self.brand else self.name
+
+
+class RetailItem(Item):
+    """Proxy of Item scoped to the retail store — for admin organisation."""
+    class Meta:
+        proxy = True
+        verbose_name = "Retail Item"
+        verbose_name_plural = "Retail Items"
+
+
+class WholesaleItem(Item):
+    """Proxy of Item scoped to the wholesale store — for admin organisation."""
+    class Meta:
+        proxy = True
+        verbose_name = "Wholesale Item"
+        verbose_name_plural = "Wholesale Items"
