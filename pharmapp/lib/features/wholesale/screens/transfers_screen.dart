@@ -260,7 +260,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
                       style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
-                  Text('$requestedQty $unit · ${isFromWholesale ? "Outgoing" : "Incoming"}',
+                  Text('$requestedQty $unit · ${isFromWholesale ? "Wholesale → Retail" : "Retail → Wholesale"}',
                       style: TextStyle(color: context.hintColor, fontSize: 12)),
                 ])),
                 Container(
@@ -298,7 +298,13 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
               ],
               if (status == 'approved') ...[
                 const SizedBox(height: 10),
-                SizedBox(width: double.infinity, child: _actionBtn('Receive', EnhancedTheme.infoBlue, () => _receiveTransfer(id is int ? id : int.tryParse('$id') ?? 0))),
+                SizedBox(width: double.infinity, child: _actionBtn('Receive', EnhancedTheme.infoBlue, () => _showReceiveDialog(
+                  id is int ? id : int.tryParse('$id') ?? 0,
+                  itemName,
+                  approvedQty ?? requestedQty,
+                  unit,
+                  isFromWholesale,
+                ))),
               ],
             ]),
           ),
@@ -433,13 +439,59 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
     }
   }
 
+  void _showReceiveDialog(int id, String itemName, dynamic qty, String unit, bool isFromWholesale) {
+    final src = isFromWholesale ? 'Wholesale' : 'Retail';
+    final dst = isFromWholesale ? 'Retail' : 'Wholesale';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Confirm Receive',
+            style: TextStyle(color: ctx.labelColor, fontWeight: FontWeight.w700)),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(itemName,
+              style: TextStyle(color: ctx.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Text('Move $qty $unit from $src → $dst.',
+              style: TextStyle(color: ctx.subLabelColor, fontSize: 13)),
+          const SizedBox(height: 8),
+          Text('Stock will be updated in both stores.',
+              style: TextStyle(color: ctx.hintColor, fontSize: 12)),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: ctx.subLabelColor)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _receiveTransfer(id);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: EnhancedTheme.infoBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Receive', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _receiveTransfer(int id) async {
     try {
       await ref.read(posApiProvider).receiveTransfer(id);
       ref.invalidate(transfersListProvider(_params));
+      // Refresh inventory so stock counts reflect the transfer
+      ref.invalidate(inventoryListProvider);
+      ref.invalidate(retailInventoryProvider);
+      ref.invalidate(wholesaleInventoryProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Transfer received'),
+          content: Text('Transfer received — stock updated'),
           backgroundColor: EnhancedTheme.infoBlue,
         ));
       }
@@ -553,6 +605,7 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
         Text('Item Name', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         _ItemAutocomplete(
+          sourceStore: _fromWholesale ? 'wholesale' : 'retail',
           onSelected: (name) => setState(() => _itemName = name),
         ),
         const SizedBox(height: 16),
@@ -675,7 +728,7 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
     final active = _fromWholesale == isFromWholesale;
     final color = isFromWholesale ? EnhancedTheme.accentPurple : EnhancedTheme.successGreen;
     return Expanded(child: GestureDetector(
-      onTap: () => setState(() => _fromWholesale = isFromWholesale),
+      onTap: () => setState(() { _fromWholesale = isFromWholesale; _itemName = ''; }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -704,11 +757,14 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
 
 class _ItemAutocomplete extends ConsumerWidget {
   final ValueChanged<String> onSelected;
-  const _ItemAutocomplete({required this.onSelected});
+  final String sourceStore; // 'wholesale' or 'retail'
+  const _ItemAutocomplete({required this.onSelected, required this.sourceStore});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final inventoryAsync = ref.watch(inventoryListProvider);
+    final inventoryAsync = sourceStore == 'wholesale'
+        ? ref.watch(wholesaleInventoryProvider)
+        : ref.watch(retailInventoryProvider);
     final items = inventoryAsync.valueOrNull ?? [];
     final itemNames = items.map((i) => i.name).toSet().toList()..sort();
 
@@ -771,7 +827,7 @@ class _ItemAutocomplete extends ConsumerWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       child: Row(children: [
-                        Icon(Icons.medication_rounded, color: EnhancedTheme.primaryTeal, size: 16),
+                        const Icon(Icons.medication_rounded, color: EnhancedTheme.primaryTeal, size: 16),
                         const SizedBox(width: 10),
                         Expanded(child: Text(option,
                             style: TextStyle(color: context.labelColor, fontSize: 14),
