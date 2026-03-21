@@ -173,14 +173,14 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
                       final data = {
-                        'name':               nameCtrl.text.trim(),
-                        'brand':              brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
-                        'dosage_form':        form,
-                        'price':              double.parse(priceCtrl.text),
-                        'stock':              int.parse(stockCtrl.text),
-                        'low_stock_threshold': 20,
-                        'barcode':            barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
-                        'store':              store,
+                        'name':              nameCtrl.text.trim(),
+                        'brand':             brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
+                        'dosageForm':        form,
+                        'price':             double.parse(priceCtrl.text),
+                        'stock':             int.parse(stockCtrl.text),
+                        'lowStockThreshold': 20,
+                        'barcode':           barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
+                        'store':             store,
                       };
                       Navigator.of(ctx).pop();
                       try {

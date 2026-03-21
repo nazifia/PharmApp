@@ -588,7 +588,7 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
             decoration: BoxDecoration(
               color: EnhancedTheme.surfaceColor.withValues(alpha: 0.92),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              border: Border.all(color: context.borderColor),
             ),
             child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
@@ -613,10 +613,10 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: active ? EnhancedTheme.primaryTeal.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                      color: active ? EnhancedTheme.primaryTeal.withValues(alpha: 0.2) : context.cardColor,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.1),
+                        color: active ? EnhancedTheme.primaryTeal : context.borderColor,
                         width: 1.5,
                       ),
                     ),
@@ -693,7 +693,7 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
             prefixStyle: TextStyle(color: context.hintColor, fontSize: 13),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.06),
+            fillColor: context.cardColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: context.borderColor),

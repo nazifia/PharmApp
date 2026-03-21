@@ -226,9 +226,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           margin: const EdgeInsets.symmetric(horizontal: 3),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.08),
+                            color: context.cardColor,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                            border: Border.all(color: context.borderColor),
                           ),
                           child: Text(
                             amt >= 1000 ? '₦${amt ~/ 1000}k' : '₦$amt',
@@ -249,9 +249,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                         decoration: InputDecoration(
                           hintText: 'Enter amount…',
-                          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.40)),
+                          hintStyle: TextStyle(color: context.hintColor),
                           filled: true,
-                          fillColor: Colors.white.withValues(alpha: 0.10),
+                          fillColor: context.cardColor,
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                               borderSide: BorderSide.none),
@@ -352,9 +352,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(vertical: 11),
       decoration: BoxDecoration(
-        color: active ? color : Colors.white.withValues(alpha: 0.08),
+        color: active ? color : context.cardColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: active ? color : Colors.white.withValues(alpha: 0.15)),
+        border: Border.all(color: active ? color : context.borderColor),
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(icon, color: active ? Colors.white : Colors.white54, size: 16),

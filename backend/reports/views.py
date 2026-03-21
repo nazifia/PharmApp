@@ -158,10 +158,10 @@ def profit_report(request):
 
     # Calculate actual cost from sale items with cost_price data
     cost_from_items = SaleItem.objects.filter(
-        sale__in=sales, item__isnull=False, item__cost_price__gt=0
+        sale__in=sales, item__isnull=False, item__cost__gt=0
     ).aggregate(
         total_cost=db_models.Sum(
-            db_models.F("quantity") * F("item__cost_price"),
+            db_models.F("quantity") * F("item__cost"),
             output_field=db_models.FloatField(),
         )
     )["total_cost"]

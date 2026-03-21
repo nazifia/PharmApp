@@ -16,7 +16,7 @@ class AppDrawer extends ConsumerStatefulWidget {
 }
 
 class _AppDrawerState extends ConsumerState<AppDrawer> {
-  final Set<String> _expanded = {'operations', 'inventory', 'reports', 'finance', 'procurement', 'admin', 'payments'};
+  final Set<String> _expanded = {};
 
   void _toggle(String key) {
     setState(() {

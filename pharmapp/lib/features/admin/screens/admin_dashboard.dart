@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
+import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
 class AdminDashboard extends ConsumerStatefulWidget {
@@ -44,10 +46,12 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final user          = ref.watch(currentUserProvider);
-    final salesToday    = ref.watch(salesReportProvider('today'));
-    final inventoryRpt  = ref.watch(inventoryReportProvider);
-    final customerRpt   = ref.watch(customerReportProvider);
+    final user              = ref.watch(currentUserProvider);
+    final salesToday        = ref.watch(salesReportProvider('today'));
+    final inventoryRpt      = ref.watch(inventoryReportProvider);
+    final customerRpt       = ref.watch(customerReportProvider);
+    final retailInvAsync    = ref.watch(retailInventoryProvider);
+    final wholesaleInvAsync = ref.watch(wholesaleInventoryProvider);
 
     final revenue      = salesToday.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
     final lowStock     = inventoryRpt.whenOrNull(data: (d) => d.lowStockCount) ?? 0;
@@ -74,7 +78,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
       {'label': 'Customers', 'icon': Icons.people_rounded,          'color': EnhancedTheme.accentPurple, 'route': '/dashboard/customers'},
       {'label': 'Reports',   'icon': Icons.bar_chart_rounded,       'color': EnhancedTheme.successGreen, 'route': '/dashboard/reports'},
       {'label': 'Wholesale', 'icon': Icons.store_rounded,           'color': EnhancedTheme.accentCyan,   'route': '/wholesale-dashboard'},
-      {'label': 'More',      'icon': Icons.more_horiz_rounded,      'color': Colors.white38,             'route': ''},
+      {'label': 'More',      'icon': Icons.more_horiz_rounded,      'color': EnhancedTheme.primaryTeal,  'route': ''},
     ];
 
     return Scaffold(
@@ -95,9 +99,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                     padding: const EdgeInsets.all(8),
                     margin: const EdgeInsets.only(right: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.07),
+                      color: context.cardColor,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: Icon(Icons.menu_rounded, color: context.iconOnBg, size: 20),
                   ),
@@ -205,6 +209,26 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                 ),
                 const SizedBox(height: 20),
 
+                // ── Inventory by Store ────────────────────────────────────────
+                Row(children: [
+                  Expanded(child: Text('Inventory by Store',
+                      style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700))),
+                  TextButton.icon(
+                    onPressed: () => context.push('/dashboard/inventory'),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 14, color: EnhancedTheme.infoBlue),
+                    label: const Text('Manage', style: TextStyle(color: EnhancedTheme.infoBlue, fontSize: 12)),
+                  ),
+                ]),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(child: _invStoreCard(context, 'Retail', retailInvAsync, EnhancedTheme.primaryTeal)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _invStoreCard(context, 'Wholesale', wholesaleInvAsync, EnhancedTheme.accentCyan)),
+                ]),
+                // Low-stock alerts across both stores
+                ..._buildStockAlerts(context, retailInvAsync, wholesaleInvAsync),
+                const SizedBox(height: 20),
+
                 // ── Top Items Today ───────────────────────────────────────────
                 Text('Top Items Today',
                     style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
@@ -217,7 +241,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                   error: (e, _) => _infoTile('Failed to load sales data', EnhancedTheme.errorRed),
                   data: (report) {
                     if (report.topItems.isEmpty) {
-                      return _infoTile('No sales recorded today', Colors.white38);
+                      return _infoTile('No sales recorded today', context.hintColor);
                     }
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(16),
@@ -225,9 +249,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: context.cardColor,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                            border: Border.all(color: context.borderColor),
                           ),
                           child: Column(
                             children: report.topItems.take(5).toList().asMap().entries.map((e) =>
@@ -356,6 +380,116 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         child: Text(msg, style: TextStyle(color: color, fontSize: 13)),
       ),
     );
+  }
+
+  Widget _invStoreCard(BuildContext context, String storeLabel,
+      AsyncValue<List<Item>> async, Color color) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.25)),
+          ),
+          child: async.when(
+            loading: () => SizedBox(
+              height: 60,
+              child: Center(child: LinearProgressIndicator(
+                  color: color, backgroundColor: color.withValues(alpha: 0.1))),
+            ),
+            error: (_, __) => Text('Error', style: TextStyle(color: context.hintColor, fontSize: 12)),
+            data: (items) {
+              final total    = items.length;
+              final lowStock = items.where((i) => i.stock > 0 && i.stock <= i.lowStockThreshold).length;
+              final outStock = items.where((i) => i.stock == 0).length;
+              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(Icons.inventory_2_rounded, color: color, size: 16),
+                  const SizedBox(width: 6),
+                  Text(storeLabel,
+                      style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 10),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  _invStat(context, '$total',    'Items',    color),
+                  _invStat(context, '$lowStock', 'Low',      EnhancedTheme.warningAmber),
+                  _invStat(context, '$outStock', 'Out',      EnhancedTheme.errorRed),
+                ]),
+              ]);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _invStat(BuildContext context, String value, String label, Color color) =>
+      Column(children: [
+        Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
+        Text(label,  style: TextStyle(color: context.hintColor, fontSize: 10)),
+      ]);
+
+  List<Widget> _buildStockAlerts(BuildContext context,
+      AsyncValue<List<Item>> retailAsync, AsyncValue<List<Item>> wholesaleAsync) {
+    final retail    = retailAsync.valueOrNull    ?? [];
+    final wholesale = wholesaleAsync.valueOrNull ?? [];
+    final alerts = [
+      ...retail.where((i) => i.stock == 0 || i.stock <= i.lowStockThreshold)
+          .map((i) => (item: i, store: 'Retail')),
+      ...wholesale.where((i) => i.stock == 0 || i.stock <= i.lowStockThreshold)
+          .map((i) => (item: i, store: 'Wholesale')),
+    ]..sort((a, b) => a.item.stock.compareTo(b.item.stock));
+
+    if (alerts.isEmpty) return [];
+
+    return [
+      const SizedBox(height: 10),
+      ...alerts.take(4).map(
+        (a) => Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: (a.item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber)
+                .withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: (a.item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber)
+                  .withValues(alpha: 0.25)),
+          ),
+          child: Row(children: [
+            Icon(
+              a.item.stock == 0 ? Icons.remove_circle_rounded : Icons.warning_amber_rounded,
+              color: a.item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber,
+              size: 16),
+            const SizedBox(width: 10),
+            Expanded(child: Text(a.item.name,
+                style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w500),
+                maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: (a.store == 'Wholesale' ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal)
+                    .withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6)),
+              child: Text(a.store,
+                  style: TextStyle(
+                    color: a.store == 'Wholesale' ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal,
+                    fontSize: 9, fontWeight: FontWeight.w700)),
+            ),
+            Text(
+              a.item.stock == 0 ? 'Out of Stock' : '${a.item.stock} left',
+              style: TextStyle(
+                color: a.item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber,
+                fontSize: 12, fontWeight: FontWeight.w700)),
+          ]),
+        ),
+      ),
+    ];
   }
 }
 

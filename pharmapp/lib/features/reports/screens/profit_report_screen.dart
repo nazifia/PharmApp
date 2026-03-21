@@ -74,11 +74,11 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                   decoration: BoxDecoration(
                     color: active
                         ? EnhancedTheme.successGreen
-                        : Colors.white.withValues(alpha: 0.07),
+                        : context.cardColor,
                     borderRadius: BorderRadius.circular(10)),
                   child: Text(p, textAlign: TextAlign.center,
                       style: TextStyle(
-                          color: active ? Colors.white : Colors.white54,
+                          color: active ? Colors.white : context.subLabelColor,
                           fontSize: 10, fontWeight: FontWeight.w600))),
               ));
             }).toList()),

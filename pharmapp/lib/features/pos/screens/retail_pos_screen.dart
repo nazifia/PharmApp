@@ -213,7 +213,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           Expanded(child: wide
               ? Row(children: [
                   Expanded(flex: 3, child: _itemsPanel(filteredAsync, cart)),
-                  const VerticalDivider(width: 1, color: Colors.white12),
+                  VerticalDivider(width: 1, color: context.borderColor),
                   Expanded(flex: 2, child: _cartPanel(cart, cartTotal)),
                 ])
               : _mobileLayout(filteredAsync, cart, cartTotal)),

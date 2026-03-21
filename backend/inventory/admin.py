@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F, FloatField, Q, Sum
 from django.utils.html import format_html
 from django.utils.timezone import now
 
@@ -231,7 +231,7 @@ class BaseItemAdmin(admin.ModelAdmin):
         out      = qs.filter(stock__lte=0).count()
         low      = qs.filter(stock__gt=0).extra(where=["stock <= low_stock_threshold"]).count()
         in_stock = total - out - low
-        stock_val = qs.aggregate(v=Sum("price"))["v"] or 0
+        stock_val = qs.aggregate(v=Sum(F("stock") * F("price"), output_field=FloatField()))["v"] or 0
 
         def pill(label, val, color):
             return (

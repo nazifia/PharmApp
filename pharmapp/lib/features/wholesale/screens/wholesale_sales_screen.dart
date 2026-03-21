@@ -235,7 +235,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 3),
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.07),
+              color: active ? EnhancedTheme.primaryTeal : context.cardColor,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(e.value, textAlign: TextAlign.center,
@@ -335,7 +335,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
             return Center(child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Column(children: [
-                Icon(Icons.receipt_long_rounded, color: Colors.white.withValues(alpha: 0.2), size: 56),
+                Icon(Icons.receipt_long_rounded, color: context.hintColor, size: 56),
                 const SizedBox(height: 12),
                 Text('No sales found',
                     style: TextStyle(color: context.subLabelColor, fontSize: 14)),
@@ -580,7 +580,7 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
         Center(child: Container(
           width: 40, height: 4,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
+            color: context.borderColor,
             borderRadius: BorderRadius.circular(2),
           ),
         )),
@@ -880,7 +880,7 @@ class _WholesaleReturnDialogState extends ConsumerState<_WholesaleReturnDialog> 
           Center(child: Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: context.borderColor,
               borderRadius: BorderRadius.circular(2),
             ),
           )),

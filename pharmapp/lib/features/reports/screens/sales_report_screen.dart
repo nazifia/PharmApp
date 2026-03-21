@@ -218,7 +218,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         borderRadius: BorderRadius.circular(4),
         child: LinearProgressIndicator(
           value: pct.clamp(0.0, 1.0),
-          backgroundColor: Colors.white.withValues(alpha: 0.08),
+          backgroundColor: context.borderColor,
           valueColor: AlwaysStoppedAnimation<Color>(color),
           minHeight: 8),
       ),
@@ -229,17 +229,17 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
       IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
           onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
       const SizedBox(width: 4),
-      const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Sales Report',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+            style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600)),
         Text('Revenue & transaction analytics',
-            style: TextStyle(color: Colors.white38, fontSize: 11)),
+            style: TextStyle(color: context.hintColor, fontSize: 11)),
       ])),
       IconButton(
-        icon: const Icon(Icons.download_rounded, color: Colors.white70),
+        icon: Icon(Icons.download_rounded, color: context.subLabelColor),
         onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Export — coming soon')))),
     ]),
@@ -256,7 +256,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 3),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.07),
+            color: active ? EnhancedTheme.primaryTeal : context.cardColor,
             borderRadius: BorderRadius.circular(10)),
           child: Text(p, textAlign: TextAlign.center,
               style: TextStyle(

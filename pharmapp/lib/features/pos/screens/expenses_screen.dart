@@ -202,9 +202,9 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: context.cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: Row(children: [
                       Icon(Icons.calendar_today_rounded, color: context.subLabelColor, size: 18),

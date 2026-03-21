@@ -117,9 +117,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                   padding: const EdgeInsets.all(8),
                   margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.07),
+                    color: context.cardColor,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    border: Border.all(color: context.borderColor),
                   ),
                   child: Icon(Icons.menu_rounded, color: context.labelColor, size: 20),
                 ),
@@ -152,7 +152,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               const SizedBox(width: 10),
               _quickBtn(Icons.people,             'Customers',  const Color(0xFF8B5CF6), () => context.go('/dashboard/customers')),
               const SizedBox(width: 10),
-              _quickBtn(Icons.more_horiz_rounded,  'More',       Colors.white38,          _showMoreSheet),
+              _quickBtn(Icons.more_horiz_rounded,  'More',       context.subLabelColor,   _showMoreSheet),
             ]),
             const SizedBox(height: 24),
             GridView.count(
@@ -341,7 +341,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             const SizedBox(width: 10),
             _quickBtn(Icons.swap_horiz_rounded,    'Transfers',  EnhancedTheme.warningAmber,  () => context.go('/dashboard/transfers')),
             const SizedBox(width: 10),
-            _quickBtn(Icons.more_horiz_rounded,    'More',       Colors.white38,              _showMoreSheet),
+            _quickBtn(Icons.more_horiz_rounded,    'More',       context.subLabelColor,       _showMoreSheet),
           ]),
           const SizedBox(height: 24),
 
@@ -728,7 +728,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: pct.clamp(0.0, 1.0),
-                          backgroundColor: Colors.white.withValues(alpha: 0.06),
+                          backgroundColor: context.borderColor,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             EnhancedTheme.primaryTeal.withValues(alpha: 0.7 + 0.3 * pct)),
                           minHeight: 12),

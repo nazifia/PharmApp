@@ -30,17 +30,17 @@ class InventoryReportScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
             child: Row(children: [
               IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                  icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
                   onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
               const SizedBox(width: 4),
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Inventory Report',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600)),
                 Text('Stock levels & valuation',
-                    style: TextStyle(color: Colors.white38, fontSize: 11)),
+                    style: TextStyle(color: context.hintColor, fontSize: 11)),
               ])),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+                icon: Icon(Icons.refresh_rounded, color: context.subLabelColor),
                 onPressed: () => ref.invalidate(inventoryReportProvider)),
             ]),
           ),
@@ -50,10 +50,10 @@ class InventoryReportScreen extends ConsumerWidget {
                 child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
             error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               Icon(Icons.cloud_off_rounded,
-                  color: Colors.white.withValues(alpha: 0.3), size: 48),
+                  color: context.hintColor, size: 48),
               const SizedBox(height: 12),
               Text('$e',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+                  style: TextStyle(color: context.subLabelColor, fontSize: 13),
                   textAlign: TextAlign.center),
               TextButton(
                 onPressed: () => ref.invalidate(inventoryReportProvider),
@@ -106,7 +106,7 @@ class InventoryReportScreen extends ConsumerWidget {
                         style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w800)),
                     Text(s['label'] as String,
                         style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45), fontSize: 9),
+                            color: context.hintColor, fontSize: 9),
                         textAlign: TextAlign.center),
                   ]),
                 ),
@@ -134,7 +134,7 @@ class InventoryReportScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text('All items adequately stocked',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.4))))
+                style: TextStyle(color: context.subLabelColor)))
         else
           ...data.lowStockItems.map(_lowStockRow),
         const SizedBox(height: 24),
@@ -170,7 +170,7 @@ class InventoryReportScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(3),
                 child: LinearProgressIndicator(
                   value: pct.clamp(0.0, 1.0),
-                  backgroundColor: Colors.white.withValues(alpha: 0.08),
+                  backgroundColor: context.borderColor,
                   valueColor: AlwaysStoppedAnimation<Color>(
                       pct < 0.3 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber),
                   minHeight: 4),
@@ -183,7 +183,7 @@ class InventoryReportScreen extends ConsumerWidget {
                       fontSize: 12, fontWeight: FontWeight.w700)),
               Text('threshold: ${item.lowStockThreshold}',
                   style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4), fontSize: 10)),
+                      color: context.hintColor, fontSize: 10)),
             ]),
           ]),
         ),

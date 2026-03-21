@@ -387,7 +387,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           Expanded(child: wide
               ? Row(children: [
                   Expanded(flex: 3, child: _itemsPanel(filteredAsync)),
-                  const VerticalDivider(width: 1, color: Colors.white12),
+                  VerticalDivider(width: 1, color: context.borderColor),
                   Expanded(flex: 2, child: _cartPanel()),
                 ])
               : _mobileLayout(filteredAsync)),

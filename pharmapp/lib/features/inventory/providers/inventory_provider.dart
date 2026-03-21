@@ -15,27 +15,27 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 });
 
 /// Fetches the full inventory from the backend (all stores).
-final inventoryListProvider = FutureProvider<List<Item>>((ref) {
+final inventoryListProvider = FutureProvider.autoDispose<List<Item>>((ref) {
   return ref.watch(inventoryApiProvider).fetchInventory();
 });
 
 /// Fetches only retail store inventory.
-final retailInventoryProvider = FutureProvider<List<Item>>((ref) {
+final retailInventoryProvider = FutureProvider.autoDispose<List<Item>>((ref) {
   return ref.watch(inventoryApiProvider).fetchInventory(store: 'retail');
 });
 
 /// Fetches only wholesale store inventory.
-final wholesaleInventoryProvider = FutureProvider<List<Item>>((ref) {
+final wholesaleInventoryProvider = FutureProvider.autoDispose<List<Item>>((ref) {
   return ref.watch(inventoryApiProvider).fetchInventory(store: 'wholesale');
 });
 
 /// Searches inventory by keyword.
 final inventorySearchProvider =
-    FutureProvider.family<List<Item>, String>((ref, query) {
+    FutureProvider.autoDispose.family<List<Item>, String>((ref, query) {
   return ref.watch(inventoryApiProvider).fetchInventory(search: query);
 });
 
 /// Single item by ID.
-final itemDetailProvider = FutureProvider.family<Item, int>((ref, id) {
+final itemDetailProvider = FutureProvider.autoDispose.family<Item, int>((ref, id) {
   return ref.watch(inventoryApiProvider).fetchById(id);
 });

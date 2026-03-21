@@ -346,7 +346,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 hintText: 'Payment amount',
                 prefixText: '₦ ',
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.08),
+                fillColor: context.cardColor,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)),
             ),
             const SizedBox(height: 12),
@@ -483,7 +483,7 @@ class CustomerDetailScreen extends ConsumerWidget {
           hintStyle: TextStyle(color: context.hintColor),
           prefixIcon: Icon(icon, color: context.hintColor, size: 20),
           filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.07),
+          fillColor: context.cardColor,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)),
       );
@@ -494,7 +494,7 @@ class CustomerDetailScreen extends ConsumerWidget {
       duration: const Duration(milliseconds: 180),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: selected ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.08),
+        color: selected ? EnhancedTheme.primaryTeal : context.cardColor,
         borderRadius: BorderRadius.circular(10)),
       child: Text(label,
           style: TextStyle(color: selected ? Colors.white : context.hintColor, fontSize: 13, fontWeight: FontWeight.w600))));

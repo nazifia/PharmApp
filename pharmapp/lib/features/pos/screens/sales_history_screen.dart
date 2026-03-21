@@ -188,12 +188,12 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 3),
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: active ? EnhancedTheme.primaryTeal : Colors.white.withValues(alpha: 0.07),
+              color: active ? EnhancedTheme.primaryTeal : context.cardColor,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(e.value, textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: active ? Colors.white : Colors.white54,
+                    color: active ? Colors.white : context.subLabelColor,
                     fontSize: 11, fontWeight: FontWeight.w600)),
           ),
         ));
@@ -227,7 +227,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
       data: (sales) {
         if (sales.isEmpty) {
           return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.receipt_long_rounded, color: Colors.white.withValues(alpha: 0.2), size: 56),
+            Icon(Icons.receipt_long_rounded, color: context.hintColor, size: 56),
             const SizedBox(height: 12),
             Text('No sales found',
                 style: TextStyle(color: context.subLabelColor, fontSize: 14)),
@@ -491,7 +491,7 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
         Center(child: Container(
           width: 40, height: 4,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
+            color: context.borderColor,
             borderRadius: BorderRadius.circular(2),
           ),
         )),
@@ -805,7 +805,7 @@ class _ReturnDialogState extends ConsumerState<_ReturnDialog> {
           Center(child: Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: context.borderColor,
               borderRadius: BorderRadius.circular(2),
             ),
           )),

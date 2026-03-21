@@ -49,10 +49,10 @@ class CustomerReportScreen extends ConsumerWidget {
                 child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
             error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               Icon(Icons.cloud_off_rounded,
-                  color: Colors.white.withValues(alpha: 0.3), size: 48),
+                  color: context.hintColor, size: 48),
               const SizedBox(height: 12),
               Text('$e',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+                  style: TextStyle(color: context.subLabelColor, fontSize: 13),
                   textAlign: TextAlign.center),
               TextButton(
                 onPressed: () => ref.invalidate(customerReportProvider),
