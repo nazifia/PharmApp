@@ -367,19 +367,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   );
 
   Widget _txRow(WalletTransaction tx) {
-    final isCredit = tx.amount > 0;
-    final isRefund = tx.type.toLowerCase().contains('refund');
-    final color = isRefund
-        ? EnhancedTheme.accentCyan
-        : isCredit
-            ? EnhancedTheme.successGreen
-            : EnhancedTheme.errorRed;
-    final icon = isRefund
-        ? Icons.undo_rounded
-        : isCredit
-            ? Icons.arrow_downward_rounded
-            : Icons.arrow_upward_rounded;
-    final sign = isCredit ? '+' : '';
+    final isCredit = tx.isCredit;
+    final color = isCredit ? EnhancedTheme.successGreen : EnhancedTheme.errorRed;
+    final icon  = isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded;
+    final sign  = isCredit ? '+' : '-';
+
+    // Balance-after colour: red when negative
+    final balanceAfter     = tx.balanceAfter;
+    final balanceAfterColor = balanceAfter != null && balanceAfter < 0
+        ? EnhancedTheme.errorRed
+        : context.hintColor;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
@@ -408,14 +405,21 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 Text(tx.note,
                     style: TextStyle(color: context.subLabelColor, fontSize: 11),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (tx.date.isNotEmpty)
+                Text(tx.date,
+                    style: TextStyle(color: context.hintColor, fontSize: 10)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('$sign₦${tx.amount.abs().toStringAsFixed(2)}',
+              Text('$sign₦${tx.amount.toStringAsFixed(2)}',
                   style: TextStyle(color: color,
                       fontSize: 14, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              Text(tx.date,
-                  style: TextStyle(color: context.hintColor, fontSize: 10)),
+              if (balanceAfter != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'Bal: ${balanceAfter < 0 ? '-' : ''}₦${balanceAfter.abs().toStringAsFixed(2)}',
+                  style: TextStyle(color: balanceAfterColor, fontSize: 10, fontWeight: FontWeight.w600),
+                ),
+              ],
             ]),
           ]),
         ),

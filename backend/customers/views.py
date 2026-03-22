@@ -67,8 +67,26 @@ def customer_detail(request, pk):
 @api_view(["GET"])
 def wallet_transactions(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
-    txns = customer.wallet_transactions.order_by("-created")
-    return Response([t.to_api_dict() for t in txns])
+    # Oldest first so we can compute running balance forward
+    txns = list(customer.wallet_transactions.order_by("created"))
+
+    # Signed delta per txn type (amounts are always stored positive)
+    def _delta(t):
+        return float(t.amount) if t.txn_type in ("topup", "refund") else -float(t.amount)
+
+    # Reconstruct balance before the first transaction
+    total_delta = sum(_delta(t) for t in txns)
+    running = float(customer.wallet_balance) - total_delta
+
+    result = []
+    for t in txns:
+        running += _delta(t)
+        d = t.to_api_dict()
+        d["balanceAfter"] = round(running, 2)
+        result.append(d)
+
+    result.reverse()  # return newest-first for display
+    return Response(result)
 
 
 @api_view(["POST"])
@@ -115,13 +133,7 @@ def wallet_deduct(request, pk):
     with transaction.atomic():
         # Re-read within transaction to avoid race condition
         customer = Customer.objects.select_for_update().get(pk=pk)
-        if float(customer.wallet_balance) < amount:
-            return Response(
-                {
-                    "detail": f"Insufficient balance: {float(customer.wallet_balance)} available"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Wallet is allowed to go negative (credit/debt for registered customers)
         customer.wallet_balance = float(customer.wallet_balance) - amount
         customer.save()
         txn = WalletTransaction.objects.create(

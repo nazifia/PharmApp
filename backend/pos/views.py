@@ -146,13 +146,7 @@ def checkout(request):
                 {"detail": "Wallet payment requires a customer"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if Decimal(str(customer.wallet_balance)) < wallet:
-            return Response(
-                {
-                    "detail": f"Insufficient wallet balance: {customer.wallet_balance} available"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Wallet is allowed to go negative (credit/debt for registered customers)
 
     with transaction.atomic():
         sale = Sale.objects.create(

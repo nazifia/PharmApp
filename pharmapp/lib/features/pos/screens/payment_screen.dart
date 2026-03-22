@@ -112,12 +112,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           backgroundColor: EnhancedTheme.warningAmber));
         return;
       }
-      if (selected.walletBalance < _total) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Insufficient wallet balance: ₦${selected.walletBalance.toStringAsFixed(0)} available'),
-          backgroundColor: EnhancedTheme.errorRed));
-        return;
-      }
     }
 
     if (_method == _PayMethod.split && _splitWallet > 0) {
@@ -126,12 +120,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Wallet split requires a linked customer.'),
           backgroundColor: EnhancedTheme.warningAmber));
-        return;
-      }
-      if (selected.walletBalance < _splitWallet) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Insufficient wallet balance for split: ₦${selected.walletBalance.toStringAsFixed(0)} available'),
-          backgroundColor: EnhancedTheme.errorRed));
         return;
       }
     }
@@ -300,8 +288,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(selected.name,
                               style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
-                          Text('Wallet: ₦${selected.walletBalance.toStringAsFixed(0)}',
-                              style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+                          Text(
+                            'Wallet: ₦${selected.walletBalance.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              color: selected.walletBalance < 0
+                                  ? EnhancedTheme.errorRed
+                                  : context.subLabelColor,
+                              fontSize: 12,
+                            ),
+                          ),
                         ])),
                         GestureDetector(
                           onTap: () => ref.read(selectedCustomerProvider.notifier).state = null,
@@ -322,6 +317,50 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   if (m != _PayMethod.wallet || selected != null)
                     _methodChip(m),
               ]),
+
+              // ── Wallet debt warning ─────────────────────────────────────────
+              if (selected != null && _method == _PayMethod.wallet && selected.walletBalance < total) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.warningAmber.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.35)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.warningAmber, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(
+                      'Balance ₦${selected.walletBalance.toStringAsFixed(0)} — wallet will go to '
+                      '₦${(selected.walletBalance - total).toStringAsFixed(0)} after this sale.',
+                      style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 12),
+                    )),
+                  ]),
+                ),
+              ],
+
+              // ── Split wallet debt warning ────────────────────────────────────
+              if (selected != null && _method == _PayMethod.split && _splitWallet > selected.walletBalance) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.warningAmber.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.35)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.warningAmber, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(
+                      'Wallet portion ₦${_splitWallet.toStringAsFixed(0)} exceeds balance '
+                      '₦${selected.walletBalance.toStringAsFixed(0)} — wallet will run negative.',
+                      style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 12),
+                    )),
+                  ]),
+                ),
+              ],
 
               // ── Split Payment Fields ─────────────────────────────────────────
               if (_method == _PayMethod.split) ...[

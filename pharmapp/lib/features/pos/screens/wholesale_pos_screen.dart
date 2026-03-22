@@ -1126,16 +1126,31 @@ class _PaymentSheetState extends State<_PaymentSheet> {
             _methodChip('bank_transfer', 'Bank Transfer', Icons.account_balance_rounded, EnhancedTheme.infoBlue),
             _methodChip('cash',          'Cash',          Icons.payments_rounded,         EnhancedTheme.successGreen),
             _methodChip('pos',           'POS / Card',    Icons.credit_card_rounded,      EnhancedTheme.accentPurple),
-            if (widget.walletBalance >= widget.total)
+            if (widget.customerName != _kWalkInName)
               _methodChip('wallet', 'Wallet', Icons.account_balance_wallet_rounded, EnhancedTheme.warningAmber),
             _methodChip('split',         'Split',         Icons.call_split_rounded,       EnhancedTheme.primaryTeal),
           ]),
 
-          // Wallet balance hint
-          if (widget.walletBalance > 0 && widget.walletBalance < widget.total) ...[
-            const SizedBox(height: 8),
-            Text('Wallet balance (₦${widget.walletBalance.toStringAsFixed(0)}) is less than order total',
-                style: TextStyle(color: context.hintColor, fontSize: 11)),
+          // Wallet balance / debt warning
+          if (_method == 'wallet' && widget.walletBalance < widget.total) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.warningAmber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.35)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.warningAmber, size: 15),
+                const SizedBox(width: 8),
+                Expanded(child: Text(
+                  'Balance ₦${widget.walletBalance.toStringAsFixed(0)} — wallet will go to '
+                  '₦${(widget.walletBalance - widget.total).toStringAsFixed(0)} after this sale.',
+                  style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 11),
+                )),
+              ]),
+            ),
           ],
 
           // Split fields

@@ -5,10 +5,11 @@ import '../../../shared/models/customer.dart';
 
 class WalletTransaction {
   final int id;
-  final String type;   // e.g. 'top_up' | 'payment' | 'refund'
-  final double amount; // positive = credit, negative = debit
+  final String type;        // 'topup' | 'deduct' | 'purchase' | 'refund'
+  final double amount;      // always positive — use isCredit for direction
   final String note;
-  final String date;
+  final String date;        // formatted from createdAt
+  final double? balanceAfter; // wallet balance after this transaction
 
   WalletTransaction({
     required this.id,
@@ -16,27 +17,48 @@ class WalletTransaction {
     required this.amount,
     required this.note,
     required this.date,
+    this.balanceAfter,
   });
 
-  factory WalletTransaction.fromJson(Map<String, dynamic> j) => WalletTransaction(
-        id:     (j['id']     as num?)?.toInt()    ?? 0,
-        type:   (j['type']   as String?)          ?? '',
-        amount: (j['amount'] as num?)?.toDouble() ?? 0.0,
-        note:   (j['note']   as String?)          ?? '',
-        date:   (j['date']   as String?)          ?? '',
-      );
+  factory WalletTransaction.fromJson(Map<String, dynamic> j) {
+    // Backend sends 'createdAt' (ISO string); format to readable date
+    final rawDate = (j['createdAt'] as String?) ?? '';
+    String formattedDate = rawDate;
+    if (rawDate.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(rawDate).toLocal();
+        formattedDate =
+            '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}'
+            '  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      } catch (_) {
+        formattedDate = rawDate;
+      }
+    }
+    return WalletTransaction(
+      id:           (j['id']           as num?)?.toInt()    ?? 0,
+      type:         (j['type']         as String?)          ?? '',
+      amount:       (j['amount']       as num?)?.toDouble() ?? 0.0,
+      note:         (j['note']         as String?)          ?? '',
+      date:         formattedDate,
+      balanceAfter: (j['balanceAfter'] as num?)?.toDouble(),
+    );
+  }
+
+  /// True for credits (topup, refund), false for debits (deduct, purchase).
+  bool get isCredit {
+    final t = type.toLowerCase();
+    return t == 'topup' || t == 'top_up' || t == 'refund';
+  }
 
   String get displayType {
     switch (type.toLowerCase()) {
       case 'top_up':
       case 'topup':
         return 'Top-up';
-      case 'payment':
-        return 'Payment';
       case 'refund':
         return 'Refund';
       case 'purchase':
-        return 'Purchase';
+        return 'Sale Payment';
       case 'deduct':
         return 'Deduction';
       default:
