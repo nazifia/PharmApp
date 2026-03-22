@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_queue.dart';
 import '../../../shared/models/sale.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -365,10 +366,29 @@ final posApiProvider = Provider<PosApiClient>((ref) {
 //  CHECKOUT NOTIFIER
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/// Returns `{'offline': true}` when the sale was queued for later sync.
+bool isOfflineResult(Map<String, dynamic>? result) =>
+    result != null && result['offline'] == true;
+
+bool _isNetworkError(Object e) {
+  if (e is DioException) {
+    return e.type == DioExceptionType.connectionError   ||
+           e.type == DioExceptionType.connectionTimeout ||
+           e.type == DioExceptionType.sendTimeout       ||
+           e.type == DioExceptionType.receiveTimeout    ||
+           e.response == null;
+  }
+  return false;
+}
+
 class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   CheckoutNotifier(this._ref) : super(const AsyncValue.data(null));
 
+  /// Submits a checkout.
+  /// • Online   → returns the server response map.
+  /// • Network error → queues locally, returns `{'offline': true}`.
+  /// • Server error  → returns `null` (caller shows error).
   Future<Map<String, dynamic>?> processCheckout(CheckoutPayload payload) async {
     state = const AsyncValue.loading();
     try {
@@ -376,6 +396,12 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
       state = const AsyncValue.data(null);
       return result;
     } catch (e, st) {
+      if (_isNetworkError(e)) {
+        // No connection — queue for later sync
+        await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
       state = AsyncValue.error(e, st);
       return null;
     }

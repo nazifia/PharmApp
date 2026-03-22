@@ -314,7 +314,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
 
       final total = _cartTotal;
       final name  = _selectedCustomerName ?? 'Customer';
-      final receiptId = result['receiptId'] as String? ?? result['receipt_id'] as String? ?? '';
+
       setState(() {
         _cart.clear();
         _selectedCustomerId = null;
@@ -322,22 +322,36 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         _selectedCustomerWallet = 0;
       });
 
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: Colors.transparent,
-        isScrollControlled: true,
-        builder: (_) => _WholesaleSuccessSheet(
-          total: total,
-          customerName: name,
-          receiptId: receiptId,
-          paymentMethod: method,
-          onDone: () {
-            Navigator.pop(context);
-            _searchCtrl.clear();
-            setState(() {});
-          },
-        ),
-      );
+      if (result['offline'] == true) {
+        // Queued while offline
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Row(children: [
+            Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
+            SizedBox(width: 10),
+            Expanded(child: Text('No connection — sale saved and will sync when online')),
+          ]),
+          backgroundColor: EnhancedTheme.warningAmber,
+          duration: Duration(seconds: 5),
+        ));
+      } else {
+        final receiptId = result['receiptId'] as String? ?? result['receipt_id'] as String? ?? '';
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (_) => _WholesaleSuccessSheet(
+            total: total,
+            customerName: name,
+            receiptId: receiptId,
+            paymentMethod: method,
+            onDone: () {
+              Navigator.pop(context);
+              _searchCtrl.clear();
+              setState(() {});
+            },
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       final msg = e is DioException

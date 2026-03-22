@@ -149,7 +149,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     if (!mounted) return;
     setState(() => _processing = false);
 
-    if (result != null) {
+    if (result != null && result['offline'] == true) {
+      // No connection — sale queued for sync
+      ref.read(cartProvider.notifier).clearCart();
+      ref.read(selectedCustomerProvider.notifier).state = null;
+      _showOfflineQueuedSheet();
+    } else if (result != null) {
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
       _showSuccessSheet(result);
@@ -195,6 +200,64 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           Navigator.pop(context);
           showReceiptSheet(context, saleData);
         },
+      ),
+    );
+  }
+
+  void _showOfflineQueuedSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isDismissible: false,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: context.borderColor,
+                  borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 24),
+          Container(
+            width: 72, height: 72,
+            decoration: BoxDecoration(
+              color: EnhancedTheme.warningAmber.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.cloud_off_rounded,
+                color: EnhancedTheme.warningAmber, size: 36),
+          ),
+          const SizedBox(height: 16),
+          Text('Sale Saved Offline',
+              style: TextStyle(color: context.labelColor,
+                  fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Text(
+            'No internet connection. This sale has been saved and will sync automatically when back online.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: context.subLabelColor, fontSize: 13, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(width: double.infinity, child: ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/dashboard/pos');
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: EnhancedTheme.warningAmber,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: const Text('OK', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          )),
+        ]),
       ),
     );
   }

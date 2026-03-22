@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pharmapp/core/offline/connectivity_provider.dart';
+import 'package:pharmapp/core/offline/offline_queue.dart';
+import 'package:pharmapp/core/offline/sync_service.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -27,6 +30,32 @@ class AppShell extends ConsumerWidget {
     final isWholesale = role.contains('Wholesale') || (user?.isWholesaleOperator ?? false);
     final isDark      = Theme.of(context).brightness == Brightness.dark;
     final location    = GoRouterState.of(context).matchedLocation;
+    final isOnline    = ref.watch(isOnlineProvider);
+    final pending     = ref.watch(offlineQueueProvider);
+
+    // Auto-sync when coming back online
+    ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) async {
+      if (nowOnline && !(wasOnline ?? true)) {
+        final result = await ref.read(syncServiceProvider).syncAll();
+        if (result.hasWork && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Row(children: [
+              Icon(
+                result.failed == 0 ? Icons.cloud_done_rounded : Icons.cloud_sync_rounded,
+                color: Colors.white, size: 18),
+              const SizedBox(width: 10),
+              Expanded(child: Text(result.failed == 0
+                  ? '${result.synced} offline sale${result.synced == 1 ? '' : 's'} synced successfully'
+                  : '${result.synced} synced, ${result.failed} still pending')),
+            ]),
+            backgroundColor: result.failed == 0
+                ? EnhancedTheme.successGreen
+                : EnhancedTheme.warningAmber,
+            duration: const Duration(seconds: 4),
+          ));
+        }
+      }
+    });
 
     final homeRoute = isAdmin
         ? '/admin-dashboard'
@@ -42,12 +71,18 @@ class AppShell extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: child,
+      body: Column(children: [
+        // ── Offline banner ──────────────────────────────────────────────────
+        if (!isOnline)
+          _OfflineBanner(pendingCount: pending.length),
+        Expanded(child: child),
+      ]),
       bottomNavigationBar: _AppBottomNav(
         selectedIndex: selectedIndex,
         isDark: isDark,
         homeRoute: homeRoute,
         posRoute: posRoute,
+        pendingCount: pending.length,
         onMoreTap: () => _showMoreSheet(context, ref, isAdmin, isWholesale),
       ),
     );
@@ -88,6 +123,32 @@ class AppShell extends ConsumerWidget {
   }
 }
 
+// ── Offline banner ────────────────────────────────────────────────────────────
+
+class _OfflineBanner extends StatelessWidget {
+  final int pendingCount;
+  const _OfflineBanner({required this.pendingCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: EnhancedTheme.warningAmber,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(children: [
+        const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 15),
+        const SizedBox(width: 8),
+        Expanded(child: Text(
+          pendingCount > 0
+              ? 'Offline — $pendingCount sale${pendingCount == 1 ? '' : 's'} queued for sync'
+              : 'Offline — changes will sync when connected',
+          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+        )),
+      ]),
+    );
+  }
+}
+
 // ── Bottom Navigation Bar ─────────────────────────────────────────────────────
 
 class _AppBottomNav extends StatelessWidget {
@@ -95,6 +156,7 @@ class _AppBottomNav extends StatelessWidget {
   final bool isDark;
   final String homeRoute;
   final String posRoute;
+  final int pendingCount;
   final VoidCallback onMoreTap;
 
   const _AppBottomNav({
@@ -102,6 +164,7 @@ class _AppBottomNav extends StatelessWidget {
     required this.isDark,
     required this.homeRoute,
     required this.posRoute,
+    required this.pendingCount,
     required this.onMoreTap,
   });
 
@@ -140,11 +203,14 @@ class _AppBottomNav extends StatelessWidget {
                     final idx  = e.key;
                     final item = e.value;
                     final sel  = selectedIndex == idx;
+                    // POS is index 1 — show pending badge there
+                    final badge = (idx == 1 && pendingCount > 0) ? pendingCount : 0;
                     return Expanded(
                       child: _NavBtn(
                         icon:       sel ? item.activeIcon : item.icon,
                         label:      item.label,
                         isSelected: sel,
+                        badgeCount: badge,
                         onTap:      () => context.go(item.route),
                       ),
                     );
@@ -183,6 +249,7 @@ class _NavBtn extends StatelessWidget {
   final IconData icon;
   final String   label;
   final bool     isSelected;
+  final int      badgeCount;
   final VoidCallback onTap;
 
   const _NavBtn({
@@ -190,6 +257,7 @@ class _NavBtn extends StatelessWidget {
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   @override
@@ -206,9 +274,31 @@ class _NavBtn extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(icon, key: ValueKey(icon), color: color, size: 22),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(icon, key: ValueKey(icon), color: color, size: 22),
+                ),
+                if (badgeCount > 0)
+                  Positioned(
+                    top: -4, right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: EnhancedTheme.warningAmber,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Text(
+                        badgeCount > 9 ? '9+' : '$badgeCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 3),
             Text(
