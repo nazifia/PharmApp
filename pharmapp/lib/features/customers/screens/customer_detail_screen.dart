@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import '../providers/customer_provider.dart';
+import '../../pos/providers/cart_provider.dart';
 
 class CustomerDetailScreen extends ConsumerWidget {
   const CustomerDetailScreen({super.key});
@@ -181,11 +182,11 @@ class CustomerDetailScreen extends ConsumerWidget {
               label: const Text('Wallet'),
             )),
             const SizedBox(width: 12),
-            Expanded(child: OutlinedButton.icon(
-              onPressed: () => context.push('/customer/${customer.id}/wallet'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: EnhancedTheme.primaryTeal,
-                side: const BorderSide(color: EnhancedTheme.primaryTeal),
+            Expanded(child: ElevatedButton.icon(
+              onPressed: () => _startNewSale(context, ref, customer),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentColor,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
               icon: const Icon(Icons.point_of_sale_rounded, size: 18),
@@ -196,6 +197,22 @@ class CustomerDetailScreen extends ConsumerWidget {
         ]),
       )),
     ]);
+  }
+
+  // ── New sale from customer profile ─────────────────────────────────────────
+
+  void _startNewSale(BuildContext context, WidgetRef ref, Customer customer) {
+    // Pre-select this customer in POS and clear any stale cart
+    ref.read(cartProvider.notifier).clearCart();
+    ref.read(selectedCustomerProvider.notifier).state = SelectedCustomer(
+      id: customer.id,
+      name: customer.name,
+      walletBalance: customer.walletBalance,
+    );
+
+    // Route to the right POS based on customer type
+    final posRoute = customer.isWholesale ? '/dashboard/wholesale-pos' : '/dashboard/pos';
+    context.push(posRoute);
   }
 
   // ── Edit customer sheet ─────────────────────────────────────────────────────

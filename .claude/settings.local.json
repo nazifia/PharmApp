@@ -50,7 +50,11 @@
       "Bash(ls:*)",
       "Bash(/c/Users/Dell/AppData/Local/Programs/Python/Python314/python.exe -m pip install django-jazzmin)",
       "Bash(/c/Users/Dell/AppData/Local/Programs/Python/Python314/python.exe manage.py check 2>&1)",
-      "Read(//c/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp/7ee7491d-b75b-460f-bc41-499783a07969/tasks/**)"
+      "Read(//c/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp/7ee7491d-b75b-460f-bc41-499783a07969/tasks/**)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(venv/Scripts/python.exe manage.py check --deploy)",
+      "Bash(venv/Scripts/python.exe manage.py makemigrations inventory)",
+      "Bash(venv/Scripts/python.exe manage.py migrate)"
     ]
   }
 }

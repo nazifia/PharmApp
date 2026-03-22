@@ -17,11 +17,13 @@ JAZZMIN_SETTINGS = {
     # ── Branding ──────────────────────────────────────────────────────────────
     "site_title": "PharmApp Admin",
     "site_header": "PharmApp",
-    "site_brand": "💊 PharmApp",
+    "site_brand": "PharmApp",
     "site_logo": None,
     "login_logo": None,
-    "welcome_sign": "Welcome to PharmApp Administration",
-    "copyright": "PharmApp © 2026",
+    "welcome_sign": "PharmApp — Pharmacy Management System",
+    "copyright": "PharmApp &copy; 2026. All rights reserved.",
+    "site_logo_classes": "img-circle elevation-3",
+    "login_logo_classes": "img-fluid",
 
     # ── Search ────────────────────────────────────────────────────────────────
     "search_model": ["authapp.PharmUser", "inventory.Item", "customers.Customer", "pos.Sale"],
@@ -110,7 +112,7 @@ JAZZMIN_SETTINGS = {
 
     # ── UI tweaks ──────────────────────────────────────────────────────────────
     "related_modal_active": True,
-    "custom_css": None,
+    "custom_css": "admin/css/custom_admin.css",
     "custom_js": None,
     "use_google_fonts_cdn": True,
     "show_ui_builder": False,
@@ -148,11 +150,11 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
-    "theme": "darkly",           # dark Bootstrap theme
-    "dark_mode_theme": "darkly",
+    "theme": "superhero",        # dark Bootstrap theme — richer contrast
+    "dark_mode_theme": "superhero",
     "button_classes": {
-        "primary":   "btn-outline-primary",
-        "secondary": "btn-outline-secondary",
+        "primary":   "btn-primary",
+        "secondary": "btn-secondary",
         "info":      "btn-info",
         "warning":   "btn-warning",
         "danger":    "btn-danger",
@@ -240,6 +242,7 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"

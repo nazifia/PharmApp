@@ -190,7 +190,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     final inventoryAsync = ref.watch(retailInventoryProvider);
     final customersAsync = ref.watch(customerListProvider);
     final cart           = ref.watch(cartProvider);
-    final cartTotal      = ref.read(cartProvider.notifier).cartTotal;
+    final cartTotal      = cart.fold(0.0, (sum, c) => sum + c.total);
     final cartCount      = cart.fold<int>(0, (s, c) => s + c.quantity);
     final wide           = MediaQuery.of(context).size.width > 800;
 
@@ -568,7 +568,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               itemCount: cart.length,
-              itemBuilder: (_, i) => _cartItemRow(cart[i]),
+              itemBuilder: (_, i) => _RetailCartItem(key: ValueKey(cart[i].item.id), item: cart[i]),
             )),
 
       // Summary + checkout
@@ -638,86 +638,6 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     ]);
   }
 
-  Widget _cartItemRow(CartItem c) {
-    final discountCtrl = TextEditingController(
-        text: c.discount > 0 ? c.discount.toStringAsFixed(0) : '');
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Column(children: [
-            Row(children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(c.item.name,
-                    style: TextStyle(color: context.labelColor,
-                        fontSize: 13, fontWeight: FontWeight.w600),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text('₦${c.item.price.toStringAsFixed(0)} × ${c.quantity} = ₦${c.total.toStringAsFixed(0)}',
-                    style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-              ])),
-              Row(children: [
-                _qtyBtn(Icons.remove,
-                    () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity - 1)),
-                _QtyField(
-                  quantity: c.quantity,
-                  maxStock: c.item.stock,
-                  onChanged: (n) => ref.read(cartProvider.notifier).updateQuantity(c.item.id, n),
-                ),
-                _qtyBtn(Icons.add,
-                    () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity + 1)),
-              ]),
-            ]),
-            const SizedBox(height: 8),
-            Row(children: [
-              Icon(Icons.discount_outlined, color: context.hintColor, size: 14),
-              const SizedBox(width: 6),
-              Text('Discount:', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 80,
-                height: 28,
-                child: TextField(
-                  controller: discountCtrl,
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: context.labelColor, fontSize: 12),
-                  onChanged: (v) => ref.read(cartProvider.notifier)
-                      .updateDiscount(c.item.id, double.tryParse(v) ?? 0),
-                  decoration: InputDecoration(
-                    hintText: '0',
-                    hintStyle: TextStyle(color: context.hintColor, fontSize: 11),
-                    prefixText: '₦',
-                    prefixStyle: TextStyle(color: context.hintColor, fontSize: 11),
-                    filled: true,
-                    fillColor: context.cardColor,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: context.borderColor)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => ref.read(cartProvider.notifier).removeItem(c.item.id),
-                child: Icon(Icons.close_rounded, color: context.hintColor, size: 18),
-              ),
-            ]),
-          ]),
-        ),
-      ),
-    );
-  }
-
   // ── Cart bar (mobile bottom) ───────────────────────────────────────────────
 
   Widget _cartBar(List<CartItem> cart, double cartTotal) => Container(
@@ -765,6 +685,132 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       ),
     ]),
   );
+
+}
+
+// ── Cart item row ─────────────────────────────────────────────────────────────
+
+class _RetailCartItem extends ConsumerStatefulWidget {
+  final CartItem item;
+  const _RetailCartItem({required this.item, super.key});
+
+  @override
+  ConsumerState<_RetailCartItem> createState() => _RetailCartItemState();
+}
+
+class _RetailCartItemState extends ConsumerState<_RetailCartItem> {
+  late final TextEditingController _discountCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _discountCtrl = TextEditingController(
+        text: widget.item.discount > 0 ? widget.item.discount.toStringAsFixed(0) : '');
+  }
+
+  @override
+  void didUpdateWidget(_RetailCartItem old) {
+    super.didUpdateWidget(old);
+    if (old.item.discount != widget.item.discount) {
+      final parsed = double.tryParse(_discountCtrl.text) ?? 0;
+      if (parsed != widget.item.discount) {
+        _discountCtrl.text = widget.item.discount > 0
+            ? widget.item.discount.toStringAsFixed(0)
+            : '';
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _discountCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.item;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: Column(children: [
+            Row(children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(c.item.name,
+                    style: TextStyle(color: context.labelColor,
+                        fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text('₦${c.item.price.toStringAsFixed(0)} × ${c.quantity} = ₦${c.total.toStringAsFixed(0)}',
+                    style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+              ])),
+              Row(children: [
+                _qtyBtn(Icons.remove,
+                    () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity - 1)),
+                _QtyField(
+                  quantity: c.quantity,
+                  maxStock: c.item.stock,
+                  onChanged: (n) => ref.read(cartProvider.notifier).updateQuantity(c.item.id, n),
+                ),
+                _qtyBtn(Icons.add,
+                    () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity + 1)),
+              ]),
+            ]),
+            const SizedBox(height: 6),
+            Row(children: [
+              Icon(Icons.discount_outlined, color: context.hintColor, size: 14),
+              const SizedBox(width: 6),
+              Text('Discount:', style: TextStyle(color: context.hintColor, fontSize: 11)),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 72,
+                height: 26,
+                child: TextField(
+                  controller: _discountCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: TextStyle(color: context.labelColor, fontSize: 12),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    hintText: '0',
+                    hintStyle: TextStyle(color: context.hintColor, fontSize: 12),
+                    filled: true, fillColor: context.cardColor,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: context.borderColor)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: context.borderColor)),
+                    focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(6)),
+                        borderSide: BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+                  ),
+                  onChanged: (v) {
+                    final d = double.tryParse(v) ?? 0;
+                    ref.read(cartProvider.notifier).updateDiscount(c.item.id, d);
+                  },
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => ref.read(cartProvider.notifier).removeItem(c.item.id),
+                child: Icon(Icons.close_rounded, color: context.hintColor, size: 18),
+              ),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
 
   Widget _qtyBtn(IconData icon, VoidCallback onTap) => GestureDetector(
     onTap: onTap,

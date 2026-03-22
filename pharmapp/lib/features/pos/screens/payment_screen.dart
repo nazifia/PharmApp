@@ -196,8 +196,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         method:   _method,
         saleData: saleData,
         onDone: () {
-          Navigator.pop(context);
-          context.go('/dashboard/pos');
+          Navigator.pop(context);             // dismiss success sheet
+          if (context.canPop()) {
+            context.pop();                    // return to wherever POS was pushed from
+          } else {
+            context.go('/dashboard/pos');     // fallback: direct entry to POS
+          }
         },
         onViewReceipt: () {
           Navigator.pop(context);

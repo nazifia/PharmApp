@@ -9,6 +9,7 @@ import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/models/sale.dart';
 import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
+import '../providers/cart_provider.dart';
 import '../providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
@@ -35,6 +36,23 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
 
   double get _cartTotal => _cart.fold(0.0, (s, l) => s + l.total);
   int    get _cartCount => _cart.fold(0, (s, l) => s + l.qty);
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-select customer if navigated here from the customer profile "New Sale" button.
+    // Read synchronously so the first build already has the customer — no flicker.
+    final pre = ref.read(selectedCustomerProvider);
+    if (pre != null) {
+      _selectedCustomerId     = pre.id;
+      _selectedCustomerName   = pre.name;
+      _selectedCustomerWallet = pre.walletBalance;
+      // Clear after the first frame so the provider doesn't bleed into future sessions.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(selectedCustomerProvider.notifier).state = null;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -75,7 +93,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   void _updateDiscount(int id, double discount) {
     setState(() {
       final idx = _cart.indexWhere((l) => l.id == id);
-      if (idx >= 0) _cart[idx] = _cart[idx].copyWith(discount: discount);
+      if (idx >= 0) {
+        final max = _cart[idx].price * _cart[idx].qty;
+        _cart[idx] = _cart[idx].copyWith(discount: discount.clamp(0, max));
+      }
     });
   }
 
@@ -754,7 +775,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               itemCount: _cart.length,
-              itemBuilder: (_, i) => _cartItem(_cart[i]),
+              itemBuilder: (_, i) => _WsCartItemWidget(
+                key: ValueKey(_cart[i].id),
+                line: _cart[i],
+                onQtyChange: _updateQty,
+                onRemove: _removeFromCart,
+                onDiscountChange: _updateDiscount,
+              ),
             )),
 
       // Summary + checkout
@@ -827,81 +854,6 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     ]);
   }
 
-  Widget _cartItem(_CartLine line) {
-    final discountCtrl = TextEditingController(
-        text: line.discount > 0 ? line.discount.toStringAsFixed(0) : '');
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Column(children: [
-            Row(children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(line.name,
-                    style: TextStyle(color: context.labelColor,
-                        fontSize: 13, fontWeight: FontWeight.w600),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text('₦${line.price.toStringAsFixed(0)} × ${line.qty} = ₦${line.total.toStringAsFixed(0)}',
-                    style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-              ])),
-              Row(children: [
-                _qtyBtn(Icons.remove, () => _updateQty(line.id, line.qty - 1)),
-                _WsQtyField(
-                  quantity: line.qty,
-                  maxStock: line.stock,
-                  onChanged: (n) => _updateQty(line.id, n),
-                ),
-                _qtyBtn(Icons.add, () => _updateQty(line.id, line.qty + 1)),
-              ]),
-            ]),
-            const SizedBox(height: 8),
-            Row(children: [
-              Icon(Icons.discount_outlined, color: context.hintColor, size: 14),
-              const SizedBox(width: 6),
-              Text('Discount:', style: TextStyle(color: context.hintColor, fontSize: 11)),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 80,
-                height: 28,
-                child: TextField(
-                  controller: discountCtrl,
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: context.labelColor, fontSize: 12),
-                  onChanged: (v) => _updateDiscount(line.id, double.tryParse(v) ?? 0),
-                  decoration: InputDecoration(
-                    hintText: '0',
-                    hintStyle: TextStyle(color: context.hintColor, fontSize: 11),
-                    prefixText: '₦',
-                    prefixStyle: TextStyle(color: context.hintColor, fontSize: 11),
-                    filled: true,
-                    fillColor: context.cardColor,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: context.borderColor)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => _removeFromCart(line.id),
-                child: Icon(Icons.close_rounded, color: context.hintColor, size: 18),
-              ),
-            ]),
-          ]),
-        ),
-      ),
-    );
-  }
 
   // ── Cart bar (mobile bottom) ───────────────────────────────────────────────
 
@@ -1397,6 +1349,154 @@ class _WholesaleSuccessSheet extends StatelessWidget {
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Cart line model
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Wholesale cart item row ───────────────────────────────────────────────────
+
+class _WsCartItemWidget extends StatefulWidget {
+  final _CartLine line;
+  final void Function(int id, int qty) onQtyChange;
+  final void Function(int id) onRemove;
+  final void Function(int id, double discount) onDiscountChange;
+
+  const _WsCartItemWidget({
+    required this.line,
+    required this.onQtyChange,
+    required this.onRemove,
+    required this.onDiscountChange,
+    super.key,
+  });
+
+  @override
+  State<_WsCartItemWidget> createState() => _WsCartItemWidgetState();
+}
+
+class _WsCartItemWidgetState extends State<_WsCartItemWidget> {
+  late final TextEditingController _discountCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _discountCtrl = TextEditingController(
+        text: widget.line.discount > 0 ? widget.line.discount.toStringAsFixed(0) : '');
+  }
+
+  @override
+  void didUpdateWidget(_WsCartItemWidget old) {
+    super.didUpdateWidget(old);
+    if (old.line.discount != widget.line.discount) {
+      final parsed = double.tryParse(_discountCtrl.text) ?? 0;
+      if (parsed != widget.line.discount) {
+        _discountCtrl.text = widget.line.discount > 0
+            ? widget.line.discount.toStringAsFixed(0)
+            : '';
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _discountCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final line = widget.line;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: Column(children: [
+            Row(children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(line.name,
+                    style: TextStyle(color: context.labelColor,
+                        fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text('₦${line.price.toStringAsFixed(0)} × ${line.qty} = ₦${line.total.toStringAsFixed(0)}',
+                    style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+              ])),
+              Row(children: [
+                _qtyBtn(Icons.remove, () => widget.onQtyChange(line.id, line.qty - 1)),
+                _WsQtyField(
+                  quantity: line.qty,
+                  maxStock: line.stock,
+                  onChanged: (n) => widget.onQtyChange(line.id, n),
+                ),
+                _qtyBtn(Icons.add, () => widget.onQtyChange(line.id, line.qty + 1)),
+              ]),
+            ]),
+            const SizedBox(height: 6),
+            Row(children: [
+              Icon(Icons.discount_outlined, color: context.hintColor, size: 14),
+              const SizedBox(width: 6),
+              Text('Discount:', style: TextStyle(color: context.hintColor, fontSize: 11)),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 72,
+                height: 26,
+                child: TextField(
+                  controller: _discountCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: TextStyle(color: context.labelColor, fontSize: 12),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    hintText: '0',
+                    hintStyle: TextStyle(color: context.hintColor, fontSize: 12),
+                    filled: true, fillColor: context.cardColor,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: context.borderColor)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: context.borderColor)),
+                    focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(6)),
+                        borderSide: BorderSide(color: EnhancedTheme.accentCyan, width: 1.5)),
+                  ),
+                  onChanged: (v) {
+                    final d = double.tryParse(v) ?? 0;
+                    widget.onDiscountChange(line.id, d);
+                  },
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => widget.onRemove(line.id),
+                child: Icon(Icons.close_rounded, color: context.hintColor, size: 18),
+              ),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _qtyBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      width: 28, height: 28,
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.borderColor),
+      ),
+      child: Icon(icon, color: context.labelColor, size: 16),
+    ),
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CartLine {

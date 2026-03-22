@@ -1,0 +1,929 @@
+/* ──────────────────────────────────────────────────────────────
+   PharmApp Admin — Custom Visual Enhancements
+   Theme: darkly (Bootstrap 5) + Jazzmin
+   ────────────────────────────────────────────────────────────── */
+
+/* ── Root palette ───────────────────────────────────────────── */
+:root {
+  --pharm-teal:       #0d9488;
+  --pharm-teal-light: #14b8a6;
+  --pharm-teal-dim:   rgba(13, 148, 136, 0.15);
+  --pharm-bg:         #0f172a;
+  --pharm-surface:    #1e293b;
+  --pharm-surface2:   #1a2535;
+  --pharm-border:     rgba(255,255,255,0.08);
+  --pharm-text:       #e2e8f0;
+  --pharm-muted:      #94a3b8;
+  --pharm-success:    #10b981;
+  --pharm-warning:    #f59e0b;
+  --pharm-danger:     #ef4444;
+  --pharm-info:       #3b82f6;
+  --pharm-radius:     12px;
+  --pharm-radius-sm:  8px;
+  --pharm-shadow:     0 4px 24px rgba(0,0,0,0.4);
+  --pharm-shadow-sm:  0 2px 10px rgba(0,0,0,0.25);
+}
+
+/* ── Base ────────────────────────────────────────────────────── */
+body {
+  background-color: var(--pharm-bg) !important;
+  color: var(--pharm-text) !important;
+  font-family: 'Inter', 'Roboto', sans-serif !important;
+  font-size: 13.5px;
+}
+
+/* ── Navbar ──────────────────────────────────────────────────── */
+.main-header.navbar {
+  background: linear-gradient(135deg, #0f172a 0%, #1a2535 100%) !important;
+  border-bottom: 1px solid var(--pharm-teal) !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.5) !important;
+  padding: 0 1rem;
+}
+
+.main-header .navbar-brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.03em;
+  color: var(--pharm-teal-light) !important;
+}
+
+.main-header .nav-link {
+  color: var(--pharm-muted) !important;
+  transition: color 0.2s;
+}
+.main-header .nav-link:hover {
+  color: var(--pharm-teal-light) !important;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+.main-sidebar {
+  background: var(--pharm-surface) !important;
+  border-right: 1px solid var(--pharm-border) !important;
+  box-shadow: 2px 0 16px rgba(0,0,0,0.35) !important;
+}
+
+.brand-link {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+  padding: 0.9rem 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.brand-link:hover { opacity: 0.92; }
+
+.sidebar .nav-sidebar .nav-item > .nav-link {
+  color: var(--pharm-muted) !important;
+  border-radius: var(--pharm-radius-sm);
+  margin: 2px 8px;
+  padding: 8px 12px;
+  transition: all 0.18s ease;
+}
+
+.sidebar .nav-sidebar .nav-item > .nav-link:hover {
+  background: var(--pharm-teal-dim) !important;
+  color: var(--pharm-teal-light) !important;
+  padding-left: 16px;
+}
+
+.sidebar .nav-sidebar .nav-item > .nav-link.active {
+  background: linear-gradient(90deg, var(--pharm-teal) 0%, #0f766e 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 10px rgba(13,148,136,0.4);
+}
+
+.nav-header {
+  color: var(--pharm-teal-light) !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  padding: 12px 18px 4px;
+  opacity: 0.8;
+}
+
+/* ── Content wrapper ─────────────────────────────────────────── */
+.content-wrapper {
+  background: var(--pharm-bg) !important;
+}
+
+/* ── Breadcrumb ──────────────────────────────────────────────── */
+.content-header {
+  background: var(--pharm-surface2) !important;
+  border-bottom: 1px solid var(--pharm-border) !important;
+  padding: 10px 20px;
+}
+
+.content-header .breadcrumb {
+  background: transparent !important;
+}
+
+.content-header .breadcrumb-item a {
+  color: var(--pharm-teal-light) !important;
+}
+
+.content-header .breadcrumb-item.active {
+  color: var(--pharm-muted) !important;
+}
+
+/* ── Cards ───────────────────────────────────────────────────── */
+.card {
+  background: var(--pharm-surface) !important;
+  border: 1px solid var(--pharm-border) !important;
+  border-radius: var(--pharm-radius) !important;
+  box-shadow: var(--pharm-shadow-sm) !important;
+  overflow: hidden;
+}
+
+.card-header {
+  background: rgba(13,148,136,0.1) !important;
+  border-bottom: 1px solid var(--pharm-border) !important;
+  font-weight: 600;
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
+  padding: 12px 18px;
+}
+
+.card-header .card-title {
+  color: var(--pharm-teal-light) !important;
+}
+
+/* ── Dashboard stat boxes ────────────────────────────────────── */
+.small-box {
+  border-radius: var(--pharm-radius) !important;
+  overflow: hidden !important;
+  box-shadow: var(--pharm-shadow) !important;
+  border: 1px solid var(--pharm-border) !important;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.small-box:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important;
+}
+
+.small-box h3 {
+  font-size: 2.2rem !important;
+  font-weight: 700 !important;
+}
+
+/* ── Tables ──────────────────────────────────────────────────── */
+.table {
+  color: var(--pharm-text) !important;
+  border-color: var(--pharm-border) !important;
+}
+
+.table thead th {
+  background: rgba(13,148,136,0.12) !important;
+  color: var(--pharm-teal-light) !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--pharm-teal) !important;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  transition: background 0.15s;
+}
+
+.table tbody tr:hover td {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+.table tbody td {
+  border-color: var(--pharm-border) !important;
+  vertical-align: middle;
+  color: var(--pharm-text) !important;
+}
+
+.table-striped tbody tr:nth-of-type(odd) td {
+  background: rgba(255,255,255,0.025) !important;
+}
+
+/* ── Changelist filters & search ─────────────────────────────── */
+#changelist-filter {
+  background: var(--pharm-surface) !important;
+  border-left: 1px solid var(--pharm-border) !important;
+  border-radius: 0 0 var(--pharm-radius) var(--pharm-radius);
+}
+
+#changelist-filter h2, #changelist-filter h3 {
+  background: rgba(13,148,136,0.15) !important;
+  color: var(--pharm-teal-light) !important;
+  border-bottom: 1px solid var(--pharm-border) !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 14px;
+  border-radius: var(--pharm-radius-sm) var(--pharm-radius-sm) 0 0;
+}
+
+#changelist-filter a {
+  color: var(--pharm-muted) !important;
+  transition: color 0.15s;
+}
+#changelist-filter a:hover,
+#changelist-filter li.selected a {
+  color: var(--pharm-teal-light) !important;
+}
+
+/* ── Search bar ──────────────────────────────────────────────── */
+#changelist-search input[type="text"] {
+  background: var(--pharm-surface2) !important;
+  border: 1px solid var(--pharm-border) !important;
+  border-radius: var(--pharm-radius-sm) !important;
+  color: var(--pharm-text) !important;
+  padding: 6px 12px;
+  transition: border-color 0.2s;
+}
+#changelist-search input[type="text"]:focus {
+  border-color: var(--pharm-teal) !important;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.2) !important;
+  outline: none;
+}
+
+/* ── Forms — complete input overhaul ─────────────────────────── */
+
+/* Base input tokens */
+:root {
+  --input-bg:      #1a2535;
+  --input-bg-focus:#1e293b;
+  --input-border:  rgba(255,255,255,0.10);
+  --input-border-focus: var(--pharm-teal);
+  --input-text:    #e2e8f0;
+  --input-placeholder: #64748b;
+  --input-radius:  9px;
+  --input-pad:     9px 13px;
+  --input-height:  38px;
+  --input-transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+/* ── All text-like inputs ────────────────────────────────────── */
+.form-control,
+.vTextField,
+.vIntegerField,
+.vDecimalField,
+.vURLField,
+.vDateField,
+.vTimeField,
+.vDateTimeField,
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  background: var(--input-bg) !important;
+  border: 1.5px solid var(--input-border) !important;
+  border-radius: var(--input-radius) !important;
+  color: var(--input-text) !important;
+  font-size: 0.875rem !important;
+  height: var(--input-height) !important;
+  padding: var(--input-pad) !important;
+  transition: var(--input-transition) !important;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3) !important;
+  width: 100%;
+}
+
+/* Focus state */
+.form-control:focus,
+.vTextField:focus,
+.vIntegerField:focus,
+.vDecimalField:focus,
+.vURLField:focus,
+.vDateField:focus,
+.vTimeField:focus,
+.vDateTimeField:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="datetime-local"]:focus {
+  border-color: var(--input-border-focus) !important;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.22), inset 0 1px 3px rgba(0,0,0,0.2) !important;
+  outline: none !important;
+  background: var(--input-bg-focus) !important;
+}
+
+/* Placeholder text */
+.form-control::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder) !important;
+  opacity: 1;
+}
+
+/* ── Textarea ────────────────────────────────────────────────── */
+textarea,
+.vLargeTextField {
+  background: var(--input-bg) !important;
+  border: 1.5px solid var(--input-border) !important;
+  border-radius: var(--input-radius) !important;
+  color: var(--input-text) !important;
+  font-size: 0.875rem !important;
+  padding: 10px 13px !important;
+  height: auto !important;
+  min-height: 90px;
+  resize: vertical;
+  transition: var(--input-transition) !important;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3) !important;
+  line-height: 1.55;
+  width: 100%;
+}
+textarea:focus,
+.vLargeTextField:focus {
+  border-color: var(--input-border-focus) !important;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.22), inset 0 1px 3px rgba(0,0,0,0.2) !important;
+  outline: none !important;
+  background: var(--input-bg-focus) !important;
+}
+
+/* ── Select / dropdown ───────────────────────────────────────── */
+select,
+.vForeignKeyRawIdAdminField {
+  background: var(--input-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%230d9488' d='M1 1l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 12px center !important;
+  background-size: 12px 8px !important;
+  border: 1.5px solid var(--input-border) !important;
+  border-radius: var(--input-radius) !important;
+  color: var(--input-text) !important;
+  font-size: 0.875rem !important;
+  height: var(--input-height) !important;
+  padding: 6px 36px 6px 13px !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  cursor: pointer;
+  transition: var(--input-transition) !important;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3) !important;
+}
+select:focus {
+  border-color: var(--input-border-focus) !important;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.22) !important;
+  outline: none !important;
+  background-color: var(--input-bg-focus) !important;
+}
+select option {
+  background: var(--pharm-surface) !important;
+  color: var(--input-text) !important;
+  padding: 6px 12px;
+}
+
+/* Multi-select listbox */
+select[multiple] {
+  height: auto !important;
+  min-height: 120px;
+  padding: 6px !important;
+  background-image: none !important;
+}
+select[multiple] option {
+  padding: 5px 10px;
+  border-radius: 5px;
+  margin: 1px 0;
+}
+select[multiple] option:checked {
+  background: linear-gradient(90deg, var(--pharm-teal), #0f766e) !important;
+  color: #fff !important;
+}
+
+/* ── Checkbox & Radio ────────────────────────────────────────── */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--pharm-teal) !important;
+  width: 16px !important;
+  height: 16px !important;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* Custom checkbox appearance for webkit */
+input[type="checkbox"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: var(--input-bg) !important;
+  border: 1.5px solid var(--input-border) !important;
+  border-radius: 4px !important;
+  width: 16px !important;
+  height: 16px !important;
+  position: relative;
+  transition: border-color 0.15s, background 0.15s;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+input[type="checkbox"]:checked {
+  background: var(--pharm-teal) !important;
+  border-color: var(--pharm-teal) !important;
+}
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px; top: 1px;
+  width: 5px; height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(40deg);
+}
+input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.25) !important;
+  outline: none !important;
+}
+
+/* ── File input ──────────────────────────────────────────────── */
+input[type="file"] {
+  background: var(--input-bg) !important;
+  border: 1.5px dashed var(--pharm-teal) !important;
+  border-radius: var(--input-radius) !important;
+  color: var(--pharm-muted) !important;
+  padding: 8px 12px !important;
+  font-size: 0.82rem !important;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+  width: 100%;
+}
+input[type="file"]:hover {
+  border-color: var(--pharm-teal-light) !important;
+  background: rgba(13,148,136,0.06) !important;
+}
+input[type="file"]::file-selector-button {
+  background: var(--pharm-teal) !important;
+  border: none !important;
+  border-radius: 6px !important;
+  color: #fff !important;
+  cursor: pointer;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  margin-right: 10px;
+  padding: 5px 12px !important;
+  transition: background 0.15s;
+}
+input[type="file"]::file-selector-button:hover {
+  background: var(--pharm-teal-light) !important;
+}
+
+/* ── Form row layout ─────────────────────────────────────────── */
+.form-row,
+.form-group {
+  margin-bottom: 18px;
+}
+
+/* Field row dividers */
+.form-row + .form-row {
+  border-top: 1px solid var(--pharm-border);
+  padding-top: 14px;
+}
+
+/* ── Labels ──────────────────────────────────────────────────── */
+label {
+  color: var(--pharm-muted) !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  display: inline-block;
+  margin-bottom: 5px;
+}
+
+.required label,
+label.required {
+  color: var(--pharm-text) !important;
+}
+
+.required label::after,
+label.required::after {
+  content: ' *';
+  color: var(--pharm-danger);
+  font-weight: 700;
+}
+
+/* ── Help text ───────────────────────────────────────────────── */
+.help,
+.help-block,
+p.help {
+  color: var(--input-placeholder) !important;
+  font-size: 0.76rem !important;
+  margin-top: 4px !important;
+  font-style: italic;
+  display: block;
+}
+
+/* ── Error state ─────────────────────────────────────────────── */
+.errorlist {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 5px 0 0 0 !important;
+}
+.errorlist li {
+  background: rgba(239,68,68,0.12) !important;
+  border: 1px solid rgba(239,68,68,0.4) !important;
+  border-radius: 6px !important;
+  color: #fca5a5 !important;
+  font-size: 0.78rem !important;
+  padding: 5px 10px !important;
+  margin-top: 4px;
+}
+.form-row.errors input,
+.form-row.errors select,
+.form-row.errors textarea {
+  border-color: var(--pharm-danger) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.18) !important;
+}
+
+/* ── Date/time pickers — widget row ──────────────────────────── */
+.vDateField, .vTimeField {
+  display: inline-block;
+  width: auto !important;
+  min-width: 110px;
+}
+
+.datetime-shortcuts {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.datetime-shortcuts a,
+.datetimeshortcuts a {
+  background: var(--pharm-teal-dim) !important;
+  border: 1px solid rgba(13,148,136,0.3) !important;
+  border-radius: 5px !important;
+  color: var(--pharm-teal-light) !important;
+  font-size: 0.72rem !important;
+  padding: 3px 8px !important;
+  text-decoration: none !important;
+  transition: background 0.15s, color 0.15s;
+  margin-left: 4px;
+}
+.datetime-shortcuts a:hover,
+.datetimeshortcuts a:hover {
+  background: var(--pharm-teal) !important;
+  color: #fff !important;
+}
+
+/* ── Raw ID field (FK widgets) ───────────────────────────────── */
+.related-widget-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.related-widget-wrapper input {
+  flex: 1;
+  min-width: 80px;
+}
+
+.related-widget-wrapper a.related-lookup,
+.related-widget-wrapper a.add-another,
+.related-widget-wrapper a.change-related,
+.related-widget-wrapper a.delete-related,
+.related-widget-wrapper a.view-related {
+  background: var(--pharm-teal-dim) !important;
+  border: 1px solid rgba(13,148,136,0.35) !important;
+  border-radius: 6px !important;
+  color: var(--pharm-teal-light) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  width: 30px;
+  font-size: 0.8rem;
+  text-decoration: none !important;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.related-widget-wrapper a:hover {
+  background: var(--pharm-teal) !important;
+  color: #fff !important;
+  transform: scale(1.1);
+}
+
+/* ── Inline formset add/delete row ───────────────────────────── */
+.add-row a, .inline-deletelink {
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  text-decoration: none !important;
+  transition: all 0.15s;
+}
+
+.add-row a {
+  background: var(--pharm-teal-dim) !important;
+  border: 1px solid rgba(13,148,136,0.3) !important;
+  color: var(--pharm-teal-light) !important;
+}
+.add-row a:hover {
+  background: var(--pharm-teal) !important;
+  color: #fff !important;
+}
+
+.inline-deletelink {
+  background: rgba(239,68,68,0.1) !important;
+  border: 1px solid rgba(239,68,68,0.3) !important;
+  color: #fca5a5 !important;
+}
+.inline-deletelink:hover {
+  background: var(--pharm-danger) !important;
+  color: #fff !important;
+}
+
+/* ── Input group addons (Bootstrap) ──────────────────────────── */
+.input-group-text {
+  background: rgba(13,148,136,0.15) !important;
+  border: 1.5px solid var(--input-border) !important;
+  border-radius: var(--input-radius) !important;
+  color: var(--pharm-teal-light) !important;
+  font-size: 0.85rem;
+}
+
+/* ── Read-only field display ─────────────────────────────────── */
+.readonly {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px dashed var(--pharm-border) !important;
+  border-radius: var(--input-radius) !important;
+  color: var(--pharm-muted) !important;
+  font-size: 0.875rem !important;
+  padding: 7px 12px !important;
+  display: inline-block;
+  min-width: 60px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn-primary, .btn-outline-primary:hover {
+  background: var(--pharm-teal) !important;
+  border-color: var(--pharm-teal) !important;
+  color: #fff !important;
+}
+
+.btn-outline-primary {
+  border-color: var(--pharm-teal) !important;
+  color: var(--pharm-teal-light) !important;
+}
+
+.btn-primary:hover {
+  background: var(--pharm-teal-light) !important;
+  border-color: var(--pharm-teal-light) !important;
+  box-shadow: 0 4px 14px rgba(13,148,136,0.4) !important;
+  transform: translateY(-1px);
+}
+
+.btn {
+  border-radius: var(--pharm-radius-sm) !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.03em;
+  transition: all 0.18s ease !important;
+}
+
+/* Action buttons row */
+.submit-row {
+  background: var(--pharm-surface) !important;
+  border-top: 1px solid var(--pharm-border) !important;
+  border-radius: 0 0 var(--pharm-radius) var(--pharm-radius);
+  padding: 12px 18px;
+}
+
+/* ── Badges & tags ───────────────────────────────────────────── */
+.badge {
+  border-radius: 6px !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  padding: 3px 8px !important;
+}
+
+/* ── Fieldsets / inline groups ───────────────────────────────── */
+fieldset {
+  border: 1px solid var(--pharm-border) !important;
+  border-radius: var(--pharm-radius) !important;
+  padding: 16px !important;
+  margin-bottom: 16px !important;
+}
+
+fieldset legend {
+  background: var(--pharm-teal-dim) !important;
+  border: 1px solid var(--pharm-teal) !important;
+  border-radius: var(--pharm-radius-sm) !important;
+  color: var(--pharm-teal-light) !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.07em !important;
+  text-transform: uppercase !important;
+  padding: 4px 14px !important;
+}
+
+/* ── Inline tabular ──────────────────────────────────────────── */
+.inline-group .tabular table thead th {
+  background: rgba(13,148,136,0.12) !important;
+  color: var(--pharm-teal-light) !important;
+  font-size: 0.72rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* ── Tabs (horizontal_tabs changeform) ───────────────────────── */
+.nav-tabs {
+  border-bottom: 2px solid var(--pharm-teal) !important;
+}
+
+.nav-tabs .nav-link {
+  color: var(--pharm-muted) !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--pharm-radius-sm) var(--pharm-radius-sm) 0 0 !important;
+  font-weight: 600;
+  font-size: 0.82rem;
+  transition: all 0.18s;
+}
+
+.nav-tabs .nav-link:hover {
+  color: var(--pharm-teal-light) !important;
+  background: var(--pharm-teal-dim) !important;
+}
+
+.nav-tabs .nav-link.active {
+  background: var(--pharm-teal) !important;
+  border-color: var(--pharm-teal) !important;
+  color: #fff !important;
+}
+
+/* ── Pagination ──────────────────────────────────────────────── */
+.pagination .page-link {
+  background: var(--pharm-surface) !important;
+  border-color: var(--pharm-border) !important;
+  color: var(--pharm-muted) !important;
+  border-radius: var(--pharm-radius-sm) !important;
+  margin: 0 2px;
+  transition: all 0.15s;
+}
+
+.pagination .page-item.active .page-link {
+  background: var(--pharm-teal) !important;
+  border-color: var(--pharm-teal) !important;
+  color: #fff !important;
+}
+
+.pagination .page-link:hover {
+  background: var(--pharm-teal-dim) !important;
+  color: var(--pharm-teal-light) !important;
+}
+
+/* ── Alerts & messages ───────────────────────────────────────── */
+.alert-success {
+  background: rgba(16,185,129,0.15) !important;
+  border-color: var(--pharm-success) !important;
+  color: #6ee7b7 !important;
+}
+
+.alert-warning {
+  background: rgba(245,158,11,0.15) !important;
+  border-color: var(--pharm-warning) !important;
+  color: #fde68a !important;
+}
+
+.alert-danger, .errornote {
+  background: rgba(239,68,68,0.15) !important;
+  border-color: var(--pharm-danger) !important;
+  color: #fca5a5 !important;
+}
+
+.alert-info {
+  background: rgba(59,130,246,0.15) !important;
+  border-color: var(--pharm-info) !important;
+  color: #93c5fd !important;
+}
+
+/* Success toast */
+li.success {
+  background: rgba(16,185,129,0.1) !important;
+  border-left: 3px solid var(--pharm-success) !important;
+  border-radius: 0 var(--pharm-radius-sm) var(--pharm-radius-sm) 0 !important;
+  color: #6ee7b7 !important;
+}
+
+/* ── Login page ──────────────────────────────────────────────── */
+body.login {
+  background: linear-gradient(135deg, #0f172a 0%, #0d1e33 50%, #0f2027 100%) !important;
+}
+
+.login-logo a {
+  color: var(--pharm-teal-light) !important;
+  font-size: 1.6rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 20px rgba(13,148,136,0.5);
+}
+
+.login-box-msg {
+  color: var(--pharm-muted) !important;
+}
+
+.login-card-body {
+  background: var(--pharm-surface) !important;
+  border: 1px solid var(--pharm-border) !important;
+  border-radius: var(--pharm-radius) !important;
+  box-shadow: var(--pharm-shadow) !important;
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.main-footer {
+  background: var(--pharm-surface) !important;
+  border-top: 1px solid var(--pharm-border) !important;
+  color: var(--pharm-muted) !important;
+  font-size: 0.78rem;
+}
+
+/* ── Scrollbars (webkit) ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--pharm-bg); }
+::-webkit-scrollbar-thumb {
+  background: var(--pharm-teal);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--pharm-teal-light); }
+
+/* ── Selection highlight ─────────────────────────────────────── */
+::selection {
+  background: rgba(13,148,136,0.35) !important;
+  color: #fff !important;
+}
+
+/* ── Misc ────────────────────────────────────────────────────── */
+a { color: var(--pharm-teal-light) !important; }
+a:hover { color: #fff !important; }
+
+.help-block, .help { color: var(--pharm-muted) !important; font-size: 0.78rem; }
+
+.module caption, .module h2 {
+  background: linear-gradient(90deg, rgba(13,148,136,0.2) 0%, transparent 100%) !important;
+  border-left: 3px solid var(--pharm-teal) !important;
+  color: var(--pharm-teal-light) !important;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Dropdown menus */
+.dropdown-menu {
+  background: var(--pharm-surface) !important;
+  border: 1px solid var(--pharm-border) !important;
+  border-radius: var(--pharm-radius-sm) !important;
+  box-shadow: var(--pharm-shadow) !important;
+}
+
+.dropdown-item {
+  color: var(--pharm-text) !important;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+
+.dropdown-item:hover {
+  background: var(--pharm-teal-dim) !important;
+  color: var(--pharm-teal-light) !important;
+}
+
+/* Modal dialogs */
+.modal-content {
+  background: var(--pharm-surface) !important;
+  border: 1px solid var(--pharm-border) !important;
+  border-radius: var(--pharm-radius) !important;
+  box-shadow: var(--pharm-shadow) !important;
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--pharm-border) !important;
+  background: rgba(13,148,136,0.1) !important;
+}
+
+.modal-footer {
+  border-top: 1px solid var(--pharm-border) !important;
+}
+
+/* Select2 widgets */
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+  background: var(--pharm-surface2) !important;
+  border-color: var(--pharm-border) !important;
+  border-radius: var(--pharm-radius-sm) !important;
+}
+
+.select2-container--default .select2-results__option--highlighted {
+  background: var(--pharm-teal) !important;
+}
+
+.select2-dropdown {
+  background: var(--pharm-surface) !important;
+  border-color: var(--pharm-border) !important;
+  border-radius: var(--pharm-radius-sm) !important;
+  box-shadow: var(--pharm-shadow) !important;
+}
