@@ -92,7 +92,10 @@ def wallet_transactions(request, pk):
 @api_view(["POST"])
 def wallet_topup(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
-    amount = float(request.data.get("amount", 0))
+    try:
+        amount = float(request.data.get("amount", 0))
+    except (ValueError, TypeError):
+        return Response({"detail": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
     note = request.data.get("note", "")
 
     if amount <= 0:
@@ -122,7 +125,10 @@ def wallet_topup(request, pk):
 @api_view(["POST"])
 def wallet_deduct(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
-    amount = float(request.data.get("amount", 0))
+    try:
+        amount = float(request.data.get("amount", 0))
+    except (ValueError, TypeError):
+        return Response({"detail": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
     note = request.data.get("note", "")
 
     if amount <= 0:

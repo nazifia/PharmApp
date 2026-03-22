@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Base URL ─────────────────────────────────────────────────────────────────
 
@@ -52,8 +53,12 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
-      // Clear token on 401 — router will redirect to login via auth refresh
+      // Clear token from memory and persistent storage on 401
       _ref.read(authTokenProvider.notifier).state = null;
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.remove('auth_token');
+        prefs.remove('current_user');
+      });
     }
     super.onError(err, handler);
   }
@@ -75,42 +80,48 @@ class SafeLogInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // ignore: avoid_print
-    print('DioLog --> ${options.method} ${options.uri}');
-    if (options.data != null) {
+    if (kDebugMode) {
       // ignore: avoid_print
-      print('DioLog     body: ${_truncate(options.data)}');
+      print('DioLog --> ${options.method} ${options.uri}');
+      if (options.data != null) {
+        // ignore: avoid_print
+        print('DioLog     body: ${_truncate(options.data)}');
+      }
     }
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    final isJson = response.headers.value('content-type')?.contains('json') ?? false;
-    if (isJson) {
-      // ignore: avoid_print
-      print('DioLog <-- ${response.statusCode} ${response.requestOptions.uri}');
-      // ignore: avoid_print
-      print('DioLog     ${_truncate(response.data)}');
-    } else {
-      // ignore: avoid_print
-      print('DioLog <-- ${response.statusCode} ${response.requestOptions.uri} (non-JSON response, ${response.data?.toString().length ?? 0} bytes)');
+    if (kDebugMode) {
+      final isJson = response.headers.value('content-type')?.contains('json') ?? false;
+      if (isJson) {
+        // ignore: avoid_print
+        print('DioLog <-- ${response.statusCode} ${response.requestOptions.uri}');
+        // ignore: avoid_print
+        print('DioLog     ${_truncate(response.data)}');
+      } else {
+        // ignore: avoid_print
+        print('DioLog <-- ${response.statusCode} ${response.requestOptions.uri} (non-JSON response, ${response.data?.toString().length ?? 0} bytes)');
+      }
     }
     handler.next(response);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    final status = err.response?.statusCode ?? 'N/A';
-    final isJson = err.response?.headers.value('content-type')?.contains('json') ?? false;
-    // ignore: avoid_print
-    print('DioLog ERR $status ${err.requestOptions.method} ${err.requestOptions.uri}');
-    if (isJson) {
+    if (kDebugMode) {
+      final status = err.response?.statusCode ?? 'N/A';
+      final isJson = err.response?.headers.value('content-type')?.contains('json') ?? false;
       // ignore: avoid_print
-      print('DioLog     ${_truncate(err.response?.data)}');
-    } else {
-      // ignore: avoid_print
-      print('DioLog     ${err.message} (non-JSON error response)');
+      print('DioLog ERR $status ${err.requestOptions.method} ${err.requestOptions.uri}');
+      if (isJson) {
+        // ignore: avoid_print
+        print('DioLog     ${_truncate(err.response?.data)}');
+      } else {
+        // ignore: avoid_print
+        print('DioLog     ${err.message} (non-JSON error response)');
+      }
     }
     handler.next(err);
   }

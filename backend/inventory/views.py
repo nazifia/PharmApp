@@ -20,14 +20,26 @@ def item_list(request):
 
     # POST — create
     data = request.data
+    name = (data.get("name") or "").strip()
+    if not name:
+        return Response({"detail": "Name is required"}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        price = float(data.get("price", 0))
+        cost = float(data.get("costPrice", 0))
+        stock = int(data.get("stock", 0))
+        low_stock_threshold = int(data.get("lowStockThreshold", 10))
+    except (ValueError, TypeError):
+        return Response({"detail": "Invalid numeric value"}, status=status.HTTP_400_BAD_REQUEST)
+    if price < 0 or cost < 0 or stock < 0 or low_stock_threshold < 0:
+        return Response({"detail": "Price, cost, and stock must be non-negative"}, status=status.HTTP_400_BAD_REQUEST)
     item = Item.objects.create(
-        name=data.get("name", ""),
+        name=name,
         brand=data.get("brand", ""),
         dosage_form=data.get("dosageForm", ""),
-        price=data.get("price", 0),
-        cost=data.get("costPrice", 0),
-        stock=data.get("stock", 0),
-        low_stock_threshold=data.get("lowStockThreshold", 10),
+        price=price,
+        cost=cost,
+        stock=stock,
+        low_stock_threshold=low_stock_threshold,
         barcode=data.get("barcode", ""),
         expiry_date=data.get("expiryDate") or None,
         store=data.get("store", "retail"),
@@ -44,13 +56,25 @@ def item_detail(request, pk):
 
     if request.method in ("PUT", "PATCH"):
         data = request.data
-        item.name = data.get("name", item.name)
+        name = (data.get("name") or item.name or "").strip()
+        if not name:
+            return Response({"detail": "Name is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            price = float(data.get("price", item.price))
+            cost = float(data.get("costPrice", item.cost))
+            stock = int(data.get("stock", item.stock))
+            low_stock_threshold = int(data.get("lowStockThreshold", item.low_stock_threshold))
+        except (ValueError, TypeError):
+            return Response({"detail": "Invalid numeric value"}, status=status.HTTP_400_BAD_REQUEST)
+        if price < 0 or cost < 0 or stock < 0 or low_stock_threshold < 0:
+            return Response({"detail": "Price, cost, and stock must be non-negative"}, status=status.HTTP_400_BAD_REQUEST)
+        item.name = name
         item.brand = data.get("brand", item.brand)
         item.dosage_form = data.get("dosageForm", item.dosage_form)
-        item.price = data.get("price", item.price)
-        item.cost = data.get("costPrice", item.cost)
-        item.stock = data.get("stock", item.stock)
-        item.low_stock_threshold = data.get("lowStockThreshold", item.low_stock_threshold)
+        item.price = price
+        item.cost = cost
+        item.stock = stock
+        item.low_stock_threshold = low_stock_threshold
         item.barcode = data.get("barcode", item.barcode)
         expiry_raw = data.get("expiryDate", item.expiry_date) or None
         item.expiry_date = parse_date(expiry_raw) if isinstance(expiry_raw, str) else expiry_raw
@@ -65,7 +89,10 @@ def item_detail(request, pk):
 @api_view(["POST"])
 def adjust_stock(request, pk):
     item = get_object_or_404(Item, pk=pk)
-    adjustment = int(request.data.get("adjustment", 0))
+    try:
+        adjustment = int(request.data.get("adjustment", 0))
+    except (ValueError, TypeError):
+        return Response({"detail": "Invalid adjustment value"}, status=status.HTTP_400_BAD_REQUEST)
     item.stock = max(0, item.stock + adjustment)
     item.save()
     return Response(item.to_api_dict())

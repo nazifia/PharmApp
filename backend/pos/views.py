@@ -84,9 +84,15 @@ def checkout(request):
     for i_data in items_data:
         item_id = i_data.get("itemId")
         barcode = i_data.get("barcode", "")
-        qty = int(i_data.get("quantity", 1))
-        price = Decimal(str(i_data.get("price", 0)))
-        discount = Decimal(str(i_data.get("discount", 0)))
+        try:
+            qty = int(i_data.get("quantity", 1))
+            price = Decimal(str(i_data.get("price", 0)))
+            discount = Decimal(str(i_data.get("discount", 0)))
+        except (ValueError, TypeError, Exception):
+            return Response(
+                {"detail": "Invalid quantity, price, or discount value"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if qty <= 0:
             return Response(
@@ -379,7 +385,13 @@ def send_to_cashier(request):
 
     total = Decimal("0")
     for i in items_data:
-        total += Decimal(str(i.get("price", 0))) * int(i.get("quantity", 1))
+        try:
+            total += Decimal(str(i.get("price", 0))) * int(i.get("quantity", 1))
+        except (ValueError, TypeError, Exception):
+            return Response(
+                {"detail": "Invalid price or quantity value"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     customer = None
     if customer_id:
@@ -968,8 +980,15 @@ def barcode_lookup(request):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+def _is_admin_or_manager(user):
+    return getattr(user, "role", "") in ("Admin", "Manager")
+
+
 @api_view(["GET", "POST"])
 def user_list(request):
+    if not _is_admin_or_manager(request.user):
+        return Response({"detail": "Admin or Manager access required"}, status=status.HTTP_403_FORBIDDEN)
+
     if request.method == "GET":
         users = PharmUser.objects.all()
         search = request.query_params.get("search", "").strip()
@@ -1003,6 +1022,8 @@ def user_list(request):
 
 @api_view(["GET", "PUT", "DELETE"])
 def user_detail(request, pk):
+    if not _is_admin_or_manager(request.user):
+        return Response({"detail": "Admin or Manager access required"}, status=status.HTTP_403_FORBIDDEN)
     user = get_object_or_404(PharmUser, pk=pk)
     if request.method == "GET":
         return Response(user.to_api_dict())
@@ -1019,11 +1040,13 @@ def user_detail(request, pk):
 
 @api_view(["POST"])
 def change_password(request, pk):
+    if not _is_admin_or_manager(request.user):
+        return Response({"detail": "Admin or Manager access required"}, status=status.HTTP_403_FORBIDDEN)
     user = get_object_or_404(PharmUser, pk=pk)
     new_password = request.data.get("newPassword", "").strip()
-    if len(new_password) < 6:
+    if len(new_password) < 8:
         return Response(
-            {"detail": "Password must be at least 6 characters"},
+            {"detail": "Password must be at least 8 characters"},
             status=status.HTTP_400_BAD_REQUEST,
         )
     user.set_password(new_password)
