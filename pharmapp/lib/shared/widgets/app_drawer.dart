@@ -68,7 +68,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
               child: Column(
                 children: [
                   // ── Profile header ─────────────────────────────────────────
-                  _DrawerHeader(role: role, phoneNumber: user?.phoneNumber),
+                  _DrawerHeader(role: role, username: user?.username ?? '', phoneNumber: user?.phoneNumber ?? ''),
                   Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
 
                   // ── Nav items ──────────────────────────────────────────────
@@ -271,12 +271,14 @@ final notificationCountProvider = FutureProvider<int>((ref) async {
 
 class _DrawerHeader extends StatelessWidget {
   final String role;
-  final String? phoneNumber;
-  const _DrawerHeader({required this.role, this.phoneNumber});
+  final String username;
+  final String phoneNumber;
+  const _DrawerHeader({required this.role, required this.username, required this.phoneNumber});
 
   @override
   Widget build(BuildContext context) {
-    final initials = role.isNotEmpty ? role[0].toUpperCase() : 'U';
+    final displayName = username.isNotEmpty ? username : phoneNumber;
+    final initials = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
       child: Row(children: [
@@ -299,15 +301,18 @@ class _DrawerHeader extends StatelessWidget {
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(role.isNotEmpty ? role : 'User',
+            Text(displayName.isNotEmpty ? displayName : 'User',
                 style: TextStyle(
                     color: context.labelColor,
                     fontWeight: FontWeight.w700,
-                    fontSize: 15)),
-            const SizedBox(height: 2),
-            Text(phoneNumber ?? '',
-                style: TextStyle(color: context.subLabelColor, fontSize: 12),
+                    fontSize: 15),
                 overflow: TextOverflow.ellipsis),
+            if (username.isNotEmpty && phoneNumber.isNotEmpty) ...[
+              const SizedBox(height: 1),
+              Text(phoneNumber,
+                  style: TextStyle(color: context.subLabelColor, fontSize: 11),
+                  overflow: TextOverflow.ellipsis),
+            ],
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

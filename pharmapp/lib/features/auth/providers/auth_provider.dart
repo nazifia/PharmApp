@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/shared/models/user.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import 'auth_repository.dart';
 
@@ -15,8 +16,9 @@ final currentUserProvider = StateProvider<User?>((ref) => null);
 // ── Repository provider ───────────────────────────────────────────────────────
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final dio = ref.watch(dioProvider);
-  return AuthRepository(dio);
+  final isDev = ref.watch(isDevModeProvider);
+  if (isDev) return AuthRepository.local();
+  return AuthRepository.remote(ref.watch(dioProvider));
 });
 
 // ── Auth flow state ───────────────────────────────────────────────────────────

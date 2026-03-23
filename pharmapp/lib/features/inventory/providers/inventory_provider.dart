@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/api_client.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/database/inventory_repository.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/models/item.dart';
 import 'inventory_api_client.dart';
 
 final inventoryApiProvider = Provider<InventoryApiClient>((ref) {
-  final dio = ref.watch(dioProvider);
-  return InventoryApiClient(dio);
+  final isDev = ref.watch(isDevModeProvider);
+  if (isDev) return InventoryApiClient.local();
+  return InventoryApiClient.remote(ref.watch(dioProvider));
 });
 
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {

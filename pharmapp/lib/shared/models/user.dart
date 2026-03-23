@@ -10,6 +10,7 @@ class User with _$User {
     required String phoneNumber,
     required String role, // e.g., 'Admin', 'Pharmacist', 'Cashier'
     required bool isActive,
+    @Default('') String username,
     @Default(false) bool isWholesaleOperator,
   }) = _User;
 

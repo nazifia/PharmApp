@@ -438,7 +438,6 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   Expanded(flex: 2, child: _cartPanel()),
                 ])
               : _mobileLayout(filteredAsync)),
-          if (_cart.isNotEmpty && !wide) _cartBar(),
         ])),
       ]),
     );
@@ -869,50 +868,6 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   }
 
 
-  // ── Cart bar (mobile bottom) ───────────────────────────────────────────────
-
-  Widget _cartBar() => Container(
-    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    decoration: BoxDecoration(
-      color: EnhancedTheme.accentCyan,
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Row(children: [
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('$_cartCount items  ·  ${_cart.length} lines',
-            style: const TextStyle(color: Colors.white70, fontSize: 11)),
-        Text('₦${_cartTotal.toStringAsFixed(2)}',
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-      ])),
-      TextButton(
-        onPressed: () => setState(() => _cart.clear()),
-        child: const Text('Clear', style: TextStyle(color: Colors.white70)),
-      ),
-      const SizedBox(width: 4),
-      OutlinedButton.icon(
-        onPressed: _isSubmitting ? null : _sendToCashier,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Colors.white54),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        ),
-        icon: const Icon(Icons.send_rounded, size: 14),
-        label: const Text('Cashier', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-      ),
-      const SizedBox(width: 6),
-      ElevatedButton(
-        onPressed: _isSubmitting ? null : _showPaymentSheet,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: EnhancedTheme.accentCyan,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        child: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
-    ]),
-  );
 
   Widget _qtyBtn(IconData icon, VoidCallback onTap) => GestureDetector(
     onTap: onTap,

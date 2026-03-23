@@ -1,53 +1,50 @@
 import 'package:dio/dio.dart';
+import '../../../core/database/local_db.dart';
 import '../../../shared/models/user.dart';
 
 class AuthRepository {
-  final Dio _dio;
-  AuthRepository(this._dio);
+  final Dio? _dio;
 
-  /// Authenticates with phone number + password.
-  /// Expects Django response: `{ "access": "...", "user": { ... } }`
-  Future<Map<String, dynamic>> login(
-      String phoneNumber, String password) async {
+  /// Development: authenticates against the local SQLite database.
+  /// Default admin: phone 0000000000 / password admin123
+  AuthRepository.local() : _dio = null;
+
+  /// Production: authenticates via Django REST API.
+  AuthRepository.remote(Dio dio) : _dio = dio;
+
+  bool get _isLocal => _dio == null;
+
+  Future<Map<String, dynamic>> login(String phoneNumber, String password) async {
+    if (_isLocal) {
+      final userData = await LocalDb.instance.authenticateUser(phoneNumber, password);
+      if (userData == null) {
+        throw Exception(
+            'Invalid phone number or password.\n\nDefault admin:\n  Phone: 0000000000\n  Password: admin123');
+      }
+      final user = User(
+        id: userData['id'] as int,
+        phoneNumber: userData['phoneNumber'] as String,
+        role: userData['role'] as String,
+        isActive: userData['isActive'] as bool,
+        isWholesaleOperator: userData['isWholesaleOperator'] as bool,
+      );
+      return {'token': 'local_${user.id}_${DateTime.now().millisecondsSinceEpoch}', 'user': user};
+    }
+
     try {
-      final response = await _dio.post(
+      final res = await _dio!.post(
         '/auth/login/',
         data: {'phone_number': phoneNumber, 'password': password},
         options: Options(headers: {'skip_auth': true}),
       );
-      final data = response.data as Map<String, dynamic>;
-      final token = data['access'] as String;
-      final user  = User.fromJson(data['user'] as Map<String, dynamic>);
-      return {'token': token, 'user': user};
+      final data = res.data as Map<String, dynamic>;
+      return {'token': data['access'] as String, 'user': User.fromJson(data['user'] as Map<String, dynamic>)};
     } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
-    }
-  }
-
-  /// Fetches the profile for the currently authenticated user.
-  Future<User> fetchCurrentUser() async {
-    try {
-      final response = await _dio.get('/auth/me/');
-      return User.fromJson(response.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
-    }
-  }
-
-  String _handleDioError(DioException error) {
-    if (error.response != null) {
-      final body = error.response?.data;
+      final body = e.response?.data;
       if (body is Map) {
-        final msg = body['detail'] ??
-            body['error'] ??
-            (body['non_field_errors'] is List
-                ? (body['non_field_errors'] as List).first
-                : null) ??
-            'Invalid credentials';
-        return msg.toString();
+        throw Exception(body['detail'] ?? body['error'] ?? 'Invalid credentials');
       }
-      return 'Server error ${error.response?.statusCode}';
+      throw Exception('Network error — check server connection');
     }
-    return 'Network error: please check your connection.';
   }
 }

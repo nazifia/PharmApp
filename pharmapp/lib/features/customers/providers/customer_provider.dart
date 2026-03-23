@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/customer.dart';
 import 'customer_api_client.dart';
@@ -6,7 +7,9 @@ import 'customer_api_client.dart';
 export 'customer_api_client.dart' show WalletTransaction, CustomerSale;
 
 final customerApiProvider = Provider<CustomerApiClient>((ref) {
-  return CustomerApiClient(ref.watch(dioProvider));
+  final isDev = ref.watch(isDevModeProvider);
+  if (isDev) return CustomerApiClient.local();
+  return CustomerApiClient.remote(ref.watch(dioProvider));
 });
 
 /// Full customer list — refresh with ref.invalidate(customerListProvider)

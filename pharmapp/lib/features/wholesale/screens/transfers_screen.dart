@@ -517,7 +517,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
 
   String _formatDate(String raw) {
     try {
-      final dt = DateTime.parse(raw);
+      final dt = DateTime.parse(raw).toLocal();
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       final h = dt.hour.toString().padLeft(2, '0');
       final m = dt.minute.toString().padLeft(2, '0');

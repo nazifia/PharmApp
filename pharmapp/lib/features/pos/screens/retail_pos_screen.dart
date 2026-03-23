@@ -217,7 +217,6 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   Expanded(flex: 2, child: _cartPanel(cart, cartTotal)),
                 ])
               : _mobileLayout(filteredAsync, cart, cartTotal)),
-          if (cart.isNotEmpty && !wide) _cartBar(cart, cartTotal),
         ])),
       ]),
     );
@@ -638,53 +637,6 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     ]);
   }
 
-  // ── Cart bar (mobile bottom) ───────────────────────────────────────────────
-
-  Widget _cartBar(List<CartItem> cart, double cartTotal) => Container(
-    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    decoration: BoxDecoration(
-      color: EnhancedTheme.primaryTeal,
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Row(children: [
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${cart.fold<int>(0, (s, c) => s + c.quantity)} items  ·  ${cart.length} lines',
-            style: const TextStyle(color: Colors.white70, fontSize: 11)),
-        Text('₦${cartTotal.toStringAsFixed(2)}',
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-      ])),
-      TextButton(
-        onPressed: () {
-          ref.read(cartProvider.notifier).clearCart();
-          ref.read(selectedCustomerProvider.notifier).state = null;
-        },
-        child: const Text('Clear', style: TextStyle(color: Colors.white70)),
-      ),
-      const SizedBox(width: 4),
-      OutlinedButton.icon(
-        onPressed: _sendToCashier,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Colors.white54),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        ),
-        icon: const Icon(Icons.send_rounded, size: 14),
-        label: const Text('Cashier', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-      ),
-      const SizedBox(width: 6),
-      ElevatedButton(
-        onPressed: _checkout,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: EnhancedTheme.primaryTeal,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        child: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
-    ]),
-  );
 
 }
 

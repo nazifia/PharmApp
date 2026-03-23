@@ -127,7 +127,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('$greeting!', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
               const SizedBox(height: 2),
-              Text(user?.phoneNumber ?? 'User',
+              Text((user?.username.isNotEmpty == true ? user!.username : user?.phoneNumber) ?? 'User',
                   style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
               Text(DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),

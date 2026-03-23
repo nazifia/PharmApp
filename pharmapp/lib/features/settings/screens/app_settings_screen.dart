@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pharmapp/core/config/app_config.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -39,6 +40,8 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   Widget build(BuildContext context) {
     final user      = ref.watch(currentUserProvider);
     final isDark    = ref.watch(themeModeProvider) == ThemeMode.dark;
+    final appMode   = ref.watch(appModeProvider);
+    final isProd    = appMode == AppMode.production;
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -79,11 +82,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                       ]),
                       const SizedBox(height: 16),
                       _sectionCard('System', [
-                        _inputTile(
-                          Icons.cloud_outlined, 'API Server URL',
-                          _apiUrlCtrl,
-                        ),
-                        _divider(),
                         _tapTile(
                           Icons.cleaning_services_outlined, 'Clear Cache',
                           'Free up local storage',
@@ -98,6 +96,21 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                           trailing: Text('v1.0.0',
                               style: TextStyle(color: context.hintColor, fontSize: 12)),
                         ),
+                      ]),
+                      const SizedBox(height: 16),
+                      _sectionCard('Environment', [
+                        _switchTile(
+                          isProd ? Icons.cloud_done_outlined : Icons.storage_outlined,
+                          'Production Mode',
+                          isProd ? 'Using Django REST backend' : 'Using local SQLite database',
+                          isProd,
+                          (v) => _confirmModeSwitch(context, v),
+                          activeColor: isProd ? EnhancedTheme.accentOrange : EnhancedTheme.primaryTeal,
+                        ),
+                        if (isProd) ...[
+                          _divider(),
+                          _inputTile(Icons.cloud_outlined, 'API Server URL', _apiUrlCtrl),
+                        ],
                       ]),
                       const SizedBox(height: 16),
                       _sectionCard('Account', [
@@ -158,8 +171,13 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(user?.phoneNumber ?? '—',
+              Text((user?.username.isNotEmpty == true ? user!.username : user?.phoneNumber) ?? '—',
                   style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600)),
+              if ((user?.username ?? '').isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(user!.phoneNumber,
+                    style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+              ],
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -204,24 +222,61 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
     );
   }
 
-  Widget _switchTile(IconData icon, String title, String sub, bool val, ValueChanged<bool> onChanged) {
+  Widget _switchTile(IconData icon, String title, String sub, bool val,
+      ValueChanged<bool> onChanged, {Color? activeColor}) {
+    final color = activeColor ?? EnhancedTheme.primaryTeal;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(children: [
-        _tileIcon(icon, EnhancedTheme.primaryTeal),
+        _tileIcon(icon, color),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
           Text(sub, style: TextStyle(color: context.hintColor, fontSize: 12)),
         ])),
         Switch(value: val, onChanged: onChanged,
-            activeThumbColor: EnhancedTheme.primaryTeal,
+            activeThumbColor: color,
             trackColor: WidgetStateProperty.resolveWith(
                 (s) => s.contains(WidgetState.selected)
-                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.3)
+                    ? color.withValues(alpha: 0.3)
                     : context.borderColor)),
       ]),
     );
+  }
+
+  Future<void> _confirmModeSwitch(BuildContext context, bool toProd) async {
+    final modeName = toProd ? 'Production' : 'Development';
+    final detail = toProd
+        ? 'The app will connect to the Django REST backend.\nMake sure the server is running and the API URL is correct.'
+        : 'The app will use the local SQLite database on this device.';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Switch to $modeName?',
+            style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Text(detail, style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: TextStyle(color: context.hintColor))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: toProd ? EnhancedTheme.accentOrange : EnhancedTheme.primaryTeal,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            child: Text('Switch', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await ref.read(appModeProvider.notifier)
+          .switchTo(toProd ? AppMode.production : AppMode.development);
+    }
   }
 
   Widget _dropdownTile(IconData icon, String title, String val,

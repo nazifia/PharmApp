@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/config/app_config.dart';
 import 'core/theme/enhanced_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/network/api_client.dart';
 import 'core/services/auth_service.dart';
+import 'core/database/local_db.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize local SQLite database (used in dev/offline mode)
+  await LocalDb.instance.initialize();
 
   final prefs      = await SharedPreferences.getInstance();
   final savedUrl   = prefs.getString('api_base_url');
@@ -24,6 +29,8 @@ void main() async {
         baseUrlProvider.overrideWith((ref) => savedUrl),
       themeModeProvider
           .overrideWith((ref) => ThemeModeNotifier(initialTheme)),
+      appModeProvider
+          .overrideWith((ref) => AppModeNotifier(AppMode.production)),
     ],
     child: const _AppStartup(),
   ));

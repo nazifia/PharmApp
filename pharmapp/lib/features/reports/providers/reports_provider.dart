@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import 'reports_api_client.dart';
 
 final reportsApiProvider = Provider<ReportsApiClient>((ref) {
-  return ReportsApiClient(ref.watch(dioProvider));
+  final isDev = ref.watch(isDevModeProvider);
+  if (isDev) return ReportsApiClient.local();
+  return ReportsApiClient.remote(ref.watch(dioProvider));
 });
 
 /// Sales report — keyed by period string: 'today' | 'week' | 'month' | 'year'

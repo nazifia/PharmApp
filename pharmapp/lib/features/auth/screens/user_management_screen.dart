@@ -56,10 +56,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   }
 
   void _showAddUserSheet() {
-    final phoneCtrl = TextEditingController();
-    final passCtrl  = TextEditingController();
-    String role     = 'Cashier';
-    final formKey   = GlobalKey<FormState>();
+    final phoneCtrl    = TextEditingController();
+    final passCtrl     = TextEditingController();
+    final usernameCtrl = TextEditingController();
+    String role        = 'Cashier';
+    final formKey      = GlobalKey<FormState>();
 
     showModalBottomSheet(
       context: context,
@@ -82,6 +83,23 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 const SizedBox(height: 16),
                 Text('Add User', style: TextStyle(color: ctx.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 20),
+                TextFormField(
+                  controller: usernameCtrl,
+                  validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                  style: TextStyle(color: ctx.labelColor, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'Username', labelStyle: TextStyle(color: ctx.hintColor, fontSize: 13),
+                    filled: true, fillColor: ctx.cardColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: ctx.borderColor)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+                    errorStyle: const TextStyle(color: EnhancedTheme.errorRed),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: phoneCtrl, keyboardType: TextInputType.phone,
                   validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
@@ -150,6 +168,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         phoneNumber: phoneCtrl.text.trim(),
                         password: passCtrl.text.trim(),
                         role: role,
+                        username: usernameCtrl.text.trim(),
                       );
                       if (!context.mounted) return;
                       setState(() {});
@@ -236,6 +255,139 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     );
   }
 
+  void _showEditUserSheet(User user) {
+    String role        = user.role;
+    bool isActive      = user.isActive;
+    final usernameCtrl = TextEditingController(text: user.username);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: ctx.dividerColor, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              Text('Edit User', style: TextStyle(color: ctx.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(user.username.isNotEmpty ? user.username : user.phoneNumber,
+                  style: TextStyle(color: ctx.subLabelColor, fontSize: 13)),
+              const SizedBox(height: 20),
+              TextField(
+                controller: usernameCtrl,
+                style: TextStyle(color: ctx.labelColor, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'Username', labelStyle: TextStyle(color: ctx.hintColor, fontSize: 13),
+                  filled: true, fillColor: ctx.cardColor,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: ctx.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Role:', style: TextStyle(color: ctx.subLabelColor, fontSize: 13)),
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: _createRoles.map((r) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () => setModal(() => role = r),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: role == r ? _roleColor(r) : ctx.cardColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: role == r ? _roleColor(r) : ctx.borderColor),
+                      ),
+                      child: Text(r, style: TextStyle(
+                          color: role == r ? Colors.white : ctx.subLabelColor,
+                          fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                )).toList()),
+              ),
+              const SizedBox(height: 20),
+              Row(children: [
+                Text('Status:', style: TextStyle(color: ctx.subLabelColor, fontSize: 13)),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => setModal(() => isActive = true),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: isActive ? EnhancedTheme.successGreen : ctx.cardColor,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: isActive ? EnhancedTheme.successGreen : ctx.borderColor),
+                    ),
+                    child: Text('Active', style: TextStyle(
+                        color: isActive ? Colors.white : ctx.subLabelColor,
+                        fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => setModal(() => isActive = false),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: !isActive ? EnhancedTheme.errorRed : ctx.cardColor,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: !isActive ? EnhancedTheme.errorRed : ctx.borderColor),
+                    ),
+                    child: Text('Inactive', style: TextStyle(
+                        color: !isActive ? Colors.white : ctx.subLabelColor,
+                        fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 24),
+              SizedBox(width: double.infinity, child: ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  try {
+                    await ref.read(posApiProvider).updateUser(
+                        user.id, role: role, isActive: isActive,
+                        username: usernameCtrl.text.trim());
+                    if (!context.mounted) return;
+                    setState(() {});
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('User updated'),
+                      backgroundColor: EnhancedTheme.successGreen));
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Failed: $e'),
+                      backgroundColor: EnhancedTheme.errorRed));
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700)),
+              )),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showDeleteConfirmation(User user) {
     showDialog(
       context: context,
@@ -243,7 +395,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
         backgroundColor: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Delete User', style: TextStyle(color: ctx.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
-        content: Text('Delete user ${user.phoneNumber} (${user.role})?',
+        content: Text('Delete user ${user.username.isNotEmpty ? user.username : user.phoneNumber} (${user.role})?',
             style: TextStyle(color: ctx.subLabelColor, fontSize: 14)),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(),
@@ -441,9 +593,15 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               ),
             ]),
             const SizedBox(height: 6),
-            Text(user.phoneNumber, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+            Text(user.username.isNotEmpty ? user.username : user.phoneNumber,
+                style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+            if (user.username.isNotEmpty)
+              Text(user.phoneNumber, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
           ])),
           Column(children: [
+            _iconButton(Icons.edit_outlined, EnhancedTheme.accentPurple,
+                () => _showEditUserSheet(user)),
+            const SizedBox(height: 6),
             _iconButton(Icons.lock_reset_rounded, EnhancedTheme.accentCyan,
                 () => _showChangePasswordDialog(user)),
             const SizedBox(height: 6),
