@@ -1020,7 +1020,7 @@ def user_list(request):
     return Response(user.to_api_dict(), status=status.HTTP_201_CREATED)
 
 
-@api_view(["GET", "PUT", "DELETE"])
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
 def user_detail(request, pk):
     if not _is_admin_or_manager(request.user):
         return Response({"detail": "Admin or Manager access required"}, status=status.HTTP_403_FORBIDDEN)

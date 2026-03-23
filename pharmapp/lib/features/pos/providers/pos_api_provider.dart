@@ -527,7 +527,7 @@ class PosApiClient {
     if (_isLocal) return LocalDb.instance.getAllUsers(role: 'Cashier');
     try {
       final res =
-          await _dio!.get('/users/', queryParameters: {'role': 'Cashier'});
+          await _dio!.get('/pos/users/', queryParameters: {'role': 'Cashier'});
       final data = res.data;
       return data is Map && data.containsKey('results')
           ? data['results'] as List
@@ -542,7 +542,7 @@ class PosApiClient {
   Future<List<dynamic>> fetchNotifications() async {
     if (_isLocal) return LocalDb.instance.getNotifications();
     try {
-      final res = await _dio!.get('/notifications/');
+      final res = await _dio!.get('/pos/notifications/');
       final data = res.data;
       return data is Map && data.containsKey('results')
           ? data['results'] as List
@@ -556,7 +556,7 @@ class PosApiClient {
   Future<int> fetchNotificationCount() async {
     if (_isLocal) return LocalDb.instance.getUnreadCount();
     try {
-      final res = await _dio!.get('/notifications/count/');
+      final res = await _dio!.get('/pos/notifications/count/');
       return (res.data['count'] as num?)?.toInt() ?? 0;
     } on DioException catch (_) {
       return 0;
@@ -566,7 +566,7 @@ class PosApiClient {
   Future<void> markNotificationRead(int id) async {
     if (_isLocal) return LocalDb.instance.markNotificationRead(id);
     try {
-      await _dio!.post('/notifications/$id/read/');
+      await _dio!.post('/pos/notifications/$id/read/');
     } on DioException catch (e) {
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to mark notification read');
@@ -598,7 +598,7 @@ class PosApiClient {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
       if (role != null && role.isNotEmpty) params['role'] = role;
-      final res = await _dio!.get('/users/',
+      final res = await _dio!.get('/pos/users/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
       return data is Map && data.containsKey('results')
@@ -619,7 +619,7 @@ class PosApiClient {
       return LocalDb.instance.createUser(phoneNumber, password, role, username: username);
     }
     try {
-      final res = await _dio!.post('/users/', data: {
+      final res = await _dio!.post('/pos/users/', data: {
         'phone_number': phoneNumber,
         'password': password,
         'role': role,
@@ -634,7 +634,7 @@ class PosApiClient {
   Future<void> deleteUser(int id) async {
     if (_isLocal) return LocalDb.instance.deleteUser(id);
     try {
-      await _dio!.delete('/users/$id/');
+      await _dio!.delete('/pos/users/$id/');
     } on DioException catch (e) {
       throw Exception(e.response?.data?['detail'] ?? 'Failed to delete user');
     }
@@ -645,7 +645,7 @@ class PosApiClient {
       return LocalDb.instance.changeUserPassword(id, newPassword);
     }
     try {
-      await _dio!.post('/users/$id/change-password/',
+      await _dio!.post('/pos/users/$id/change-password/',
           data: {'new_password': newPassword});
     } on DioException catch (e) {
       throw Exception(
@@ -663,7 +663,7 @@ class PosApiClient {
       if (role != null) data['role'] = role;
       if (isActive != null) data['is_active'] = isActive;
       if (username != null) data['username'] = username;
-      final res = await _dio!.patch('/users/$id/', data: data);
+      final res = await _dio!.patch('/pos/users/$id/', data: data);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw Exception(e.response?.data?['detail'] ?? 'Failed to update user');
