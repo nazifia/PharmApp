@@ -1,0 +1,7 @@
+{% extends "admin/base.html" %}
+{% load env_tags %}
+
+{% block usertools %}
+  {% env_banner %}
+  {{ block.super }}
+{% endblock %}

@@ -1,0 +1,31 @@
+{% if running_env == 'dev' %}
+  <span class="env-badge env-dev" title="Development environment is active">
+    <i class="fas fa-code"></i> DEV
+  </span>
+{% else %}
+  <span class="env-badge env-prod" title="Production environment is active">
+    <i class="fas fa-server"></i> PROD
+  </span>
+{% endif %}
+{% if restart_needed %}
+  <span class="env-badge env-restart" title="Restart server to apply pending environment change">
+    <i class="fas fa-sync-alt"></i> RESTART NEEDED
+  </span>
+{% endif %}
+
+<style>
+.env-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.env-dev     { background: #f59e0b; color: #1a1a1a; }
+.env-prod    { background: #10b981; color: #fff; }
+.env-restart { background: #ef4444; color: #fff; animation: blink 1.2s step-start infinite; }
+@keyframes blink { 50% { opacity: 0.4; } }
+</style>

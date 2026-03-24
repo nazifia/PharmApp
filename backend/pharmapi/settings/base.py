@@ -1,15 +1,13 @@
+"""
+Base settings shared by all environments.
+Do NOT run with this file directly — use dev.py or prod.py.
+"""
 import os
-from pathlib import Path
 from datetime import timedelta
+from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY", "pharmapp-dev-secret-key-change-in-production"
-)
-DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
-ALLOWED_HOSTS = os.environ.get(
-    "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,10.0.2.2"
-).split(",")
+# backend/
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # ── Jazzmin Admin UI ──────────────────────────────────────────────────────────
 
@@ -55,7 +53,6 @@ JAZZMIN_SETTINGS = {
         "auth",
     ],
 
-    # Custom links inside the sidebar under each app
     "custom_links": {
         "pos": [
             {
@@ -69,24 +66,20 @@ JAZZMIN_SETTINGS = {
 
     # ── Icons (FontAwesome 5 free) ─────────────────────────────────────────────
     "icons": {
-        # Apps
         "authapp":   "fas fa-users-cog",
         "inventory": "fas fa-pills",
         "customers": "fas fa-user-friends",
         "pos":       "fas fa-cash-register",
         "auth":      "fas fa-shield-alt",
 
-        # authapp
-        "authapp.PharmUser": "fas fa-user-md",
+        "authapp.PharmUser":           "fas fa-user-md",
+        "authapp.Organization":        "fas fa-hospital",
 
-        # inventory
-        "inventory.Item": "fas fa-capsules",
+        "inventory.Item":              "fas fa-capsules",
 
-        # customers
         "customers.Customer":          "fas fa-user-friends",
         "customers.WalletTransaction": "fas fa-wallet",
 
-        # pos
         "pos.Cashier":            "fas fa-user-tie",
         "pos.Sale":               "fas fa-receipt",
         "pos.SaleItem":           "fas fa-list-alt",
@@ -104,7 +97,6 @@ JAZZMIN_SETTINGS = {
         "pos.Notification":       "fas fa-bell",
         "pos.TransferRequest":    "fas fa-exchange-alt",
 
-        # django auth
         "auth.Group": "fas fa-layer-group",
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
@@ -117,7 +109,6 @@ JAZZMIN_SETTINGS = {
     "use_google_fonts_cdn": True,
     "show_ui_builder": False,
 
-    # ── Changeform format ──────────────────────────────────────────────────────
     "changeform_format": "horizontal_tabs",
     "changeform_format_overrides": {
         "authapp.pharmuser": "collapsible",
@@ -126,7 +117,6 @@ JAZZMIN_SETTINGS = {
         "pos.stockcheck": "horizontal_tabs",
     },
 
-    # ── Language chooser ──────────────────────────────────────────────────────
     "language_chooser": False,
 }
 
@@ -150,7 +140,7 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
-    "theme": "superhero",        # dark Bootstrap theme — richer contrast
+    "theme": "superhero",
     "dark_mode_theme": "superhero",
     "button_classes": {
         "primary":   "btn-primary",
@@ -180,8 +170,10 @@ TEMPLATES = [
     },
 ]
 
+# ── Apps & Middleware ──────────────────────────────────────────────────────────
+
 INSTALLED_APPS = [
-    "jazzmin",                          # must be before django.contrib.admin
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -201,6 +193,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "authapp.middleware.MaintenanceModeMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -211,36 +204,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "pharmapi.urls"
 AUTH_USER_MODEL = "authapp.PharmUser"
+WSGI_APPLICATION = "pharmapi.wsgi.application"
 
-_db_url = os.environ.get("DATABASE_URL", "")
-
-if _db_url:
-    # Production: DATABASE_URL=mysql://user:password@host:3306/dbname
-    import urllib.parse
-    _parsed = urllib.parse.urlparse(_db_url)
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": _parsed.path.lstrip("/"),
-            "USER": _parsed.username,
-            "PASSWORD": _parsed.password,
-            "HOST": _parsed.hostname,
-            "PORT": str(_parsed.port or 3306),
-            "OPTIONS": {
-                "charset": "utf8mb4",
-                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
-            "CONN_MAX_AGE": 60,
-        }
-    }
-else:
-    # Development: SQLite
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+# ── REST Framework ─────────────────────────────────────────────────────────────
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -269,14 +235,17 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:8080,http://10.0.2.2:8080",
-).split(",")
-CORS_ALLOW_ALL_ORIGINS = False  # Never allow all origins; use CORS_ALLOWED_ORIGINS
+# ── CORS ──────────────────────────────────────────────────────────────────────
+
+CORS_ALLOW_ALL_ORIGINS = False
+
+# ── Static files ──────────────────────────────────────────────────────────────
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"

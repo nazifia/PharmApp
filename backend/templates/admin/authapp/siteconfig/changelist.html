@@ -1,0 +1,190 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Site Configuration — PharmApp Admin{% endblock %}
+
+{% block content_title %}<h1>Site Configuration</h1>{% endblock %}
+
+{% block content %}
+{% if messages %}
+  <ul class="messagelist">
+    {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+<style>
+.siteconfig-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 900px;
+  margin-top: 20px;
+}
+.siteconfig-card {
+  background: var(--darkened-bg, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 10px;
+  padding: 24px;
+}
+.siteconfig-card h2 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  opacity: .7;
+}
+.env-status {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 8px 0 16px;
+}
+.env-status.dev  { color: #f59e0b; }
+.env-status.prod { color: #10b981; }
+.info-row {
+  font-size: 12px;
+  opacity: .65;
+  margin-bottom: 4px;
+  font-family: monospace;
+}
+.btn-env {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  margin-right: 8px;
+  margin-top: 12px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.btn-dev  { background: #f59e0b; color: #1a1a1a; }
+.btn-prod { background: #10b981; color: #fff; }
+.btn-dev:hover  { background: #d97706; }
+.btn-prod:hover { background: #059669; }
+.btn-active {
+  opacity: .45;
+  cursor: default;
+  pointer-events: none;
+}
+.restart-banner {
+  background: #ef444422;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-top: 20px;
+  max-width: 900px;
+  font-size: 13px;
+  color: #ef4444;
+}
+.restart-banner i { margin-right: 6px; }
+.maint-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+.maint-toggle {
+  position: relative;
+  width: 46px; height: 24px;
+}
+.maint-toggle input { opacity: 0; width: 0; height: 0; }
+.maint-slider {
+  position: absolute; inset: 0;
+  background: #475569;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: .3s;
+}
+.maint-slider:before {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  left: 3px; top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: .3s;
+}
+input:checked + .maint-slider { background: #ef4444; }
+input:checked + .maint-slider:before { transform: translateX(22px); }
+</style>
+
+<div class="siteconfig-grid">
+
+  {# ── Environment card ── #}
+  <div class="siteconfig-card">
+    <h2>Environment</h2>
+
+    <div class="env-status {{ running_env }}">
+      {% if running_env == 'dev' %}
+        <i class="fas fa-code"></i> DEVELOPMENT
+      {% else %}
+        <i class="fas fa-server"></i> PRODUCTION
+      {% endif %}
+    </div>
+
+    <div class="info-row"><b>Running:</b> {{ running_module }}</div>
+    <div class="info-row"><b>On restart:</b> {{ pending_module }}</div>
+
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" name="env_action" value="dev"
+              class="btn-env btn-dev {% if pending_env == 'dev' %}btn-active{% endif %}">
+        <i class="fas fa-code"></i> Use Development
+      </button>
+      <button type="submit" name="env_action" value="prod"
+              class="btn-env btn-prod {% if pending_env == 'prod' %}btn-active{% endif %}"
+              onclick="return confirm('Switch to PRODUCTION settings?\nThis will use MySQL and strict security headers after restart.')">
+        <i class="fas fa-server"></i> Use Production
+      </button>
+    </form>
+  </div>
+
+  {# ── Maintenance mode card ── #}
+  <div class="siteconfig-card">
+    <h2>Maintenance Mode</h2>
+
+    <div class="env-status {% if cfg.maintenance_mode %}prod{% else %}dev{% endif %}">
+      {% if cfg.maintenance_mode %}
+        <i class="fas fa-tools"></i> ON
+      {% else %}
+        <i class="fas fa-check-circle"></i> OFF
+      {% endif %}
+    </div>
+
+    <div class="info-row">When ON, all API requests return 503 Service Unavailable.</div>
+    <div class="info-row">Takes effect immediately — no restart needed.</div>
+
+    <form method="post" style="margin-top:14px;">
+      {% csrf_token %}
+      <label class="maint-row">
+        <span class="maint-toggle">
+          <input type="checkbox" name="maintenance_mode"
+                 value="1"
+                 {% if cfg.maintenance_mode %}checked{% endif %}
+                 onchange="this.form.submit()">
+          <span class="maint-slider"></span>
+        </span>
+        <span style="font-size:13px;">
+          {% if cfg.maintenance_mode %}Click to disable{% else %}Click to enable{% endif %}
+        </span>
+      </label>
+      {# Hidden fallback for when checkbox is unchecked #}
+      <input type="hidden" name="maintenance_mode" value="0">
+    </form>
+  </div>
+
+</div>
+
+{% if restart_needed %}
+<div class="restart-banner">
+  <i class="fas fa-sync-alt"></i>
+  <b>Restart required</b> — the environment will change from
+  <b>{{ running_env|upper }}</b> to <b>{{ pending_env|upper }}</b> after the next server restart.
+</div>
+{% endif %}
+
+{% endblock %}

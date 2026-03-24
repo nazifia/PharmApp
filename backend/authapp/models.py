@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils.text import slugify
@@ -88,3 +90,79 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.phone_number} ({self.role})"
+
+
+# ── Site Configuration (singleton) ────────────────────────────────────────────
+
+_ENV_FILE = Path(__file__).resolve().parent.parent / '.active_env'
+
+SETTINGS_MAP = {
+    'dev':  'pharmapi.settings.dev',
+    'prod': 'pharmapi.settings.prod',
+}
+
+
+class SiteConfig(models.Model):
+    """
+    Singleton (pk=1) — controls which settings module loads on next restart.
+    Saving this record writes the chosen module to .active_env so manage.py
+    and wsgi.py pick it up automatically on the next server start.
+    """
+    ENV_CHOICES = [('dev', 'Development'), ('prod', 'Production')]
+
+    active_environment = models.CharField(
+        max_length=10,
+        choices=ENV_CHOICES,
+        default='dev',
+        help_text='Desired environment. Takes effect after server restart.',
+    )
+    maintenance_mode = models.BooleanField(
+        default=False,
+        help_text='Block all API traffic with a 503 response.',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Site Configuration'
+        verbose_name_plural = 'Site Configuration'
+
+    # ── Singleton enforcement ─────────────────────────────────────────────────
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+        _ENV_FILE.write_text(SETTINGS_MAP[self.active_environment])
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    # ── Environment helpers ───────────────────────────────────────────────────
+
+    @staticmethod
+    def running_module():
+        """Settings module currently loaded in this process."""
+        return os.environ.get('DJANGO_SETTINGS_MODULE', 'pharmapi.settings.dev')
+
+    @staticmethod
+    def pending_module():
+        """Settings module that will load after next restart."""
+        if _ENV_FILE.exists():
+            return _ENV_FILE.read_text().strip()
+        return 'pharmapi.settings.dev'
+
+    @classmethod
+    def running_env(cls):
+        return 'prod' if 'prod' in cls.running_module() else 'dev'
+
+    @classmethod
+    def pending_env(cls):
+        return 'prod' if 'prod' in cls.pending_module() else 'dev'
+
+    @classmethod
+    def restart_needed(cls):
+        return cls.running_module() != cls.pending_module()
+
+    def __str__(self):
+        return 'Site Configuration'
