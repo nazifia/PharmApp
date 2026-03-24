@@ -393,12 +393,8 @@ def return_item(request, pk):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@api_view(["POST"])
-def send_to_cashier(request):
-    """Dispenser sends cart to cashier for payment."""
-    org, err = require_org(request)
-    if err:
-        return err
+def _create_payment_request(request, org):
+    """Shared logic: create a PaymentRequest from a DRF request."""
     items_data = request.data.get("items", [])
     customer_id = request.data.get("customerId")
     cashier_id = request.data.get("cashierId")
@@ -449,7 +445,6 @@ def send_to_cashier(request):
             unit_price=Decimal(str(i.get("price", 0))),
         )
 
-    # Notify cashiers
     cashiers = Cashier.objects.filter(is_active=True, user__organization=org)
     if cashier_id:
         cashiers = cashiers.filter(pk=cashier_id)
@@ -459,17 +454,30 @@ def send_to_cashier(request):
             notif_type="payment_request",
             priority="high",
             title="New Payment Request",
-            message=f"Payment request {pr.request_id} for ₦{total} from {request.user.phone_number}",
+            message=f"Payment request {pr.request_id} for \u20a6{total} from {request.user.phone_number}",
         )
 
     return Response(pr.to_api_dict(), status=status.HTTP_201_CREATED)
 
 
-@api_view(["GET"])
+@api_view(["POST"])
+def send_to_cashier(request):
+    """Dispenser sends cart to cashier for payment."""
+    org, err = require_org(request)
+    if err:
+        return err
+    return _create_payment_request(request, org)
+
+
+@api_view(["GET", "POST"])
 def payment_request_list(request):
     org, err = require_org(request)
     if err:
         return err
+
+    if request.method == "POST":
+        return _create_payment_request(request, org)
+
     status_filter = request.query_params.get("status", "")
     prs = PaymentRequest.objects.filter(organization=org).prefetch_related("items")
     if status_filter:
