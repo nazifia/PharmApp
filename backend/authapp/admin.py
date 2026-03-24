@@ -2,23 +2,31 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
 
-from .models import PharmUser
+from .models import Organization, PharmUser
+
+
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug", "phone", "created_at"]
+    search_fields = ["name", "slug", "phone"]
+    readonly_fields = ["slug", "created_at"]
+    ordering = ["name"]
 
 
 @admin.register(PharmUser)
 class PharmUserAdmin(UserAdmin):
     list_display = [
-        "phone_number", "role", "is_active", "is_staff",
+        "phone_number", "role", "organization", "is_active", "is_staff",
         "is_superuser", "is_wholesale_operator",
     ]
-    list_filter = ["role", "is_active", "is_staff", "is_superuser", "is_wholesale_operator"]
+    list_filter = ["role", "organization", "is_active", "is_staff", "is_superuser", "is_wholesale_operator"]
     search_fields = ["phone_number"]
     ordering = ["phone_number"]
 
     fieldsets = (
         (None, {"fields": ("phone_number", "password")}),
         ("Role & Access", {
-            "fields": ("role", "is_wholesale_operator"),
+            "fields": ("role", "organization", "is_wholesale_operator"),
         }),
         ("Permissions", {
             "classes": ("collapse",),

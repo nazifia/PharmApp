@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/shared/models/user.dart';
+import 'package:pharmapp/shared/models/organization.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import 'auth_repository.dart';
@@ -13,6 +14,18 @@ export '../../../core/network/api_client.dart' show authTokenProvider;
 /// Holds the authenticated [User] profile.
 final currentUserProvider = StateProvider<User?>((ref) => null);
 
+/// Derived from the authenticated user — no separate storage needed.
+/// Returns null if the user has no org (e.g. local dev, legacy session).
+final currentOrganizationProvider = Provider<Organization?>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null || user.organizationId == 0) return null;
+  return Organization(
+    id: user.organizationId,
+    name: user.organizationName,
+    slug: user.organizationSlug,
+  );
+});
+
 // ── Repository provider ───────────────────────────────────────────────────────
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -23,7 +36,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 // ── Auth flow state ───────────────────────────────────────────────────────────
 
-enum AuthFlowState { initial, loggingIn, authenticated, error }
+enum AuthFlowState { initial, loggingIn, registering, authenticated, error }
 
 class AuthNotifier extends StateNotifier<AuthFlowState> {
   final Ref _ref;
@@ -64,6 +77,39 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     _ref.read(authTokenProvider.notifier).state   = token;
     _ref.read(currentUserProvider.notifier).state = user;
     state = AuthFlowState.authenticated;
+  }
+
+  /// Register a new pharmacy organization + first admin user.
+  Future<void> registerOrg({
+    required String orgName,
+    required String phone,
+    required String password,
+    String? address,
+  }) async {
+    _errorMessage = null;
+    state = AuthFlowState.registering;
+    try {
+      final result = await _ref.read(authRepositoryProvider).registerOrg(
+            orgName: orgName,
+            phone: phone,
+            password: password,
+            address: address,
+          );
+      final String token = result['token'] as String;
+      final User user = result['user'] as User;
+
+      _ref.read(authTokenProvider.notifier).state = token;
+      _ref.read(currentUserProvider.notifier).state = user;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', token);
+      await prefs.setString('current_user', jsonEncode(user.toJson()));
+
+      state = AuthFlowState.authenticated;
+    } catch (e) {
+      _errorMessage = _friendly(e);
+      state = AuthFlowState.error;
+    }
   }
 
   void resetFlow() {

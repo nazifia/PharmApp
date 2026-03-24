@@ -4,14 +4,19 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Item
+from authapp.utils import require_org
 
 
 @api_view(["GET", "POST"])
 def item_list(request):
+    org, err = require_org(request)
+    if err:
+        return err
+
     if request.method == "GET":
         search = request.query_params.get("search", "").strip()
         store = request.query_params.get("store", "").strip()
-        items = Item.objects.all().order_by("name")
+        items = Item.objects.filter(organization=org).order_by("name")
         if search:
             items = items.filter(name__icontains=search)
         if store in ("retail", "wholesale"):
@@ -33,6 +38,7 @@ def item_list(request):
     if price < 0 or cost < 0 or stock < 0 or low_stock_threshold < 0:
         return Response({"detail": "Price, cost, and stock must be non-negative"}, status=status.HTTP_400_BAD_REQUEST)
     item = Item.objects.create(
+        organization=org,
         name=name,
         brand=data.get("brand", ""),
         dosage_form=data.get("dosageForm", ""),
@@ -49,7 +55,10 @@ def item_list(request):
 
 @api_view(["GET", "PUT", "PATCH", "DELETE"])
 def item_detail(request, pk):
-    item = get_object_or_404(Item, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    item = get_object_or_404(Item, pk=pk, organization=org)
 
     if request.method == "GET":
         return Response(item.to_api_dict())
@@ -88,7 +97,10 @@ def item_detail(request, pk):
 
 @api_view(["POST"])
 def adjust_stock(request, pk):
-    item = get_object_or_404(Item, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    item = get_object_or_404(Item, pk=pk, organization=org)
     try:
         adjustment = int(request.data.get("adjustment", 0))
     except (ValueError, TypeError):

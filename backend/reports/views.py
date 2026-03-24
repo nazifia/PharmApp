@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from inventory.models import Item
 from customers.models import Customer
 from pos.models import Sale, SaleItem
+from authapp.utils import require_org
 
 
 def _date_range(period):
@@ -25,10 +26,14 @@ def _date_range(period):
 
 @api_view(["GET"])
 def sales_report(request):
+    org, err = require_org(request)
+    if err:
+        return err
+
     period = request.query_params.get("period", "month")
     start, end = _date_range(period)
 
-    sales = Sale.objects.filter(created__date__gte=start, created__date__lte=end)
+    sales = Sale.objects.filter(organization=org, created__date__gte=start, created__date__lte=end)
 
     retail_sales = sales.filter(is_wholesale=False)
     wholesale_sales = sales.filter(is_wholesale=True)
@@ -41,7 +46,6 @@ def sales_report(request):
     )
     total_revenue = total_retail + total_wholesale
 
-    # Top items by qty sold
     top_items_qs = (
         SaleItem.objects.filter(sale__in=sales)
         .values("item__id", "item__name")
@@ -79,7 +83,11 @@ def sales_report(request):
 
 @api_view(["GET"])
 def inventory_report(request):
-    items = Item.objects.all()
+    org, err = require_org(request)
+    if err:
+        return err
+
+    items = Item.objects.filter(organization=org)
     low_stock = items.filter(stock__lte=db_models.F("low_stock_threshold"))
     stock_value = float(
         items.aggregate(
@@ -113,12 +121,16 @@ def inventory_report(request):
 
 @api_view(["GET"])
 def customer_report(request):
-    all_customers = Customer.objects.all()
+    org, err = require_org(request)
+    if err:
+        return err
+
+    all_customers = Customer.objects.filter(organization=org)
     retail = all_customers.filter(is_wholesale=False).count()
     wholesale = all_customers.filter(is_wholesale=True).count()
 
     top_customers_qs = (
-        Sale.objects.filter(customer__isnull=False)
+        Sale.objects.filter(organization=org, customer__isnull=False)
         .values("customer__id", "customer__name")
         .annotate(spent=db_models.Sum("total_amount"))
         .order_by("-spent")[:10]
@@ -150,13 +162,16 @@ def customer_report(request):
 
 @api_view(["GET"])
 def profit_report(request):
+    org, err = require_org(request)
+    if err:
+        return err
+
     period = request.query_params.get("period", "month")
     start, end = _date_range(period)
 
-    sales = Sale.objects.filter(created__date__gte=start, created__date__lte=end)
+    sales = Sale.objects.filter(organization=org, created__date__gte=start, created__date__lte=end)
     revenue = float(sales.aggregate(t=db_models.Sum("total_amount"))["t"] or 0)
 
-    # Calculate actual cost from sale items with cost_price data
     cost_from_items = SaleItem.objects.filter(
         sale__in=sales, item__isnull=False, item__cost__gt=0
     ).aggregate(
@@ -171,7 +186,6 @@ def profit_report(request):
         profit = revenue - cost
         margin = (profit / revenue * 100) if revenue > 0 else 0
     else:
-        # Fallback: assume 30% margin if no cost data available
         cost = revenue * 0.70
         profit = revenue * 0.30
         margin = 30.0

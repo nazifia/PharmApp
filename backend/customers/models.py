@@ -3,8 +3,12 @@ from django.utils import timezone
 
 
 class Customer(models.Model):
+    organization     = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='customers'
+    )
     name             = models.CharField(max_length=200)
-    phone            = models.CharField(max_length=20, unique=True)
+    phone            = models.CharField(max_length=20)
     is_wholesale     = models.BooleanField(default=False)
     wallet_balance   = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     outstanding_debt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -41,6 +45,9 @@ class Customer(models.Model):
             'last_visit': self.last_visit.isoformat() if self.last_visit else None,
         })
         return d
+
+    class Meta:
+        unique_together = [('organization', 'phone')]
 
     def __str__(self):
         return self.name

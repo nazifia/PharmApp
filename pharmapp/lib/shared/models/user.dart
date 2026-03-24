@@ -12,6 +12,9 @@ class User with _$User {
     required bool isActive,
     @Default('') String username,
     @Default(false) bool isWholesaleOperator,
+    @Default(0) int organizationId,
+    @Default('') String organizationName,
+    @Default('') String organizationSlug,
   }) = _User;
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);

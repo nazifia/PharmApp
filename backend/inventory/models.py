@@ -69,6 +69,10 @@ STORE_CHOICES = [
 
 
 class Item(models.Model):
+    organization = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='items'
+    )
     name = models.CharField(max_length=200)
     brand = models.CharField(max_length=200, blank=True, default="")
     dosage_form = models.CharField(

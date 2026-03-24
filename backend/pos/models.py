@@ -42,6 +42,10 @@ class Cashier(models.Model):
 class Sale(models.Model):
     """A completed sale / receipt."""
 
+    organization = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='sales'
+    )
     customer = models.ForeignKey(
         "customers.Customer",
         null=True,
@@ -241,6 +245,10 @@ class DispensingLog(models.Model):
 class PaymentRequest(models.Model):
     """Dispenser sends cart to cashier for payment processing."""
 
+    organization = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='payment_requests'
+    )
     request_id = models.CharField(max_length=50, unique=True, blank=True)
     dispenser = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sent_requests"
@@ -425,6 +433,10 @@ class ExpenseCategory(models.Model):
 
 
 class Expense(models.Model):
+    organization = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='expenses'
+    )
     category = models.ForeignKey(
         ExpenseCategory, on_delete=models.CASCADE, related_name="expenses"
     )
@@ -457,6 +469,10 @@ class Expense(models.Model):
 
 
 class Supplier(models.Model):
+    organization = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='suppliers'
+    )
     name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20, blank=True, default="")
     contact_info = models.TextField(blank=True, default="")
@@ -475,6 +491,10 @@ class Supplier(models.Model):
 
 
 class Procurement(models.Model):
+    organization = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='procurements'
+    )
     supplier = models.ForeignKey(
         Supplier, on_delete=models.CASCADE, related_name="procurements"
     )
@@ -545,6 +565,10 @@ class ProcurementItem(models.Model):
 
 
 class StockCheck(models.Model):
+    organization = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='stock_checks'
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
     )
@@ -671,6 +695,10 @@ class Notification(models.Model):
 class TransferRequest(models.Model):
     """Transfer items between retail and wholesale."""
 
+    organization = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='transfer_requests'
+    )
     from_wholesale = models.BooleanField(default=True)
     item_name = models.CharField(max_length=200)
     requested_quantity = models.IntegerField()

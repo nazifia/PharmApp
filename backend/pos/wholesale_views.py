@@ -12,6 +12,7 @@ from rest_framework import status
 from inventory.models import Item
 from customers.models import Customer
 from .models import Sale, SaleItem, TransferRequest, ReturnRecord, DispensingLog
+from authapp.utils import require_org
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -21,8 +22,12 @@ from .models import Sale, SaleItem, TransferRequest, ReturnRecord, DispensingLog
 
 @api_view(["GET"])
 def wholesale_dashboard(request):
+    org, err = require_org(request)
+    if err:
+        return err
+
     today = timezone.now().date()
-    sales = Sale.objects.filter(is_wholesale=True)
+    sales = Sale.objects.filter(organization=org, is_wholesale=True)
     today_sales = sales.filter(created__date=today)
 
     revenue_today = float(today_sales.aggregate(t=Sum("total_amount"))["t"] or 0)
@@ -33,11 +38,11 @@ def wholesale_dashboard(request):
         or 0
     )
 
-    ws_customers = Customer.objects.filter(is_wholesale=True)
+    ws_customers = Customer.objects.filter(organization=org, is_wholesale=True)
     total_ws_customers = ws_customers.count()
     ws_debt = float(ws_customers.aggregate(t=Sum("outstanding_debt"))["t"] or 0)
 
-    low_stock = Item.objects.filter(stock__lte=F("low_stock_threshold")).order_by(
+    low_stock = Item.objects.filter(organization=org, stock__lte=F("low_stock_threshold")).order_by(
         "stock"
     )[:5]
 
@@ -94,7 +99,10 @@ def wholesale_dashboard(request):
 
 @api_view(["GET"])
 def wholesale_customer_list(request):
-    customers = Customer.objects.filter(is_wholesale=True).order_by("name")
+    org, err = require_org(request)
+    if err:
+        return err
+    customers = Customer.objects.filter(organization=org, is_wholesale=True).order_by("name")
     search = request.query_params.get("search", "").strip()
     if search:
         customers = customers.filter(
@@ -106,8 +114,11 @@ def wholesale_customer_list(request):
 @api_view(["GET"])
 def wholesale_customer_negative(request):
     """Customers with negative wallet balance (debt)."""
+    org, err = require_org(request)
+    if err:
+        return err
     customers = Customer.objects.filter(
-        is_wholesale=True, outstanding_debt__gt=0
+        organization=org, is_wholesale=True, outstanding_debt__gt=0
     ).order_by("-outstanding_debt")
     return Response([c.to_list_dict() for c in customers])
 
@@ -119,8 +130,11 @@ def wholesale_customer_negative(request):
 
 @api_view(["GET"])
 def wholesale_sale_list(request):
+    org, err = require_org(request)
+    if err:
+        return err
     sales = (
-        Sale.objects.filter(is_wholesale=True)
+        Sale.objects.filter(organization=org, is_wholesale=True)
         .select_related("customer", "cashier")
         .order_by("-created")
     )
@@ -145,12 +159,17 @@ def wholesale_sale_by_user(request):
     """Sales aggregated by user (dispenser)."""
     from pos.models import DispensingLog
 
+    org, err = require_org(request)
+    if err:
+        return err
+
     today = timezone.now().date()
     date_from = request.query_params.get("from", today.isoformat())
     date_to = request.query_params.get("to", today.isoformat())
 
     logs = (
         DispensingLog.objects.filter(
+            sale__organization=org,
             created_at__date__gte=date_from,
             created_at__date__lte=date_to,
             sale__is_wholesale=True,
@@ -179,8 +198,12 @@ def wholesale_sale_by_user(request):
 
 @api_view(["GET", "POST"])
 def transfer_list(request):
+    org, err = require_org(request)
+    if err:
+        return err
+
     if request.method == "GET":
-        transfers = TransferRequest.objects.all().order_by("-created_at")
+        transfers = TransferRequest.objects.filter(organization=org).order_by("-created_at")
         status_filter = request.query_params.get("status", "")
         if status_filter:
             transfers = transfers.filter(status=status_filter)
@@ -193,6 +216,7 @@ def transfer_list(request):
 
     data = request.data
     transfer = TransferRequest.objects.create(
+        organization=org,
         from_wholesale=data.get("fromWholesale", True),
         item_name=data.get("itemName", ""),
         requested_quantity=int(data.get("requestedQty", 0)),
@@ -205,13 +229,19 @@ def transfer_list(request):
 
 @api_view(["GET"])
 def transfer_detail(request, pk):
-    transfer = get_object_or_404(TransferRequest, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    transfer = get_object_or_404(TransferRequest, pk=pk, organization=org)
     return Response(transfer.to_api_dict())
 
 
 @api_view(["POST"])
 def transfer_approve(request, pk):
-    transfer = get_object_or_404(TransferRequest, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    transfer = get_object_or_404(TransferRequest, pk=pk, organization=org)
     if transfer.status != "pending":
         return Response(
             {"detail": f"Already {transfer.status}"}, status=status.HTTP_400_BAD_REQUEST
@@ -221,7 +251,7 @@ def transfer_approve(request, pk):
     approved_qty = int(request.data.get("approvedQty", transfer.requested_quantity))
 
     # Warn if approving more than source stock
-    src_item = Item.objects.filter(name__iexact=transfer.item_name, store=src_store).first()
+    src_item = Item.objects.filter(organization=org, name__iexact=transfer.item_name, store=src_store).first()
     if src_item is None:
         return Response(
             {"detail": f"Item '{transfer.item_name}' not found in {src_store} store."},
@@ -242,7 +272,10 @@ def transfer_approve(request, pk):
 
 @api_view(["POST"])
 def transfer_reject(request, pk):
-    transfer = get_object_or_404(TransferRequest, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    transfer = get_object_or_404(TransferRequest, pk=pk, organization=org)
     if transfer.status != "pending":
         return Response(
             {"detail": f"Already {transfer.status}"}, status=status.HTTP_400_BAD_REQUEST
@@ -254,7 +287,10 @@ def transfer_reject(request, pk):
 
 @api_view(["POST"])
 def transfer_receive(request, pk):
-    transfer = get_object_or_404(TransferRequest, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    transfer = get_object_or_404(TransferRequest, pk=pk, organization=org)
     if transfer.status != "approved":
         return Response(
             {"detail": "Must be approved first"}, status=status.HTTP_400_BAD_REQUEST
@@ -273,10 +309,10 @@ def transfer_receive(request, pk):
             src_store, dst_store = "retail", "wholesale"
 
         src_item = Item.objects.filter(
-            name__iexact=transfer.item_name, store=src_store
+            organization=org, name__iexact=transfer.item_name, store=src_store
         ).first()
         dst_item = Item.objects.filter(
-            name__iexact=transfer.item_name, store=dst_store
+            organization=org, name__iexact=transfer.item_name, store=dst_store
         ).first()
 
         if src_item is None:
@@ -288,6 +324,7 @@ def transfer_receive(request, pk):
         # If destination store doesn't carry this item yet, create it
         if dst_item is None:
             dst_item = Item.objects.create(
+                organization=org,
                 name=src_item.name,
                 brand=src_item.brand,
                 dosage_form=src_item.dosage_form,
@@ -316,7 +353,10 @@ def transfer_receive(request, pk):
 
 @api_view(["GET"])
 def wholesale_low_stock(request):
-    items = Item.objects.filter(stock__lte=F("low_stock_threshold")).order_by("stock")
+    org, err = require_org(request)
+    if err:
+        return err
+    items = Item.objects.filter(organization=org, stock__lte=F("low_stock_threshold")).order_by("stock")
     search = request.query_params.get("search", "").strip()
     if search:
         items = items.filter(Q(name__icontains=search) | Q(brand__icontains=search))
@@ -325,8 +365,11 @@ def wholesale_low_stock(request):
 
 @api_view(["GET"])
 def wholesale_expiry_alert(request):
+    org, err = require_org(request)
+    if err:
+        return err
     today = timezone.now().date()
-    items = Item.objects.filter(
+    items = Item.objects.filter(organization=org,
         expiry_date__isnull=False,
         expiry_date__lte=today + timezone.timedelta(days=90),
         stock__gt=0,
@@ -346,9 +389,12 @@ def wholesale_expiry_alert(request):
 @api_view(["GET"])
 def wholesale_sale_detail(request, pk):
     """Detail of a single wholesale sale including items, payments, and returns."""
+    org, err = require_org(request)
+    if err:
+        return err
     sale = get_object_or_404(
         Sale.objects.prefetch_related("items", "payments", "returns"),
-        pk=pk, is_wholesale=True,
+        pk=pk, organization=org, is_wholesale=True,
     )
     data = sale.to_api_dict()
     data["payments"] = [p.to_api_dict() for p in sale.payments.all()]
@@ -359,7 +405,10 @@ def wholesale_sale_detail(request, pk):
 @api_view(["POST"])
 def wholesale_sale_return(request, pk):
     """Return items from a wholesale sale. Restores stock and optionally refunds wallet."""
-    sale = get_object_or_404(Sale, pk=pk, is_wholesale=True)
+    org, err = require_org(request)
+    if err:
+        return err
+    sale = get_object_or_404(Sale, pk=pk, organization=org, is_wholesale=True)
     item_id = request.data.get("saleItemId")
     qty = int(request.data.get("quantity", 0))
     refund_method = request.data.get("refundMethod", "wallet")
@@ -439,7 +488,10 @@ def wholesale_sale_return(request, pk):
 
 @api_view(["GET"])
 def wholesale_inventory_value(request):
-    result = Item.objects.aggregate(
+    org, err = require_org(request)
+    if err:
+        return err
+    result = Item.objects.filter(organization=org).aggregate(
         total_purchase_value=Sum(
             ExpressionWrapper(F("cost") * F("stock"), output_field=DecimalField())
         ),

@@ -27,6 +27,9 @@ class AuthRepository {
         role: userData['role'] as String,
         isActive: userData['isActive'] as bool,
         isWholesaleOperator: userData['isWholesaleOperator'] as bool,
+        organizationId: 0,
+        organizationName: 'Local Dev',
+        organizationSlug: 'local-dev',
       );
       return {'token': 'local_${user.id}_${DateTime.now().millisecondsSinceEpoch}', 'user': user};
     }
@@ -43,6 +46,42 @@ class AuthRepository {
       final body = e.response?.data;
       if (body is Map) {
         throw Exception(body['detail'] ?? body['error'] ?? 'Invalid credentials');
+      }
+      throw Exception('Network error — check server connection');
+    }
+  }
+
+  /// Register a new pharmacy organization + first admin user.
+  /// Calls POST /auth/register-org/ (no auth header required).
+  Future<Map<String, dynamic>> registerOrg({
+    required String orgName,
+    required String phone,
+    required String password,
+    String? address,
+  }) async {
+    if (_isLocal) {
+      throw Exception('Org registration is not available in local dev mode. Switch to Production in Settings.');
+    }
+    try {
+      final res = await _dio!.post(
+        '/auth/register-org/',
+        data: {
+          'org_name': orgName,
+          'phone_number': phone,
+          'password': password,
+          if (address != null && address.isNotEmpty) 'address': address,
+        },
+        options: Options(headers: {'skip_auth': true}),
+      );
+      final data = res.data as Map<String, dynamic>;
+      return {
+        'token': data['access'] as String,
+        'user': User.fromJson(data['user'] as Map<String, dynamic>),
+      };
+    } on DioException catch (e) {
+      final body = e.response?.data;
+      if (body is Map) {
+        throw Exception(body['detail'] ?? body['error'] ?? 'Registration failed');
       }
       throw Exception('Network error — check server connection');
     }

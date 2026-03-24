@@ -6,6 +6,7 @@ import 'package:pharmapp/features/auth/screens/login_screen.dart';
 import 'package:pharmapp/features/auth/screens/role_selection_screen.dart';
 import 'package:pharmapp/features/auth/screens/verify_code_screen.dart';
 import 'package:pharmapp/features/auth/screens/setup_screen.dart';
+import 'package:pharmapp/features/auth/screens/register_org_screen.dart';
 import 'package:pharmapp/features/dashboard/screens/main_dashboard.dart';
 import 'package:pharmapp/features/pos/screens/retail_pos_screen.dart';
 import 'package:pharmapp/features/pos/screens/wholesale_pos_screen.dart';
@@ -48,7 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = authState == AuthFlowState.authenticated;
       final loc = state.matchedLocation;
 
-      const publicRoutes = ['/login', '/role-selection', '/setup'];
+      const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org'];
 
       if (publicRoutes.contains(loc)) {
         if (isAuthenticated) {
@@ -67,6 +68,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/verify-code',    name: 'verify_code',  builder: (_, __) => const VerifyCodeScreen()),
       GoRoute(path: '/role-selection', name: 'role_select',  builder: (_, __) => const RoleSelectionScreen()),
       GoRoute(path: '/setup',          name: 'setup',        builder: (_, __) => const SetupScreen()),
+      GoRoute(path: '/register-org',   name: 'register_org', builder: (_, __) => const RegisterOrgScreen()),
 
       // ── Authenticated shell (persistent bottom nav bar) ────────────────────
       ShellRoute(

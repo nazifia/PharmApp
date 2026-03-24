@@ -12,6 +12,7 @@ from rest_framework import status
 from inventory.models import Item
 from customers.models import Customer, WalletTransaction
 from authapp.models import PharmUser
+from authapp.utils import require_org
 from .models import (
     Cashier,
     Sale,
@@ -43,6 +44,9 @@ def checkout(request):
     Process a sale. Supports split payments, wallet, cashier assignment.
     """
     data = request.data
+    org, err = require_org(request)
+    if err:
+        return err
     customer_id = data.get("customerId")
     cashier_id = data.get("cashierId")
     is_wholesale = bool(data.get("isWholesale") or False)
@@ -60,7 +64,7 @@ def checkout(request):
     customer = None
     if customer_id:
         try:
-            customer = Customer.objects.get(pk=customer_id)
+            customer = Customer.objects.get(pk=customer_id, organization=org)
         except Customer.DoesNotExist:
             return Response(
                 {"detail": f"Customer {customer_id} not found"},
@@ -70,7 +74,7 @@ def checkout(request):
     cashier = None
     if cashier_id:
         try:
-            cashier = Cashier.objects.get(pk=cashier_id, is_active=True)
+            cashier = Cashier.objects.get(pk=cashier_id, is_active=True, user__organization=org)
         except Cashier.DoesNotExist:
             return Response(
                 {"detail": f"Cashier {cashier_id} not found"},
@@ -102,9 +106,9 @@ def checkout(request):
 
         item = None
         if item_id:
-            item = Item.objects.filter(pk=item_id).first()
+            item = Item.objects.filter(pk=item_id, organization=org).first()
         elif barcode:
-            item = Item.objects.filter(barcode=barcode).first()
+            item = Item.objects.filter(barcode=barcode, organization=org).first()
 
         if item and item.stock < qty:
             return Response(
@@ -156,6 +160,7 @@ def checkout(request):
 
     with transaction.atomic():
         sale = Sale.objects.create(
+            organization=org,
             customer=customer,
             cashier=cashier,
             dispenser=request.user if request.user.is_authenticated else None,
@@ -242,7 +247,10 @@ def checkout(request):
 
 @api_view(["GET"])
 def sale_list(request):
-    sales = Sale.objects.all().select_related("customer", "cashier")
+    org, err = require_org(request)
+    if err:
+        return err
+    sales = Sale.objects.filter(organization=org).select_related("customer", "cashier")
     date_from = request.query_params.get("from")
     date_to = request.query_params.get("to")
     customer_id = request.query_params.get("customerId")
@@ -266,8 +274,11 @@ def sale_list(request):
 
 @api_view(["GET"])
 def sale_detail(request, pk):
+    org, err = require_org(request)
+    if err:
+        return err
     sale = get_object_or_404(
-        Sale.objects.prefetch_related("items", "payments", "returns"), pk=pk
+        Sale.objects.prefetch_related("items", "payments", "returns"), pk=pk, organization=org
     )
     data = sale.to_api_dict()
     data["payments"] = [p.to_api_dict() for p in sale.payments.all()]
@@ -283,7 +294,10 @@ def sale_detail(request, pk):
 @api_view(["POST"])
 def return_item(request, pk):
     """Return items from a sale. Restores stock and optionally refunds wallet."""
-    sale = get_object_or_404(Sale, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    sale = get_object_or_404(Sale, pk=pk, organization=org)
     item_id = request.data.get("saleItemId")
     qty = int(request.data.get("quantity", 0))
     refund_method = request.data.get("refundMethod", "wallet")
@@ -375,6 +389,9 @@ def return_item(request, pk):
 @api_view(["POST"])
 def send_to_cashier(request):
     """Dispenser sends cart to cashier for payment."""
+    org, err = require_org(request)
+    if err:
+        return err
     items_data = request.data.get("items", [])
     customer_id = request.data.get("customerId")
     cashier_id = request.data.get("cashierId")
@@ -395,13 +412,14 @@ def send_to_cashier(request):
 
     customer = None
     if customer_id:
-        customer = Customer.objects.filter(pk=customer_id).first()
+        customer = Customer.objects.filter(pk=customer_id, organization=org).first()
 
     cashier = None
     if cashier_id:
-        cashier = Cashier.objects.filter(pk=cashier_id, is_active=True).first()
+        cashier = Cashier.objects.filter(pk=cashier_id, is_active=True, user__organization=org).first()
 
     pr = PaymentRequest.objects.create(
+        organization=org,
         dispenser=request.user,
         cashier=cashier,
         customer=customer,
@@ -412,7 +430,7 @@ def send_to_cashier(request):
     for i in items_data:
         item = None
         if i.get("itemId"):
-            item = Item.objects.filter(pk=i["itemId"]).first()
+            item = Item.objects.filter(pk=i["itemId"], organization=org).first()
         PaymentRequestItem.objects.create(
             payment_request=pr,
             item=item,
@@ -425,7 +443,7 @@ def send_to_cashier(request):
         )
 
     # Notify cashiers
-    cashiers = Cashier.objects.filter(is_active=True)
+    cashiers = Cashier.objects.filter(is_active=True, user__organization=org)
     if cashier_id:
         cashiers = cashiers.filter(pk=cashier_id)
     for c in cashiers:
@@ -442,8 +460,11 @@ def send_to_cashier(request):
 
 @api_view(["GET"])
 def payment_request_list(request):
+    org, err = require_org(request)
+    if err:
+        return err
     status_filter = request.query_params.get("status", "")
-    prs = PaymentRequest.objects.all().prefetch_related("items")
+    prs = PaymentRequest.objects.filter(organization=org).prefetch_related("items")
     if status_filter:
         prs = prs.filter(status=status_filter)
     return Response([p.to_api_dict() for p in prs[:50]])
@@ -451,7 +472,10 @@ def payment_request_list(request):
 
 @api_view(["POST"])
 def accept_payment_request(request, pk):
-    pr = get_object_or_404(PaymentRequest, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    pr = get_object_or_404(PaymentRequest, pk=pk, organization=org)
     if pr.status != "pending":
         return Response(
             {"detail": f"Request is already {pr.status}"},
@@ -464,7 +488,10 @@ def accept_payment_request(request, pk):
 
 @api_view(["POST"])
 def reject_payment_request(request, pk):
-    pr = get_object_or_404(PaymentRequest, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    pr = get_object_or_404(PaymentRequest, pk=pk, organization=org)
     if pr.status != "pending":
         return Response(
             {"detail": f"Request is already {pr.status}"},
@@ -478,7 +505,10 @@ def reject_payment_request(request, pk):
 @api_view(["POST"])
 def complete_payment_request(request, pk):
     """Cashier completes payment - creates a Sale from the payment request."""
-    pr = get_object_or_404(PaymentRequest.objects.prefetch_related("items"), pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    pr = get_object_or_404(PaymentRequest.objects.prefetch_related("items"), pk=pk, organization=org)
     if pr.status not in ("pending", "accepted"):
         return Response(
             {"detail": f"Request is already {pr.status}"},
@@ -490,6 +520,7 @@ def complete_payment_request(request, pk):
 
     with transaction.atomic():
         sale = Sale.objects.create(
+            organization=org,
             customer=pr.customer,
             dispenser=pr.dispenser,
             total_amount=pr.total_amount,
@@ -557,7 +588,10 @@ def complete_payment_request(request, pk):
 
 @api_view(["GET"])
 def dispensing_log_list(request):
-    logs = DispensingLog.objects.all().select_related("user", "item")
+    org, err = require_org(request)
+    if err:
+        return err
+    logs = DispensingLog.objects.filter(sale__organization=org).select_related("user", "item")
     search = request.query_params.get("search", "").strip()
     date_from = request.query_params.get("from")
     date_to = request.query_params.get("to")
@@ -574,12 +608,15 @@ def dispensing_log_list(request):
 
 @api_view(["GET"])
 def dispensing_stats(request):
+    org, err = require_org(request)
+    if err:
+        return err
     today = timezone.now().date()
-    daily = DispensingLog.objects.filter(created_at__date=today).aggregate(
+    daily = DispensingLog.objects.filter(sale__organization=org, created_at__date=today).aggregate(
         count=Sum("quantity"), revenue=Sum("amount")
     )
     monthly = DispensingLog.objects.filter(
-        created_at__year=today.year, created_at__month=today.month
+        sale__organization=org, created_at__year=today.year, created_at__month=today.month
     ).aggregate(count=Sum("quantity"), revenue=Sum("amount"))
     return Response(
         {
@@ -610,8 +647,11 @@ def expense_category_list(request):
 
 @api_view(["GET", "POST"])
 def expense_list(request):
+    org, err = require_org(request)
+    if err:
+        return err
     if request.method == "GET":
-        expenses = Expense.objects.all().select_related("category")
+        expenses = Expense.objects.filter(organization=org).select_related("category")
         date_from = request.query_params.get("from")
         date_to = request.query_params.get("to")
         if date_from:
@@ -623,6 +663,7 @@ def expense_list(request):
     data = request.data
     cat = get_object_or_404(ExpenseCategory, pk=data.get("categoryId"))
     expense = Expense.objects.create(
+        organization=org,
         category=cat,
         amount=data.get("amount", 0),
         description=data.get("description", ""),
@@ -634,7 +675,10 @@ def expense_list(request):
 
 @api_view(["PUT", "DELETE"])
 def expense_detail(request, pk):
-    expense = get_object_or_404(Expense, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    expense = get_object_or_404(Expense, pk=pk, organization=org)
     if request.method == "DELETE":
         expense.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -650,12 +694,17 @@ def monthly_report(request):
     """Monthly report with sales, expenses, net profit."""
     from pos.models import Sale as PosSale
 
+    org, err = require_org(request)
+    if err:
+        return err
+
     today = timezone.now().date()
     month = int(request.query_params.get("month", today.month))
     year = int(request.query_params.get("year", today.year))
 
     sales_total = (
         PosSale.objects.filter(
+            organization=org,
             created__year=year,
             created__month=month,
             status__in=["completed", "partial_return"],
@@ -664,7 +713,7 @@ def monthly_report(request):
     )
 
     expenses_total = (
-        Expense.objects.filter(date__year=year, date__month=month).aggregate(
+        Expense.objects.filter(organization=org, date__year=year, date__month=month).aggregate(
             t=Sum("amount")
         )["t"]
         or 0
@@ -687,14 +736,18 @@ def monthly_report(request):
 
 @api_view(["GET", "POST"])
 def supplier_list(request):
+    org, err = require_org(request)
+    if err:
+        return err
     if request.method == "GET":
         search = request.query_params.get("search", "").strip()
-        suppliers = Supplier.objects.all()
+        suppliers = Supplier.objects.filter(organization=org)
         if search:
             suppliers = suppliers.filter(name__icontains=search)
         return Response([s.to_api_dict() for s in suppliers])
     data = request.data
     supplier = Supplier.objects.create(
+        organization=org,
         name=data.get("name", ""),
         phone=data.get("phone", ""),
         contact_info=data.get("contactInfo", ""),
@@ -704,7 +757,10 @@ def supplier_list(request):
 
 @api_view(["GET", "PUT", "DELETE"])
 def supplier_detail(request, pk):
-    supplier = get_object_or_404(Supplier, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    supplier = get_object_or_404(Supplier, pk=pk, organization=org)
     if request.method == "GET":
         return Response(supplier.to_api_dict())
     if request.method == "DELETE":
@@ -720,8 +776,11 @@ def supplier_detail(request, pk):
 
 @api_view(["GET", "POST"])
 def procurement_list(request):
+    org, err = require_org(request)
+    if err:
+        return err
     if request.method == "GET":
-        procs = Procurement.objects.all().select_related("supplier")
+        procs = Procurement.objects.filter(organization=org).select_related("supplier")
         search = request.query_params.get("search", "").strip()
         if search:
             procs = procs.filter(
@@ -731,11 +790,12 @@ def procurement_list(request):
         return Response([p.to_api_dict() for p in procs])
 
     data = request.data
-    supplier = get_object_or_404(Supplier, pk=data.get("supplierId"))
+    supplier = get_object_or_404(Supplier, pk=data.get("supplierId"), organization=org)
     items_data = data.get("items", [])
 
     with transaction.atomic():
         proc = Procurement.objects.create(
+            organization=org,
             supplier=supplier,
             created_by=request.user if request.user.is_authenticated else None,
             status=data.get("status", "draft"),
@@ -764,7 +824,7 @@ def procurement_list(request):
             dest = data.get("destination", "retail")
             if dest not in ("retail", "wholesale"):
                 dest = "retail"
-            _procurement_to_inventory(proc, destination=dest)
+            _procurement_to_inventory(proc, destination=dest, org=org)
 
     return Response(proc.to_api_dict(), status=status.HTTP_201_CREATED)
 
@@ -772,7 +832,10 @@ def procurement_list(request):
 @api_view(["POST"])
 def complete_procurement(request, pk):
     """Mark procurement as completed and add items to inventory (retail or wholesale)."""
-    proc = get_object_or_404(Procurement.objects.prefetch_related("items"), pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    proc = get_object_or_404(Procurement.objects.prefetch_related("items"), pk=pk, organization=org)
     if proc.status == "completed":
         return Response(
             {"detail": "Already completed"}, status=status.HTTP_400_BAD_REQUEST
@@ -784,12 +847,12 @@ def complete_procurement(request, pk):
     with transaction.atomic():
         proc.status = "completed"
         proc.save()
-        _procurement_to_inventory(proc, destination=destination)
+        _procurement_to_inventory(proc, destination=destination, org=org)
 
     return Response(proc.to_api_dict())
 
 
-def _procurement_to_inventory(proc, destination="retail"):
+def _procurement_to_inventory(proc, destination="retail", org=None):
     """Move procurement items into the specified store inventory (retail or wholesale)."""
     for pi in proc.items.all():
         # Try to match existing item in the same store
@@ -798,6 +861,7 @@ def _procurement_to_inventory(proc, destination="retail"):
             brand__iexact=pi.brand,
             dosage_form=pi.dosage_form,
             store=destination,
+            organization=org,
         ).first()
 
         if item:
@@ -808,6 +872,7 @@ def _procurement_to_inventory(proc, destination="retail"):
         else:
             price = pi.cost_price + (pi.cost_price * pi.markup / Decimal("100"))
             Item.objects.create(
+                organization=org,
                 name=pi.item_name,
                 brand=pi.brand,
                 dosage_form=pi.dosage_form,
@@ -829,10 +894,14 @@ def _procurement_to_inventory(proc, destination="retail"):
 
 @api_view(["GET", "POST"])
 def stock_check_list(request):
+    org, err = require_org(request)
+    if err:
+        return err
     if request.method == "GET":
-        checks = StockCheck.objects.all()
+        checks = StockCheck.objects.filter(organization=org)
         return Response([c.to_api_dict() for c in checks])
     check = StockCheck.objects.create(
+        organization=org,
         created_by=request.user if request.user.is_authenticated else None,
         status="pending",
     )
@@ -841,15 +910,21 @@ def stock_check_list(request):
 
 @api_view(["GET"])
 def stock_check_detail(request, pk):
-    check = get_object_or_404(StockCheck, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    check = get_object_or_404(StockCheck, pk=pk, organization=org)
     return Response(check.to_api_dict())
 
 
 @api_view(["POST"])
 def stock_check_add_item(request, pk):
-    check = get_object_or_404(StockCheck, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    check = get_object_or_404(StockCheck, pk=pk, organization=org)
     item_id = request.data.get("itemId")
-    item = get_object_or_404(Item, pk=item_id)
+    item = get_object_or_404(Item, pk=item_id, organization=org)
     sci, created = StockCheckItem.objects.get_or_create(
         stock_check=check, item=item, defaults={"expected_quantity": item.stock}
     )
@@ -864,6 +939,10 @@ def stock_check_add_item(request, pk):
 
 @api_view(["POST"])
 def stock_check_update_item(request, pk, item_pk):
+    org, err = require_org(request)
+    if err:
+        return err
+    get_object_or_404(StockCheck, pk=pk, organization=org)
     sci = get_object_or_404(StockCheckItem, pk=item_pk, stock_check_id=pk)
     sci.actual_quantity = request.data.get("actualQuantity", sci.actual_quantity)
     sci.status = request.data.get("status", sci.status)
@@ -873,7 +952,10 @@ def stock_check_update_item(request, pk, item_pk):
 
 @api_view(["POST"])
 def stock_check_approve(request, pk):
-    check = get_object_or_404(StockCheck, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    check = get_object_or_404(StockCheck, pk=pk, organization=org)
     with transaction.atomic():
         for sci in check.items.all():
             if (
@@ -893,7 +975,10 @@ def stock_check_approve(request, pk):
 
 @api_view(["DELETE"])
 def stock_check_delete(request, pk):
-    check = get_object_or_404(StockCheck, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    check = get_object_or_404(StockCheck, pk=pk, organization=org)
     check.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -905,12 +990,15 @@ def stock_check_delete(request, pk):
 
 @api_view(["GET", "POST"])
 def cashier_list(request):
+    org, err = require_org(request)
+    if err:
+        return err
     if request.method == "GET":
         return Response(
-            [c.to_api_dict() for c in Cashier.objects.filter(is_active=True)]
+            [c.to_api_dict() for c in Cashier.objects.filter(is_active=True, user__organization=org)]
         )
     data = request.data
-    user = get_object_or_404(PharmUser, pk=data.get("userId"))
+    user = get_object_or_404(PharmUser, pk=data.get("userId"), organization=org)
     cashier = Cashier.objects.create(
         user=user,
         name=data.get("name", user.phone_number),
@@ -951,6 +1039,9 @@ def notification_count(request):
 
 @api_view(["GET"])
 def barcode_lookup(request):
+    org, err = require_org(request)
+    if err:
+        return err
     code = request.query_params.get("code", "").strip()
     if not code:
         return Response(
@@ -958,17 +1049,17 @@ def barcode_lookup(request):
         )
 
     # Try exact barcode match
-    item = Item.objects.filter(barcode=code).first()
+    item = Item.objects.filter(barcode=code, organization=org).first()
     if item:
         return Response(item.to_api_dict())
 
     # Try GTIN match
-    item = Item.objects.filter(gtin=code).first()
+    item = Item.objects.filter(gtin=code, organization=org).first()
     if item:
         return Response(item.to_api_dict())
 
     # Try partial GTIN (without leading zeros)
-    item = Item.objects.filter(gtin__endswith=code.lstrip("0")).first()
+    item = Item.objects.filter(gtin__endswith=code.lstrip("0"), organization=org).first()
     if item:
         return Response(item.to_api_dict())
 
@@ -988,9 +1079,12 @@ def _is_admin_or_manager(user):
 def user_list(request):
     if not _is_admin_or_manager(request.user):
         return Response({"detail": "Admin or Manager access required"}, status=status.HTTP_403_FORBIDDEN)
+    org, err = require_org(request)
+    if err:
+        return err
 
     if request.method == "GET":
-        users = PharmUser.objects.all()
+        users = PharmUser.objects.filter(organization=org)
         search = request.query_params.get("search", "").strip()
         role = request.query_params.get("role", "").strip()
         if search:
@@ -1015,7 +1109,7 @@ def user_list(request):
         )
 
     user = PharmUser.objects.create_user(
-        phone_number=phone, password=password, role=role
+        phone_number=phone, password=password, role=role, organization=org
     )
     return Response(user.to_api_dict(), status=status.HTTP_201_CREATED)
 
@@ -1024,7 +1118,10 @@ def user_list(request):
 def user_detail(request, pk):
     if not _is_admin_or_manager(request.user):
         return Response({"detail": "Admin or Manager access required"}, status=status.HTTP_403_FORBIDDEN)
-    user = get_object_or_404(PharmUser, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    user = get_object_or_404(PharmUser, pk=pk, organization=org)
     if request.method == "GET":
         return Response(user.to_api_dict())
     if request.method == "DELETE":
@@ -1042,7 +1139,10 @@ def user_detail(request, pk):
 def change_password(request, pk):
     if not _is_admin_or_manager(request.user):
         return Response({"detail": "Admin or Manager access required"}, status=status.HTTP_403_FORBIDDEN)
-    user = get_object_or_404(PharmUser, pk=pk)
+    org, err = require_org(request)
+    if err:
+        return err
+    user = get_object_or_404(PharmUser, pk=pk, organization=org)
     new_password = request.data.get("newPassword", "").strip()
     if len(new_password) < 8:
         return Response(

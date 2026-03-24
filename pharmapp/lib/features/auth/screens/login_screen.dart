@@ -93,7 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     });
 
     final authState = ref.watch(authFlowProvider);
-    final isLoading = authState == AuthFlowState.loggingIn;
+    final isLoading = authState == AuthFlowState.loggingIn || authState == AuthFlowState.registering;
 
     return Scaffold(
       backgroundColor: _bg3,
@@ -311,6 +311,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                     Expanded(child: Divider(color: _divider)),
                   ],
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: isLoading ? null : () => context.go('/register-org'),
+                  child: const Text(
+                    'New pharmacy? Register here',
+                    style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13),
+                  ),
                 ),
               ],
             ),

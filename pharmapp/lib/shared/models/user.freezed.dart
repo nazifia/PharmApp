@@ -27,6 +27,9 @@ mixin _$User {
   bool get isActive => throw _privateConstructorUsedError;
   String get username => throw _privateConstructorUsedError;
   bool get isWholesaleOperator => throw _privateConstructorUsedError;
+  int get organizationId => throw _privateConstructorUsedError;
+  String get organizationName => throw _privateConstructorUsedError;
+  String get organizationSlug => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -44,7 +47,10 @@ abstract class $UserCopyWith<$Res> {
       String role,
       bool isActive,
       String username,
-      bool isWholesaleOperator});
+      bool isWholesaleOperator,
+      int organizationId,
+      String organizationName,
+      String organizationSlug});
 }
 
 /// @nodoc
@@ -66,6 +72,9 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? isActive = null,
     Object? username = null,
     Object? isWholesaleOperator = null,
+    Object? organizationId = null,
+    Object? organizationName = null,
+    Object? organizationSlug = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -92,6 +101,18 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.isWholesaleOperator
           : isWholesaleOperator // ignore: cast_nullable_to_non_nullable
               as bool,
+      organizationId: null == organizationId
+          ? _value.organizationId
+          : organizationId // ignore: cast_nullable_to_non_nullable
+              as int,
+      organizationName: null == organizationName
+          ? _value.organizationName
+          : organizationName // ignore: cast_nullable_to_non_nullable
+              as String,
+      organizationSlug: null == organizationSlug
+          ? _value.organizationSlug
+          : organizationSlug // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 }
@@ -109,7 +130,10 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       String role,
       bool isActive,
       String username,
-      bool isWholesaleOperator});
+      bool isWholesaleOperator,
+      int organizationId,
+      String organizationName,
+      String organizationSlug});
 }
 
 /// @nodoc
@@ -128,6 +152,9 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? isActive = null,
     Object? username = null,
     Object? isWholesaleOperator = null,
+    Object? organizationId = null,
+    Object? organizationName = null,
+    Object? organizationSlug = null,
   }) {
     return _then(_$UserImpl(
       id: null == id
@@ -154,6 +181,18 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.isWholesaleOperator
           : isWholesaleOperator // ignore: cast_nullable_to_non_nullable
               as bool,
+      organizationId: null == organizationId
+          ? _value.organizationId
+          : organizationId // ignore: cast_nullable_to_non_nullable
+              as int,
+      organizationName: null == organizationName
+          ? _value.organizationName
+          : organizationName // ignore: cast_nullable_to_non_nullable
+              as String,
+      organizationSlug: null == organizationSlug
+          ? _value.organizationSlug
+          : organizationSlug // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -167,7 +206,10 @@ class _$UserImpl implements _User {
       required this.role,
       required this.isActive,
       this.username = '',
-      this.isWholesaleOperator = false});
+      this.isWholesaleOperator = false,
+      this.organizationId = 0,
+      this.organizationName = '',
+      this.organizationSlug = ''});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -187,10 +229,19 @@ class _$UserImpl implements _User {
   @override
   @JsonKey()
   final bool isWholesaleOperator;
+  @override
+  @JsonKey()
+  final int organizationId;
+  @override
+  @JsonKey()
+  final String organizationName;
+  @override
+  @JsonKey()
+  final String organizationSlug;
 
   @override
   String toString() {
-    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, isWholesaleOperator: $isWholesaleOperator)';
+    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, isWholesaleOperator: $isWholesaleOperator, organizationId: $organizationId, organizationName: $organizationName, organizationSlug: $organizationSlug)';
   }
 
   @override
@@ -207,13 +258,20 @@ class _$UserImpl implements _User {
             (identical(other.username, username) ||
                 other.username == username) &&
             (identical(other.isWholesaleOperator, isWholesaleOperator) ||
-                other.isWholesaleOperator == isWholesaleOperator));
+                other.isWholesaleOperator == isWholesaleOperator) &&
+            (identical(other.organizationId, organizationId) ||
+                other.organizationId == organizationId) &&
+            (identical(other.organizationName, organizationName) ||
+                other.organizationName == organizationName) &&
+            (identical(other.organizationSlug, organizationSlug) ||
+                other.organizationSlug == organizationSlug));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-      runtimeType, id, phoneNumber, role, isActive, username, isWholesaleOperator);
+      runtimeType, id, phoneNumber, role, isActive, username, isWholesaleOperator,
+      organizationId, organizationName, organizationSlug);
 
   @JsonKey(ignore: true)
   @override
@@ -236,7 +294,10 @@ abstract class _User implements User {
       required final String role,
       required final bool isActive,
       final String username,
-      final bool isWholesaleOperator}) = _$UserImpl;
+      final bool isWholesaleOperator,
+      final int organizationId,
+      final String organizationName,
+      final String organizationSlug}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
@@ -252,6 +313,12 @@ abstract class _User implements User {
   String get username;
   @override
   bool get isWholesaleOperator;
+  @override
+  int get organizationId;
+  @override
+  String get organizationName;
+  @override
+  String get organizationSlug;
   @override
   @JsonKey(ignore: true)
   _$$UserImplCopyWith<_$UserImpl> get copyWith =>

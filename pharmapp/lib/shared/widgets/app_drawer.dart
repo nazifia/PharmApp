@@ -68,7 +68,12 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
               child: Column(
                 children: [
                   // ── Profile header ─────────────────────────────────────────
-                  _DrawerHeader(role: role, username: user?.username ?? '', phoneNumber: user?.phoneNumber ?? ''),
+                  _DrawerHeader(
+                    role: role,
+                    username: user?.username ?? '',
+                    phoneNumber: user?.phoneNumber ?? '',
+                    orgName: ref.watch(currentOrganizationProvider)?.name ?? '',
+                  ),
                   Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
 
                   // ── Nav items ──────────────────────────────────────────────
@@ -273,7 +278,8 @@ class _DrawerHeader extends StatelessWidget {
   final String role;
   final String username;
   final String phoneNumber;
-  const _DrawerHeader({required this.role, required this.username, required this.phoneNumber});
+  final String orgName;
+  const _DrawerHeader({required this.role, required this.username, required this.phoneNumber, required this.orgName});
 
   @override
   Widget build(BuildContext context) {
@@ -323,6 +329,18 @@ class _DrawerHeader extends StatelessWidget {
               child: const Text('Active',
                   style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 10, fontWeight: FontWeight.w600)),
             ),
+            if (orgName.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              Row(children: [
+                const Icon(Icons.business_rounded, size: 11, color: EnhancedTheme.accentCyan),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(orgName,
+                      style: TextStyle(color: context.subLabelColor, fontSize: 10),
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ]),
+            ],
           ]),
         ),
       ]),
