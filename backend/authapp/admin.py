@@ -48,16 +48,16 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
     """
 
     list_display = [
-        "phone_number", "role", "organization", "is_active",
+        "phone_number", "full_name", "role", "organization", "is_active",
         "is_staff", "is_wholesale_operator",
     ]
     list_filter  = ["role", "is_active", "is_staff", "is_wholesale_operator"]
-    search_fields = ["phone_number"]
+    search_fields = ["phone_number", "full_name"]
     ordering = ["phone_number"]
 
     # Superuser fieldsets (full control)
     _superuser_fieldsets = (
-        (None, {"fields": ("phone_number", "password")}),
+        (None, {"fields": ("phone_number", "full_name", "password")}),
         ("Role & Access", {
             "fields": ("role", "organization", "is_wholesale_operator"),
         }),
@@ -72,7 +72,7 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
 
     # Org-admin fieldsets (restricted — no superuser, no org reassignment)
     _org_fieldsets = (
-        (None, {"fields": ("phone_number", "password")}),
+        (None, {"fields": ("phone_number", "full_name", "password")}),
         ("Role & Access", {
             "fields": ("role", "is_wholesale_operator"),
         }),
@@ -85,7 +85,7 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("phone_number", "role", "password1", "password2"),
+            "fields": ("phone_number", "full_name", "role", "password1", "password2"),
         }),
     )
 

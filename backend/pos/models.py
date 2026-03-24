@@ -117,7 +117,7 @@ class Sale(models.Model):
             "cashierName": self.cashier.name if self.cashier else "",
             "dispenserId": self.dispenser_id,
             "dispenserName": (
-                getattr(self.dispenser, "get_full_name", lambda: "")()
+                getattr(self.dispenser, "full_name", "")
                 or getattr(self.dispenser, "phone_number", "")
                 if self.dispenser else ""
             ),
@@ -295,14 +295,27 @@ class PaymentRequest(models.Model):
         super().save(*args, **kwargs)
 
     def to_api_dict(self):
+        dispenser = self.dispenser
+        dispenser_name = (
+            getattr(dispenser, "full_name", "") or getattr(dispenser, "phone_number", "")
+            if dispenser else ""
+        )
+        cashier_name = self.cashier.name if self.cashier else ""
+        customer_name = (
+            self.customer.name if self.customer
+            else self.buyer_name or ""
+        )
         return {
             "id": self.id,
             "requestId": self.request_id,
             "dispenserId": self.dispenser_id,
-            "dispenserName": getattr(self.dispenser, "phone_number", ""),
+            "dispenserName": dispenser_name,
             "cashierId": self.cashier_id,
+            "cashierName": cashier_name,
             "customerId": self.customer_id,
-            "customerName": self.customer.name if self.customer else self.buyer_name,
+            "customerName": customer_name,
+            "patientName": customer_name,
+            "buyerName": self.buyer_name,
             "paymentType": self.payment_type,
             "totalAmount": float(self.total_amount),
             "status": self.status,

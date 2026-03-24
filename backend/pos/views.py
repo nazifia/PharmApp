@@ -399,6 +399,7 @@ def _create_payment_request(request, org):
     customer_id = request.data.get("customerId")
     cashier_id = request.data.get("cashierId")
     payment_type = request.data.get("paymentType", "retail")
+    patient_name = request.data.get("patientName", "") or request.data.get("buyerName", "")
 
     if not items_data:
         return Response({"detail": "No items"}, status=status.HTTP_400_BAD_REQUEST)
@@ -428,6 +429,7 @@ def _create_payment_request(request, org):
         customer=customer,
         payment_type=payment_type,
         total_amount=total,
+        buyer_name=patient_name,
     )
 
     for i in items_data:
@@ -540,10 +542,13 @@ def complete_payment_request(request, pk):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        completing_cashier = Cashier.objects.filter(user=request.user).first()
+
         sale = Sale.objects.create(
             organization=org,
             customer=pr.customer,
             dispenser=pr.dispenser,
+            cashier=completing_cashier or pr.cashier,
             total_amount=pr.total_amount,
             payment_cash=Decimal(str(payment.get("cash", 0))),
             payment_pos=Decimal(str(payment.get("pos", 0))),

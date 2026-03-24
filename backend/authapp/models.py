@@ -62,6 +62,7 @@ class PharmUserManager(BaseUserManager):
 
 class PharmUser(AbstractBaseUser, PermissionsMixin):
     phone_number         = models.CharField(max_length=20, unique=True)
+    full_name            = models.CharField(max_length=200, blank=True, default="")
     role                 = models.CharField(max_length=30, choices=ROLE_CHOICES, default='Pharmacist')
     is_active            = models.BooleanField(default=True)
     is_staff             = models.BooleanField(default=False)
@@ -75,11 +76,15 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
     objects = PharmUserManager()
 
+    def get_full_name(self):
+        return self.full_name or self.phone_number
+
     def to_api_dict(self):
         org = self.organization
         return {
             'id':                   self.id,
             'phoneNumber':          self.phone_number,
+            'fullName':             self.full_name,
             'role':                 self.role,
             'isActive':             self.is_active,
             'isWholesaleOperator':  self.is_wholesale_operator,
@@ -89,7 +94,7 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
         }
 
     def __str__(self):
-        return f"{self.phone_number} ({self.role})"
+        return f"{self.full_name or self.phone_number} ({self.role})"
 
 
 # ── Site Configuration (singleton) ────────────────────────────────────────────
