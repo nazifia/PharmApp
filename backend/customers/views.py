@@ -124,6 +124,7 @@ def wallet_topup(request, pk):
         )
 
     with transaction.atomic():
+        customer = Customer.objects.select_for_update().get(pk=pk)
         customer.wallet_balance = float(customer.wallet_balance) + amount
         customer.save()
         txn = WalletTransaction.objects.create(

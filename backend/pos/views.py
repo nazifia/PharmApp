@@ -67,7 +67,7 @@ def checkout(request):
             customer = Customer.objects.get(pk=customer_id, organization=org)
         except Customer.DoesNotExist:
             return Response(
-                {"detail": f"Customer {customer_id} not found"},
+                {"detail": "Customer not found"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -77,7 +77,7 @@ def checkout(request):
             cashier = Cashier.objects.get(pk=cashier_id, is_active=True, user__organization=org)
         except Cashier.DoesNotExist:
             return Response(
-                {"detail": f"Cashier {cashier_id} not found"},
+                {"detail": "Cashier not found"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -158,7 +158,8 @@ def checkout(request):
             )
         # Wallet is allowed to go negative (credit/debt for registered customers)
 
-    with transaction.atomic():
+    try:
+      with transaction.atomic():
         sale = Sale.objects.create(
             organization=org,
             customer=customer,
@@ -180,7 +181,10 @@ def checkout(request):
             item = ri["item"]
             qty = ri["qty"]
             if item:
-                item.stock = max(0, item.stock - qty)
+                item = Item.objects.select_for_update().get(pk=item.pk)
+                if item.stock < qty:
+                    raise ValueError(f"Insufficient stock for {item.name}")
+                item.stock -= qty
                 item.save()
 
             SaleItem.objects.create(
@@ -236,6 +240,9 @@ def checkout(request):
                     ReceiptPayment.objects.create(
                         receipt=sale, amount=amt, payment_method=method
                     )
+
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(sale.to_api_dict(), status=status.HTTP_201_CREATED)
 
@@ -508,17 +515,23 @@ def complete_payment_request(request, pk):
     org, err = require_org(request)
     if err:
         return err
-    pr = get_object_or_404(PaymentRequest.objects.prefetch_related("items"), pk=pk, organization=org)
-    if pr.status not in ("pending", "accepted"):
-        return Response(
-            {"detail": f"Request is already {pr.status}"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    get_object_or_404(PaymentRequest, pk=pk, organization=org)  # 404 check before lock
 
     payment = request.data.get("payment", {})
     payment_method = request.data.get("paymentMethod", "cash")
 
     with transaction.atomic():
+        pr = get_object_or_404(
+            PaymentRequest.objects.select_for_update().prefetch_related("items"),
+            pk=pk,
+            organization=org,
+        )
+        if pr.status not in ("pending", "accepted"):
+            return Response(
+                {"detail": f"Request is already {pr.status}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         sale = Sale.objects.create(
             organization=org,
             customer=pr.customer,
@@ -534,8 +547,9 @@ def complete_payment_request(request, pk):
 
         for pri in pr.items.all():
             if pri.item:
-                pri.item.stock = max(0, pri.item.stock - pri.quantity)
-                pri.item.save()
+                locked_item = Item.objects.select_for_update().get(pk=pri.item.pk)
+                locked_item.stock = max(0, locked_item.stock - pri.quantity)
+                locked_item.save()
 
             SaleItem.objects.create(
                 sale=sale,

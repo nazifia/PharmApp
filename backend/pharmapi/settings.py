@@ -26,7 +26,7 @@ JAZZMIN_SETTINGS = {
     "login_logo_classes": "img-fluid",
 
     # ── Search ────────────────────────────────────────────────────────────────
-    "search_model": ["authapp.PharmUser", "inventory.Item", "customers.Customer", "pos.Sale"],
+    "search_model": ["authapp.Organization", "authapp.PharmUser", "inventory.Item", "customers.Customer", "pos.Sale"],
 
     # ── Top bar ───────────────────────────────────────────────────────────────
     "topmenu_links": [
@@ -212,12 +212,35 @@ MIDDLEWARE = [
 ROOT_URLCONF = "pharmapi.urls"
 AUTH_USER_MODEL = "authapp.PharmUser"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+_db_url = os.environ.get("DATABASE_URL", "")
+
+if _db_url:
+    # Production: DATABASE_URL=mysql://user:password@host:3306/dbname
+    import urllib.parse
+    _parsed = urllib.parse.urlparse(_db_url)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": _parsed.path.lstrip("/"),
+            "USER": _parsed.username,
+            "PASSWORD": _parsed.password,
+            "HOST": _parsed.hostname,
+            "PORT": str(_parsed.port or 3306),
+            "OPTIONS": {
+                "charset": "utf8mb4",
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+            "CONN_MAX_AGE": 60,
+        }
     }
-}
+else:
+    # Development: SQLite
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -228,11 +251,22 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/day",
+        "user": "2000/day",
+        "auth": "10/minute",
+    },
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ALGORITHM": "HS256",
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 CORS_ALLOWED_ORIGINS = os.environ.get(
