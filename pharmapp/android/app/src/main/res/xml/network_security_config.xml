@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Network security config for PharmApp development/testing.
-
-  base-config allows cleartext (HTTP) to any host so the API base URL
-  configured via the in-app Settings screen works on any LAN IP.
-  Production builds should restrict this to HTTPS only.
+  Production network security config — HTTPS only.
+  Debug builds override this via src/debug/res/xml/network_security_config.xml
+  which allows cleartext HTTP for LAN/emulator development.
 -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true">
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

@@ -7,3 +7,5 @@ db.sqlite3
 *.sqlite3
 .env
 *.log
+.active_env
+staticfiles/

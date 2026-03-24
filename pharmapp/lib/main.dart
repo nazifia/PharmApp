@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,8 +14,10 @@ import 'core/database/local_db.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize local SQLite database (used in dev/offline mode)
-  await LocalDb.instance.initialize();
+  // Initialize local SQLite database (dev/offline mode — not supported on web)
+  if (!kIsWeb) {
+    await LocalDb.instance.initialize();
+  }
 
   final prefs      = await SharedPreferences.getInstance();
   final savedUrl   = prefs.getString('api_base_url');
