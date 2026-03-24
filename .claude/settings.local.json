@@ -59,7 +59,8 @@
       "Bash(netsh advfirewall:*)",
       "Bash(for dir:*)",
       "Bash(do echo:*)",
-      "Read(//c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/features/**)"
+      "Read(//c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/features/**)",
+      "Bash(find /c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/backend/reports -name *.py)"
     ]
   }
 }

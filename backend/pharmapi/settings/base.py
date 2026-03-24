@@ -29,6 +29,8 @@ JAZZMIN_SETTINGS = {
     # ── Top bar ───────────────────────────────────────────────────────────────
     "topmenu_links": [
         {"name": "Dashboard", "url": "admin:index", "permissions": ["auth.view_user"]},
+        # Superuser-only global overview — shows cross-org analytics
+        {"name": "🌐 Global Overview", "url": "/admin/overview/", "permissions": ["authapp.view_organization"]},
         {"name": "API Docs", "url": "/api/", "new_window": True},
         {"model": "authapp.PharmUser"},
         {"app": "inventory"},

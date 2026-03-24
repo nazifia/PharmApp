@@ -3,5 +3,18 @@
 
 {% block usertools %}
   {% env_banner %}
+
+  {# ── Org-scope / Platform badge ── #}
+  {% if request.user.is_superuser %}
+    <span class="pharm-scope-badge pharm-scope-super" title="Full platform access">
+      <i class="fas fa-crown"></i> Platform Admin
+    </span>
+  {% elif request.user.organization %}
+    <span class="pharm-scope-badge pharm-scope-org"
+          title="You can only view and manage {{ request.user.organization.name }} data">
+      <i class="fas fa-hospital"></i> {{ request.user.organization.name }}
+    </span>
+  {% endif %}
+
   {{ block.super }}
 {% endblock %}

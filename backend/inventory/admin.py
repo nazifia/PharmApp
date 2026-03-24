@@ -3,6 +3,7 @@ from django.db.models import Count, F, FloatField, Q, Sum
 from django.utils.html import format_html
 from django.utils.timezone import now
 
+from authapp.admin_mixins import OrgScopedAdminMixin
 from .models import Item, RetailItem, WholesaleItem
 
 
@@ -154,7 +155,7 @@ def reset_to_one(modeladmin, request, queryset):
 
 # ── Base ItemAdmin mixin ──────────────────────────────────────────────────────
 
-class BaseItemAdmin(admin.ModelAdmin):
+class BaseItemAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     list_display  = [
         "name", "brand", "dosage_form", "unit",
         "cost", "price", "markup_pct",

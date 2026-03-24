@@ -1,0 +1,189 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Global Overview — PharmApp Admin{% endblock %}
+{% block content_title %}
+  <h1 style="display:flex;align-items:center;gap:10px">
+    <span style="background:var(--pharm-teal-dim);border:1px solid var(--pharm-teal);
+                 border-radius:8px;padding:6px 12px;font-size:22px">🌐</span>
+    Global Overview
+    <span class="ov-superuser-pill"><i class="fas fa-crown"></i> Superuser View</span>
+  </h1>
+{% endblock %}
+
+{% block content %}
+
+{# ── Platform stat cards ───────────────────────────────────────────────────── #}
+<div class="ov-section-label">Platform Totals</div>
+<div class="ov-stat-row">
+  <div class="ov-stat ov-stat--teal">
+    <i class="fas fa-hospital ov-stat__icon"></i>
+    <div class="ov-stat__val">{{ total_orgs }}</div>
+    <div class="ov-stat__lbl">Organisations</div>
+  </div>
+  <div class="ov-stat ov-stat--blue">
+    <i class="fas fa-users ov-stat__icon"></i>
+    <div class="ov-stat__val">{{ total_users }}</div>
+    <div class="ov-stat__lbl">Users</div>
+  </div>
+  <div class="ov-stat ov-stat--indigo">
+    <i class="fas fa-pills ov-stat__icon"></i>
+    <div class="ov-stat__val">{{ total_items }}</div>
+    <div class="ov-stat__lbl">Inventory Items</div>
+  </div>
+  <div class="ov-stat ov-stat--purple">
+    <i class="fas fa-user-friends ov-stat__icon"></i>
+    <div class="ov-stat__val">{{ total_customers }}</div>
+    <div class="ov-stat__lbl">Customers</div>
+  </div>
+  <div class="ov-stat ov-stat--blue">
+    <i class="fas fa-receipt ov-stat__icon"></i>
+    <div class="ov-stat__val">{{ total_sales }}</div>
+    <div class="ov-stat__lbl">Completed Sales</div>
+  </div>
+  <div class="ov-stat ov-stat--green">
+    <i class="fas fa-money-bill-wave ov-stat__icon"></i>
+    <div class="ov-stat__val">₦{{ total_revenue|floatformat:0 }}</div>
+    <div class="ov-stat__lbl">Total Revenue</div>
+  </div>
+  <div class="ov-stat ov-stat--red">
+    <i class="fas fa-file-invoice-dollar ov-stat__icon"></i>
+    <div class="ov-stat__val">₦{{ total_expenses|floatformat:0 }}</div>
+    <div class="ov-stat__lbl">Total Expenses</div>
+  </div>
+  <div class="ov-stat {% if net_revenue >= 0 %}ov-stat--green{% else %}ov-stat--red{% endif %}">
+    <i class="fas fa-chart-line ov-stat__icon"></i>
+    <div class="ov-stat__val">₦{{ net_revenue|floatformat:0 }}</div>
+    <div class="ov-stat__lbl">Net (Rev − Exp)</div>
+  </div>
+</div>
+
+{# ── Per-org breakdown table ───────────────────────────────────────────────── #}
+<div class="ov-section-label" style="margin-top:30px">
+  Per-Organisation Breakdown
+  <span class="ov-section-note">sorted by revenue</span>
+</div>
+
+<div class="ov-table-wrap">
+  {% if org_rows %}
+  <table class="ov-table">
+    <thead>
+      <tr>
+        <th class="ov-th--num">#</th>
+        <th>Organisation</th>
+        <th class="ov-th--num">Staff</th>
+        <th class="ov-th--num">Items</th>
+        <th class="ov-th--num">Stock</th>
+        <th class="ov-th--num">Customers</th>
+        <th class="ov-th--num">Sales</th>
+        <th class="ov-th--num">Revenue</th>
+        <th class="ov-th--num">Expenses</th>
+        <th class="ov-th--num">Net</th>
+        <th>Last Sale</th>
+        <th>Drill-down</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in org_rows %}
+      <tr class="ov-tr">
+        <td class="ov-td--muted ov-td--num">{{ forloop.counter }}</td>
+        <td>
+          <div class="ov-org-name">{{ row.org.name }}</div>
+          <div class="ov-org-slug">{{ row.org.slug }}</div>
+          <div class="ov-org-date">Since {{ row.org.created_at|date:"M Y" }}</div>
+        </td>
+        <td class="ov-td--num">
+          <span class="ov-pill {% if row.active_users > 0 %}ov-pill--green{% else %}ov-pill--gray{% endif %}">
+            {{ row.active_users }}/{{ row.total_users }}
+          </span>
+        </td>
+        <td class="ov-td--num">{{ row.total_items }}</td>
+        <td class="ov-td--num">
+          {% if row.out_of_stock > 0 %}
+            <span class="ov-pill ov-pill--red">{{ row.out_of_stock }} out</span>
+          {% endif %}
+          {% if row.low_stock > 0 %}
+            <span class="ov-pill ov-pill--amber">{{ row.low_stock }} low</span>
+          {% endif %}
+          {% if row.out_of_stock == 0 and row.low_stock == 0 %}
+            <span class="ov-pill ov-pill--green">OK</span>
+          {% endif %}
+        </td>
+        <td class="ov-td--num">{{ row.total_customers }}</td>
+        <td class="ov-td--num">
+          <span class="ov-pill ov-pill--blue">{{ row.completed_sales }}</span>
+          {% if row.total_sales != row.completed_sales %}
+          <span class="ov-pill ov-pill--gray" title="{{ row.total_sales }} total">
+            +{{ row.total_sales|add:row.completed_sales|add:"-0" }}
+          </span>
+          {% endif %}
+        </td>
+        <td class="ov-td--num ov-td--green">₦{{ row.revenue|floatformat:0 }}</td>
+        <td class="ov-td--num ov-td--red">₦{{ row.expenses|floatformat:0 }}</td>
+        <td class="ov-td--num {% if row.net >= 0 %}ov-td--green{% else %}ov-td--red{% endif %}">
+          ₦{{ row.net|floatformat:0 }}
+        </td>
+        <td class="ov-td--muted ov-td--date">
+          {% if row.last_sale %}{{ row.last_sale|date:"M d, Y" }}<br>
+            <span style="font-size:10px">{{ row.last_sale|date:"H:i" }}</span>
+          {% else %}<span style="color:var(--pharm-muted)">—</span>{% endif %}
+        </td>
+        <td>
+          <div class="ov-drill">
+            <a href="/admin/authapp/pharmuser/?organization__id__exact={{ row.org.pk }}"
+               class="ov-drill__btn ov-drill__btn--blue" title="View users">
+              <i class="fas fa-users"></i>
+            </a>
+            <a href="/admin/inventory/item/?organization__id__exact={{ row.org.pk }}"
+               class="ov-drill__btn ov-drill__btn--teal" title="View items">
+              <i class="fas fa-pills"></i>
+            </a>
+            <a href="/admin/pos/sale/?organization__id__exact={{ row.org.pk }}"
+               class="ov-drill__btn ov-drill__btn--purple" title="View sales">
+              <i class="fas fa-receipt"></i>
+            </a>
+            <a href="/admin/customers/customer/?organization__id__exact={{ row.org.pk }}"
+               class="ov-drill__btn ov-drill__btn--indigo" title="View customers">
+              <i class="fas fa-user-friends"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="ov-empty">
+    <i class="fas fa-hospital" style="font-size:40px;color:var(--pharm-muted);margin-bottom:12px"></i>
+    <p>No organisations registered yet.</p>
+    <a href="/admin/authapp/organization/add/" class="ov-btn-primary">
+      <i class="fas fa-plus"></i> Add Organisation
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{# ── Recent registrations ──────────────────────────────────────────────────── #}
+{% if recent_orgs %}
+<div class="ov-section-label" style="margin-top:30px">Recently Registered</div>
+<div class="ov-recent-grid">
+  {% for org in recent_orgs %}
+  <div class="ov-recent-card">
+    <div class="ov-recent-card__icon"><i class="fas fa-hospital-alt"></i></div>
+    <div class="ov-recent-card__body">
+      <div class="ov-recent-card__name">{{ org.name }}</div>
+      <div class="ov-recent-card__slug">{{ org.slug }}</div>
+    </div>
+    <div class="ov-recent-card__date">{{ org.created_at|date:"M d, Y" }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="ov-footer">
+  Generated {{ now|date:"N j, Y" }} at {{ now|date:"H:i" }} UTC &mdash;
+  <i class="fas fa-lock" style="color:var(--pharm-teal)"></i>
+  Visible to superusers only
+</div>
+
+{% endblock %}
