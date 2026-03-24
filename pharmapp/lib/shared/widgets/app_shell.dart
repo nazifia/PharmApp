@@ -196,7 +196,7 @@ class _AppBottomNav extends StatelessWidget {
           child: SafeArea(
             top: false,
             child: SizedBox(
-              height: 62,
+              height: 72,
               child: Row(
                 children: [
                   ...items.asMap().entries.map((e) {
@@ -271,55 +271,62 @@ class _NavBtn extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(icon, key: ValueKey(icon), color: color, size: 22),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? EnhancedTheme.primaryTeal.withValues(alpha: 0.15)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                if (badgeCount > 0)
-                  Positioned(
-                    top: -4, right: -6,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: EnhancedTheme.warningAmber,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                      child: Text(
-                        badgeCount > 9 ? '9+' : '$badgeCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800),
-                        textAlign: TextAlign.center,
-                      ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(icon, key: ValueKey(icon), color: color, size: 22),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                color:      color,
-                fontSize:   10,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    if (badgeCount > 0)
+                      Positioned(
+                        top: -5, right: -8,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: EnhancedTheme.warningAmber,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            badgeCount > 9 ? '9+' : '$badgeCount',
+                            style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 3),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width:  isSelected ? 20 : 0,
-              height: 3,
-              decoration: BoxDecoration(
-                color:        EnhancedTheme.primaryTeal,
-                borderRadius: BorderRadius.circular(1.5),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  color:      color,
+                  fontSize:   10,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

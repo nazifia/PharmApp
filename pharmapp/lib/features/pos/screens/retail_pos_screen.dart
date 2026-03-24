@@ -40,11 +40,71 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
 
   Future<void> _sendToCashier() async {
     final cart = ref.read(cartProvider);
+    final messenger = ScaffoldMessenger.of(context);
     if (cart.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cart is empty')));
+      messenger.showSnackBar(const SnackBar(content: Text('Cart is empty')));
       return;
     }
+
+    // Ask dispenser for patient/customer name before sending.
+    // Controller lives entirely inside the dialog to avoid _dependents assertion.
+    final patientName = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final ctrl = TextEditingController();
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Send to Cashier',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Patient / Customer name (optional)',
+                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'e.g. John Doe',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: Colors.white10,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: EnhancedTheme.primaryTeal,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+              child: const Text('Send'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // null means cancelled (tapped Cancel or dismissed dialog)
+    if (patientName == null || !mounted) return;
+
     final items = cart.map((c) => {
       'itemId': c.item.id,
       'barcode': c.item.barcode,
@@ -54,15 +114,19 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     }).toList();
     final customerId = ref.read(selectedCustomerProvider)?.id;
     try {
-      await ref.read(posApiProvider).sendToCashier(items, customerId: customerId);
+      await ref.read(posApiProvider).sendToCashier(
+        items,
+        customerId: customerId,
+        patientName: patientName.isEmpty ? null : patientName,
+      );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      messenger.showSnackBar(const SnackBar(
         content: Text('Payment request sent to cashier'),
         backgroundColor: EnhancedTheme.successGreen,
       ));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
           SnackBar(content: Text('$e'), backgroundColor: EnhancedTheme.errorRed));
     }
   }

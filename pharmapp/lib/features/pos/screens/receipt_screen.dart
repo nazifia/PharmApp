@@ -141,6 +141,9 @@ class _ReceiptCard extends StatelessWidget {
   // ── parsed fields
   String get receiptId =>
       saleData['receiptId'] as String? ?? '#${saleData['id']}';
+  String get orgName    => saleData['organizationName']    as String? ?? 'PharmApp';
+  String get orgAddress => saleData['organizationAddress'] as String? ?? '';
+  String get orgPhone   => saleData['organizationPhone']   as String? ?? '';
   String get customerName =>
       saleData['customerName'] as String? ?? saleData['buyerName'] as String? ?? 'Walk-in';
   String get cashierName   => saleData['cashierName']  as String? ?? '';
@@ -267,16 +270,21 @@ class _ReceiptCard extends StatelessWidget {
                       color: Colors.white, size: 26),
                 ),
                 const SizedBox(height: 10),
-                Text('PharmApp',
+                Text(orgName,
                     style: TextStyle(
                         color: textDark, fontSize: 20,
                         fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-                const SizedBox(height: 2),
-                Text('Your Health Partner',
-                    style: TextStyle(color: textMid, fontSize: 12)),
-                const SizedBox(height: 2),
-                Text('pharmapp@pharmacy.com  •  0900-000-0000',
-                    style: TextStyle(color: textHint, fontSize: 10)),
+                if (orgAddress.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(orgAddress,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: textMid, fontSize: 11)),
+                ],
+                if (orgPhone.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(orgPhone,
+                      style: TextStyle(color: textHint, fontSize: 10)),
+                ],
               ]),
             ),
 
@@ -567,6 +575,9 @@ Future<Uint8List> _buildPdf(
   final fontMono = await PdfGoogleFonts.sourceCodeProRegular();
 
   final receiptId = data['receiptId'] as String? ?? '#${data['id']}';
+  final orgName    = data['organizationName']    as String? ?? 'PharmApp';
+  final orgAddress = data['organizationAddress'] as String? ?? '';
+  final orgPhone   = data['organizationPhone']   as String? ?? '';
   final customerName = data['customerName'] as String? ??
       data['buyerName'] as String? ?? 'Walk-in';
   final cashierName    = data['cashierName']  as String? ?? '';
@@ -638,12 +649,14 @@ Future<Uint8List> _buildPdf(
 
         // ── Header
         pw.Center(child: pw.Column(children: [
-          pw.Text('PharmApp',
+          pw.Text(orgName,
               style: pw.TextStyle(font: fontBold, fontSize: 18, color: teal)),
-          pw.Text('Your Health Partner',
-              style: pw.TextStyle(font: font, fontSize: 9, color: grey)),
-          pw.Text('pharmapp@pharmacy.com  •  0900-000-0000',
-              style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+          if (orgAddress.isNotEmpty)
+            pw.Text(orgAddress,
+                style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+          if (orgPhone.isNotEmpty)
+            pw.Text(orgPhone,
+                style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
           pw.SizedBox(height: 8),
           pw.Divider(color: light),
         ])),

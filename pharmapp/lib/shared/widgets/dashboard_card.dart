@@ -35,11 +35,16 @@ class DashboardCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha:0.08),
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha:0.12),
-                width: 1,
+              border: Border.all(color: context.borderColor),
+              gradient: LinearGradient(
+                colors: [
+                  color.withValues(alpha: 0.07),
+                  Colors.transparent,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
             child: Column(
@@ -49,22 +54,22 @@ class DashboardCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha:0.18),
-                        borderRadius: BorderRadius.circular(10),
+                        color: color.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(icon, color: color, size: 20),
                     ),
                     if (trend != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                            horizontal: 7, vertical: 4),
                         decoration: BoxDecoration(
                           color: (trendPositive
                                   ? EnhancedTheme.successGreen
                                   : EnhancedTheme.errorRed)
-                              .withValues(alpha:0.15),
+                              .withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -72,8 +77,8 @@ class DashboardCard extends StatelessWidget {
                           children: [
                             Icon(
                               trendPositive
-                                  ? Icons.trending_up
-                                  : Icons.trending_down,
+                                  ? Icons.trending_up_rounded
+                                  : Icons.trending_down_rounded,
                               color: trendPositive
                                   ? EnhancedTheme.successGreen
                                   : EnhancedTheme.errorRed,
@@ -104,19 +109,19 @@ class DashboardCard extends StatelessWidget {
                       value,
                       style: TextStyle(
                         color: context.labelColor,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.8,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   title,
                   style: TextStyle(
-                    color: context.labelColor,
-                    fontSize: 13,
+                    color: context.subLabelColor,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
@@ -125,11 +130,19 @@ class DashboardCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: context.subLabelColor,
-                    fontSize: 11,
+                    color: context.hintColor,
+                    fontSize: 10,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+                const Spacer(),
+                Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ],
             ),

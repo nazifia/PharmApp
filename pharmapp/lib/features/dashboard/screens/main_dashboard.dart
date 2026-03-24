@@ -97,10 +97,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     final loading   = salesAsync.isLoading || invAsync.isLoading || custAsync.isLoading;
 
     final retailStats = [
-      DashboardCard(title: "Today's Revenue", value: loading ? '…' : _fmt(revenue), subtitle: 'Retail + Wholesale', icon: Icons.monetization_on,  color: const Color(0xFF10B981)),
-      DashboardCard(title: 'Low Stock',        value: loading ? '…' : '$lowStock',   subtitle: 'Below threshold',     icon: Icons.warning_amber,    color: const Color(0xFFF59E0B)),
-      DashboardCard(title: 'Customers',        value: loading ? '…' : '$customers',  subtitle: 'Total registered',    icon: Icons.people,           color: const Color(0xFF8B5CF6)),
-      DashboardCard(title: 'Outstanding Debt', value: loading ? '…' : _fmt(debt),    subtitle: 'Total owed',          icon: Icons.money_off,        color: const Color(0xFFEF4444)),
+      DashboardCard(title: "Today's Revenue", value: loading ? '…' : _fmt(revenue), subtitle: 'Retail + Wholesale', icon: Icons.monetization_on,  color: EnhancedTheme.successGreen),
+      DashboardCard(title: 'Low Stock',        value: loading ? '…' : '$lowStock',   subtitle: 'Below threshold',     icon: Icons.warning_amber,    color: EnhancedTheme.warningAmber),
+      DashboardCard(title: 'Customers',        value: loading ? '…' : '$customers',  subtitle: 'Total registered',    icon: Icons.people,           color: EnhancedTheme.accentPurple),
+      DashboardCard(title: 'Outstanding Debt', value: loading ? '…' : _fmt(debt),    subtitle: 'Total owed',          icon: Icons.money_off,        color: EnhancedTheme.errorRed),
     ];
 
     return SingleChildScrollView(
@@ -146,11 +146,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           // ══ RETAIL MODE ══════════════════════════════════════════════════
           if (!_showWholesale) ...[
             Row(children: [
-              _quickBtn(Icons.add_shopping_cart, 'New Sale',   const Color(0xFF0D9488), () => context.go('/dashboard/pos')),
+              _quickBtn(Icons.add_shopping_cart, 'New Sale',   EnhancedTheme.primaryTeal, () => context.go('/dashboard/pos')),
               const SizedBox(width: 10),
-              _quickBtn(Icons.inventory_2,        'Inventory',  const Color(0xFF3B82F6), () => context.go('/dashboard/inventory')),
+              _quickBtn(Icons.inventory_2,        'Inventory',  EnhancedTheme.infoBlue, () => context.go('/dashboard/inventory')),
               const SizedBox(width: 10),
-              _quickBtn(Icons.people,             'Customers',  const Color(0xFF8B5CF6), () => context.go('/dashboard/customers')),
+              _quickBtn(Icons.people,             'Customers',  EnhancedTheme.accentPurple, () => context.go('/dashboard/customers')),
               const SizedBox(width: 10),
               _quickBtn(Icons.more_horiz_rounded,  'More',       context.subLabelColor,   _showMoreSheet),
             ]),
@@ -190,7 +190,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                          color: const Color(0xFF0D9488).withValues(alpha:0.12),
+                          color: EnhancedTheme.primaryTeal.withValues(alpha:0.12),
                           borderRadius: BorderRadius.circular(10)),
                       child: const Icon(Icons.medication_rounded, color: Color(0xFF0D9488), size: 16),
                     ),
@@ -223,7 +223,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                 }
                 return Column(children: report.lowStockItems.take(4).map((s) {
                   final pct = s.stock / (s.lowStockThreshold > 0 ? s.lowStockThreshold : 1);
-                  final c   = pct < 0.3 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
+                  final c   = pct < 0.3 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber;
                   return _glassRow(child: Row(children: [
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -326,10 +326,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         final pendingTransfers = (data['pendingTransfers'] as List?) ?? [];
 
         final wsStats = [
-          DashboardCard(title: "Today's Revenue", value: _fmt(todayRevenue), subtitle: 'Wholesale',       icon: Icons.monetization_on, color: const Color(0xFF10B981)),
+          DashboardCard(title: "Today's Revenue", value: _fmt(todayRevenue), subtitle: 'Wholesale',       icon: Icons.monetization_on, color: EnhancedTheme.successGreen),
           DashboardCard(title: 'Total Sales',     value: '$totalSales',      subtitle: 'All time',        icon: Icons.receipt_long,    color: EnhancedTheme.infoBlue),
-          DashboardCard(title: 'WS Customers',    value: '$wsCustomers',     subtitle: 'Wholesale clients', icon: Icons.people,        color: const Color(0xFF8B5CF6)),
-          DashboardCard(title: 'Outstanding Debt',value: _fmt(outstandingDebt), subtitle: 'Total owed',   icon: Icons.money_off,       color: const Color(0xFFEF4444)),
+          DashboardCard(title: 'WS Customers',    value: '$wsCustomers',     subtitle: 'Wholesale clients', icon: Icons.people,        color: EnhancedTheme.accentPurple),
+          DashboardCard(title: 'Outstanding Debt',value: _fmt(outstandingDebt), subtitle: 'Total owed',   icon: Icons.money_off,       color: EnhancedTheme.errorRed),
         ];
 
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -440,7 +440,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               final stock     = (s['stock']    as num?)?.toInt() ?? 0;
               final threshold = (s['threshold'] as num?)?.toInt() ?? 1;
               final pct = stock / (threshold > 0 ? threshold : 1);
-              final c   = pct < 0.3 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
+              final c   = pct < 0.3 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber;
               return _glassRow(child: Row(children: [
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -769,7 +769,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     return PopupMenuButton<String>(
       offset: const Offset(0, 52),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: const Color(0xFF1E293B),
+      color: EnhancedTheme.surfaceColor,
       onSelected: (val) {
         switch (val) {
           case 'settings':   context.go('/dashboard/settings');    break;
@@ -783,7 +783,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         PopupMenuItem(enabled: false, child: Row(children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: const Color(0xFF0D9488).withValues(alpha:0.2),
+            backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha:0.2),
             child: Text(role.isNotEmpty ? role[0].toUpperCase() : 'U',
                 style: const TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
           ),
@@ -801,17 +801,17 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         if (isWholesale)
           _menuItem('wholesale', Icons.store_outlined,         'Wholesale Dashboard'),
         const PopupMenuDivider(),
-        _menuItem('logout',    Icons.logout_rounded,          'Sign Out',  color: const Color(0xFFEF4444)),
+        _menuItem('logout',    Icons.logout_rounded,          'Sign Out',  color: EnhancedTheme.errorRed),
       ],
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFF0D9488), width: 2),
+          border: Border.all(color: EnhancedTheme.primaryTeal, width: 2),
         ),
         child: CircleAvatar(
           radius: 22,
-          backgroundColor: const Color(0xFF0D9488).withValues(alpha:0.15),
+          backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha:0.15),
           child: Text(
             role.isNotEmpty ? role[0].toUpperCase() : 'U',
             style: const TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold, fontSize: 18),
@@ -907,7 +907,7 @@ class _MoreFeaturesSheet extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: context.isDark
-                ? const Color(0xFF1E293B).withValues(alpha: 0.97)
+                ? EnhancedTheme.surfaceColor.withValues(alpha: 0.97)
                 : Colors.white.withValues(alpha: 0.97),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             border: Border(top: BorderSide(color: context.borderColor)),
@@ -963,9 +963,9 @@ class _MoreFeaturesSheet extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                  color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+                  border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.3)),
                 ),
                 child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 18),

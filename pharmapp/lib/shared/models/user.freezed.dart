@@ -30,6 +30,8 @@ mixin _$User {
   int get organizationId => throw _privateConstructorUsedError;
   String get organizationName => throw _privateConstructorUsedError;
   String get organizationSlug => throw _privateConstructorUsedError;
+  String get organizationAddress => throw _privateConstructorUsedError;
+  String get organizationPhone => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -50,7 +52,9 @@ abstract class $UserCopyWith<$Res> {
       bool isWholesaleOperator,
       int organizationId,
       String organizationName,
-      String organizationSlug});
+      String organizationSlug,
+      String organizationAddress,
+      String organizationPhone});
 }
 
 /// @nodoc
@@ -75,6 +79,8 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? organizationId = null,
     Object? organizationName = null,
     Object? organizationSlug = null,
+    Object? organizationAddress = null,
+    Object? organizationPhone = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -113,6 +119,14 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.organizationSlug
           : organizationSlug // ignore: cast_nullable_to_non_nullable
               as String,
+      organizationAddress: null == organizationAddress
+          ? _value.organizationAddress
+          : organizationAddress // ignore: cast_nullable_to_non_nullable
+              as String,
+      organizationPhone: null == organizationPhone
+          ? _value.organizationPhone
+          : organizationPhone // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 }
@@ -133,7 +147,9 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       bool isWholesaleOperator,
       int organizationId,
       String organizationName,
-      String organizationSlug});
+      String organizationSlug,
+      String organizationAddress,
+      String organizationPhone});
 }
 
 /// @nodoc
@@ -155,6 +171,8 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? organizationId = null,
     Object? organizationName = null,
     Object? organizationSlug = null,
+    Object? organizationAddress = null,
+    Object? organizationPhone = null,
   }) {
     return _then(_$UserImpl(
       id: null == id
@@ -193,6 +211,14 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.organizationSlug
           : organizationSlug // ignore: cast_nullable_to_non_nullable
               as String,
+      organizationAddress: null == organizationAddress
+          ? _value.organizationAddress
+          : organizationAddress // ignore: cast_nullable_to_non_nullable
+              as String,
+      organizationPhone: null == organizationPhone
+          ? _value.organizationPhone
+          : organizationPhone // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -209,7 +235,9 @@ class _$UserImpl implements _User {
       this.isWholesaleOperator = false,
       this.organizationId = 0,
       this.organizationName = '',
-      this.organizationSlug = ''});
+      this.organizationSlug = '',
+      this.organizationAddress = '',
+      this.organizationPhone = ''});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -238,10 +266,16 @@ class _$UserImpl implements _User {
   @override
   @JsonKey()
   final String organizationSlug;
+  @override
+  @JsonKey()
+  final String organizationAddress;
+  @override
+  @JsonKey()
+  final String organizationPhone;
 
   @override
   String toString() {
-    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, isWholesaleOperator: $isWholesaleOperator, organizationId: $organizationId, organizationName: $organizationName, organizationSlug: $organizationSlug)';
+    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, isWholesaleOperator: $isWholesaleOperator, organizationId: $organizationId, organizationName: $organizationName, organizationSlug: $organizationSlug, organizationAddress: $organizationAddress, organizationPhone: $organizationPhone)';
   }
 
   @override
@@ -264,14 +298,19 @@ class _$UserImpl implements _User {
             (identical(other.organizationName, organizationName) ||
                 other.organizationName == organizationName) &&
             (identical(other.organizationSlug, organizationSlug) ||
-                other.organizationSlug == organizationSlug));
+                other.organizationSlug == organizationSlug) &&
+            (identical(other.organizationAddress, organizationAddress) ||
+                other.organizationAddress == organizationAddress) &&
+            (identical(other.organizationPhone, organizationPhone) ||
+                other.organizationPhone == organizationPhone));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
       runtimeType, id, phoneNumber, role, isActive, username, isWholesaleOperator,
-      organizationId, organizationName, organizationSlug);
+      organizationId, organizationName, organizationSlug,
+      organizationAddress, organizationPhone);
 
   @JsonKey(ignore: true)
   @override
@@ -297,7 +336,9 @@ abstract class _User implements User {
       final bool isWholesaleOperator,
       final int organizationId,
       final String organizationName,
-      final String organizationSlug}) = _$UserImpl;
+      final String organizationSlug,
+      final String organizationAddress,
+      final String organizationPhone}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
@@ -319,6 +360,10 @@ abstract class _User implements User {
   String get organizationName;
   @override
   String get organizationSlug;
+  @override
+  String get organizationAddress;
+  @override
+  String get organizationPhone;
   @override
   @JsonKey(ignore: true)
   _$$UserImplCopyWith<_$UserImpl> get copyWith =>

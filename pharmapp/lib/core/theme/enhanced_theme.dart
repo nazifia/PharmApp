@@ -81,6 +81,31 @@ class EnhancedTheme {
         actionTextColor: accentCyan,
         contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
       ),
+      dividerTheme: DividerThemeData(
+        color: Colors.white.withValues(alpha: 0.08),
+        thickness: 1,
+        space: 1,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleTextStyle: GoogleFonts.outfit(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.transparent,
+        modalBackgroundColor: Colors.transparent,
+      ),
     );
   }
 
@@ -143,9 +168,34 @@ class EnhancedTheme {
         margin: const EdgeInsets.all(8),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: Colors.black.withValues(alpha:0.85),
+        backgroundColor: Colors.black.withValues(alpha: 0.85),
         actionTextColor: accentCyan,
         contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+      ),
+      dividerTheme: DividerThemeData(
+        color: Colors.black.withValues(alpha: 0.08),
+        thickness: 1,
+        space: 1,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleTextStyle: GoogleFonts.outfit(
+          color: primaryDark,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+        iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: GoogleFonts.inter(color: Colors.black87, fontSize: 13),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.transparent,
+        modalBackgroundColor: Colors.transparent,
       ),
     );
   }

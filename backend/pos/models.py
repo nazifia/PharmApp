@@ -106,9 +106,13 @@ class Sale(models.Model):
         super().save(*args, **kwargs)
 
     def to_api_dict(self):
+        org = self.organization
         return {
             "id": self.id,
             "receiptId": self.receipt_id,
+            "organizationName":    org.name    if org else "",
+            "organizationAddress": org.address if org else "",
+            "organizationPhone":   org.phone   if org else "",
             "customerId": self.customer_id,
             "customerName": self.customer.name
             if self.customer

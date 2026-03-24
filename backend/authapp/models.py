@@ -88,9 +88,11 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
             'role':                 self.role,
             'isActive':             self.is_active,
             'isWholesaleOperator':  self.is_wholesale_operator,
-            'organizationId':       org.id   if org else 0,
-            'organizationName':     org.name if org else '',
-            'organizationSlug':     org.slug if org else '',
+            'organizationId':       org.id      if org else 0,
+            'organizationName':     org.name    if org else '',
+            'organizationSlug':     org.slug    if org else '',
+            'organizationAddress':  org.address if org else '',
+            'organizationPhone':    org.phone   if org else '',
         }
 
     def __str__(self):

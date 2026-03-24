@@ -124,7 +124,8 @@ class PosApiClient {
       List<Map<String, dynamic>> items,
       {int? customerId,
       int? cashierId,
-      String paymentType = 'retail'}) async {
+      String paymentType = 'retail',
+      String? patientName}) async {
     if (_isLocal) {
       return LocalDb.instance.createPaymentRequest(items,
           customerId: customerId,
@@ -137,6 +138,8 @@ class PosApiClient {
         if (customerId != null) 'customer_id': customerId,
         if (cashierId != null) 'cashier_id': cashierId,
         'payment_type': paymentType,
+        if (patientName != null && patientName.isNotEmpty)
+          'patientName': patientName,
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {

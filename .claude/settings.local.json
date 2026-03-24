@@ -60,7 +60,13 @@
       "Bash(for dir:*)",
       "Bash(do echo:*)",
       "Read(//c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/features/**)",
-      "Bash(find /c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/backend/reports -name *.py)"
+      "Bash(find /c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/backend/reports -name *.py)",
+      "Bash(venv/scripts/pip install:*)",
+      "Bash(venv/scripts/python manage.py check)",
+      "Bash(venv/scripts/python manage.py migrate --check)",
+      "Bash(venv/scripts/python manage.py makemigrations authapp --name add_full_name_to_pharmuser)",
+      "Bash(venv/scripts/python manage.py migrate)",
+      "Bash(find C:UsersDellDesktopMY_PRODUCTSPharmApppharmapplib -name *payment* -type f)"
     ]
   }
 }

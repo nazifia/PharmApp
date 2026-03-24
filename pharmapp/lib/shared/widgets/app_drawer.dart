@@ -105,9 +105,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           isExpanded: _expanded.contains('customers'),
                           onToggle: () => _toggle('customers'),
                           children: [
-                            _SubNavItem(icon: Icons.list_rounded, label: 'Retail Customers', route: '/dashboard/customers', onTap: navigate),
-                            if (isWholesale)
-                              _SubNavItem(icon: Icons.store_rounded, label: 'Wholesale Customers', route: '/dashboard/customers', onTap: navigate),
+                            _SubNavItem(icon: Icons.list_rounded, label: 'Customer List', route: '/dashboard/customers', onTap: navigate),
                           ],
                         ),
 
@@ -118,8 +116,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           onToggle: () => _toggle('payments'),
                           children: [
                             _SubNavItem(icon: Icons.request_page_rounded, label: 'Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
-                            if (isWholesale)
-                              _SubNavItem(icon: Icons.request_page_rounded, label: 'WS Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
                           ],
                         ),
 
@@ -148,9 +144,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               _SubNavItem(icon: Icons.dashboard_rounded, label: 'WS Dashboard', route: '/wholesale-dashboard', onTap: navigate),
                               _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'WS POS', route: '/dashboard/wholesale-pos', onTap: navigate),
                               _SubNavItem(icon: Icons.receipt_long_rounded, label: 'WS Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
-                              _SubNavItem(icon: Icons.person_search_rounded, label: 'Sales by User', route: '/dashboard/wholesale-sales', onTap: navigate),
-                              _SubNavItem(icon: Icons.people_rounded, label: 'WS Customers', route: '/dashboard/customers', onTap: navigate),
-                              _SubNavItem(icon: Icons.request_page_rounded, label: 'WS Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
                               _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
                               _SubNavItem(icon: Icons.inventory_rounded, label: 'Adjust WS Stock', route: '/dashboard/inventory', onTap: navigate),
                               _SubNavItem(icon: Icons.warning_amber_rounded, label: 'Low Stock Alerts', route: '/dashboard/inventory', onTap: navigate),

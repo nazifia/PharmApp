@@ -95,6 +95,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final authState = ref.watch(authFlowProvider);
     final isLoading = authState == AuthFlowState.loggingIn || authState == AuthFlowState.registering;
 
+    // Show org info from last session (stored in shared_preferences via currentUserProvider)
+    final savedUser = ref.watch(currentUserProvider);
+    final orgName    = savedUser?.organizationName.isNotEmpty == true
+        ? savedUser!.organizationName : 'PharmApp';
+    final orgAddress = savedUser?.organizationAddress ?? '';
+    final orgPhone   = savedUser?.organizationPhone ?? '';
+
     return Scaffold(
       backgroundColor: _bg3,
       body: Stack(
@@ -141,12 +148,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 child: Column(
                   children: [
                     const SizedBox(height: 60),
-                    _buildLogo(),
+                    _buildLogo(orgName, orgAddress, orgPhone),
                     const SizedBox(height: 48),
                     _buildLoginCard(isLoading),
                     const SizedBox(height: 32),
                     Text(
-                      '© 2026 PharmApp  ·  Pharmacy Management System',
+                      '© 2026 $orgName  ·  Pharmacy Management System',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: _textHint.withValues(alpha: 0.8), fontSize: 11),
                     ),
@@ -161,7 +168,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  Widget _buildLogo() {
+  Widget _buildLogo(String orgName, String orgAddress, String orgPhone) {
     return Column(
       children: [
         Container(
@@ -192,15 +199,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               size: 52, color: EnhancedTheme.primaryTeal),
         ),
         const SizedBox(height: 16),
-        const Text('PharmApp',
-            style: TextStyle(
+        Text(orgName,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
                 color: _textDark,
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
                 letterSpacing: -0.5)),
         const SizedBox(height: 4),
-        const Text('Pharmacy Management System',
-            style: TextStyle(color: _textSub, fontSize: 13)),
+        if (orgAddress.isNotEmpty) ...[
+          Text(orgAddress,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _textSub, fontSize: 12)),
+          const SizedBox(height: 2),
+        ],
+        if (orgPhone.isNotEmpty) ...[
+          Text(orgPhone,
+              style: const TextStyle(color: _textSub, fontSize: 12)),
+          const SizedBox(height: 2),
+        ],
+        if (orgAddress.isEmpty && orgPhone.isEmpty)
+          const Text('Pharmacy Management System',
+              style: TextStyle(color: _textSub, fontSize: 13)),
       ],
     );
   }
