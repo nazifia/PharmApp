@@ -174,24 +174,24 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           ],
                         ),
 
-                        const SizedBox(height: 4),
-                        _SectionDivider(label: 'Reports & Analytics'),
+                        if (isAdmin) ...[
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Reports & Analytics'),
 
-                        // ══ REPORTS ═══════════════════════════════════════════
-                        _ExpandableSection(
-                          icon: Icons.analytics_rounded, label: 'Reports',
-                          isExpanded: _expanded.contains('reports'),
-                          onToggle: () => _toggle('reports'),
-                          children: [
-                            _SubNavItem(icon: Icons.show_chart_rounded, label: 'Sales Report', route: '/dashboard/reports/sales', onTap: navigate),
-                            _SubNavItem(icon: Icons.inventory_2_outlined, label: 'Inventory Report', route: '/dashboard/reports/inventory', onTap: navigate),
-                            _SubNavItem(icon: Icons.people_outline, label: 'Customer Report', route: '/dashboard/reports/customers', onTap: navigate),
-                            _SubNavItem(icon: Icons.trending_up_rounded, label: 'Profit Report', route: '/dashboard/reports/profit', onTap: navigate),
-                            _SubNavItem(icon: Icons.calendar_month_rounded, label: 'Monthly Report', route: '/dashboard/reports/monthly', onTap: navigate),
-                            if (isWholesale)
-                              _SubNavItem(icon: Icons.store_rounded, label: 'Wholesale Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
-                          ],
-                        ),
+                          // ══ REPORTS ═══════════════════════════════════════════
+                          _ExpandableSection(
+                            icon: Icons.analytics_rounded, label: 'Reports',
+                            isExpanded: _expanded.contains('reports'),
+                            onToggle: () => _toggle('reports'),
+                            children: [
+                              _SubNavItem(icon: Icons.show_chart_rounded, label: 'Sales Report', route: '/dashboard/reports/sales', onTap: navigate),
+                              _SubNavItem(icon: Icons.inventory_2_outlined, label: 'Inventory Report', route: '/dashboard/reports/inventory', onTap: navigate),
+                              _SubNavItem(icon: Icons.people_outline, label: 'Customer Report', route: '/dashboard/reports/customers', onTap: navigate),
+                              _SubNavItem(icon: Icons.trending_up_rounded, label: 'Profit Report', route: '/dashboard/reports/profit', onTap: navigate),
+                              _SubNavItem(icon: Icons.calendar_month_rounded, label: 'Monthly Report', route: '/dashboard/reports/monthly', onTap: navigate),
+                            ],
+                          ),
+                        ],
 
                         const SizedBox(height: 4),
                         _SectionDivider(label: 'Finance'),

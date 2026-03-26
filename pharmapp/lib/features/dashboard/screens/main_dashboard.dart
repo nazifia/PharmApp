@@ -689,6 +689,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   // ── Quick Access Panel ─────────────────────────────────────────────────────
 
   Widget _quickAccessPanel(bool wide) {
+    final user = ref.read(currentUserProvider);
+    final role = user?.role ?? '';
+    final isAdminUser = role == 'Admin' || role == 'Manager';
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -735,13 +738,15 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       [(Icons.shopping_cart_rounded, 'Retail', '/dashboard/pos'),
                        (Icons.store_rounded, 'Wholesale', '/dashboard/wholesale-pos')],
                     )),
-                    const SizedBox(width: 10),
-                    Expanded(child: _quickAccessCard(
-                      'Reports & Analytics', 'Business Insights',
-                      Icons.analytics_rounded, EnhancedTheme.accentCyan,
-                      [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
-                       (Icons.calendar_month_rounded, 'Monthly', '/dashboard/reports/profit')],
-                    )),
+                    if (isAdminUser) ...[
+                      const SizedBox(width: 10),
+                      Expanded(child: _quickAccessCard(
+                        'Reports & Analytics', 'Business Insights',
+                        Icons.analytics_rounded, EnhancedTheme.accentCyan,
+                        [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
+                         (Icons.calendar_month_rounded, 'Monthly', '/dashboard/reports/profit')],
+                      )),
+                    ],
                   ])
                 : Column(children: [
                     _quickAccessCard(
@@ -757,13 +762,15 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       [(Icons.shopping_cart_rounded, 'Retail', '/dashboard/pos'),
                        (Icons.store_rounded, 'Wholesale', '/dashboard/wholesale-pos')],
                     ),
-                    const SizedBox(height: 10),
-                    _quickAccessCard(
-                      'Reports & Analytics', 'Business Insights',
-                      Icons.analytics_rounded, EnhancedTheme.accentCyan,
-                      [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
-                       (Icons.calendar_month_rounded, 'Monthly', '/dashboard/reports/profit')],
-                    ),
+                    if (isAdminUser) ...[
+                      const SizedBox(height: 10),
+                      _quickAccessCard(
+                        'Reports & Analytics', 'Business Insights',
+                        Icons.analytics_rounded, EnhancedTheme.accentCyan,
+                        [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
+                         (Icons.calendar_month_rounded, 'Monthly', '/dashboard/reports/profit')],
+                      ),
+                    ],
                   ]),
           ]),
         ),
@@ -969,7 +976,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         ])),
         const PopupMenuDivider(),
         _menuItem('settings',  Icons.settings_outlined,       'Settings'),
-        _menuItem('reports',   Icons.bar_chart_outlined,      'Reports'),
+        if (isAdmin)
+          _menuItem('reports',   Icons.bar_chart_outlined,      'Reports'),
         if (isAdmin)
           _menuItem('admin',     Icons.admin_panel_settings_outlined, 'Admin Dashboard'),
         if (isWholesale)
@@ -1138,19 +1146,21 @@ class _MoreFeaturesSheet extends StatelessWidget {
             ]),
             const SizedBox(height: 20),
 
-            // Reports section
-            _sectionLabel(context, 'Reports'),
-            const SizedBox(height: 10),
-            Row(children: [
-              _featureCard(context, Icons.show_chart,          'Sales',      EnhancedTheme.successGreen, '/dashboard/reports/sales'),
-              const SizedBox(width: 10),
-              _featureCard(context, Icons.inventory_2_outlined, 'Inventory', EnhancedTheme.infoBlue,    '/dashboard/reports/inventory'),
-              const SizedBox(width: 10),
-              _featureCard(context, Icons.people_outline,       'Customers', EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
-              const SizedBox(width: 10),
-              _featureCard(context, Icons.trending_up,          'Profit',    EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
-            ]),
-            const SizedBox(height: 20),
+            if (isAdmin) ...[
+              // Reports section
+              _sectionLabel(context, 'Reports'),
+              const SizedBox(height: 10),
+              Row(children: [
+                _featureCard(context, Icons.show_chart,          'Sales',      EnhancedTheme.successGreen, '/dashboard/reports/sales'),
+                const SizedBox(width: 10),
+                _featureCard(context, Icons.inventory_2_outlined, 'Inventory', EnhancedTheme.infoBlue,    '/dashboard/reports/inventory'),
+                const SizedBox(width: 10),
+                _featureCard(context, Icons.people_outline,       'Customers', EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
+                const SizedBox(width: 10),
+                _featureCard(context, Icons.trending_up,          'Profit',    EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
+              ]),
+              const SizedBox(height: 20),
+            ],
 
             // Dashboards section
             _sectionLabel(context, 'Dashboards'),

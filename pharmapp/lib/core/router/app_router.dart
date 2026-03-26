@@ -60,6 +60,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (!isAuthenticated) return '/login';
+
+      // Reports are restricted to Admin and Manager only
+      final user = ref.read(currentUserProvider);
+      final role = user?.role ?? '';
+      final isAdminOrManager = role == 'Admin' || role == 'Manager';
+      if (loc.startsWith('/dashboard/reports') && !isAdminOrManager) {
+        return '/dashboard';
+      }
+
       return null;
     },
     routes: [
