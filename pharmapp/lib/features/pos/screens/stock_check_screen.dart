@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
@@ -131,9 +133,20 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
   }
 
   void _showSnack(String msg, Color color) {
+    final isError = color == EnhancedTheme.errorRed;
+    final isSuccess = color == EnhancedTheme.successGreen;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: color,
+      backgroundColor: color.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: Row(children: [
+        Icon(
+          isError ? Icons.error_rounded : isSuccess ? Icons.check_circle_rounded : Icons.info_rounded,
+          color: Colors.white, size: 20),
+        const SizedBox(width: 10),
+        Expanded(child: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+      ]),
     ));
   }
 
@@ -154,6 +167,15 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       case 'in_progress': return 'In Progress';
       case 'completed':   return 'Completed';
       default:            return status;
+    }
+  }
+
+  IconData _statusIcon(String status) {
+    switch (status) {
+      case 'pending':     return Icons.schedule_rounded;
+      case 'in_progress': return Icons.sync_rounded;
+      case 'completed':   return Icons.check_circle_rounded;
+      default:            return Icons.help_outline_rounded;
     }
   }
 
@@ -184,53 +206,127 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
             return name.contains(q);
           }).toList();
 
+    final statusCol = _statusColor(status);
+
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       body: Stack(children: [
         Container(decoration: context.bgGradient),
-        SafeArea(child: Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
-            child: Row(children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-                onPressed: () => setState(() { _selectedCheck = null; _detailItems = []; _detailSearch = ''; }),
-              ),
-              const SizedBox(width: 4),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Stock Check #$checkId', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
-                Text('$createdBy · $date', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-              ])),
-              _statusChip(status),
-            ]),
-          ),
-          const SizedBox(height: 8),
-
-          // Progress indicator
-          if (total > 0)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('Progress: $reconciled / $total items reconciled',
-                      style: TextStyle(color: context.subLabelColor, fontSize: 12)),
-                  Text('${(progress * 100).round()}%',
-                      style: const TextStyle(color: EnhancedTheme.primaryTeal,
-                          fontSize: 12, fontWeight: FontWeight.w700)),
-                ]),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: context.borderColor,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                        progress == 1.0 ? EnhancedTheme.successGreen : EnhancedTheme.primaryTeal),
-                    minHeight: 6,
-                  ),
-                ),
+        // Decorative blob
+        Positioned(
+          top: -80, left: -40,
+          child: Container(
+            width: 250, height: 250,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [
+                statusCol.withValues(alpha: 0.12),
+                Colors.transparent,
               ]),
             ),
+          ),
+        ),
+        SafeArea(child: Column(children: [
+          // Header
+          ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(4, 8, 16, 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  border: Border(bottom: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.08))),
+                ),
+                child: Row(children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
+                    onPressed: () => setState(() {
+                      _selectedCheck = null;
+                      _detailItems = [];
+                      _detailSearch = '';
+                    }),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Stock Check #$checkId',
+                        style: GoogleFonts.outfit(color: context.labelColor,
+                            fontSize: 18, fontWeight: FontWeight.w700)),
+                    Text('$createdBy · ${date.length > 10 ? date.substring(0, 10) : date}',
+                        style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 11)),
+                  ])),
+                  _statusChip(status),
+                ]),
+              ),
+            ),
+          ),
+
+          // Progress card
+          if (total > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          statusCol.withValues(alpha: 0.12),
+                          statusCol.withValues(alpha: 0.04),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: statusCol.withValues(alpha: 0.25)),
+                    ),
+                    child: Column(children: [
+                      Row(children: [
+                        Icon(_statusIcon(status), color: statusCol, size: 18),
+                        const SizedBox(width: 8),
+                        Text('Reconciliation Progress',
+                            style: GoogleFonts.outfit(color: context.labelColor,
+                                fontSize: 13, fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: statusCol.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${(progress * 100).round()}%',
+                            style: GoogleFonts.outfit(color: statusCol,
+                                fontSize: 12, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          backgroundColor: statusCol.withValues(alpha: 0.15),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              progress == 1.0 ? EnhancedTheme.successGreen : statusCol),
+                          minHeight: 8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        Text('$reconciled of $total items reconciled',
+                            style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 11)),
+                        Text('${total - reconciled} remaining',
+                            style: GoogleFonts.inter(color: context.hintColor, fontSize: 11)),
+                      ]),
+                    ]),
+                  ),
+                ),
+              ),
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0),
+
+          const SizedBox(height: 10),
 
           // Search bar
           if (_detailItems.isNotEmpty)
@@ -238,17 +334,25 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: TextField(
                 onChanged: (v) => setState(() => _detailSearch = v),
-                style: TextStyle(color: context.labelColor, fontSize: 13),
+                style: GoogleFonts.inter(color: context.labelColor, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Search items…',
-                  hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
-                  prefixIcon: Icon(Icons.search, color: context.hintColor, size: 20),
+                  hintStyle: GoogleFonts.inter(color: context.hintColor, fontSize: 13),
+                  prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
                   filled: true,
-                  fillColor: context.cardColor,
+                  fillColor: Colors.white.withValues(alpha: 0.06),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1))),
+                  focusedBorder: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(14)),
+                      borderSide: BorderSide(
+                          color: EnhancedTheme.primaryTeal, width: 1.5)),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
@@ -256,62 +360,68 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
           // Action buttons
           if (status == 'pending' || status == 'in_progress')
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Row(children: [
                 Expanded(child: ElevatedButton.icon(
                   onPressed: () => _showAddItemsSheet(checkId),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Items'),
+                  label: Text('Add Items',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EnhancedTheme.infoBlue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
                 )),
                 if (status == 'in_progress') ...[
                   const SizedBox(width: 10),
                   Expanded(child: ElevatedButton.icon(
                     onPressed: () => _approveCheck(checkId),
-                    icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-                    label: const Text('Approve'),
+                    icon: const Icon(Icons.verified_rounded, size: 18),
+                    label: Text('Approve',
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: EnhancedTheme.successGreen,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
                     ),
                   )),
                 ],
               ]),
             ),
-          if (status == 'pending' || status == 'in_progress') const SizedBox(height: 8),
 
           // Items list
           Expanded(child: _detailLoading
-              ? const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal))
+              ? const Center(child: CircularProgressIndicator(
+                  color: EnhancedTheme.primaryTeal))
               : filteredItems.isEmpty
                   ? _emptyState(Icons.inventory_2_outlined, 'No items found')
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       itemCount: filteredItems.length,
-                      itemBuilder: (_, i) => _detailItemCard(filteredItems[i], checkId, status),
+                      itemBuilder: (_, i) => _detailItemCard(
+                          filteredItems[i], checkId, status, i),
                     )),
         ])),
       ]),
     );
   }
 
-  Widget _detailItemCard(dynamic item, int checkId, String checkStatus) {
+  Widget _detailItemCard(dynamic item, int checkId, String checkStatus, int index) {
     final name = (item['itemName'] as String?) ?? (item['name'] as String?) ?? 'Unknown Item';
     final expected = (item['expectedQuantity'] as num?)?.toInt() ?? (item['expected'] as num?)?.toInt() ?? 0;
     final actual = (item['actualQuantity'] as num?)?.toInt() ?? (item['actual'] as num?)?.toInt();
     final itemStatus = (item['status'] as String?) ?? 'pending';
-    // item['id'] is the StockCheckItem PK used in the URL; item['itemId'] is the inventory Item FK
     final itemId = (item['id'] as num?)?.toInt() ?? 0;
     final discrepancy = actual != null ? actual - expected : null;
 
-    final _qtyController = TextEditingController(text: actual?.toString() ?? '');
+    final qtyController = TextEditingController(text: actual?.toString() ?? '');
 
     Color itemStatusColor;
     switch (itemStatus) {
@@ -320,135 +430,213 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       default:           itemStatusColor = EnhancedTheme.warningAmber;
     }
 
+    IconData itemStatusIcon;
+    switch (itemStatus) {
+      case 'matched':    itemStatusIcon = Icons.check_circle_rounded; break;
+      case 'discrepant': itemStatusIcon = Icons.error_rounded; break;
+      default:           itemStatusIcon = Icons.schedule_rounded;
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: context.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: context.borderColor),
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: itemStatus == 'pending'
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : itemStatusColor.withValues(alpha: 0.3),
+              ),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8, offset: const Offset(0, 2)),
+              ],
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(child: Text(name, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600))),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: itemStatusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(itemStatus, style: TextStyle(color: itemStatusColor, fontSize: 11, fontWeight: FontWeight.w600)),
+            child: Column(children: [
+              // Header bar
+              Container(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                decoration: BoxDecoration(
+                  color: itemStatusColor.withValues(alpha: 0.08),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                 ),
-              ]),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Expected', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                  const SizedBox(height: 4),
-                  Text('$expected', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-                ])),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Actual', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                  const SizedBox(height: 4),
-                  if (checkStatus == 'in_progress')
-                    SizedBox(
-                      height: 40,
-                      child: TextField(
-                        controller: _qtyController,
-                        keyboardType: TextInputType.number,
-                        style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          filled: true,
-                          fillColor: context.cardColor,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: context.borderColor),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: context.borderColor),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
-                            borderSide: BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5),
-                          ),
-                        ),
-                        onSubmitted: (val) {
-                          final q = int.tryParse(val);
-                          if (q != null) {
-                            final s = q == expected ? 'matched' : 'discrepant';
-                            _updateItem(checkId, itemId, q, s);
-                          }
-                        },
-                      ),
-                    )
-                  else
-                    Text('${actual ?? '—'}', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-                ])),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Discrepancy', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                  const SizedBox(height: 4),
-                  Text(
-                    discrepancy != null ? (discrepancy > 0 ? '+$discrepancy' : '$discrepancy') : '—',
-                    style: TextStyle(
-                      color: discrepancy == null
+                child: Row(children: [
+                  Icon(Icons.medication_rounded,
+                      color: itemStatusColor.withValues(alpha: 0.7), size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(name,
+                      style: GoogleFonts.outfit(color: context.labelColor,
+                          fontSize: 14, fontWeight: FontWeight.w600))),
+                  Icon(itemStatusIcon, color: itemStatusColor, size: 16),
+                  const SizedBox(width: 4),
+                  Text(itemStatus,
+                      style: GoogleFonts.outfit(color: itemStatusColor,
+                          fontSize: 11, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(children: [
+                  // Stats row
+                  Row(children: [
+                    Expanded(child: _statCell('Expected', '$expected',
+                        EnhancedTheme.infoBlue, Icons.inventory_rounded)),
+                    Container(width: 1, height: 48, color: Colors.white.withValues(alpha: 0.1)),
+                    Expanded(child: checkStatus == 'in_progress'
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text('Actual Count',
+                                  style: GoogleFonts.inter(color: context.subLabelColor,
+                                      fontSize: 10)),
+                              const SizedBox(height: 4),
+                              SizedBox(
+                                height: 36,
+                                child: TextField(
+                                  controller: qtyController,
+                                  keyboardType: TextInputType.number,
+                                  style: GoogleFonts.outfit(color: context.labelColor,
+                                      fontSize: 15, fontWeight: FontWeight.w700),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 8),
+                                    filled: true,
+                                    fillColor: Colors.white.withValues(alpha: 0.06),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                            color: Colors.white.withValues(alpha: 0.15))),
+                                    enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                            color: Colors.white.withValues(alpha: 0.15))),
+                                    focusedBorder: const OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                                        borderSide: BorderSide(
+                                            color: EnhancedTheme.primaryTeal, width: 1.5)),
+                                  ),
+                                  onSubmitted: (val) {
+                                    final q = int.tryParse(val);
+                                    if (q != null) {
+                                      final s = q == expected ? 'matched' : 'discrepant';
+                                      _updateItem(checkId, itemId, q, s);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ]),
+                          )
+                        : _statCell('Actual', '${actual ?? '—'}',
+                            actual == null ? context.hintColor : EnhancedTheme.primaryTeal,
+                            Icons.fact_check_rounded)),
+                    Container(width: 1, height: 48, color: Colors.white.withValues(alpha: 0.1)),
+                    Expanded(child: _statCell(
+                      'Discrepancy',
+                      discrepancy != null
+                          ? (discrepancy > 0 ? '+$discrepancy' : '$discrepancy')
+                          : '—',
+                      discrepancy == null
                           ? context.hintColor
                           : discrepancy > 0
                               ? EnhancedTheme.successGreen
                               : discrepancy < 0
                                   ? EnhancedTheme.errorRed
                                   : context.labelColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                      discrepancy == null
+                          ? Icons.remove_rounded
+                          : discrepancy > 0
+                              ? Icons.trending_up_rounded
+                              : discrepancy < 0
+                                  ? Icons.trending_down_rounded
+                                  : Icons.check_rounded,
+                    )),
+                  ]),
+
+                  if (checkStatus == 'in_progress') ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          final q = int.tryParse(qtyController.text);
+                          if (q != null) {
+                            final s = q == expected ? 'matched' : 'discrepant';
+                            _updateItem(checkId, itemId, q, s);
+                          }
+                        },
+                        icon: const Icon(Icons.save_rounded, size: 16),
+                        label: Text('Save Count',
+                            style: GoogleFonts.outfit(fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: EnhancedTheme.primaryTeal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          elevation: 0,
+                        ),
+                      ),
                     ),
-                  ),
-                ])),
-              ]),
-              if (checkStatus == 'in_progress') ...[
-                const SizedBox(height: 10),
-                SizedBox(width: double.infinity, child: ElevatedButton.icon(
-                  onPressed: () {
-                    final q = int.tryParse(_qtyController.text);
-                    if (q != null) {
-                      final s = q == expected ? 'matched' : 'discrepant';
-                      _updateItem(checkId, itemId, q, s);
-                    }
-                  },
-                  icon: const Icon(Icons.save_rounded, size: 16),
-                  label: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: EnhancedTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                )),
-              ],
+                  ],
+                ]),
+              ),
             ]),
           ),
         ),
       ),
+    )
+        .animate(delay: Duration(milliseconds: index * 40))
+        .fadeIn(duration: 300.ms)
+        .slideY(begin: 0.05, end: 0);
+  }
+
+  Widget _statCell(String label, String value, Color color, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(icon, color: color.withValues(alpha: 0.7), size: 12),
+          const SizedBox(width: 4),
+          Text(label,
+              style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 10)),
+        ]),
+        const SizedBox(height: 4),
+        Text(value,
+            style: GoogleFonts.outfit(color: color,
+                fontSize: 20, fontWeight: FontWeight.w800)),
+      ]),
     );
   }
 
   Widget _statusChip(String status) {
     final color = _statusColor(status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        gradient: LinearGradient(colors: [
+          color.withValues(alpha: 0.2),
+          color.withValues(alpha: 0.1),
+        ]),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
-      child: Text(_statusLabel(status), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(_statusIcon(status), color: color, size: 12),
+        const SizedBox(width: 4),
+        Text(_statusLabel(status),
+            style: GoogleFonts.outfit(color: color,
+                fontSize: 11, fontWeight: FontWeight.w700)),
+      ]),
     );
   }
 
@@ -457,29 +645,79 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
   Widget _buildList() {
     return Scaffold(
       backgroundColor: context.scaffoldBg,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _createCheck,
         backgroundColor: EnhancedTheme.primaryTeal,
         foregroundColor: Colors.white,
-        child: const Icon(Icons.add_rounded),
+        elevation: 4,
+        icon: const Icon(Icons.add_rounded),
+        label: Text('New Check',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
       ),
       body: Stack(children: [
         Container(decoration: context.bgGradient),
-        SafeArea(child: Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
-            child: Row(children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-                onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
-              ),
-              const SizedBox(width: 4),
-              Text('Stock Checks', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
-            ]),
+        // Decorative blob
+        Positioned(
+          top: -60, right: -40,
+          child: Container(
+            width: 200, height: 200,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [
+                EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                Colors.transparent,
+              ]),
+            ),
           ),
-          const SizedBox(height: 8),
+        ),
+        SafeArea(child: Column(children: [
+          // Header
+          ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(4, 8, 16, 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  border: Border(bottom: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.08))),
+                ),
+                child: Row(children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
+                    onPressed: () => context.canPop()
+                        ? context.pop()
+                        : context.go(AppShell.roleFallback(ref)),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Stock Checks',
+                        style: GoogleFonts.outfit(color: context.labelColor,
+                            fontSize: 20, fontWeight: FontWeight.w700)),
+                    Text('Inventory reconciliation',
+                        style: GoogleFonts.inter(color: context.subLabelColor,
+                            fontSize: 11)),
+                  ])),
+                  if (_checks.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+                      ),
+                      child: Text('${_checks.length} checks',
+                          style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
+                              fontSize: 11, fontWeight: FontWeight.w700)),
+                    ),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
           Expanded(child: _loading
-              ? const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal))
+              ? _buildSkeletonList()
               : _error != null
                   ? _errorState()
                   : _checks.isEmpty
@@ -488,9 +726,9 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                           color: EnhancedTheme.primaryTeal,
                           onRefresh: _loadChecks,
                           child: ListView.builder(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                             itemCount: _checks.length,
-                            itemBuilder: (_, i) => _checkCard(_checks[i]),
+                            itemBuilder: (_, i) => _checkCard(_checks[i], i),
                           ),
                         )),
         ])),
@@ -498,12 +736,24 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     );
   }
 
-  Widget _checkCard(dynamic check) {
+  Widget _buildSkeletonList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      itemCount: 5,
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: EnhancedTheme.loadingShimmer(height: 80, radius: 16),
+      ),
+    );
+  }
+
+  Widget _checkCard(dynamic check, int index) {
     final id = (check['id'] as num?)?.toInt() ?? 0;
     final status = (check['status'] as String?) ?? 'unknown';
     final createdBy = (check['createdBy'] as String?) ?? 'Unknown';
     final date = (check['createdAt'] as String?) ?? '';
-    final itemCount = (check['itemCount'] as num?)?.toInt() ?? (check['items'] as List?)?.length ?? 0;
+    final itemCount = (check['itemCount'] as num?)?.toInt() ??
+        (check['items'] as List?)?.length ?? 0;
     final color = _statusColor(status);
 
     return Padding(
@@ -511,67 +761,120 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       child: GestureDetector(
         onTap: () => _loadDetail(id),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: context.cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: context.borderColor),
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: color.withValues(alpha: 0.2)),
+                boxShadow: [
+                  BoxShadow(
+                      color: color.withValues(alpha: 0.06),
+                      blurRadius: 12, offset: const Offset(0, 4)),
+                ],
               ),
-              child: Row(children: [
+              child: Column(children: [
+                // Top accent strip
                 Container(
-                  width: 44, height: 44,
+                  height: 3,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.3)]),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                   ),
-                  child: Icon(Icons.fact_check_rounded, color: color, size: 22),
                 ),
-                const SizedBox(width: 14),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Text('Check #$id', style: TextStyle(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(children: [
+                    // Icon
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      width: 48, height: 48,
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            color.withValues(alpha: 0.25),
+                            color.withValues(alpha: 0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: color.withValues(alpha: 0.3)),
                       ),
-                      child: Text(_statusLabel(status), style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+                      child: Icon(Icons.fact_check_rounded, color: color, size: 22),
                     ),
+                    const SizedBox(width: 14),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Text('Check #$id',
+                            style: GoogleFonts.outfit(color: context.labelColor,
+                                fontSize: 15, fontWeight: FontWeight.w700)),
+                        const SizedBox(width: 8),
+                        _statusChip(status),
+                      ]),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        Icon(Icons.person_outline_rounded,
+                            color: context.hintColor, size: 12),
+                        const SizedBox(width: 4),
+                        Text(createdBy,
+                            style: GoogleFonts.inter(color: context.subLabelColor,
+                                fontSize: 11)),
+                        const SizedBox(width: 8),
+                        Icon(Icons.calendar_today_rounded,
+                            color: context.hintColor, size: 12),
+                        const SizedBox(width: 4),
+                        Text(date.length > 10 ? date.substring(0, 10) : date,
+                            style: GoogleFonts.inter(color: context.subLabelColor,
+                                fontSize: 11)),
+                      ]),
+                    ])),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text('$itemCount',
+                          style: GoogleFonts.outfit(color: color,
+                              fontSize: 22, fontWeight: FontWeight.w800)),
+                      Text('items',
+                          style: GoogleFonts.inter(color: context.hintColor,
+                              fontSize: 10)),
+                    ]),
+                    const SizedBox(width: 8),
+                    if (status == 'pending')
+                      GestureDetector(
+                        onTap: () => _confirmDelete(id),
+                        child: Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: EnhancedTheme.errorRed.withValues(alpha: 0.3)),
+                          ),
+                          child: const Icon(Icons.delete_outline_rounded,
+                              color: EnhancedTheme.errorRed, size: 18),
+                        ),
+                      )
+                    else
+                      Container(
+                        width: 28, height: 28,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.chevron_right_rounded,
+                            color: context.hintColor, size: 18),
+                      ),
                   ]),
-                  const SizedBox(height: 6),
-                  Text('$createdBy · $date', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
-                ])),
-                Column(children: [
-                  Text('$itemCount', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-                  Text('items', style: TextStyle(color: context.hintColor, fontSize: 11)),
-                ]),
-                const SizedBox(width: 8),
-                if (status == 'pending')
-                  GestureDetector(
-                    onTap: () => _confirmDelete(id),
-                    child: Container(
-                      width: 36, height: 36,
-                      decoration: BoxDecoration(
-                        color: EnhancedTheme.errorRed.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.delete_outline_rounded, color: EnhancedTheme.errorRed, size: 18),
-                    ),
-                  )
-                else
-                  Icon(Icons.chevron_right_rounded, color: context.hintColor, size: 22),
+                ),
               ]),
             ),
           ),
         ),
       ),
-    );
+    )
+        .animate(delay: Duration(milliseconds: index * 60))
+        .fadeIn(duration: 350.ms)
+        .slideX(begin: 0.04, end: 0);
   }
 
   void _confirmDelete(int id) {
@@ -580,14 +883,25 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: EnhancedTheme.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Delete Check?', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-        content: Text('This stock check will be permanently deleted.', style: TextStyle(color: context.subLabelColor)),
+        title: Text('Delete Check?',
+            style: GoogleFonts.outfit(color: context.labelColor,
+                fontSize: 18, fontWeight: FontWeight.w700)),
+        content: Text('This stock check will be permanently deleted.',
+            style: GoogleFonts.inter(color: context.subLabelColor)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.subLabelColor))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel',
+                style: GoogleFonts.outfit(color: context.subLabelColor)),
+          ),
           ElevatedButton(
             onPressed: () { Navigator.pop(ctx); _deleteCheck(id); },
-            style: ElevatedButton.styleFrom(backgroundColor: EnhancedTheme.errorRed, foregroundColor: Colors.white),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: EnhancedTheme.errorRed,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
+            child: Text('Delete', style: GoogleFonts.outfit()),
           ),
         ],
       ),
@@ -595,32 +909,64 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
   }
 
   Widget _emptyState(IconData icon, String message) {
-    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, color: context.hintColor, size: 64),
-      const SizedBox(height: 16),
-      Text(message, style: TextStyle(color: context.subLabelColor, fontSize: 16)),
-    ]));
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 90, height: 90,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(colors: [
+              EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+              Colors.transparent,
+            ]),
+          ),
+          child: Icon(icon, color: EnhancedTheme.primaryTeal.withValues(alpha: 0.6),
+              size: 44),
+        ),
+        const SizedBox(height: 16),
+        Text(message,
+            style: GoogleFonts.outfit(color: context.subLabelColor,
+                fontSize: 16, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 6),
+        Text('Tap + to get started',
+            style: GoogleFonts.inter(color: context.hintColor, fontSize: 13)),
+      ]),
+    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95));
   }
 
   Widget _errorState() {
-    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.error_outline_rounded, color: EnhancedTheme.errorRed, size: 48),
-      const SizedBox(height: 16),
-      Text('Something went wrong', style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
-      Text(_error ?? '', style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
-      const SizedBox(height: 20),
-      ElevatedButton.icon(
-        onPressed: _loadChecks,
-        icon: const Icon(Icons.refresh_rounded, size: 18),
-        label: const Text('Retry'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: EnhancedTheme.primaryTeal,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+          ),
+          child: const Icon(Icons.error_outline_rounded,
+              color: EnhancedTheme.errorRed, size: 40),
         ),
-      ),
-    ]));
+        const SizedBox(height: 16),
+        Text('Something went wrong',
+            style: GoogleFonts.outfit(color: context.labelColor,
+                fontSize: 16, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Text(_error ?? '',
+            style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 13),
+            textAlign: TextAlign.center),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          onPressed: _loadChecks,
+          icon: const Icon(Icons.refresh_rounded, size: 18),
+          label: Text('Retry', style: GoogleFonts.outfit()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: EnhancedTheme.primaryTeal,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ]),
+    ).animate().fadeIn(duration: 400.ms);
   }
 }
 
@@ -661,16 +1007,30 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
       widget.onItemAdded();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('${item.name} added to check'),
-          backgroundColor: EnhancedTheme.successGreen,
+          backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
           duration: const Duration(seconds: 1),
+          content: Row(children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('${item.name} added to check', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed: $e'),
-          backgroundColor: EnhancedTheme.errorRed,
+          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     } finally {
@@ -684,48 +1044,87 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
-      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 16),
+      padding: EdgeInsets.fromLTRB(
+          20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 16),
       decoration: BoxDecoration(
-        color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: context.isDark ? const Color(0xFF1A2535) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
       ),
       child: Column(children: [
+        // Handle
         Center(child: Container(
           width: 40, height: 4,
-          decoration: BoxDecoration(color: context.hintColor, borderRadius: BorderRadius.circular(2)),
+          decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(2)),
         )),
         const SizedBox(height: 16),
         Row(children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.add_circle_rounded,
+                color: EnhancedTheme.primaryTeal, size: 20),
+          ),
+          const SizedBox(width: 12),
           Expanded(child: Text('Add Items to Check',
-              style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700))),
-          IconButton(
-            icon: Icon(Icons.close_rounded, color: context.hintColor),
-            onPressed: () => Navigator.pop(context),
+              style: GoogleFonts.outfit(color: context.labelColor,
+                  fontSize: 18, fontWeight: FontWeight.w700))),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.close_rounded, color: context.hintColor, size: 18),
+            ),
           ),
         ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         TextField(
           controller: _searchCtrl,
           onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
-          style: TextStyle(color: context.labelColor, fontSize: 14),
+          style: GoogleFonts.inter(color: context.labelColor, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Search medications...',
-            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+            hintStyle: GoogleFonts.inter(color: context.hintColor, fontSize: 13),
             prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
             filled: true,
-            fillColor: context.cardColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.borderColor)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.borderColor)),
+            fillColor: Colors.white.withValues(alpha: 0.06),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
             focusedBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                borderRadius: BorderRadius.all(Radius.circular(14)),
+                borderSide:
+                    BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
         const SizedBox(height: 12),
         Expanded(child: inventoryAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
-          error: (e, _) => Center(child: Text('$e', style: TextStyle(color: context.subLabelColor))),
+          loading: () => ListView.builder(
+            itemCount: 6,
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: EnhancedTheme.loadingShimmer(height: 60, radius: 12),
+            ),
+          ),
+          error: (e, _) => Center(
+            child: Text('$e',
+                style: GoogleFonts.inter(color: context.subLabelColor)),
+          ),
           data: (items) {
             final filtered = items.where((it) {
               if (widget.alreadyAdded.contains(it.id)) return false;
@@ -735,11 +1134,23 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
             }).toList();
 
             if (filtered.isEmpty) {
-              return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.inventory_2_outlined, color: context.hintColor, size: 48),
-                const SizedBox(height: 12),
-                Text('No items found', style: TextStyle(color: context.subLabelColor, fontSize: 14)),
-              ]));
+              return Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(
+                    width: 64, height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+                    ),
+                    child: const Icon(Icons.inventory_2_outlined,
+                        color: EnhancedTheme.primaryTeal, size: 30),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('No items found',
+                      style: GoogleFonts.outfit(color: context.subLabelColor,
+                          fontSize: 14)),
+                ]),
+              );
             }
 
             return ListView.builder(
@@ -747,27 +1158,91 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
               itemBuilder: (_, i) {
                 final item = filtered[i];
                 final isAdding = _adding.contains(item.id);
-                return ListTile(
-                  leading: Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.medication_rounded, color: EnhancedTheme.primaryTeal, size: 20),
-                  ),
-                  title: Text(item.name, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
-                  subtitle: Text(
-                    '${item.brand} · Stock: ${item.stock}',
-                    style: TextStyle(color: context.hintColor, fontSize: 12),
-                  ),
-                  trailing: isAdding
-                      ? const SizedBox(width: 24, height: 24,
-                          child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2))
-                      : IconButton(
-                          icon: const Icon(Icons.add_circle_rounded, color: EnhancedTheme.primaryTeal, size: 28),
-                          onPressed: () => _addItem(item),
+                final stockColor = item.stock == 0
+                    ? EnhancedTheme.errorRed
+                    : item.stock <= item.lowStockThreshold
+                        ? EnhancedTheme.warningAmber
+                        : EnhancedTheme.successGreen;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1)),
                         ),
+                        child: Row(children: [
+                          Container(
+                            width: 40, height: 40,
+                            decoration: BoxDecoration(
+                              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.medication_rounded,
+                                color: EnhancedTheme.primaryTeal, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.name,
+                                  style: GoogleFonts.outfit(
+                                      color: context.labelColor,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 2),
+                              Row(children: [
+                                Text(item.brand,
+                                    style: GoogleFonts.inter(
+                                        color: context.hintColor, fontSize: 11)),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: stockColor.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('${item.stock} in stock',
+                                      style: GoogleFonts.inter(
+                                          color: stockColor, fontSize: 10,
+                                          fontWeight: FontWeight.w600)),
+                                ),
+                              ]),
+                            ],
+                          )),
+                          isAdding
+                              ? const SizedBox(
+                                  width: 28, height: 28,
+                                  child: CircularProgressIndicator(
+                                      color: EnhancedTheme.primaryTeal,
+                                      strokeWidth: 2.5))
+                              : GestureDetector(
+                                  onTap: () => _addItem(item),
+                                  child: Container(
+                                    width: 32, height: 32,
+                                    decoration: BoxDecoration(
+                                      color: EnhancedTheme.primaryTeal.withValues(
+                                          alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: EnhancedTheme.primaryTeal
+                                              .withValues(alpha: 0.4)),
+                                    ),
+                                    child: const Icon(Icons.add_rounded,
+                                        color: EnhancedTheme.primaryTeal, size: 18),
+                                  ),
+                                ),
+                        ]),
+                      ),
+                    ),
+                  ),
                 );
               },
             );

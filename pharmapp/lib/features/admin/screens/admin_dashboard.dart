@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -64,11 +66,11 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     String kpiVal(String val) => isLoading ? '—' : val;
 
     final kpis = [
-      {'label': 'Today\'s Revenue', 'value': kpiVal(_fmt(revenue)),   'sub': 'Retail + Wholesale',  'color': EnhancedTheme.successGreen, 'icon': Icons.trending_up_rounded},
-      {'label': 'Top Items Today',  'value': kpiVal('$topItemCount'), 'sub': 'Distinct items sold',  'color': EnhancedTheme.primaryTeal,  'icon': Icons.receipt_long_rounded},
-      {'label': 'Low Stock Items',  'value': kpiVal('$lowStock'),     'sub': 'Need reorder',         'color': EnhancedTheme.warningAmber, 'icon': Icons.warning_amber_rounded},
-      {'label': 'Customers',        'value': kpiVal('$customers'),    'sub': 'Total registered',     'color': EnhancedTheme.accentCyan,   'icon': Icons.people_rounded},
-      {'label': 'Outstanding Debt', 'value': kpiVal(_fmt(debt)),      'sub': 'Total customer debt',  'color': EnhancedTheme.errorRed,     'icon': Icons.money_off_rounded},
+      {'label': 'Today\'s Revenue', 'value': kpiVal(_fmt(revenue)),    'sub': 'Retail + Wholesale',   'color': EnhancedTheme.successGreen, 'icon': Icons.trending_up_rounded},
+      {'label': 'Top Items Today',  'value': kpiVal('$topItemCount'),  'sub': 'Distinct items sold',   'color': EnhancedTheme.primaryTeal,  'icon': Icons.receipt_long_rounded},
+      {'label': 'Low Stock Items',  'value': kpiVal('$lowStock'),      'sub': 'Need reorder',          'color': EnhancedTheme.warningAmber, 'icon': Icons.warning_amber_rounded},
+      {'label': 'Customers',        'value': kpiVal('$customers'),     'sub': 'Total registered',      'color': EnhancedTheme.accentCyan,   'icon': Icons.people_rounded},
+      {'label': 'Outstanding Debt', 'value': kpiVal(_fmt(debt)),       'sub': 'Total customer debt',   'color': EnhancedTheme.errorRed,     'icon': Icons.money_off_rounded},
       {'label': 'Inventory Value',  'value': kpiVal(_fmt(stockValue)), 'sub': inventoryRpt.whenOrNull(data: (d) => '${d.totalItems} items') ?? 'Across all items', 'color': EnhancedTheme.accentPurple, 'icon': Icons.inventory_2_rounded},
     ];
 
@@ -88,90 +90,151 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
       body: Stack(
         children: [
           Container(decoration: context.bgGradient),
+
+          // Decorative background elements
+          Positioned(
+            top: -60, right: -60,
+            child: Container(
+              width: 240, height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: EnhancedTheme.errorRed.withValues(alpha: 0.06),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 120, left: -80,
+            child: Container(
+              width: 200, height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: EnhancedTheme.accentPurple.withValues(alpha: 0.04),
+              ),
+            ),
+          ),
+
           SafeArea(child: Column(children: [
             // ── Header ─────────────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Row(children: [
                 GestureDetector(
                   onTap: () => _scaffoldKey.currentState?.openDrawer(),
                   child: Container(
-                    padding: const EdgeInsets.all(8),
-                    margin: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.only(right: 14),
                     decoration: BoxDecoration(
                       color: context.cardColor,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: context.borderColor),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 8, offset: const Offset(0, 2)),
+                      ],
                     ),
-                    child: Icon(Icons.menu_rounded, color: context.iconOnBg, size: 20),
+                    child: Icon(Icons.menu_rounded, color: context.iconOnBg, size: 22),
                   ),
                 ),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Admin Dashboard',
-                      style: TextStyle(color: context.labelColor, fontSize: 22, fontWeight: FontWeight.w800)),
-                  Text('Welcome back, ${user?.role ?? 'Admin'}',
-                      style: TextStyle(color: context.hintColor, fontSize: 12)),
+                      style: GoogleFonts.outfit(
+                          color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w800)),
+                  Row(children: [
+                    Container(
+                      width: 6, height: 6,
+                      decoration: const BoxDecoration(
+                        color: EnhancedTheme.successGreen,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text('Welcome back, ${user?.role ?? 'Admin'}',
+                        style: TextStyle(color: context.hintColor, fontSize: 12)),
+                  ]),
                 ])),
-                // Profile dropdown menu
                 _buildProfileMenu(user?.role ?? 'Admin'),
               ]),
-            ),
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
 
             Expanded(child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
                 // ── KPI grid ─────────────────────────────────────────────────
+                _sectionHeader(context, 'Key Metrics', Icons.analytics_rounded, EnhancedTheme.primaryTeal),
+                const SizedBox(height: 12),
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
-                    mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.5),
+                    mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.4),
                   itemCount: kpis.length,
                   itemBuilder: (_, i) {
                     final k     = kpis[i];
                     final color = k['color'] as Color;
                     return ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                         child: Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: color.withValues(alpha: 0.25)),
+                            gradient: LinearGradient(
+                              colors: [
+                                color.withValues(alpha: 0.15),
+                                color.withValues(alpha: 0.04),
+                              ],
+                              begin: Alignment.topLeft, end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: color.withValues(alpha: 0.3)),
+                            boxShadow: [
+                              BoxShadow(color: color.withValues(alpha: 0.08),
+                                  blurRadius: 12, offset: const Offset(0, 4)),
+                            ],
                           ),
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Icon(k['icon'] as IconData, color: color, size: 20),
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(k['icon'] as IconData, color: color, size: 18),
+                            ),
                             const Spacer(),
                             isLoading
-                                ? SizedBox(height: 18, child: LinearProgressIndicator(
-                                    color: color, backgroundColor: color.withValues(alpha: 0.1)))
+                                ? SizedBox(height: 6, child: LinearProgressIndicator(
+                                    color: color,
+                                    backgroundColor: color.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(3)))
                                 : Text(k['value'] as String,
-                                    style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w800)),
-                            const SizedBox(height: 2),
+                                    style: GoogleFonts.outfit(
+                                        color: color, fontSize: 20, fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 3),
                             Text(k['label'] as String,
-                                style: TextStyle(color: context.labelColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                                style: TextStyle(
+                                    color: context.labelColor, fontSize: 11, fontWeight: FontWeight.w600)),
                             Text(k['sub'] as String,
-                                style: TextStyle(color: context.hintColor, fontSize: 10)),
+                                style: TextStyle(color: context.hintColor, fontSize: 9),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
                           ]),
                         ),
                       ),
-                    );
+                    ).animate(delay: (i * 50).ms).fadeIn(duration: 350.ms).scale(begin: const Offset(0.92, 0.92));
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // ── Quick actions ─────────────────────────────────────────────
-                Text('Quick Actions',
-                    style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 10),
+                _sectionHeader(context, 'Quick Actions', Icons.flash_on_rounded, EnhancedTheme.accentOrange),
+                const SizedBox(height: 12),
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.3),
+                    crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.2),
                   itemCount: quickActions.length,
                   itemBuilder: (_, i) {
                     final a     = quickActions[i];
@@ -186,53 +249,62 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                         }
                       },
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(18),
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: color.withValues(alpha: 0.2)),
+                              gradient: LinearGradient(
+                                colors: [color.withValues(alpha: 0.14), color.withValues(alpha: 0.04)],
+                                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: color.withValues(alpha: 0.25)),
                             ),
                             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              Icon(a['icon'] as IconData, color: color, size: 26),
-                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(a['icon'] as IconData, color: color, size: 24),
+                              ),
+                              const SizedBox(height: 8),
                               Text(a['label'] as String,
-                                  style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+                                  style: TextStyle(
+                                      color: color, fontSize: 11, fontWeight: FontWeight.w700)),
                             ]),
                           ),
                         ),
                       ),
-                    );
+                    ).animate(delay: (i * 40).ms).fadeIn(duration: 300.ms).slideY(begin: 0.15, end: 0);
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // ── Inventory by Store ────────────────────────────────────────
                 Row(children: [
-                  Expanded(child: Text('Inventory by Store',
-                      style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700))),
+                  Expanded(child: _sectionHeader(context, 'Inventory by Store',
+                      Icons.inventory_2_rounded, EnhancedTheme.infoBlue)),
                   TextButton.icon(
                     onPressed: () => context.push('/dashboard/inventory'),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 14, color: EnhancedTheme.infoBlue),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 13, color: EnhancedTheme.infoBlue),
                     label: const Text('Manage', style: TextStyle(color: EnhancedTheme.infoBlue, fontSize: 12)),
                   ),
                 ]),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Row(children: [
-                  Expanded(child: _invStoreCard(context, 'Retail', retailInvAsync, EnhancedTheme.primaryTeal)),
-                  const SizedBox(width: 10),
+                  Expanded(child: _invStoreCard(context, 'Retail',    retailInvAsync,    EnhancedTheme.primaryTeal)),
+                  const SizedBox(width: 12),
                   Expanded(child: _invStoreCard(context, 'Wholesale', wholesaleInvAsync, EnhancedTheme.accentCyan)),
                 ]),
-                // Low-stock alerts across both stores
                 ..._buildStockAlerts(context, retailInvAsync, wholesaleInvAsync),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // ── Top Items Today ───────────────────────────────────────────
-                Text('Top Items Today',
-                    style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 10),
+                _sectionHeader(context, 'Top Items Today', Icons.leaderboard_rounded, EnhancedTheme.successGreen),
+                const SizedBox(height: 12),
                 salesToday.when(
                   loading: () => const Center(child: Padding(
                     padding: EdgeInsets.all(24),
@@ -244,53 +316,85 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                       return _infoTile('No sales recorded today', context.hintColor);
                     }
                     return ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                         child: Container(
                           decoration: BoxDecoration(
                             color: context.cardColor,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: context.borderColor),
                           ),
                           child: Column(
-                            children: report.topItems.take(5).toList().asMap().entries.map((e) =>
-                              Column(children: [
+                            children: report.topItems.take(5).toList().asMap().entries.map((e) {
+                              final rank = e.key + 1;
+                              final rankColors = [
+                                EnhancedTheme.warningAmber,
+                                const Color(0xFFB0B0B0),
+                                const Color(0xFFCD7F32),
+                              ];
+                              final rankColor = rank <= 3 ? rankColors[rank - 1] : context.hintColor;
+                              return Column(children: [
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                                   child: Row(children: [
+                                    // Rank badge
                                     Container(
-                                      width: 36, height: 36,
+                                      width: 26, height: 26,
                                       decoration: BoxDecoration(
-                                          color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(10)),
+                                        color: rankColor.withValues(alpha: 0.15),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Text('$rank',
+                                            style: TextStyle(
+                                                color: rankColor, fontSize: 11, fontWeight: FontWeight.w800)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Container(
+                                      width: 38, height: 38,
+                                      decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
+                                              EnhancedTheme.accentCyan.withValues(alpha: 0.1),
+                                            ],
+                                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                                          ),
+                                          borderRadius: BorderRadius.circular(12)),
                                       child: const Icon(Icons.medication_rounded,
                                           color: EnhancedTheme.primaryTeal, size: 18),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                       Text(e.value.name,
-                                          style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600),
+                                          style: GoogleFonts.outfit(
+                                              color: context.labelColor,
+                                              fontSize: 13, fontWeight: FontWeight.w700),
                                           maxLines: 1, overflow: TextOverflow.ellipsis),
                                       Text('${e.value.qty} units sold',
                                           style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                                     ])),
-                                    Text(_fmt(e.value.revenue),
-                                        style: const TextStyle(color: EnhancedTheme.successGreen,
-                                            fontSize: 14, fontWeight: FontWeight.w700)),
+                                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                      Text(_fmt(e.value.revenue),
+                                          style: GoogleFonts.outfit(
+                                              color: EnhancedTheme.successGreen,
+                                              fontSize: 14, fontWeight: FontWeight.w800)),
+                                    ]),
                                   ]),
                                 ),
                                 if (e.key < report.topItems.length - 1 && e.key < 4)
-                                  Divider(height: 1, color: context.dividerColor),
-                              ])
-                            ).toList(),
+                                  Divider(height: 1, color: context.dividerColor, indent: 16, endIndent: 16),
+                              ]);
+                            }).toList(),
                           ),
                         ),
                       ),
                     );
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
               ]),
             )),
           ])),
@@ -299,12 +403,28 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     );
   }
 
+  Widget _sectionHeader(BuildContext context, String title, IconData icon, Color color) => Row(
+    children: [
+      Container(
+        width: 3, height: 18,
+        decoration: BoxDecoration(
+          color: color, borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Icon(icon, color: color, size: 16),
+      const SizedBox(width: 8),
+      Text(title, style: GoogleFonts.outfit(
+          color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+    ],
+  );
+
   // ── Profile dropdown ──────────────────────────────────────────────────────
 
   Widget _buildProfileMenu(String role) {
     return PopupMenuButton<String>(
       offset: const Offset(0, 52),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       color: const Color(0xFF1E293B),
       onSelected: (val) {
         switch (val) {
@@ -318,15 +438,22 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
       },
       itemBuilder: (_) => [
         PopupMenuItem(enabled: false, child: Row(children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.2),
-            child: const Icon(Icons.admin_panel_settings_rounded,
-                color: EnhancedTheme.errorRed, size: 18),
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: EnhancedTheme.errorRed, width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.15),
+              child: const Icon(Icons.admin_panel_settings_rounded,
+                  color: EnhancedTheme.errorRed, size: 18),
+            ),
           ),
           const SizedBox(width: 10),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(role, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            Text(role, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
             const Text('Admin Dashboard', style: TextStyle(color: Colors.white38, fontSize: 11)),
           ]),
         ])),
@@ -344,6 +471,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(color: EnhancedTheme.errorRed, width: 2),
+          boxShadow: [
+            BoxShadow(color: EnhancedTheme.errorRed.withValues(alpha: 0.25),
+                blurRadius: 8, offset: const Offset(0, 2)),
+          ],
         ),
         child: CircleAvatar(
           radius: 20,
@@ -369,15 +500,19 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
 
   Widget _infoTile(String msg, Color color) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
-        child: Text(msg, style: TextStyle(color: color, fontSize: 13)),
+        child: Row(children: [
+          Icon(Icons.info_outline_rounded, color: color, size: 18),
+          const SizedBox(width: 12),
+          Text(msg, style: TextStyle(color: color, fontSize: 13)),
+        ]),
       ),
     );
   }
@@ -385,21 +520,30 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   Widget _invStoreCard(BuildContext context, String storeLabel,
       AsyncValue<List<Item>> async, Color color) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.25)),
+            gradient: LinearGradient(
+              colors: [color.withValues(alpha: 0.12), color.withValues(alpha: 0.04)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(color: color.withValues(alpha: 0.08),
+                  blurRadius: 12, offset: const Offset(0, 4)),
+            ],
           ),
           child: async.when(
             loading: () => SizedBox(
-              height: 60,
+              height: 70,
               child: Center(child: LinearProgressIndicator(
-                  color: color, backgroundColor: color.withValues(alpha: 0.1))),
+                  color: color,
+                  backgroundColor: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(3))),
             ),
             error: (_, __) => Text('Error', style: TextStyle(color: context.hintColor, fontSize: 12)),
             data: (items) {
@@ -408,16 +552,23 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
               final outStock = items.where((i) => i.stock == 0).length;
               return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Icon(Icons.inventory_2_rounded, color: color, size: 16),
-                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.inventory_2_rounded, color: color, size: 14),
+                  ),
+                  const SizedBox(width: 8),
                   Text(storeLabel,
-                      style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
                 ]),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  _invStat(context, '$total',    'Items',    color),
-                  _invStat(context, '$lowStock', 'Low',      EnhancedTheme.warningAmber),
-                  _invStat(context, '$outStock', 'Out',      EnhancedTheme.errorRed),
+                  _invStat(context, '$total',    'Items',  color),
+                  _invStat(context, '$lowStock', 'Low',    EnhancedTheme.warningAmber),
+                  _invStat(context, '$outStock', 'Out',    EnhancedTheme.errorRed),
                 ]),
               ]);
             },
@@ -427,11 +578,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     );
   }
 
-  Widget _invStat(BuildContext context, String value, String label, Color color) =>
-      Column(children: [
-        Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
-        Text(label,  style: TextStyle(color: context.hintColor, fontSize: 10)),
-      ]);
+  Widget _invStat(BuildContext context, String value, String label, Color color) => Column(children: [
+    Text(value, style: GoogleFonts.outfit(color: color, fontSize: 18, fontWeight: FontWeight.w800)),
+    Text(label,  style: TextStyle(color: context.hintColor, fontSize: 10, fontWeight: FontWeight.w600)),
+  ]);
 
   List<Widget> _buildStockAlerts(BuildContext context,
       AsyncValue<List<Item>> retailAsync, AsyncValue<List<Item>> wholesaleAsync) {
@@ -447,47 +597,59 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     if (alerts.isEmpty) return [];
 
     return [
-      const SizedBox(height: 10),
+      const SizedBox(height: 12),
       ...alerts.take(4).map(
-        (a) => Container(
-          margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: (a.item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber)
-                .withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: (a.item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber)
-                  .withValues(alpha: 0.25)),
-          ),
-          child: Row(children: [
-            Icon(
-              a.item.stock == 0 ? Icons.remove_circle_rounded : Icons.warning_amber_rounded,
-              color: a.item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber,
-              size: 16),
-            const SizedBox(width: 10),
-            Expanded(child: Text(a.item.name,
-                style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w500),
-                maxLines: 1, overflow: TextOverflow.ellipsis)),
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: (a.store == 'Wholesale' ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal)
-                    .withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6)),
-              child: Text(a.store,
-                  style: TextStyle(
-                    color: a.store == 'Wholesale' ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal,
-                    fontSize: 9, fontWeight: FontWeight.w700)),
+        (a) {
+          final alertColor = a.item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: alertColor.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: alertColor.withValues(alpha: 0.3)),
             ),
-            Text(
-              a.item.stock == 0 ? 'Out of Stock' : '${a.item.stock} left',
-              style: TextStyle(
-                color: a.item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber,
-                fontSize: 12, fontWeight: FontWeight.w700)),
-          ]),
-        ),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: alertColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  a.item.stock == 0 ? Icons.remove_circle_rounded : Icons.warning_amber_rounded,
+                  color: alertColor, size: 14),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: Text(a.item.name,
+                  style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600),
+                  maxLines: 1, overflow: TextOverflow.ellipsis)),
+              Container(
+                margin: const EdgeInsets.only(right: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (a.store == 'Wholesale' ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8)),
+                child: Text(a.store,
+                    style: TextStyle(
+                      color: a.store == 'Wholesale' ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal,
+                      fontSize: 9, fontWeight: FontWeight.w800)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: alertColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  a.item.stock == 0 ? 'Out' : '${a.item.stock} left',
+                  style: TextStyle(
+                      color: alertColor, fontSize: 11, fontWeight: FontWeight.w800)),
+              ),
+            ]),
+          );
+        },
       ),
     ];
   }
@@ -510,24 +672,39 @@ class _AdminMoreSheet extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: context.isDark
-                ? const Color(0xFF1E293B).withValues(alpha: 0.97)
-                : Colors.white.withValues(alpha: 0.97),
+                ? const Color(0xFF1E293B).withValues(alpha: 0.98)
+                : Colors.white.withValues(alpha: 0.98),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: context.borderColor)),
+            border: Border(
+                top: BorderSide(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3), width: 1.5)),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          padding: const EdgeInsets.fromLTRB(24, 14, 24, 36),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2))),
+            Container(width: 44, height: 5,
+                decoration: BoxDecoration(
+                    color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(3))),
+            const SizedBox(height: 22),
+            Row(children: [
+              Container(
+                width: 3, height: 20,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
+                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text('More Features',
+                  style: GoogleFonts.outfit(
+                      color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w800)),
+            ]),
             const SizedBox(height: 20),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text('More Features', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-            ),
-            const SizedBox(height: 16),
 
-            _sectionLabel(context, 'Reports'),
-            const SizedBox(height: 8),
+            _sectionLabel(context, 'Reports', Icons.analytics_outlined, EnhancedTheme.successGreen),
+            const SizedBox(height: 10),
             Row(children: [
               _card(context, Icons.show_chart,           'Sales',      EnhancedTheme.successGreen, '/dashboard/reports/sales'),
               const SizedBox(width: 10),
@@ -537,10 +714,10 @@ class _AdminMoreSheet extends StatelessWidget {
               const SizedBox(width: 10),
               _card(context, Icons.trending_up,           'Profit',    EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
             ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
 
-            _sectionLabel(context, 'Navigation'),
-            const SizedBox(height: 8),
+            _sectionLabel(context, 'Navigate', Icons.navigation_outlined, EnhancedTheme.infoBlue),
+            const SizedBox(height: 10),
             Row(children: [
               _card(context, Icons.storefront_outlined,             'Retail',    EnhancedTheme.primaryTeal,  '/dashboard'),
               const SizedBox(width: 10),
@@ -550,22 +727,31 @@ class _AdminMoreSheet extends StatelessWidget {
               const SizedBox(width: 10),
               _card(context, Icons.settings_outlined,               'Settings',  context.subLabelColor,      '/admin-dashboard/settings'),
             ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             GestureDetector(
               onTap: onLogout,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+                  gradient: LinearGradient(
+                    colors: [
+                      EnhancedTheme.errorRed.withValues(alpha: 0.15),
+                      EnhancedTheme.errorRed.withValues(alpha: 0.05),
+                    ],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.4), width: 1.5),
                 ),
-                child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 18),
-                  SizedBox(width: 8),
-                  Text('Sign Out', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w600)),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.logout_rounded, color: EnhancedTheme.errorRed, size: 18),
+                  const SizedBox(width: 10),
+                  Text('Sign Out',
+                      style: GoogleFonts.outfit(
+                          color: EnhancedTheme.errorRed,
+                          fontWeight: FontWeight.w700, fontSize: 15)),
                 ]),
               ),
             ),
@@ -575,10 +761,14 @@ class _AdminMoreSheet extends StatelessWidget {
     );
   }
 
-  Widget _sectionLabel(BuildContext context, String label) => Align(
-    alignment: Alignment.centerLeft,
-    child: Text(label, style: TextStyle(color: context.subLabelColor, fontSize: 11,
-        fontWeight: FontWeight.w600, letterSpacing: 0.8)),
+  Widget _sectionLabel(BuildContext context, String label, IconData icon, Color color) => Row(
+    children: [
+      Icon(icon, color: color, size: 14),
+      const SizedBox(width: 6),
+      Text(label.toUpperCase(),
+          style: TextStyle(
+              color: color, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
+    ],
   );
 
   Widget _card(BuildContext context, IconData icon, String label, Color color, String route) {
@@ -586,16 +776,21 @@ class _AdminMoreSheet extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onNavigate(route),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 18),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
+            gradient: LinearGradient(
+              colors: [color.withValues(alpha: 0.14), color.withValues(alpha: 0.04)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.25)),
           ),
           child: Column(children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 6),
-            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(label, style: TextStyle(
+                color: color, fontSize: 10, fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center),
           ]),
         ),
       ),

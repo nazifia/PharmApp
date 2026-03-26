@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -78,7 +80,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
     final stockCtrl   = TextEditingController();
     final barcodeCtrl = TextEditingController();
     String form       = 'Tablet';
-    String store      = _currentStore; // pre-select current tab's store
+    String store      = _currentStore;
     final formKey     = GlobalKey<FormState>();
 
     showModalBottomSheet(
@@ -91,18 +93,36 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
           child: Container(
             decoration: BoxDecoration(
               color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             child: Form(
               key: formKey,
               child: SingleChildScrollView(
                 child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Center(child: Container(width: 40, height: 4,
-                      decoration: BoxDecoration(color: context.dividerColor, borderRadius: BorderRadius.circular(2)))),
-                  const SizedBox(height: 16),
-                  Text('Add New Item', style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+                  // Handle
+                  Center(child: Container(
+                    width: 44, height: 4,
+                    decoration: BoxDecoration(
+                      color: context.dividerColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  )),
                   const SizedBox(height: 20),
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.add_circle_rounded, color: EnhancedTheme.primaryTeal, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text('Add New Item',
+                        style: GoogleFonts.outfit(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 24),
                   _sheetField(nameCtrl, 'Item Name *', validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
                   const SizedBox(height: 12),
                   _sheetField(brandCtrl, 'Brand / Manufacturer'),
@@ -118,21 +138,30 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                   ]),
                   const SizedBox(height: 12),
                   _sheetField(barcodeCtrl, 'Barcode (optional)', keyboardType: TextInputType.number),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   // Store selector
-                  Text('Store', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
+                  Text('Store', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5)),
+                  const SizedBox(height: 10),
                   Row(children: ['retail', 'wholesale'].map((s) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: 10),
                     child: GestureDetector(
                       onTap: () => setModal(() => store = s),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                         decoration: BoxDecoration(
-                          color: store == s ? EnhancedTheme.primaryTeal : ctx.cardColor,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: store == s ? EnhancedTheme.primaryTeal : ctx.borderColor),
+                          gradient: store == s
+                              ? const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan])
+                              : null,
+                          color: store == s ? null : ctx.cardColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: store == s ? EnhancedTheme.primaryTeal : ctx.borderColor,
+                              width: store == s ? 0 : 1),
+                          boxShadow: store == s
+                              ? [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3))]
+                              : null,
                         ),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           Icon(store == s ? Icons.check_circle_rounded : Icons.circle_outlined,
@@ -140,35 +169,41 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                           const SizedBox(width: 6),
                           Text(s == 'retail' ? 'Retail' : 'Wholesale',
                               style: TextStyle(color: store == s ? Colors.white : ctx.subLabelColor,
-                                  fontSize: 13, fontWeight: FontWeight.w600)),
+                                  fontSize: 13, fontWeight: FontWeight.w700)),
                         ]),
                       ),
                     ),
                   )).toList()),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   // Dosage form chips
-                  Text('Dosage Form', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
+                  Text('Dosage Form', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5)),
+                  const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(children: ['Tablet','Capsule','Syrup','Inhaler','Sachet','Injection'].map((f) =>
                       Padding(
-                        padding: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.only(right: 8),
                         child: GestureDetector(
                           onTap: () => setModal(() => form = f),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                             decoration: BoxDecoration(
-                              color: form == f ? EnhancedTheme.primaryTeal : ctx.cardColor,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: form == f ? EnhancedTheme.primaryTeal : ctx.borderColor),
+                              color: form == f ? EnhancedTheme.accentPurple.withValues(alpha: 0.15) : ctx.cardColor,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: form == f ? EnhancedTheme.accentPurple : ctx.borderColor,
+                                  width: form == f ? 1.5 : 1),
                             ),
-                            child: Text(f, style: TextStyle(color: form == f ? Colors.white : ctx.subLabelColor, fontSize: 11)),
+                            child: Text(f, style: TextStyle(
+                                color: form == f ? EnhancedTheme.accentPurple : ctx.subLabelColor,
+                                fontSize: 12, fontWeight: FontWeight.w600)),
                           ),
                         ),
                       )).toList()),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   SizedBox(width: double.infinity, child: ElevatedButton(
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
@@ -185,25 +220,55 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                       Navigator.of(ctx).pop();
                       try {
                         await ref.read(inventoryApiProvider).createItem(data);
-                        // Invalidate both providers so lists stay fresh
                         ref.invalidate(retailInventoryProvider);
                         ref.invalidate(wholesaleInventoryProvider);
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('${data['name']} added to ${(data['store'] as String).toUpperCase()}'),
-                          backgroundColor: EnhancedTheme.successGreen));
+                          backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          margin: const EdgeInsets.all(16),
+                          content: Row(children: [
+                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text('${data['name']} added to ${(data['store'] as String).toUpperCase()}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                          ]),
+                        ));
                       } catch (e) {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('Error: $e'), backgroundColor: EnhancedTheme.errorRed));
+                          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          margin: const EdgeInsets.all(16),
+                          content: Row(children: [
+                            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                          ]),
+                        ));
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ).copyWith(
+                      backgroundColor: WidgetStateProperty.all(Colors.transparent),
                     ),
-                    child: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Container(
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text('Add Item',
+                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                      ),
+                    ),
                   )),
                 ]),
               ),
@@ -223,13 +288,13 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
         labelText: label,
         labelStyle: TextStyle(color: context.hintColor, fontSize: 13),
         filled: true, fillColor: context.cardColor,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(color: context.borderColor)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 2)),
         errorStyle: const TextStyle(color: EnhancedTheme.errorRed),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
     );
   }
@@ -241,42 +306,65 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddItemSheet(context),
         backgroundColor: EnhancedTheme.primaryTeal,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Item'),
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(Icons.add_rounded),
+        label: Text('Add Item', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
       ),
       body: Stack(children: [
         Container(decoration: context.bgGradient),
+        // Decorative blobs
+        Positioned(top: -60, right: -40,
+          child: Container(width: 200, height: 200,
+            decoration: BoxDecoration(shape: BoxShape.circle,
+              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.07)))),
+        Positioned(top: 80, left: -50,
+          child: Container(width: 150, height: 150,
+            decoration: BoxDecoration(shape: BoxShape.circle,
+              color: EnhancedTheme.accentCyan.withValues(alpha: 0.05)))),
         SafeArea(child: Column(children: [
           _buildHeader(context),
           _buildSearchBar(),
           _buildFilterChips(),
-          // ── Store tabs ──────────────────────────────────────────────
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            decoration: BoxDecoration(
-              color: context.cardColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: context.borderColor),
-            ),
-            child: TabBar(
-              controller: _tabCtrl,
-              onTap: (_) => setState(() {}),
-              indicator: BoxDecoration(
-                color: EnhancedTheme.primaryTeal,
-                borderRadius: BorderRadius.circular(10),
+          // Store tabs
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: context.cardColor.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: context.borderColor),
+                  ),
+                  child: TabBar(
+                    controller: _tabCtrl,
+                    onTap: (_) => setState(() {}),
+                    indicator: BoxDecoration(
+                      gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4),
+                          blurRadius: 8, offset: const Offset(0, 2))],
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: context.subLabelColor,
+                    labelStyle: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w700),
+                    unselectedLabelStyle: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w500),
+                    padding: const EdgeInsets.all(4),
+                    tabs: const [
+                      Tab(text: 'Retail'),
+                      Tab(text: 'Wholesale'),
+                    ],
+                  ),
+                ),
               ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              labelColor: Colors.white,
-              unselectedLabelColor: context.subLabelColor,
-              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              tabs: const [
-                Tab(text: 'Retail'),
-                Tab(text: 'Wholesale'),
-              ],
             ),
           ),
-          // ── Tab content ─────────────────────────────────────────────
+          // Tab content
           Expanded(
             child: TabBarView(
               controller: _tabCtrl,
@@ -302,73 +390,123 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   }
 
   Widget _buildHeader(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
+    padding: const EdgeInsets.fromLTRB(8, 12, 12, 0),
     child: Row(children: [
-      IconButton(
-        icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-        onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
+      Container(
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.borderColor),
+        ),
+        child: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: context.labelColor, size: 20),
+          onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
+        ),
       ),
-      const SizedBox(width: 4),
-      Expanded(child: Text('Inventory',
-          style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600))),
-      IconButton(
-        icon: Icon(_isGrid ? Icons.list_rounded : Icons.grid_view_rounded, color: context.subLabelColor),
-        onPressed: () => setState(() => _isGrid = !_isGrid),
+      const SizedBox(width: 14),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Inventory',
+            style: GoogleFonts.outfit(color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w800)),
+        Text('Manage your stock', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+      ])),
+      Container(
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.borderColor),
+        ),
+        child: IconButton(
+          icon: Icon(_isGrid ? Icons.list_rounded : Icons.grid_view_rounded,
+              color: _isGrid ? EnhancedTheme.primaryTeal : context.subLabelColor, size: 20),
+          onPressed: () => setState(() => _isGrid = !_isGrid),
+        ),
       ),
-      IconButton(
-        icon: Icon(Icons.refresh_rounded, color: context.subLabelColor),
-        onPressed: _invalidateCurrent,
+      const SizedBox(width: 8),
+      Container(
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.borderColor),
+        ),
+        child: IconButton(
+          icon: Icon(Icons.refresh_rounded, color: context.subLabelColor, size: 20),
+          onPressed: _invalidateCurrent,
+        ),
       ),
     ]),
-  );
+  ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0);
 
   Widget _buildSearchBar() => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-    child: ClipRRect(borderRadius: BorderRadius.circular(14),
+    padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+    child: ClipRRect(borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: TextField(
           controller: _searchCtrl,
           onChanged: (_) => setState(() {}),
-          style: TextStyle(color: context.labelColor),
+          style: TextStyle(color: context.labelColor, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Search by name, brand, barcode…',
             hintStyle: TextStyle(color: context.hintColor, fontSize: 14),
-            prefixIcon: Icon(Icons.search, color: context.hintColor),
-            filled: true, fillColor: context.cardColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+            prefixIcon: Icon(Icons.search_rounded, color: EnhancedTheme.primaryTeal, size: 20),
+            suffixIcon: _searchCtrl.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.clear_rounded, color: context.hintColor, size: 18),
+                    onPressed: () => setState(() => _searchCtrl.clear()),
+                  )
+                : null,
+            filled: true,
+            fillColor: context.cardColor,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: context.borderColor)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
           ),
         ),
       ),
     ),
-  );
+  ).animate().fadeIn(duration: 400.ms, delay: 100.ms);
 
   Widget _buildFilterChips() => SizedBox(
     height: 40,
     child: ListView.separated(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: _filters.length,
       separatorBuilder: (_, __) => const SizedBox(width: 8),
       itemBuilder: (_, i) {
-        final f = _filters[i]; final active = f == _filter;
+        final f = _filters[i];
+        final active = f == _filter;
+        Color chipColor = EnhancedTheme.primaryTeal;
+        if (f == 'Low Stock') chipColor = EnhancedTheme.warningAmber;
+        if (f == 'Expired') chipColor = EnhancedTheme.errorRed;
+        if (f == 'Expiring Soon') chipColor = EnhancedTheme.accentOrange;
         return GestureDetector(
           onTap: () => setState(() => _filter = f),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
             decoration: BoxDecoration(
-              color: active ? EnhancedTheme.primaryTeal : context.cardColor,
+              color: active ? chipColor.withValues(alpha: 0.15) : context.cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: active ? EnhancedTheme.primaryTeal : context.borderColor),
+              border: Border.all(
+                  color: active ? chipColor : context.borderColor,
+                  width: active ? 1.5 : 1),
+              boxShadow: active
+                  ? [BoxShadow(color: chipColor.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))]
+                  : null,
             ),
-            child: Text(f, style: TextStyle(color: active ? Colors.white : context.subLabelColor,
-                fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Text(f, style: TextStyle(
+                color: active ? chipColor : context.subLabelColor,
+                fontSize: 12, fontWeight: FontWeight.w700)),
           ),
         );
       },
     ),
-  );
+  ).animate().fadeIn(duration: 400.ms, delay: 150.ms);
 }
 
 // ── Per-store inventory view ──────────────────────────────────────────────────
@@ -388,23 +526,43 @@ class _StoreInventoryView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Always use store-filtered provider; search is applied client-side via applyFilter
     final inventoryAsync = store == 'retail'
         ? ref.watch(retailInventoryProvider)
         : ref.watch(wholesaleInventoryProvider);
 
     return inventoryAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
+      loading: () => ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+        children: List.generate(5, (i) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: EnhancedTheme.loadingShimmer(height: 76, radius: 18),
+        )),
+      ),
       error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
-        const SizedBox(height: 12),
-        Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
-        const SizedBox(height: 12),
-        TextButton(
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed, size: 40),
+        ),
+        const SizedBox(height: 16),
+        Text('Connection failed', style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 12), textAlign: TextAlign.center),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
           onPressed: () => store == 'retail'
               ? ref.invalidate(retailInventoryProvider)
               : ref.invalidate(wholesaleInventoryProvider),
-          child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal)),
+          icon: const Icon(Icons.refresh_rounded, size: 16),
+          label: const Text('Retry'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: EnhancedTheme.primaryTeal,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         ),
       ])),
       data: (items) {
@@ -416,18 +574,24 @@ class _StoreInventoryView extends ConsumerWidget {
   }
 
   Widget _buildList(BuildContext context, List<Item> items) => ListView.builder(
-    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+    padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
     itemCount: items.length,
-    itemBuilder: (_, i) => _itemCard(context, items[i]),
+    itemBuilder: (_, i) => _itemCard(context, items[i])
+        .animate(delay: (i * 40).ms)
+        .fadeIn(duration: 350.ms)
+        .slideX(begin: 0.05, end: 0),
   );
 
   Widget _buildGrid(BuildContext context, List<Item> items) => GridView.builder(
-    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+    padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
-      mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.0),
+      mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: 0.95),
     itemCount: items.length,
-    itemBuilder: (_, i) => _itemGridCard(context, items[i]),
+    itemBuilder: (_, i) => _itemGridCard(context, items[i])
+        .animate(delay: (i * 40).ms)
+        .fadeIn(duration: 350.ms)
+        .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1)),
   );
 
   Color _stockColor(Item item) {
@@ -440,37 +604,67 @@ class _StoreInventoryView extends ConsumerWidget {
     final sc  = _stockColor(item);
     final now = DateTime.now();
     final exp = item.expiryDate != null && item.expiryDate!.isBefore(now);
+
     return GestureDetector(
       onTap: () => context.push('/item/${item.id}'),
-      child: ClipRRect(borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: exp ? context.cardColor.withValues(alpha: 0.5) : context.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: exp ? EnhancedTheme.errorRed.withValues(alpha: 0.3) : context.borderColor),
-            ),
-            child: Row(children: [
-              Container(width: 46, height: 46,
-                decoration: BoxDecoration(color: sc.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-                child: Icon(Icons.medication_rounded, color: sc, size: 22)),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(item.name, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text('${item.brand}  ·  ${item.dosageForm}',
-                    style: TextStyle(color: context.subLabelColor, fontSize: 12)),
-              ])),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text('₦${item.price.toStringAsFixed(0)}',
-                    style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 15, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                _stockBadge(item),
-                if (exp) Padding(padding: const EdgeInsets.only(top: 4), child: _chip('Expired', EnhancedTheme.errorRed)),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: ClipRRect(borderRadius: BorderRadius.circular(18),
+          child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: exp ? EnhancedTheme.errorRed.withValues(alpha: 0.06) : context.cardColor,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                    color: exp
+                        ? EnhancedTheme.errorRed.withValues(alpha: 0.3)
+                        : sc == EnhancedTheme.errorRed
+                            ? EnhancedTheme.errorRed.withValues(alpha: 0.2)
+                            : context.borderColor,
+                    width: exp ? 1.5 : 1),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
+              ),
+              child: Row(children: [
+                // Icon with gradient bg
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [sc.withValues(alpha: 0.15), sc.withValues(alpha: 0.05)],
+                      begin: Alignment.topLeft, end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: sc.withValues(alpha: 0.2)),
+                  ),
+                  child: Icon(Icons.medication_rounded, color: sc, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(item.name,
+                      style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 3),
+                  Text('${item.brand}  ·  ${item.dosageForm}',
+                      style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    _stockBadge(item),
+                    if (exp) ...[const SizedBox(width: 6), _chip('Expired', EnhancedTheme.errorRed)],
+                  ]),
+                ])),
+                const SizedBox(width: 12),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text('₦${item.price.toStringAsFixed(0)}',
+                      style: GoogleFonts.outfit(
+                          color: EnhancedTheme.primaryTeal, fontSize: 16, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Icon(Icons.chevron_right_rounded, color: context.hintColor, size: 18),
+                ]),
               ]),
-            ]),
+            ),
           ),
         ),
       ),
@@ -481,29 +675,41 @@ class _StoreInventoryView extends ConsumerWidget {
     final sc = _stockColor(item);
     return GestureDetector(
       onTap: () => context.push('/item/${item.id}'),
-      child: ClipRRect(borderRadius: BorderRadius.circular(16),
+      child: ClipRRect(borderRadius: BorderRadius.circular(18),
         child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: context.cardColor, borderRadius: BorderRadius.circular(16),
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: context.borderColor),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))],
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(width: 40, height: 40,
-                decoration: BoxDecoration(color: sc.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.medication_rounded, color: sc, size: 20)),
-              const SizedBox(height: 10),
-              Text(item.name, style: TextStyle(color: context.labelColor, fontSize: 12, fontWeight: FontWeight.w600),
-                  maxLines: 2, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 4),
-              Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-              const Spacer(),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text('₦${item.price.toStringAsFixed(0)}',
-                    style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w700)),
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [sc.withValues(alpha: 0.15), sc.withValues(alpha: 0.05)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: sc.withValues(alpha: 0.2)),
+                  ),
+                  child: Icon(Icons.medication_rounded, color: sc, size: 22),
+                ),
                 _stockBadge(item),
               ]),
+              const SizedBox(height: 10),
+              Text(item.name,
+                  style: GoogleFonts.outfit(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700),
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 3),
+              Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+              const Spacer(),
+              Text('₦${item.price.toStringAsFixed(0)}',
+                  style: GoogleFonts.outfit(
+                      color: EnhancedTheme.primaryTeal, fontSize: 14, fontWeight: FontWeight.w800)),
             ]),
           ),
         ),
@@ -513,20 +719,43 @@ class _StoreInventoryView extends ConsumerWidget {
 
   Widget _stockBadge(Item item) {
     final c = _stockColor(item);
-    final label = item.stock == 0 ? 'Out' : item.stock <= item.lowStockThreshold ? '${item.stock} low' : '${item.stock}';
+    final label = item.stock == 0
+        ? 'Out of Stock'
+        : item.stock <= item.lowStockThreshold
+            ? '${item.stock} low'
+            : '${item.stock} in stock';
     return _chip(label, c);
   }
 
   Widget _chip(String label, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-    decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: color.withValues(alpha: 0.25)),
+    ),
     child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
   );
 
-  Widget _emptyState(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-    Icon(Icons.inventory_2_outlined, color: context.hintColor, size: 64),
-    const SizedBox(height: 16),
-    Text('No ${store == 'retail' ? 'retail' : 'wholesale'} items found',
-        style: TextStyle(color: context.subLabelColor, fontSize: 16)),
-  ]));
+  Widget _emptyState(BuildContext context) => Center(
+    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          gradient: RadialGradient(colors: [
+            EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+            EnhancedTheme.primaryTeal.withValues(alpha: 0.03),
+          ]),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.inventory_2_outlined, color: EnhancedTheme.primaryTeal, size: 56),
+      ),
+      const SizedBox(height: 20),
+      Text('No items found',
+          style: GoogleFonts.outfit(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 6),
+      Text('No ${store == 'retail' ? 'retail' : 'wholesale'} items match your search',
+          style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+    ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
+  );
 }

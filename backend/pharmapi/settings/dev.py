@@ -19,11 +19,19 @@ DATABASES = {
     }
 }
 
-# ── CORS: allow all local origins in dev ─────────────────────────────────────
+# ── CORS: allow all origins in dev ───────────────────────────────────────────
+# Flutter web uses a dynamic port (flutter run -d chrome picks any free port),
+# so we can't enumerate every origin. Allow all in dev — safe since DEBUG=True.
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "http://10.0.2.2:8080",
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+# The Flutter client sends a custom `skip_auth` header on public endpoints.
+# It must be explicitly listed or the browser CORS preflight blocks the POST.
+from corsheaders.defaults import default_headers  # noqa: E402
+
+CORS_ALLOW_HEADERS = [
+    *default_headers,
+    "skip_auth",
+    "skip-auth",
 ]

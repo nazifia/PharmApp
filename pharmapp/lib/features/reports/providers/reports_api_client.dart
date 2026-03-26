@@ -95,9 +95,20 @@ class ReportsApiClient {
   bool get _isLocal => _dio == null;
 
   Future<SalesReportData> fetchSalesReport(String period) async {
-    if (_isLocal) return SalesReportData.fromJson(await LocalDb.instance.getSalesReport(period));
+    // Period may be 'today'|'week'|'month'|'year' or 'custom:yyyy-MM-dd:yyyy-MM-dd'
+    final isCustom = period.startsWith('custom:');
+    if (_isLocal) {
+      return SalesReportData.fromJson(await LocalDb.instance.getSalesReport(period));
+    }
     try {
-      final res = await _dio!.get('/reports/sales/', queryParameters: {'period': period});
+      final Map<String, dynamic> queryParams;
+      if (isCustom) {
+        final parts = period.split(':');
+        queryParams = {'from': parts[1], 'to': parts[2]};
+      } else {
+        queryParams = {'period': period};
+      }
+      final res = await _dio!.get('/reports/sales/', queryParameters: queryParams);
       return SalesReportData.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load sales report');

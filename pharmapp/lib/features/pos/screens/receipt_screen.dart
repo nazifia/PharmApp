@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -41,7 +42,7 @@ class ReceiptSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 4),
             child: Container(
-              width: 40, height: 4,
+              width: 44, height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2)),
@@ -49,25 +50,45 @@ class ReceiptSheet extends StatelessWidget {
           ),
           // ── action bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 16, 0),
+            padding: const EdgeInsets.fromLTRB(20, 6, 16, 0),
             child: Row(children: [
-              Icon(Icons.receipt_long_rounded, color: EnhancedTheme.primaryTeal, size: 22),
-              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4), blurRadius: 8)],
+                ),
+                child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text('Receipt',
-                    style: TextStyle(
-                        color: context.labelColor,
-                        fontSize: 18, fontWeight: FontWeight.w700)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Receipt',
+                      style: TextStyle(
+                          color: context.labelColor,
+                          fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text('Tap print to share or print',
+                      style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                ]),
               ),
               _PrintButton(saleData: saleData),
               const SizedBox(width: 4),
-              IconButton(
-                icon: Icon(Icons.close_rounded, color: context.hintColor),
-                onPressed: () => Navigator.of(context).pop(),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.close_rounded, color: context.hintColor),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
             ]),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Expanded(
             child: SingleChildScrollView(
               controller: controller,
@@ -115,19 +136,30 @@ class _PrintButtonState extends State<_PrintButton> {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: _printing ? null : _print,
-      icon: _printing
-          ? const SizedBox(
-              width: 14, height: 14,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: EnhancedTheme.primaryTeal))
-          : const Icon(Icons.print_rounded, size: 16,
-              color: EnhancedTheme.primaryTeal),
-      label: Text(_printing ? 'Printing…' : 'Print',
-          style: const TextStyle(
-              color: EnhancedTheme.primaryTeal, fontSize: 13,
-              fontWeight: FontWeight.w600)),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        gradient: _printing ? null : const LinearGradient(
+          colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
+        ),
+        color: _printing ? Colors.white.withValues(alpha: 0.06) : null,
+        borderRadius: BorderRadius.circular(12),
+        border: _printing ? Border.all(color: Colors.white.withValues(alpha: 0.1)) : null,
+      ),
+      child: TextButton.icon(
+        onPressed: _printing ? null : _print,
+        icon: _printing
+            ? const SizedBox(
+                width: 14, height: 14,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: EnhancedTheme.primaryTeal))
+            : const Icon(Icons.print_rounded, size: 16, color: Colors.white),
+        label: Text(_printing ? 'Printing…' : 'Print',
+            style: TextStyle(
+                color: _printing ? EnhancedTheme.primaryTeal : Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700)),
+      ),
     );
   }
 }
@@ -198,7 +230,7 @@ class _ReceiptCard extends StatelessWidget {
       Color? valueColor, double fontSize = 13, bool bold = false
     }) =>
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
+          padding: const EdgeInsets.symmetric(vertical: 3.5),
           child: Row(children: [
             Expanded(child: Text(label,
                 style: TextStyle(color: textMid, fontSize: fontSize))),
@@ -211,71 +243,82 @@ class _ReceiptCard extends StatelessWidget {
         );
 
     Widget dashedLine() => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(children: List.generate(40, (i) => Expanded(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(children: List.generate(48, (i) => Expanded(
         child: Container(
-          height: 1,
+          height: 1.5,
           color: i.isEven ? dash : Colors.transparent,
         ),
       ))),
     );
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                blurRadius: 24, offset: const Offset(0, 8)),
+                blurRadius: 28, offset: const Offset(0, 8)),
             ],
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
 
             // ── HEADER ───────────────────────────────────────────────────────
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                    EnhancedTheme.primaryTeal.withValues(alpha: 0.18),
                     EnhancedTheme.accentCyan.withValues(alpha: 0.08),
+                    Colors.transparent,
                   ],
                   begin: Alignment.topLeft, end: Alignment.bottomRight,
                 ),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
               ),
               child: Column(children: [
-                Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
-                      begin: Alignment.topLeft, end: Alignment.bottomRight,
+                // Success icon with glow
+                Stack(alignment: Alignment.center, children: [
+                  Container(
+                    width: 70, height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.08),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4),
-                        blurRadius: 12),
-                    ],
                   ),
-                  child: const Icon(Icons.local_pharmacy_rounded,
-                      color: Colors.white, size: 26),
-                ),
-                const SizedBox(height: 10),
+                  Container(
+                    width: 56, height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: EnhancedTheme.primaryTeal.withValues(alpha: 0.45),
+                          blurRadius: 16, spreadRadius: 2),
+                      ],
+                    ),
+                    child: const Icon(Icons.local_pharmacy_rounded,
+                        color: Colors.white, size: 28),
+                  ),
+                ]).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
+                const SizedBox(height: 12),
                 Text(orgName,
                     style: TextStyle(
-                        color: textDark, fontSize: 20,
-                        fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                        color: textDark, fontSize: 22,
+                        fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                 if (orgAddress.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(orgAddress,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: textMid, fontSize: 11)),
@@ -285,20 +328,36 @@ class _ReceiptCard extends StatelessWidget {
                   Text(orgPhone,
                       style: TextStyle(color: textHint, fontSize: 10)),
                 ],
+                const SizedBox(height: 12),
+                // Success chip
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: EnhancedTheme.successGreen.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.check_circle_rounded, color: EnhancedTheme.successGreen, size: 14),
+                    const SizedBox(width: 6),
+                    const Text('Sale Completed', style: TextStyle(
+                        color: EnhancedTheme.successGreen, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ]),
+                ).animate().fadeIn(duration: 500.ms, delay: 200.ms),
               ]),
             ),
 
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 22),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
                 // ── RECEIPT META ────────────────────────────────────────────
                 dashedLine(),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: EnhancedTheme.primaryTeal.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                         color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15)),
                   ),
@@ -327,11 +386,22 @@ class _ReceiptCard extends StatelessWidget {
 
                 // ── ITEMS ────────────────────────────────────────────────────
                 dashedLine(),
-                Text('ITEMS',
-                    style: TextStyle(
-                        color: textHint, fontSize: 10,
-                        fontWeight: FontWeight.w700, letterSpacing: 1.5)),
-                const SizedBox(height: 8),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: const Icon(Icons.inventory_2_rounded, color: EnhancedTheme.accentCyan, size: 12),
+                  ),
+                  const SizedBox(width: 7),
+                  Text('ITEMS',
+                      style: TextStyle(
+                          color: textHint, fontSize: 10,
+                          fontWeight: FontWeight.w800, letterSpacing: 1.8)),
+                ]),
+                const SizedBox(height: 10),
                 ...items.map((i) {
                   final item = i as Map<String, dynamic>;
                   final name = item['name'] as String? ?? '';
@@ -349,126 +419,188 @@ class _ReceiptCard extends StatelessWidget {
                                 if (unit.isNotEmpty)  unit]
                       .join(' · ');
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(11),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: divider),
+                    ),
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                      Text(name,
-                          style: TextStyle(
-                              color: textDark, fontSize: 13,
-                              fontWeight: FontWeight.w600)),
+                      Row(children: [
+                        Expanded(child: Text(name,
+                            style: TextStyle(
+                                color: textDark, fontSize: 13,
+                                fontWeight: FontWeight.w700))),
+                        Text('₦${_fmt(sub)}',
+                            style: TextStyle(
+                                color: textDark, fontSize: 14,
+                                fontWeight: FontWeight.w800)),
+                      ]),
                       if (desc.isNotEmpty)
                         Text(desc,
                             style: TextStyle(color: textHint, fontSize: 10)),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
                       Row(children: [
-                        Text('$qty × ₦${_fmt(price)}',
-                            style: TextStyle(color: textMid, fontSize: 12)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.accentCyan.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text('×$qty',
+                              style: const TextStyle(color: EnhancedTheme.accentCyan,
+                                  fontSize: 11, fontWeight: FontWeight.w700)),
+                        ),
+                        const SizedBox(width: 6),
+                        Text('₦${_fmt(price)} each',
+                            style: TextStyle(color: textMid, fontSize: 11)),
                         if (disc > 0) ...[
-                          const SizedBox(width: 6),
-                          Text('-₦${_fmt(disc)}',
-                              style: const TextStyle(
-                                  color: EnhancedTheme.warningAmber,
-                                  fontSize: 11)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: EnhancedTheme.warningAmber.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Text('-₦${_fmt(disc)} off',
+                                style: const TextStyle(
+                                    color: EnhancedTheme.warningAmber,
+                                    fontSize: 10, fontWeight: FontWeight.w600)),
+                          ),
                         ],
-                        const Spacer(),
-                        Text('₦${_fmt(sub)}',
-                            style: TextStyle(
-                                color: textDark, fontSize: 13,
-                                fontWeight: FontWeight.w700)),
                       ]),
-                      Divider(color: divider, height: 10),
                     ]),
                   );
                 }),
 
                 // ── TOTALS ───────────────────────────────────────────────────
-                if (discountTotal > 0)
-                  row('Subtotal',
-                      '₦${_fmt(total + discountTotal)}',
-                      valueColor: textMid),
-                if (discountTotal > 0)
+                if (discountTotal > 0) ...[
+                  row('Subtotal', '₦${_fmt(total + discountTotal)}', valueColor: textMid),
                   row('Discount', '-₦${_fmt(discountTotal)}',
                       valueColor: EnhancedTheme.warningAmber),
+                ],
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        EnhancedTheme.primaryTeal.withValues(alpha: 0.18),
-                        EnhancedTheme.accentCyan.withValues(alpha: 0.10),
+                        EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
+                        EnhancedTheme.accentCyan.withValues(alpha: 0.12),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                        blurRadius: 12, offset: const Offset(0, 4)),
+                    ],
                   ),
                   child: Row(children: [
-                    Text('TOTAL',
-                        style: TextStyle(
-                            color: textDark, fontSize: 16,
-                            fontWeight: FontWeight.w800)),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('TOTAL AMOUNT',
+                          style: TextStyle(
+                              color: textHint, fontSize: 10,
+                              fontWeight: FontWeight.w700, letterSpacing: 1.5)),
+                      const SizedBox(height: 2),
+                      Text(isWholesale ? 'Wholesale Sale' : 'Retail Sale',
+                          style: TextStyle(color: textMid, fontSize: 11)),
+                    ]),
                     const Spacer(),
                     Text('₦${_fmt(total)}',
                         style: const TextStyle(
                             color: EnhancedTheme.primaryTeal,
-                            fontSize: 22, fontWeight: FontWeight.w900)),
+                            fontSize: 26, fontWeight: FontWeight.w900)),
                   ]),
                 ),
 
                 // ── PAYMENT BREAKDOWN ─────────────────────────────────────────
                 dashedLine(),
-                Text('PAYMENT',
-                    style: TextStyle(
-                        color: textHint, fontSize: 10,
-                        fontWeight: FontWeight.w700, letterSpacing: 1.5)),
-                const SizedBox(height: 8),
-                ...payments.entries.map((e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(children: [
-                    _PayMethodIcon(e.key),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(_methodLabel(e.key),
-                        style: TextStyle(color: textMid, fontSize: 13))),
-                    Text('₦${_fmt(e.value)}',
-                        style: TextStyle(
-                            color: textDark, fontSize: 13,
-                            fontWeight: FontWeight.w600)),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: const Icon(Icons.payments_rounded, color: EnhancedTheme.successGreen, size: 12),
+                  ),
+                  const SizedBox(width: 7),
+                  Text('PAYMENT',
+                      style: TextStyle(
+                          color: textHint, fontSize: 10,
+                          fontWeight: FontWeight.w800, letterSpacing: 1.8)),
+                ]),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Column(children: [
+                    ...payments.entries.map((e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: divider),
+                        ),
+                        child: Row(children: [
+                          _PayMethodIcon(e.key),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(_methodLabel(e.key),
+                              style: TextStyle(color: textMid, fontSize: 13, fontWeight: FontWeight.w500))),
+                          Text('₦${_fmt(e.value)}',
+                              style: TextStyle(
+                                  color: textDark, fontSize: 14,
+                                  fontWeight: FontWeight.w700)),
+                        ]),
+                      ),
+                    )),
                   ]),
-                )),
+                ),
 
                 // ── FOOTER ───────────────────────────────────────────────────
                 dashedLine(),
                 Center(
                   child: Column(children: [
-                    Icon(Icons.favorite_rounded,
-                        color: EnhancedTheme.errorRed.withValues(alpha: 0.7),
-                        size: 16),
-                    const SizedBox(height: 6),
+                    const Icon(Icons.favorite_rounded,
+                        color: EnhancedTheme.errorRed, size: 18),
+                    const SizedBox(height: 8),
                     Text('Thank you for your purchase!',
                         style: TextStyle(
-                            color: textMid, fontSize: 13,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
+                            color: textDark, fontSize: 14,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 3),
                     Text('Keep this receipt for returns & reference.',
                         style: TextStyle(color: textHint, fontSize: 10)),
-                    const SizedBox(height: 8),
-                    Text(receiptId,
-                        style: TextStyle(
-                            color: textHint, fontSize: 9,
-                            fontFamily: 'monospace')),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: divider),
+                      ),
+                      child: Text(receiptId,
+                          style: TextStyle(
+                              color: textHint, fontSize: 9,
+                              fontFamily: 'monospace', letterSpacing: 1)),
+                    ),
                   ]),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
               ]),
             ),
           ]),
         ),
       ),
-    );
+    ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.05);
   }
 
   static String _fmt(double v) {
@@ -514,24 +646,29 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color color;
     String label;
+    IconData icon;
     switch (status.toLowerCase()) {
       case 'returned':
-        color = EnhancedTheme.errorRed; label = 'Returned'; break;
+        color = EnhancedTheme.errorRed; label = 'Returned'; icon = Icons.undo_rounded; break;
       case 'partial_return':
       case 'partially_returned':
-        color = EnhancedTheme.warningAmber; label = 'Partial Return'; break;
+        color = EnhancedTheme.warningAmber; label = 'Partial Return'; icon = Icons.remove_circle_outline_rounded; break;
       default:
-        color = EnhancedTheme.successGreen; label = 'Completed'; break;
+        color = EnhancedTheme.successGreen; label = 'Completed'; icon = Icons.check_circle_rounded; break;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(label,
-          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: color, size: 11),
+        const SizedBox(width: 4),
+        Text(label,
+            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+      ]),
     );
   }
 }
@@ -555,12 +692,13 @@ class _PayMethodIcon extends StatelessWidget {
       default:        color = EnhancedTheme.successGreen; icon = Icons.payments_rounded; break;
     }
     return Container(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
-      child: Icon(icon, color: color, size: 14),
+      child: Icon(icon, color: color, size: 15),
     );
   }
 }
@@ -582,7 +720,6 @@ Future<Uint8List> _buildPdf(
       data['buyerName'] as String? ?? 'Walk-in';
   final cashierName    = data['cashierName']  as String? ?? '';
   final dispenserName  = data['dispenserName'] as String? ?? '';
-  final paymentMethod = data['paymentMethod'] as String? ?? 'cash';
   final isWholesale   = data['isWholesale'] as bool? ?? false;
   final status        = data['status'] as String? ?? 'completed';
   final total         = (data['totalAmount'] as num?)?.toDouble() ?? 0;

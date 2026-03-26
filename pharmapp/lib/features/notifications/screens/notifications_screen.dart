@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -37,21 +39,21 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   IconData _typeIcon(String? type) {
     switch (type) {
-      case 'low_stock':      return Icons.warning_amber_rounded;
-      case 'out_of_stock':   return Icons.error_outline_rounded;
-      case 'expiry_alert':   return Icons.timer_outlined;
-      case 'payment_request': return Icons.payment_rounded;
-      default:               return Icons.info_outline_rounded;
+      case 'low_stock':       return Icons.inventory_2_rounded;
+      case 'out_of_stock':    return Icons.remove_shopping_cart_rounded;
+      case 'expiry_alert':    return Icons.hourglass_bottom_rounded;
+      case 'payment_request': return Icons.payments_rounded;
+      default:                return Icons.campaign_rounded;
     }
   }
 
   Color _typeColor(String? type) {
     switch (type) {
-      case 'low_stock':      return EnhancedTheme.warningAmber;
-      case 'out_of_stock':   return EnhancedTheme.errorRed;
-      case 'expiry_alert':   return EnhancedTheme.accentOrange;
+      case 'low_stock':       return EnhancedTheme.warningAmber;
+      case 'out_of_stock':    return EnhancedTheme.errorRed;
+      case 'expiry_alert':    return EnhancedTheme.accentOrange;
       case 'payment_request': return EnhancedTheme.successGreen;
-      default:               return EnhancedTheme.infoBlue;
+      default:                return EnhancedTheme.infoBlue;
     }
   }
 
@@ -112,6 +114,22 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       backgroundColor: context.scaffoldBg,
       body: Stack(children: [
         Container(decoration: context.bgGradient),
+        // Decorative top gradient blob
+        Positioned(
+          top: -60,
+          right: -40,
+          child: Container(
+            width: 220,
+            height: 220,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [
+                EnhancedTheme.infoBlue.withValues(alpha: 0.18),
+                Colors.transparent,
+              ]),
+            ),
+          ),
+        ),
         SafeArea(child: Column(children: [
           _buildHeader(context),
           Expanded(child: RefreshIndicator(
@@ -121,36 +139,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               future: _future,
               builder: (_, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal));
+                  return _buildSkeletonList();
                 }
                 if (snap.hasError) {
                   return ListView(children: [
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                    Center(child: Column(children: [
-                      Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
-                      const SizedBox(height: 12),
-                      Text('${snap.error}', style: TextStyle(color: context.subLabelColor), textAlign: TextAlign.center),
-                      const SizedBox(height: 12),
-                      TextButton(onPressed: _refresh,
-                          child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal))),
-                    ])),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.22),
+                    _buildErrorState(snap.error),
                   ]);
                 }
                 final notifications = snap.data ?? [];
                 if (notifications.isEmpty) {
                   return ListView(children: [
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                    Center(child: Column(children: [
-                      Icon(Icons.notifications_none_rounded, color: context.hintColor, size: 72),
-                      const SizedBox(height: 16),
-                      Text('No notifications', style: TextStyle(color: context.subLabelColor, fontSize: 16, fontWeight: FontWeight.w500)),
-                    ])),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+                    _buildEmptyState(),
                   ]);
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                   itemCount: notifications.length,
-                  itemBuilder: (_, i) => _notificationCard(notifications[i] as Map<String, dynamic>),
+                  itemBuilder: (_, i) => _notificationCard(
+                    notifications[i] as Map<String, dynamic>, i),
                 );
               },
             ),
@@ -160,28 +168,146 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
-    child: Row(children: [
-      IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
-      const SizedBox(width: 4),
-      Text('Notifications',
-          style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w600)),
-      const SizedBox(width: 8),
-      if (_unreadCount > 0) Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: EnhancedTheme.errorRed,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text('$_unreadCount', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+  Widget _buildSkeletonList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+      itemCount: 5,
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: EnhancedTheme.loadingShimmer(height: 100, radius: 16),
       ),
-      const Spacer(),
-      IconButton(icon: Icon(Icons.refresh_rounded, color: context.subLabelColor), onPressed: _refresh),
-    ]),
-  );
+    );
+  }
 
-  Widget _notificationCard(Map<String, dynamic> n) {
+  Widget _buildErrorState(Object? error) {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+          ),
+          child: const Icon(Icons.cloud_off_rounded,
+              color: EnhancedTheme.errorRed, size: 40),
+        ),
+        const SizedBox(height: 16),
+        Text('Connection Error',
+            style: GoogleFonts.outfit(color: context.labelColor,
+                fontSize: 16, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Text('$error',
+            style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 13),
+            textAlign: TextAlign.center),
+        const SizedBox(height: 20),
+        TextButton.icon(
+          onPressed: _refresh,
+          icon: const Icon(Icons.refresh_rounded,
+              color: EnhancedTheme.primaryTeal, size: 18),
+          label: Text('Retry',
+              style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
+                  fontWeight: FontWeight.w600)),
+        ),
+      ]),
+    ).animate().fadeIn(duration: 400.ms);
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 100, height: 100,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(colors: [
+              EnhancedTheme.infoBlue.withValues(alpha: 0.15),
+              EnhancedTheme.infoBlue.withValues(alpha: 0.04),
+            ]),
+          ),
+          child: Icon(Icons.notifications_none_rounded,
+              color: EnhancedTheme.infoBlue.withValues(alpha: 0.7), size: 52),
+        ),
+        const SizedBox(height: 20),
+        Text('All Caught Up!',
+            style: GoogleFonts.outfit(color: context.labelColor,
+                fontSize: 20, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Text('No notifications right now.\nCheck back later.',
+            style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 14),
+            textAlign: TextAlign.center),
+      ]),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(4, 8, 12, 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.04),
+            border: Border(
+              bottom: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+          ),
+          child: Row(children: [
+            IconButton(
+              icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
+              onPressed: () => context.canPop()
+                  ? context.pop()
+                  : context.go(AppShell.roleFallback(ref)),
+            ),
+            const SizedBox(width: 2),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Notifications',
+                  style: GoogleFonts.outfit(color: context.labelColor,
+                      fontSize: 20, fontWeight: FontWeight.w700)),
+              if (_unreadCount > 0)
+                Text('$_unreadCount unread',
+                    style: GoogleFonts.inter(color: EnhancedTheme.infoBlue,
+                        fontSize: 12, fontWeight: FontWeight.w500)),
+            ])),
+            if (_unreadCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                    EnhancedTheme.errorRed,
+                    EnhancedTheme.errorRed.withValues(alpha: 0.8),
+                  ]),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                        color: EnhancedTheme.errorRed.withValues(alpha: 0.4),
+                        blurRadius: 8, offset: const Offset(0, 2)),
+                  ],
+                ),
+                child: Text('$_unreadCount',
+                    style: GoogleFonts.outfit(color: Colors.white,
+                        fontSize: 12, fontWeight: FontWeight.w700)),
+              ).animate().scale(duration: 300.ms),
+            const SizedBox(width: 8),
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.refresh_rounded, color: context.subLabelColor, size: 18),
+                onPressed: _refresh,
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _notificationCard(Map<String, dynamic> n, int index) {
     final type     = n['type'] as String?;
     final priority = n['priority'] as String?;
     final title    = n['title'] as String? ?? '';
@@ -193,60 +319,154 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return GestureDetector(
       onTap: () => _markRead(n),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isRead ? context.cardColor : typeCol.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isRead ? context.borderColor : typeCol.withValues(alpha: 0.25)),
-            ),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: typeCol.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isRead
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : typeCol.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isRead
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : typeCol.withValues(alpha: 0.3),
+                  width: isRead ? 1 : 1.5,
                 ),
-                child: Icon(_typeIcon(type), color: typeCol, size: 22),
+                boxShadow: isRead
+                    ? []
+                    : [
+                        BoxShadow(
+                            color: typeCol.withValues(alpha: 0.08),
+                            blurRadius: 12, offset: const Offset(0, 4)),
+                      ],
               ),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Expanded(child: Text(title.isNotEmpty ? title : _typeLabel(type),
-                      style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600))),
-                  if (!isRead) Container(
-                    width: 8, height: 8,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: typeCol),
-                  ),
-                ]),
-                const SizedBox(height: 4),
-                Text(message, style: TextStyle(color: context.subLabelColor, fontSize: 13), maxLines: 3, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 8),
-                Row(children: [
-                  if (priority != null) Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: prioCol.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: prioCol.withValues(alpha: 0.3)),
+              child: Stack(children: [
+                // Left accent bar
+                if (!isRead)
+                  Positioned(
+                    left: 0, top: 10, bottom: 10,
+                    child: Container(
+                      width: 3,
+                      decoration: BoxDecoration(
+                        color: typeCol,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
-                    child: Text(priority[0].toUpperCase() + priority.substring(1),
-                        style: TextStyle(color: prioCol, fontSize: 10, fontWeight: FontWeight.w700)),
                   ),
-                  const Spacer(),
-                  if (date != null) Text(_formatDate(date),
-                      style: TextStyle(color: context.hintColor, fontSize: 11)),
-                ]),
-              ])),
-            ]),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(!isRead ? 18 : 14, 14, 14, 14),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    // Icon badge
+                    Stack(children: [
+                      Container(
+                        width: 46, height: 46,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              typeCol.withValues(alpha: 0.25),
+                              typeCol.withValues(alpha: 0.12),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: typeCol.withValues(alpha: 0.3), width: 1),
+                        ),
+                        child: Icon(_typeIcon(type), color: typeCol, size: 22),
+                      ),
+                      if (!isRead)
+                        Positioned(
+                          top: 0, right: 0,
+                          child: Container(
+                            width: 10, height: 10,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: typeCol,
+                              border: Border.all(color: context.scaffoldBg, width: 1.5),
+                            ),
+                          ),
+                        ),
+                    ]),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        // Type chip
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: typeCol.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(_typeLabel(type),
+                              style: GoogleFonts.outfit(color: typeCol,
+                                  fontSize: 10, fontWeight: FontWeight.w700)),
+                        ),
+                        const Spacer(),
+                        if (date != null)
+                          Text(_formatDate(date),
+                              style: GoogleFonts.inter(color: context.hintColor,
+                                  fontSize: 10)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Text(
+                        title.isNotEmpty ? title : _typeLabel(type),
+                        style: GoogleFonts.outfit(
+                          color: context.labelColor,
+                          fontSize: 14,
+                          fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(message,
+                          style: GoogleFonts.inter(
+                              color: context.subLabelColor, fontSize: 12),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                      if (priority != null) ...[
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: prioCol.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                  color: prioCol.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Container(
+                                width: 5, height: 5,
+                                margin: const EdgeInsets.only(right: 4),
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle, color: prioCol),
+                              ),
+                              Text(
+                                priority[0].toUpperCase() + priority.substring(1),
+                                style: GoogleFonts.outfit(color: prioCol,
+                                    fontSize: 10, fontWeight: FontWeight.w700),
+                              ),
+                            ]),
+                          ),
+                        ]),
+                      ],
+                    ])),
+                  ]),
+                ),
+              ]),
+            ),
           ),
         ),
       ),
-    );
+    )
+        .animate(delay: Duration(milliseconds: index * 50))
+        .fadeIn(duration: 350.ms)
+        .slideX(begin: 0.04, end: 0);
   }
 }

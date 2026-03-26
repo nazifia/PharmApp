@@ -56,19 +56,18 @@ class ReportsHubScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final salesAsync   = ref.watch(salesReportProvider('today'));
-    final salesMonthly = ref.watch(salesReportProvider('month'));
     final profitAsync  = ref.watch(profitReportProvider('month'));
     final custAsync    = ref.watch(customerReportProvider);
 
     final todayRevenue   = salesAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
-    final monthRevenue   = salesMonthly.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
+    final monthProfit    = profitAsync.whenOrNull(data: (d) => d.profit) ?? 0.0;
     final netMargin      = profitAsync.whenOrNull(data: (d) => d.margin) ?? 0.0;
     final outstanding    = custAsync.whenOrNull(data: (d) => d.totalDebt) ?? 0.0;
     final isLoading      = salesAsync.isLoading || profitAsync.isLoading || custAsync.isLoading;
 
     final kpis = [
       {'label': "Today's Revenue", 'value': isLoading ? '…' : _fmt(todayRevenue), 'color': EnhancedTheme.primaryTeal},
-      {'label': 'This Month',      'value': isLoading ? '…' : _fmt(monthRevenue),  'color': EnhancedTheme.accentCyan},
+      {'label': 'Month Profit',    'value': isLoading ? '…' : _fmt(monthProfit),   'color': EnhancedTheme.accentCyan},
       {'label': 'Net Margin',      'value': isLoading ? '…' : '${netMargin.toStringAsFixed(1)}%', 'color': EnhancedTheme.successGreen},
       {'label': 'Outstanding',     'value': isLoading ? '…' : _fmt(outstanding),   'color': EnhancedTheme.errorRed},
     ];

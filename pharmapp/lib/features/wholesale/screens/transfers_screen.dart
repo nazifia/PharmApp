@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
@@ -87,17 +89,32 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
         backgroundColor: EnhancedTheme.primaryTeal,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('New Transfer', style: TextStyle(fontWeight: FontWeight.w600)),
+        label: Text('New Transfer',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
       ),
       body: Stack(children: [
         Container(decoration: context.bgGradient),
+
+        // Decorative glow
+        Positioned(top: -50, right: -50,
+          child: Container(width: 220, height: 220,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [
+                EnhancedTheme.primaryTeal.withValues(alpha: 0.16),
+                Colors.transparent,
+              ]),
+            ),
+          ),
+        ),
+
         SafeArea(child: Column(children: [
-          _header(context),
-          _filterChips(),
+          _buildHeader(context),
+          _buildFilterChips(),
           Expanded(child: RefreshIndicator(
             color: EnhancedTheme.primaryTeal,
             onRefresh: _refresh,
-            child: _transfersList(transfersAsync),
+            child: _buildTransfersList(transfersAsync),
           )),
         ])),
       ]),
@@ -106,235 +123,382 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
 
   // ── Header ─────────────────────────────────────────────────────────────────
 
-  Widget _header(BuildContext context) => Padding(
+  Widget _buildHeader(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
     child: Row(children: [
-      IconButton(
-        icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-        onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go(AppShell.roleFallback(ref));
-                }
-              },
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppShell.roleFallback(ref));
+            }
+          },
+        ),
       ),
-      const SizedBox(width: 4),
+      const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Transfers',
-            style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
+            style: GoogleFonts.outfit(
+                color: context.labelColor, fontSize: 22, fontWeight: FontWeight.w700)),
         Text('Manage stock transfers',
-            style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+            style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 12)),
       ])),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [
+            EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
+            EnhancedTheme.primaryTeal.withValues(alpha: 0.08),
+          ]),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.swap_horiz_rounded, color: EnhancedTheme.primaryTeal, size: 14),
+          const SizedBox(width: 5),
+          Text('Stock', style: GoogleFonts.inter(
+              color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
+        ]),
+      ),
     ]),
-  );
+  ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.15);
 
   // ── Filter Chips ───────────────────────────────────────────────────────────
 
-  Widget _filterChips() {
+  Widget _buildFilterChips() {
     const filters = ['All', 'Pending', 'Approved', 'Received', 'Rejected'];
+    final filterColors = [
+      context.labelColor,
+      EnhancedTheme.warningAmber,
+      EnhancedTheme.successGreen,
+      EnhancedTheme.infoBlue,
+      EnhancedTheme.errorRed,
+    ];
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(children: filters.asMap().entries.map((e) {
           final active = e.key == _statusFilter;
+          final color = filterColors[e.key];
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
               onTap: () => setState(() => _statusFilter = e.key),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 220),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: active ? EnhancedTheme.primaryTeal : context.cardColor,
+                  gradient: active ? LinearGradient(colors: [
+                    color.withValues(alpha: 0.25),
+                    color.withValues(alpha: 0.12),
+                  ]) : null,
+                  color: active ? null : context.cardColor,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: active ? EnhancedTheme.primaryTeal : context.borderColor,
+                    color: active ? color.withValues(alpha: 0.6) : context.borderColor,
+                    width: active ? 1.5 : 1,
                   ),
                 ),
-                child: Text(e.value, textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: active ? Colors.white : context.subLabelColor,
+                child: Text(e.value,
+                    style: GoogleFonts.inter(
+                        color: active ? color : context.subLabelColor,
                         fontSize: 12, fontWeight: FontWeight.w600)),
               ),
             ),
           );
         }).toList()),
       ),
-    );
+    ).animate().fadeIn(delay: 80.ms).slideY(begin: -0.1);
   }
 
   // ── Transfers List ─────────────────────────────────────────────────────────
 
-  Widget _transfersList(AsyncValue<List<dynamic>> async) {
+  Widget _buildTransfersList(AsyncValue<List<dynamic>> async) {
     return async.when(
       loading: () => ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: 6,
+        itemCount: 5,
         itemBuilder: (_, __) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: EnhancedTheme.loadingShimmer(height: 90, radius: 16),
+          child: EnhancedTheme.loadingShimmer(height: 100, radius: 18),
         ),
       ),
       error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
-        const SizedBox(height: 12),
-        Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13),
+        Container(
+          width: 72, height: 72,
+          decoration: BoxDecoration(
+            color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.cloud_off_rounded,
+              color: EnhancedTheme.errorRed.withValues(alpha: 0.6), size: 36),
+        ),
+        const SizedBox(height: 14),
+        Text('Could not load transfers',
+            style: GoogleFonts.outfit(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Text('$e',
+            style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 12),
             textAlign: TextAlign.center),
-        const SizedBox(height: 12),
-        TextButton(
+        const SizedBox(height: 14),
+        TextButton.icon(
           onPressed: _refresh,
-          child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal)),
+          icon: const Icon(Icons.refresh_rounded, color: EnhancedTheme.primaryTeal, size: 16),
+          label: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal)),
         ),
       ])),
       data: (transfers) {
         if (transfers.isEmpty) {
           return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.swap_horiz_rounded, color: context.hintColor, size: 56),
-            const SizedBox(height: 12),
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                  EnhancedTheme.accentCyan.withValues(alpha: 0.06),
+                ]),
+                shape: BoxShape.circle,
+                border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.2)),
+              ),
+              child: Icon(Icons.swap_horiz_rounded,
+                  color: EnhancedTheme.primaryTeal.withValues(alpha: 0.6), size: 40),
+            ),
+            const SizedBox(height: 16),
             Text('No transfers found',
-                style: TextStyle(color: context.subLabelColor, fontSize: 15, fontWeight: FontWeight.w500)),
+                style: GoogleFonts.outfit(color: context.labelColor,
+                    fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text('Tap + to create a new transfer',
+                style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 12)),
           ]));
         }
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           physics: const AlwaysScrollableScrollPhysics(),
           itemCount: transfers.length,
-          itemBuilder: (_, i) => _transferCard(transfers[i] as Map<String, dynamic>),
+          itemBuilder: (_, i) => _transferCard(transfers[i] as Map<String, dynamic>, i),
         );
       },
     );
   }
 
-  Widget _transferCard(Map<String, dynamic> t) {
-    final id = t['id'] ?? 0;
-    final itemName = t['itemName'] as String? ?? t['item_name'] as String? ?? 'Unknown';
+  Widget _transferCard(Map<String, dynamic> t, int index) {
+    final id           = t['id'] ?? 0;
+    final itemName     = t['itemName'] as String? ?? t['item_name'] as String? ?? 'Unknown';
     final requestedQty = t['requestedQty'] ?? t['requested_qty'] ?? 0;
-    final approvedQty = t['approvedQty'] ?? t['approved_qty'];
-    final unit = t['unit'] as String? ?? 'Pcs';
+    final approvedQty  = t['approvedQty'] ?? t['approved_qty'];
+    final unit         = t['unit'] as String? ?? 'Pcs';
     final isFromWholesale = t['fromWholesale'] == true || t['from_wholesale'] == true;
-    final status = (t['status'] as String? ?? 'pending').toLowerCase();
-    final dateStr = t['createdAt'] as String? ?? t['created_at'] as String? ?? '';
+    final status       = (t['status'] as String? ?? 'pending').toLowerCase();
+    final dateStr      = t['createdAt'] as String? ?? t['created_at'] as String? ?? '';
 
     Color statusColor;
     IconData statusIcon;
+    String statusLabel;
     switch (status) {
       case 'approved':
         statusColor = EnhancedTheme.successGreen;
-        statusIcon = Icons.check_circle_rounded;
+        statusIcon  = Icons.check_circle_rounded;
+        statusLabel = 'Approved';
         break;
       case 'received':
         statusColor = EnhancedTheme.infoBlue;
-        statusIcon = Icons.inventory_rounded;
+        statusIcon  = Icons.inventory_rounded;
+        statusLabel = 'Received';
         break;
       case 'rejected':
         statusColor = EnhancedTheme.errorRed;
-        statusIcon = Icons.cancel_rounded;
+        statusIcon  = Icons.cancel_rounded;
+        statusLabel = 'Rejected';
         break;
       default:
         statusColor = EnhancedTheme.warningAmber;
-        statusIcon = Icons.hourglass_bottom_rounded;
+        statusIcon  = Icons.hourglass_bottom_rounded;
+        statusLabel = 'Pending';
     }
 
+    final directionColor = isFromWholesale ? EnhancedTheme.accentPurple : EnhancedTheme.successGreen;
+    final directionIcon  = isFromWholesale ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded;
+    final directionLabel = isFromWholesale ? 'Wholesale → Retail' : 'Retail → Wholesale';
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: context.cardColor,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: context.borderColor),
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(
-                    color: (isFromWholesale ? EnhancedTheme.accentPurple : EnhancedTheme.successGreen).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              // Timeline left strip
+              Container(
+                width: 5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                    colors: [statusColor, statusColor.withValues(alpha: 0.4)],
                   ),
-                  child: Icon(
-                    isFromWholesale ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                    color: isFromWholesale ? EnhancedTheme.accentPurple : EnhancedTheme.successGreen,
-                    size: 18,
-                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(18), bottomLeft: Radius.circular(18)),
                 ),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(itemName,
-                      style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 2),
-                  Text('$requestedQty $unit · ${isFromWholesale ? "Wholesale → Retail" : "Retail → Wholesale"}',
-                      style: TextStyle(color: context.hintColor, fontSize: 12)),
-                ])),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(statusIcon, color: statusColor, size: 12),
-                    const SizedBox(width: 4),
-                    Text(status[0].toUpperCase() + status.substring(1),
-                        style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w600)),
+              ),
+              Expanded(child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+                  // Row 1: Direction icon + name + status
+                  Row(children: [
+                    Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft, end: Alignment.bottomRight,
+                          colors: [
+                            directionColor.withValues(alpha: 0.25),
+                            directionColor.withValues(alpha: 0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: directionColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Icon(directionIcon, color: directionColor, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(itemName,
+                          style: GoogleFonts.inter(color: context.labelColor,
+                              fontSize: 14, fontWeight: FontWeight.w700),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Row(children: [
+                        Icon(Icons.swap_horiz_rounded, color: directionColor, size: 12),
+                        const SizedBox(width: 4),
+                        Text(directionLabel,
+                            style: GoogleFonts.inter(color: context.hintColor, fontSize: 11)),
+                      ]),
+                    ])),
+                    // Status badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [
+                          statusColor.withValues(alpha: 0.2),
+                          statusColor.withValues(alpha: 0.08),
+                        ]),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: statusColor.withValues(alpha: 0.35)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(statusIcon, color: statusColor, size: 12),
+                        const SizedBox(width: 4),
+                        Text(statusLabel,
+                            style: GoogleFonts.inter(color: statusColor,
+                                fontSize: 10, fontWeight: FontWeight.w600)),
+                      ]),
+                    ),
                   ]),
-                ),
-              ]),
-              if (approvedQty != null) ...[
-                const SizedBox(height: 6),
-                Text('Approved: $approvedQty $unit',
-                    style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-              ],
-              if (dateStr.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(_formatDate(dateStr),
-                    style: TextStyle(color: context.hintColor, fontSize: 10)),
-              ],
-              if (status == 'pending') ...[
-                const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(child: _actionBtn('Approve', EnhancedTheme.successGreen, () => _showApproveDialog(id is int ? id : int.tryParse('$id') ?? 0, itemName, requestedQty is int ? requestedQty : int.tryParse('$requestedQty') ?? 0))),
-                  const SizedBox(width: 8),
-                  Expanded(child: _actionBtn('Reject', EnhancedTheme.errorRed, () => _rejectTransfer(id is int ? id : int.tryParse('$id') ?? 0))),
+
+                  // Row 2: Qty + date info
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: directionColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text('$requestedQty $unit requested',
+                          style: GoogleFonts.inter(
+                              color: directionColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                    ),
+                    if (approvedQty != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: EnhancedTheme.successGreen.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text('$approvedQty $unit approved',
+                            style: GoogleFonts.inter(
+                                color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                    const Spacer(),
+                    if (dateStr.isNotEmpty)
+                      Text(_formatDate(dateStr),
+                          style: GoogleFonts.inter(color: context.hintColor, fontSize: 10)),
+                  ]),
+
+                  // Action buttons
+                  if (status == 'pending') ...[
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      Expanded(child: _actionBtn(context, 'Approve',
+                          EnhancedTheme.successGreen, Icons.check_rounded,
+                          () => _showApproveDialog(
+                              id is int ? id : int.tryParse('$id') ?? 0,
+                              itemName,
+                              requestedQty is int ? requestedQty : int.tryParse('$requestedQty') ?? 0))),
+                      const SizedBox(width: 8),
+                      Expanded(child: _actionBtn(context, 'Reject',
+                          EnhancedTheme.errorRed, Icons.close_rounded,
+                          () => _rejectTransfer(id is int ? id : int.tryParse('$id') ?? 0))),
+                    ]),
+                  ],
+                  if (status == 'approved') ...[
+                    const SizedBox(height: 10),
+                    SizedBox(width: double.infinity, child: _actionBtn(context, 'Mark Received',
+                        EnhancedTheme.infoBlue, Icons.inventory_rounded,
+                        () => _showReceiveDialog(
+                          id is int ? id : int.tryParse('$id') ?? 0,
+                          itemName,
+                          approvedQty ?? requestedQty,
+                          unit,
+                          isFromWholesale,
+                        ))),
+                  ],
                 ]),
-              ],
-              if (status == 'approved') ...[
-                const SizedBox(height: 10),
-                SizedBox(width: double.infinity, child: _actionBtn('Receive', EnhancedTheme.infoBlue, () => _showReceiveDialog(
-                  id is int ? id : int.tryParse('$id') ?? 0,
-                  itemName,
-                  approvedQty ?? requestedQty,
-                  unit,
-                  isFromWholesale,
-                ))),
-              ],
+              )),
             ]),
           ),
         ),
       ),
-    );
+    ).animate().fadeIn(delay: (index * 60).ms).slideY(begin: 0.08);
   }
 
-  Widget _actionBtn(String label, Color color, VoidCallback onTap) {
+  Widget _actionBtn(BuildContext context, String label, Color color, IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
+          gradient: LinearGradient(colors: [
+            color.withValues(alpha: 0.18),
+            color.withValues(alpha: 0.08),
+          ]),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
-        child: Center(child: Text(label,
-            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600))),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 6),
+          Text(label, style: GoogleFonts.inter(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+        ]),
       ),
     );
   }
@@ -357,19 +521,38 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
             decoration: BoxDecoration(color: context.hintColor, borderRadius: BorderRadius.circular(2)),
           )),
           const SizedBox(height: 20),
-          Text('Approve Transfer', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
-          Text(itemName, style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+          Row(children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  EnhancedTheme.successGreen.withValues(alpha: 0.25),
+                  EnhancedTheme.successGreen.withValues(alpha: 0.1),
+                ]),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.check_rounded, color: EnhancedTheme.successGreen, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Approve Transfer',
+                  style: GoogleFonts.outfit(color: context.labelColor,
+                      fontSize: 20, fontWeight: FontWeight.w800)),
+              Text(itemName,
+                  style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 13)),
+            ])),
+          ]),
           const SizedBox(height: 20),
-          Text('Approved Quantity', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+          Text('Approved Quantity',
+              style: GoogleFonts.inter(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
           TextField(
             controller: qtyCtrl,
             keyboardType: TextInputType.number,
-            style: TextStyle(color: context.labelColor, fontSize: 16),
+            style: GoogleFonts.inter(color: context.labelColor, fontSize: 16),
             decoration: InputDecoration(
               hintText: 'Enter quantity',
-              hintStyle: TextStyle(color: context.hintColor),
+              hintStyle: GoogleFonts.inter(color: context.hintColor),
               filled: true,
               fillColor: context.cardColor,
               border: OutlineInputBorder(
@@ -387,7 +570,8 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text('Requested: $requestedQty', style: TextStyle(color: context.hintColor, fontSize: 12)),
+          Text('Requested: $requestedQty',
+              style: GoogleFonts.inter(color: context.hintColor, fontSize: 12)),
           const SizedBox(height: 20),
           SizedBox(width: double.infinity, child: ElevatedButton(
             onPressed: () async {
@@ -402,7 +586,8 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
-            child: const Text('Confirm Approve', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            child: Text('Confirm Approve',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15)),
           )),
         ]),
       ),
@@ -414,16 +599,32 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
       await ref.read(posApiProvider).approveTransfer(id, qty);
       ref.invalidate(transfersListProvider(_params));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Transfer approved'),
-          backgroundColor: EnhancedTheme.successGreen,
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Transfer approved',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(_apiError(e)),
-          backgroundColor: EnhancedTheme.errorRed,
+          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(_apiError(e),
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     }
@@ -434,16 +635,32 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
       await ref.read(posApiProvider).rejectTransfer(id);
       ref.invalidate(transfersListProvider(_params));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Transfer rejected'),
-          backgroundColor: EnhancedTheme.errorRed,
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.cancel_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Transfer rejected',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(_apiError(e)),
-          backgroundColor: EnhancedTheme.errorRed,
+          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(_apiError(e),
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     }
@@ -456,37 +673,97 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Confirm Receive',
-            style: TextStyle(color: ctx.labelColor, fontWeight: FontWeight.w700)),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(itemName,
-              style: TextStyle(color: ctx.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text('Move $qty $unit from $src → $dst.',
-              style: TextStyle(color: ctx.subLabelColor, fontSize: 13)),
-          const SizedBox(height: 8),
-          Text('Stock will be updated in both stores.',
-              style: TextStyle(color: ctx.hintColor, fontSize: 12)),
-        ]),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: ctx.subLabelColor)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: EnhancedTheme.infoBlue.withValues(alpha: 0.2)),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _receiveTransfer(id);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: EnhancedTheme.infoBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                    EnhancedTheme.infoBlue.withValues(alpha: 0.25),
+                    EnhancedTheme.infoBlue.withValues(alpha: 0.1),
+                  ]),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.inventory_rounded, color: EnhancedTheme.infoBlue, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(child: Text('Confirm Receive',
+                  style: GoogleFonts.outfit(color: ctx.labelColor,
+                      fontSize: 18, fontWeight: FontWeight.w700))),
+            ]),
+            const SizedBox(height: 16),
+            Text(itemName,
+                style: GoogleFonts.inter(color: ctx.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.infoBlue.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: EnhancedTheme.infoBlue.withValues(alpha: 0.15)),
+              ),
+              child: Row(children: [
+                Text('$src', style: GoogleFonts.outfit(color: EnhancedTheme.accentPurple,
+                    fontSize: 13, fontWeight: FontWeight.w700)),
+                const SizedBox(width: 8),
+                const Icon(Icons.arrow_forward_rounded, color: EnhancedTheme.infoBlue, size: 16),
+                const SizedBox(width: 8),
+                Text('$dst', style: GoogleFonts.outfit(color: EnhancedTheme.successGreen,
+                    fontSize: 13, fontWeight: FontWeight.w700)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.infoBlue.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('$qty $unit',
+                      style: GoogleFonts.inter(color: EnhancedTheme.infoBlue,
+                          fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+              ]),
             ),
-            child: const Text('Receive', style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text('Stock will be updated in both stores.',
+                style: GoogleFonts.inter(color: ctx.hintColor, fontSize: 12)),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: ctx.borderColor),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: Text('Cancel',
+                    style: GoogleFonts.inter(color: ctx.subLabelColor, fontWeight: FontWeight.w600)),
+              )),
+              const SizedBox(width: 12),
+              Expanded(child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _receiveTransfer(id);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EnhancedTheme.infoBlue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: Text('Receive',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+              )),
+            ]),
+          ]),
+        ),
       ),
     );
   }
@@ -500,16 +777,32 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
       ref.invalidate(retailInventoryProvider);
       ref.invalidate(wholesaleInventoryProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Transfer received — stock updated'),
-          backgroundColor: EnhancedTheme.infoBlue,
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.infoBlue.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.inventory_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Transfer received — stock updated',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(_apiError(e)),
-          backgroundColor: EnhancedTheme.errorRed,
+          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(_apiError(e),
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     }
@@ -542,7 +835,7 @@ class _CreateTransferSheet extends ConsumerStatefulWidget {
 
 class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
   String _itemName = '';
-  final _qtyCtrl = TextEditingController();
+  final _qtyCtrl   = TextEditingController();
   final _notesCtrl = TextEditingController();
   String _unit = 'Pcs';
   bool _fromWholesale = true;
@@ -557,11 +850,19 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
 
   Future<void> _submit() async {
     final name = _itemName.trim();
-    final qty = int.tryParse(_qtyCtrl.text.trim()) ?? 0;
+    final qty  = int.tryParse(_qtyCtrl.text.trim()) ?? 0;
     if (name.isEmpty || qty <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please fill item name and quantity'),
-        backgroundColor: EnhancedTheme.warningAmber,
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: Row(children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text('Please fill item name and quantity',
+              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+        ]),
       ));
       return;
     }
@@ -578,17 +879,33 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
       if (mounted) {
         Navigator.pop(context);
         widget.onCreated();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Transfer created'),
-          backgroundColor: EnhancedTheme.successGreen,
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Transfer created',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     } catch (e) {
       if (mounted) {
         setState(() => _submitting = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(_apiError(e)),
-          backgroundColor: EnhancedTheme.errorRed,
+          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(_apiError(e),
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
         ));
       }
     }
@@ -602,17 +919,35 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
         color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+      child: SingleChildScrollView(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
         Center(child: Container(
           width: 40, height: 4,
           decoration: BoxDecoration(color: context.hintColor, borderRadius: BorderRadius.circular(2)),
         )),
         const SizedBox(height: 20),
-        Text('New Transfer', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w800)),
+
+        Row(children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [
+                EnhancedTheme.primaryTeal.withValues(alpha: 0.25),
+                EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+              ]),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.swap_horiz_rounded, color: EnhancedTheme.primaryTeal, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Text('New Transfer',
+              style: GoogleFonts.outfit(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w800)),
+        ]),
         const SizedBox(height: 24),
 
-        // Item Name (searchable autocomplete from inventory)
-        Text('Item Name', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+        // Item Name
+        Text('Item Name',
+            style: GoogleFonts.inter(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         _ItemAutocomplete(
           sourceStore: _fromWholesale ? 'wholesale' : 'retail',
@@ -623,15 +958,16 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
         // Quantity & Unit
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Quantity', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+            Text('Quantity',
+                style: GoogleFonts.inter(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             TextField(
               controller: _qtyCtrl,
               keyboardType: TextInputType.number,
-              style: TextStyle(color: context.labelColor, fontSize: 14),
+              style: GoogleFonts.inter(color: context.labelColor, fontSize: 14),
               decoration: InputDecoration(
                 hintText: '0',
-                hintStyle: TextStyle(color: context.hintColor),
+                hintStyle: GoogleFonts.inter(color: context.hintColor),
                 filled: true,
                 fillColor: context.cardColor,
                 border: OutlineInputBorder(
@@ -652,7 +988,8 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
           ])),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Unit', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+            Text('Unit',
+                style: GoogleFonts.inter(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -666,7 +1003,7 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
                   isExpanded: true,
                   value: _unit,
                   dropdownColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
-                  style: TextStyle(color: context.labelColor, fontSize: 14),
+                  style: GoogleFonts.inter(color: context.labelColor, fontSize: 14),
                   items: ['Pcs', 'Pack', 'Carton', 'Box'].map((u) =>
                     DropdownMenuItem(value: u, child: Text(u))
                   ).toList(),
@@ -679,7 +1016,8 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
         const SizedBox(height: 16),
 
         // Direction Toggle
-        Text('Direction', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+        Text('Direction',
+            style: GoogleFonts.inter(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Row(children: [
           _directionChip(true, 'Wholesale → Retail', Icons.arrow_forward_rounded),
@@ -689,15 +1027,16 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
         const SizedBox(height: 16),
 
         // Notes
-        Text('Notes (optional)', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+        Text('Notes (optional)',
+            style: GoogleFonts.inter(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         TextField(
           controller: _notesCtrl,
-          style: TextStyle(color: context.labelColor, fontSize: 14),
+          style: GoogleFonts.inter(color: context.labelColor, fontSize: 14),
           maxLines: 2,
           decoration: InputDecoration(
             hintText: 'Add notes...',
-            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+            hintStyle: GoogleFonts.inter(color: context.hintColor, fontSize: 13),
             filled: true,
             fillColor: context.cardColor,
             border: OutlineInputBorder(
@@ -725,10 +1064,13 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 0,
           ),
           child: _submitting
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Text('Create Transfer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ? const SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Text('Create Transfer',
+                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
         )),
       ])),
     );
@@ -736,14 +1078,18 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
 
   Widget _directionChip(bool isFromWholesale, String label, IconData icon) {
     final active = _fromWholesale == isFromWholesale;
-    final color = isFromWholesale ? EnhancedTheme.accentPurple : EnhancedTheme.successGreen;
+    final color  = isFromWholesale ? EnhancedTheme.accentPurple : EnhancedTheme.successGreen;
     return Expanded(child: GestureDetector(
       onTap: () => setState(() { _fromWholesale = isFromWholesale; _itemName = ''; }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: active ? color.withValues(alpha: 0.15) : context.cardColor,
+          gradient: active ? LinearGradient(colors: [
+            color.withValues(alpha: 0.2),
+            color.withValues(alpha: 0.08),
+          ]) : null,
+          color: active ? null : context.cardColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: active ? color : context.borderColor,
@@ -753,7 +1099,7 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, color: active ? color : context.subLabelColor, size: 16),
           const SizedBox(width: 6),
-          Flexible(child: Text(label, style: TextStyle(
+          Flexible(child: Text(label, style: GoogleFonts.inter(
               color: active ? color : context.subLabelColor,
               fontSize: 12, fontWeight: FontWeight.w600),
             overflow: TextOverflow.ellipsis)),
@@ -775,7 +1121,7 @@ class _ItemAutocomplete extends ConsumerWidget {
     final inventoryAsync = sourceStore == 'wholesale'
         ? ref.watch(wholesaleInventoryProvider)
         : ref.watch(retailInventoryProvider);
-    final items = inventoryAsync.valueOrNull ?? [];
+    final items     = inventoryAsync.valueOrNull ?? [];
     final itemNames = items.map((i) => i.name).toSet().toList()..sort();
 
     return Autocomplete<String>(
@@ -790,10 +1136,10 @@ class _ItemAutocomplete extends ConsumerWidget {
           controller: ctrl,
           focusNode: focusNode,
           onChanged: (v) => onSelected(v),
-          style: TextStyle(color: context.labelColor, fontSize: 14),
+          style: GoogleFonts.inter(color: context.labelColor, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Search medication...',
-            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+            hintStyle: GoogleFonts.inter(color: context.hintColor, fontSize: 13),
             prefixIcon: Icon(Icons.medication_rounded, color: context.hintColor, size: 18),
             filled: true,
             fillColor: context.cardColor,
@@ -824,7 +1170,9 @@ class _ItemAutocomplete extends ConsumerWidget {
                 color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: context.borderColor),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 12, offset: const Offset(0, 4))],
               ),
               child: ListView.builder(
                 shrinkWrap: true,
@@ -840,7 +1188,7 @@ class _ItemAutocomplete extends ConsumerWidget {
                         const Icon(Icons.medication_rounded, color: EnhancedTheme.primaryTeal, size: 16),
                         const SizedBox(width: 10),
                         Expanded(child: Text(option,
-                            style: TextStyle(color: context.labelColor, fontSize: 14),
+                            style: GoogleFonts.inter(color: context.labelColor, fontSize: 14),
                             overflow: TextOverflow.ellipsis)),
                       ]),
                     ),

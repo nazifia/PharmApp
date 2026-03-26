@@ -492,19 +492,17 @@ class _NavItem extends StatelessWidget {
   final String label;
   final String route;
   final void Function(String) onTap;
-  final Color? color;
 
   const _NavItem({
     required this.icon,
     required this.label,
     required this.route,
     required this.onTap,
-    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    final c      = color ?? context.labelColor;
+    final c      = context.labelColor;
     final active = GoRouterState.of(context).matchedLocation == route ||
         GoRouterState.of(context).matchedLocation.startsWith('$route/');
 

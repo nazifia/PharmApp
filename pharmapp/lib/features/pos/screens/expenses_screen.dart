@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
@@ -95,15 +97,31 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       if (mounted) {
         setState(() => _expenses.removeWhere((e) => e['id'] == id));
         _loadReport();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Expense deleted'), backgroundColor: EnhancedTheme.successGreen),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Expense deleted', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e'), backgroundColor: EnhancedTheme.errorRed),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Failed to delete: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
+        ));
       }
     }
   }
@@ -124,21 +142,35 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
             child: Container(
               decoration: BoxDecoration(
-                color: context.scaffoldBg,
+                color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Center(child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(color: context.hintColor, borderRadius: BorderRadius.circular(2)),
+                  width: 44, height: 4,
+                  decoration: BoxDecoration(color: context.hintColor.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2)),
                 )),
                 const SizedBox(height: 20),
-                Text('New Expense', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 20),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.receipt_long_rounded, color: EnhancedTheme.errorRed, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Text('New Expense',
+                      style: GoogleFonts.outfit(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 24),
 
                 // Category dropdown
-                Text('Category', style: TextStyle(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                Text('Category', style: TextStyle(color: context.subLabelColor, fontSize: 12,
+                    fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -152,7 +184,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                       isExpanded: true,
                       value: selectedCategoryId,
                       hint: Text('Select category', style: TextStyle(color: context.hintColor)),
-                      dropdownColor: context.scaffoldBg,
+                      dropdownColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
                       items: _categories.map<DropdownMenuItem<int>>((c) => DropdownMenuItem(
                         value: c['id'] as int,
                         child: Text(c['name'] ?? '', style: TextStyle(color: context.labelColor)),
@@ -167,26 +199,43 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 TextField(
                   controller: amountCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(color: context.labelColor),
+                  style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
                     labelText: 'Amount',
                     labelStyle: TextStyle(color: context.subLabelColor),
                     prefixText: '₦ ',
-                    prefixStyle: TextStyle(color: context.labelColor),
+                    prefixStyle: const TextStyle(color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700),
+                    filled: true,
+                    fillColor: context.cardColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: context.borderColor)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 2)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 // Description
                 TextField(
                   controller: descCtrl,
                   style: TextStyle(color: context.labelColor),
                   decoration: InputDecoration(
-                    labelText: 'Description',
+                    labelText: 'Description (optional)',
                     labelStyle: TextStyle(color: context.subLabelColor),
+                    prefixIcon: Icon(Icons.notes_rounded, color: context.hintColor, size: 18),
+                    filled: true,
+                    fillColor: context.cardColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: context.borderColor)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 2)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 // Date picker
                 GestureDetector(
@@ -196,25 +245,42 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                       initialDate: selectedDate,
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
+                      builder: (ctx, child) => Theme(
+                        data: Theme.of(ctx).copyWith(
+                          colorScheme: const ColorScheme.dark(
+                            primary: EnhancedTheme.primaryTeal,
+                            surface: Color(0xFF1E293B),
+                          ),
+                        ),
+                        child: child!,
+                      ),
                     );
                     if (picked != null) setSheet(() => selectedDate = picked);
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: context.cardColor,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: context.borderColor),
                     ),
                     child: Row(children: [
-                      Icon(Icons.calendar_today_rounded, color: context.subLabelColor, size: 18),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.calendar_today_rounded, color: EnhancedTheme.accentCyan, size: 16),
+                      ),
                       const SizedBox(width: 12),
                       Text(
                         '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                        style: TextStyle(color: context.labelColor, fontSize: 14),
+                        style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500),
                       ),
                       const Spacer(),
-                      Icon(Icons.edit, color: context.hintColor, size: 16),
+                      Text('Change', style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 12,
+                          fontWeight: FontWeight.w600)),
                     ]),
                   ),
                 ),
@@ -233,19 +299,58 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                       if (ctx.mounted) Navigator.pop(ctx);
                       _loadAll();
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Expense added'), backgroundColor: EnhancedTheme.successGreen),
-                        );
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          margin: const EdgeInsets.all(16),
+                          content: Row(children: [
+                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 10),
+                            const Expanded(child: Text('Expense added', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                          ]),
+                        ));
                       }
                     } catch (e) {
                       if (ctx.mounted) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text('Failed: $e'), backgroundColor: EnhancedTheme.errorRed),
-                        );
+                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          margin: const EdgeInsets.all(16),
+                          content: Row(children: [
+                            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                          ]),
+                        ));
                       }
                     }
                   },
-                  child: const Text('Add Expense', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)]),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: EnhancedTheme.errorRed.withValues(alpha: 0.3),
+                          blurRadius: 12, offset: const Offset(0, 4))],
+                    ),
+                    child: Container(
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Text('Add Expense',
+                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                      ]),
+                    ),
+                  ),
                 )),
               ]),
             ),
@@ -261,61 +366,124 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       backgroundColor: context.scaffoldBg,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddSheet,
-        backgroundColor: EnhancedTheme.primaryTeal,
+        backgroundColor: EnhancedTheme.errorRed,
         foregroundColor: Colors.white,
+        elevation: 4,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Expense', style: TextStyle(fontWeight: FontWeight.w600)),
+        label: Text('Add Expense', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
       ),
       body: Stack(children: [
         Container(decoration: context.bgGradient),
+        // Decorative blobs
+        Positioned(top: -50, right: -30,
+          child: Container(width: 180, height: 180,
+            decoration: BoxDecoration(shape: BoxShape.circle,
+              color: EnhancedTheme.errorRed.withValues(alpha: 0.06)))),
+        Positioned(bottom: 100, left: -60,
+          child: Container(width: 160, height: 160,
+            decoration: BoxDecoration(shape: BoxShape.circle,
+              color: EnhancedTheme.accentOrange.withValues(alpha: 0.05)))),
         SafeArea(child: Column(children: [
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+            padding: const EdgeInsets.fromLTRB(12, 12, 20, 0),
             child: Row(children: [
-              IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.labelColor), onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref))),
-              const SizedBox(width: 4),
+              Container(
+                decoration: BoxDecoration(
+                  color: context.cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: context.borderColor),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back_rounded, color: context.labelColor, size: 20),
+                  onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
+                ),
+              ),
+              const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Expenses', style: TextStyle(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
-                Text('Manage business expenses', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                Text('Expenses',
+                    style: GoogleFonts.outfit(color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w800)),
+                Text('Track business expenses', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
               ])),
+              // Total badge
+              if (!_loading && _expenses.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.3)),
+                  ),
+                  child: Text('₦${_totalExpenses.toStringAsFixed(0)}',
+                      style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 13, fontWeight: FontWeight.w800)),
+                ),
             ]),
-          ),
-          const SizedBox(height: 8),
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
+          const SizedBox(height: 16),
 
           Expanded(child: RefreshIndicator(
             onRefresh: _loadAll,
             color: EnhancedTheme.primaryTeal,
-            child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 100), children: [
+            child: ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 120), children: [
               // Monthly report card
-              _buildReportCard(),
+              _buildReportCard()
+                  .animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, end: 0),
               const SizedBox(height: 16),
 
               // Period selector
               Row(children: [
-                _periodChip(_Period.thisMonth, 'This Month'),
+                _periodChip(_Period.thisMonth, 'This Month', Icons.calendar_month_rounded),
                 const SizedBox(width: 10),
-                _periodChip(_Period.lastMonth, 'Last Month'),
+                _periodChip(_Period.lastMonth, 'Last Month', Icons.history_rounded),
+              ]).animate().fadeIn(duration: 400.ms, delay: 150.ms),
+              const SizedBox(height: 8),
+              Row(children: [
+                const Icon(Icons.date_range_rounded, size: 14, color: EnhancedTheme.accentCyan),
+                const SizedBox(width: 6),
+                Text(_rangeLabel, style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12,
+                    fontWeight: FontWeight.w500)),
               ]),
-              const SizedBox(height: 6),
-              Text(_rangeLabel, style: TextStyle(color: context.hintColor, fontSize: 11)),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+
+              // Section header
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(children: [
+                  Container(width: 3, height: 16,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [EnhancedTheme.errorRed, EnhancedTheme.warningAmber],
+                          begin: Alignment.topCenter, end: Alignment.bottomCenter),
+                      borderRadius: BorderRadius.circular(2),
+                    )),
+                  const SizedBox(width: 10),
+                  Text('Expense Log',
+                      style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+                ]),
+                if (!_loading)
+                  Text('${_expenses.length} records',
+                      style: TextStyle(color: context.hintColor, fontSize: 12)),
+              ]).animate().fadeIn(duration: 400.ms, delay: 180.ms),
+              const SizedBox(height: 12),
 
               // Expenses list
               if (_loading)
-                ...List.generate(4, (_) => Padding(
+                ...List.generate(4, (i) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: EnhancedTheme.loadingShimmer(height: 72),
+                  child: EnhancedTheme.loadingShimmer(height: 76, radius: 16),
                 ))
               else if (_expenses.isEmpty)
                 _emptyState()
               else
-                ..._expenses.map((e) => _expenseTile(e)),
+                ..._expenses.asMap().entries.map((e) => _expenseTile(e.value)
+                    .animate(delay: (e.key * 50).ms)
+                    .fadeIn(duration: 300.ms)
+                    .slideX(begin: 0.05, end: 0)),
 
               const SizedBox(height: 16),
 
               // Total summary
-              if (_expenses.isNotEmpty) _totalSummary(),
+              if (_expenses.isNotEmpty)
+                _totalSummary()
+                    .animate().fadeIn(duration: 400.ms, delay: 200.ms),
             ]),
           )),
         ])),
@@ -329,35 +497,68 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     final netProfit = totalSales - totalExpenses;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: context.borderColor),
+            gradient: LinearGradient(
+              colors: [
+                EnhancedTheme.accentCyan.withValues(alpha: 0.08),
+                context.cardColor,
+              ],
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha: 0.2)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 16, offset: const Offset(0, 6))],
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Icon(Icons.analytics_rounded, color: EnhancedTheme.accentCyan, size: 20),
-              const SizedBox(width: 8),
-              Text('Monthly Report', style: TextStyle(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.analytics_rounded, color: EnhancedTheme.accentCyan, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Text('Monthly Report',
+                  style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: context.cardColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: context.borderColor),
+                ),
+                child: Text(
+                  _period == _Period.thisMonth ? 'This Month' : 'Last Month',
+                  style: TextStyle(color: context.subLabelColor, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
             ]),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             if (_loadingReport)
               Row(children: List.generate(3, (_) => Expanded(child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: EnhancedTheme.loadingShimmer(height: 48),
+                child: EnhancedTheme.loadingShimmer(height: 56, radius: 12),
               ))))
             else
               Row(children: [
-                _reportStat('Sales', '₦${totalSales.toStringAsFixed(0)}', EnhancedTheme.successGreen),
-                const SizedBox(width: 12),
-                _reportStat('Expenses', '₦${totalExpenses.toStringAsFixed(0)}', EnhancedTheme.errorRed),
-                const SizedBox(width: 12),
-                _reportStat('Profit', '₦${netProfit.toStringAsFixed(0)}', netProfit >= 0 ? EnhancedTheme.primaryTeal : EnhancedTheme.errorRed),
+                _reportStat('Sales', '₦${totalSales.toStringAsFixed(0)}',
+                    EnhancedTheme.successGreen, Icons.trending_up_rounded),
+                _vDivider(),
+                _reportStat('Expenses', '₦${totalExpenses.toStringAsFixed(0)}',
+                    EnhancedTheme.errorRed, Icons.trending_down_rounded),
+                _vDivider(),
+                _reportStat('Profit', '₦${netProfit.toStringAsFixed(0)}',
+                    netProfit >= 0 ? EnhancedTheme.primaryTeal : EnhancedTheme.errorRed,
+                    netProfit >= 0 ? Icons.account_balance_rounded : Icons.warning_amber_rounded),
               ]),
           ]),
         ),
@@ -365,30 +566,50 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     );
   }
 
-  Widget _reportStat(String label, String value, Color color) {
+  Widget _vDivider() => Container(
+    width: 1, height: 48,
+    margin: const EdgeInsets.symmetric(horizontal: 8),
+    color: context.dividerColor,
+  );
+
+  Widget _reportStat(String label, String value, Color color, IconData icon) {
     return Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(color: context.hintColor, fontSize: 11)),
-      const SizedBox(height: 4),
-      Text(value, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w700)),
+      Row(children: [
+        Icon(icon, color: color, size: 14),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(color: context.hintColor, fontSize: 11)),
+      ]),
+      const SizedBox(height: 6),
+      Text(value, style: GoogleFonts.outfit(color: color, fontSize: 14, fontWeight: FontWeight.w800)),
     ]));
   }
 
-  Widget _periodChip(_Period p, String label) {
+  Widget _periodChip(_Period p, String label, IconData icon) {
     final active = _period == p;
     return GestureDetector(
       onTap: () => _onPeriodChanged(p),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: BoxDecoration(
-          color: active ? EnhancedTheme.primaryTeal.withValues(alpha: 0.2) : context.cardColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: active ? EnhancedTheme.primaryTeal : context.borderColor, width: 1.5),
+          color: active ? EnhancedTheme.primaryTeal.withValues(alpha: 0.12) : context.cardColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+              color: active ? EnhancedTheme.primaryTeal : context.borderColor,
+              width: active ? 1.5 : 1),
+          boxShadow: active
+              ? [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                  blurRadius: 8, offset: const Offset(0, 3))]
+              : null,
         ),
-        child: Text(label, style: TextStyle(
-          color: active ? EnhancedTheme.primaryTeal : context.subLabelColor,
-          fontSize: 12, fontWeight: FontWeight.w600,
-        )),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: active ? EnhancedTheme.primaryTeal : context.subLabelColor),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(
+            color: active ? EnhancedTheme.primaryTeal : context.subLabelColor,
+            fontSize: 12, fontWeight: FontWeight.w700,
+          )),
+        ]),
       ),
     );
   }
@@ -410,44 +631,70 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 20),
           decoration: BoxDecoration(
-            color: EnhancedTheme.errorRed.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(colors: [
+              EnhancedTheme.errorRed.withValues(alpha: 0.05),
+              EnhancedTheme.errorRed.withValues(alpha: 0.2),
+            ]),
+            borderRadius: BorderRadius.circular(18),
           ),
-          child: const Icon(Icons.delete_rounded, color: EnhancedTheme.errorRed),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.delete_rounded, color: EnhancedTheme.errorRed, size: 22),
+            const SizedBox(height: 2),
+            const Text('Delete', style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 10,
+                fontWeight: FontWeight.w600)),
+          ]),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: context.cardColor,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: context.borderColor),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8, offset: const Offset(0, 3))],
               ),
               child: Row(children: [
                 Container(
-                  width: 40, height: 40,
+                  width: 48, height: 48,
                   decoration: BoxDecoration(
-                    color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(colors: [
+                      EnhancedTheme.errorRed.withValues(alpha: 0.15),
+                      EnhancedTheme.errorRed.withValues(alpha: 0.05),
+                    ]),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.2)),
                   ),
-                  child: const Icon(Icons.receipt_long_rounded, color: EnhancedTheme.errorRed, size: 20),
+                  child: const Icon(Icons.receipt_long_rounded, color: EnhancedTheme.errorRed, size: 22),
                 ),
                 const SizedBox(width: 14),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(categoryName, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                  Text(categoryName,
+                      style: GoogleFonts.outfit(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
                   if (description.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(description, style: TextStyle(color: context.subLabelColor, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 3),
+                    Text(description,
+                        style: TextStyle(color: context.subLabelColor, fontSize: 12),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
-                  const SizedBox(height: 2),
-                  Text(dateStr, style: TextStyle(color: context.hintColor, fontSize: 11)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    const Icon(Icons.calendar_today_rounded, size: 10, color: EnhancedTheme.accentCyan),
+                    const SizedBox(width: 4),
+                    Text(dateStr, style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11,
+                        fontWeight: FontWeight.w500)),
+                  ]),
                 ])),
-                const SizedBox(width: 8),
-                Text('₦${amount.toStringAsFixed(0)}',
-                  style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 15, fontWeight: FontWeight.w700)),
+                const SizedBox(width: 12),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text('₦${amount.toStringAsFixed(0)}',
+                      style: GoogleFonts.outfit(color: EnhancedTheme.errorRed, fontSize: 16, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Icon(Icons.swipe_left_rounded, color: context.hintColor, size: 14),
+                ]),
               ]),
             ),
           ),
@@ -458,33 +705,62 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
 
   Widget _emptyState() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48),
+      padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(children: [
-        Icon(Icons.receipt_long_outlined, color: context.hintColor, size: 48),
-        const SizedBox(height: 12),
-        Text('No expenses found', style: TextStyle(color: context.subLabelColor, fontSize: 14)),
-        const SizedBox(height: 4),
-        Text('Tap + to add a new expense', style: TextStyle(color: context.hintColor, fontSize: 12)),
-      ]),
+        Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            gradient: RadialGradient(colors: [
+              EnhancedTheme.errorRed.withValues(alpha: 0.1),
+              EnhancedTheme.errorRed.withValues(alpha: 0.02),
+            ]),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.receipt_long_outlined, color: EnhancedTheme.errorRed, size: 52),
+        ),
+        const SizedBox(height: 20),
+        Text('No expenses yet',
+            style: GoogleFonts.outfit(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        Text('Tap + to record a business expense',
+            style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+      ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
     );
   }
 
   Widget _totalSummary() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: EnhancedTheme.errorRed.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.2)),
+            gradient: LinearGradient(colors: [
+              EnhancedTheme.errorRed.withValues(alpha: 0.1),
+              EnhancedTheme.errorRed.withValues(alpha: 0.04),
+            ]),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.25)),
           ),
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('Total Expenses', style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.summarize_rounded, color: EnhancedTheme.errorRed, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Total Expenses',
+                  style: GoogleFonts.outfit(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
+              Text('${_expenses.length} records this period',
+                  style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+            ])),
             Text('₦${_totalExpenses.toStringAsFixed(2)}',
-              style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 18, fontWeight: FontWeight.w800)),
+                style: GoogleFonts.outfit(color: EnhancedTheme.errorRed, fontSize: 20, fontWeight: FontWeight.w900)),
           ]),
         ),
       ),

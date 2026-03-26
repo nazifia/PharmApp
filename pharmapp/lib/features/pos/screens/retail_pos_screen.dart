@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/cart_item.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -31,8 +33,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
   void _checkout() {
     final cart = ref.read(cartProvider);
     if (cart.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cart is empty')));
+      _showSnackBar('Cart is empty', type: _SnackType.error);
       return;
     }
     context.push('/payment');
@@ -40,9 +41,8 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
 
   Future<void> _sendToCashier() async {
     final cart = ref.read(cartProvider);
-    final messenger = ScaffoldMessenger.of(context);
     if (cart.isEmpty) {
-      messenger.showSnackBar(const SnackBar(content: Text('Cart is empty')));
+      _showSnackBar('Cart is empty', type: _SnackType.error);
       return;
     }
 
@@ -52,52 +52,111 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       context: context,
       builder: (ctx) {
         final ctrl = TextEditingController();
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1E293B),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Send to Cashier',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Patient / Customer name (optional)',
-                  style: TextStyle(color: Colors.white70, fontSize: 13)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: ctrl,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'e.g. John Doe',
-                  hintStyle: const TextStyle(color: Colors.white38),
-                  filled: true,
-                  fillColor: Colors.white10,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B).withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.5),
+                ),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Gradient top strip
+                    Container(
+                      height: 3,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.send_rounded, color: EnhancedTheme.primaryTeal, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Text('Send to Cashier',
+                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+                    ]),
+                    const SizedBox(height: 16),
+                    const Text('Patient / Customer name (optional)',
+                        style: TextStyle(color: Colors.white60, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: ctrl,
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. John Doe',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.white38, size: 18),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.07),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(children: [
+                      Expanded(child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                          ),
+                        ),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                      )),
+                      const SizedBox(width: 12),
+                      Expanded(child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+                          child: const Text('Send', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                        ),
+                      )),
+                    ]),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: EnhancedTheme.primaryTeal,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-              child: const Text('Send'),
-            ),
-          ],
         );
       },
     );
@@ -120,15 +179,36 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         patientName: patientName.isEmpty ? null : patientName,
       );
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Payment request sent to cashier'),
-        backgroundColor: EnhancedTheme.successGreen,
-      ));
+      _showSnackBar('Payment request sent to cashier', type: _SnackType.success);
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: EnhancedTheme.errorRed));
+      _showSnackBar('$e', type: _SnackType.error);
     }
+  }
+
+  void _showSnackBar(String msg, {required _SnackType type}) {
+    final color = type == _SnackType.success
+        ? EnhancedTheme.successGreen
+        : type == _SnackType.error
+            ? EnhancedTheme.errorRed
+            : EnhancedTheme.infoBlue;
+    final icon = type == _SnackType.success
+        ? Icons.check_circle_rounded
+        : type == _SnackType.error
+            ? Icons.error_rounded
+            : Icons.info_rounded;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: color.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: Row(children: [
+        Icon(icon, color: Colors.white, size: 20),
+        const SizedBox(width: 10),
+        Expanded(child: Text(msg,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+      ]),
+    ));
   }
 
   // ── Customer picker modal ─────────────────────────────────────────────────
@@ -144,103 +224,168 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         maxChildSize: 0.85,
         minChildSize: 0.3,
         builder: (ctx, scrollCtrl) => StatefulBuilder(
-          builder: (ctx, setSheetState) => Container(
-            decoration: BoxDecoration(
-              color: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: ctx.borderColor),
-            ),
-            child: Column(children: [
-              const SizedBox(height: 12),
-              Center(child: Container(
-                width: 40, height: 4,
+          builder: (ctx, setSheetState) => ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
                 decoration: BoxDecoration(
-                  color: ctx.hintColor, borderRadius: BorderRadius.circular(2)),
-              )),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Row(children: [
-                  Text('Select Customer',
-                      style: TextStyle(color: ctx.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      ref.read(selectedCustomerProvider.notifier).state = null;
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Clear', style: TextStyle(color: EnhancedTheme.errorRed)),
+                  color: ctx.isDark ? const Color(0xFF1E293B).withValues(alpha: 0.97) : Colors.white.withValues(alpha: 0.97),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  border: Border.all(color: ctx.borderColor),
+                ),
+                child: Column(children: [
+                  // Gradient handle strip
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Container(
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                    child: Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: const Icon(Icons.people_rounded, color: EnhancedTheme.primaryTeal, size: 16),
+                      ),
+                      const SizedBox(width: 10),
+                      Text('Select Customer',
+                          style: GoogleFonts.outfit(color: ctx.labelColor, fontSize: 17, fontWeight: FontWeight.w700)),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () {
+                          ref.read(selectedCustomerProvider.notifier).state = null;
+                          Navigator.pop(ctx);
+                        },
+                        icon: const Icon(Icons.clear_rounded, size: 14, color: EnhancedTheme.errorRed),
+                        label: const Text('Clear', style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 13)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.08),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      controller: searchCtrl,
+                      onChanged: (_) => setSheetState(() {}),
+                      style: TextStyle(color: ctx.labelColor),
+                      decoration: InputDecoration(
+                        hintText: 'Search customers…',
+                        hintStyle: TextStyle(color: ctx.hintColor),
+                        prefixIcon: Icon(Icons.search_rounded, color: ctx.hintColor, size: 20),
+                        suffixIcon: searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.close_rounded, color: ctx.hintColor, size: 16),
+                                onPressed: () { searchCtrl.clear(); setSheetState(() {}); })
+                            : null,
+                        filled: true, fillColor: ctx.cardColor,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(child: Builder(builder: (_) {
+                    final q = searchCtrl.text.toLowerCase();
+                    final filtered = customers.where((c) =>
+                        c.name.toLowerCase().contains(q) || c.phone.contains(q)).toList();
+                    if (filtered.isEmpty) {
+                      return Center(child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 72, height: 72,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(colors: [
+                                EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                                EnhancedTheme.accentCyan.withValues(alpha: 0.15),
+                              ]),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.people_outline_rounded, color: EnhancedTheme.primaryTeal, size: 32),
+                          ),
+                          const SizedBox(height: 12),
+                          Text('No customers found',
+                              style: GoogleFonts.inter(color: ctx.subLabelColor, fontSize: 14)),
+                          const SizedBox(height: 4),
+                          Text('Try a different name or phone number',
+                              style: TextStyle(color: ctx.hintColor, fontSize: 12)),
+                        ],
+                      ));
+                    }
+                    return ListView.builder(
+                      controller: scrollCtrl,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final c = filtered[i];
+                        final isSelected = ref.read(selectedCustomerProvider)?.id == c.id;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? EnhancedTheme.primaryTeal.withValues(alpha: 0.1)
+                                : ctx.cardColor,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4)
+                                  : ctx.borderColor,
+                            ),
+                          ),
+                          child: ListTile(
+                            onTap: () {
+                              ref.read(selectedCustomerProvider.notifier).state = SelectedCustomer(
+                                id: c.id, name: c.name, walletBalance: c.walletBalance);
+                              Navigator.pop(ctx);
+                            },
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            leading: CircleAvatar(
+                              backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
+                              child: Text(
+                                c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                                style: GoogleFonts.outfit(
+                                    color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
+                            ),
+                            title: Text(c.name,
+                                style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                            subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(c.phone, style: TextStyle(color: ctx.subLabelColor, fontSize: 12)),
+                              if (c.walletBalance > 0)
+                                Text('Wallet: ₦${c.walletBalance.toStringAsFixed(0)}',
+                                    style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
+                            ]),
+                            trailing: isSelected
+                                ? Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.check_rounded, color: EnhancedTheme.primaryTeal, size: 14))
+                                : null,
+                          ),
+                        );
+                      },
+                    );
+                  })),
                 ]),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: searchCtrl,
-                  onChanged: (_) => setSheetState(() {}),
-                  style: TextStyle(color: ctx.labelColor),
-                  decoration: InputDecoration(
-                    hintText: 'Search customers…',
-                    hintStyle: TextStyle(color: ctx.hintColor),
-                    prefixIcon: Icon(Icons.search, color: ctx.hintColor, size: 20),
-                    filled: true, fillColor: ctx.cardColor,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(child: Builder(builder: (_) {
-                final q = searchCtrl.text.toLowerCase();
-                final filtered = customers.where((c) =>
-                    c.name.toLowerCase().contains(q) || c.phone.contains(q)).toList();
-                if (filtered.isEmpty) {
-                  return Center(child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.people_outline, color: ctx.hintColor, size: 48),
-                      const SizedBox(height: 12),
-                      Text('No customers found',
-                          style: TextStyle(color: ctx.subLabelColor, fontSize: 14)),
-                    ],
-                  ));
-                }
-                return ListView.builder(
-                  controller: scrollCtrl,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: filtered.length,
-                  itemBuilder: (_, i) {
-                    final c = filtered[i];
-                    final isSelected = ref.read(selectedCustomerProvider)?.id == c.id;
-                    return ListTile(
-                      onTap: () {
-                        ref.read(selectedCustomerProvider.notifier).state = SelectedCustomer(
-                          id: c.id, name: c.name, walletBalance: c.walletBalance);
-                        Navigator.pop(ctx);
-                      },
-                      leading: CircleAvatar(
-                        backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
-                        child: Text(
-                          c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
-                          style: const TextStyle(
-                              color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
-                      ),
-                      title: Text(c.name,
-                          style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
-                      subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(c.phone, style: TextStyle(color: ctx.subLabelColor, fontSize: 12)),
-                        if (c.walletBalance > 0)
-                          Text('Wallet: ₦${c.walletBalance.toStringAsFixed(0)}',
-                              style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11)),
-                      ]),
-                      trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: EnhancedTheme.primaryTeal)
-                          : null,
-                    );
-                  },
-                );
-              })),
-            ]),
+            ),
           ),
         ),
       ),
@@ -288,91 +433,148 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
 
   // ── Header ─────────────────────────────────────────────────────────────────
 
-  Widget _header(BuildContext context, int cartCount) => Padding(
-    padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
-    child: Row(children: [
-      IconButton(
-        icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-        onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
+  Widget _header(BuildContext context, int cartCount) {
+    final itemCount = ref.watch(retailInventoryProvider).whenOrNull(data: (l) => l.length);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
+            EnhancedTheme.accentCyan.withValues(alpha: 0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25)),
       ),
-      const SizedBox(width: 4),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Retail POS',
-            style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w600)),
-        Text('Retail dispensing',
-            style: TextStyle(color: context.hintColor, fontSize: 11)),
-      ])),
-      // Grid / List toggle
-      GestureDetector(
-        onTap: () => setState(() => _gridView = !_gridView),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Icon(
-            _gridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
-            color: context.labelColor, size: 18,
+      child: Row(children: [
+        GestureDetector(
+          onTap: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
           ),
         ),
-      ),
-      const SizedBox(width: 8),
-      if (cartCount > 0)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Retail POS',
+              style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+          Row(children: [
+            Text('Retail dispensing',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
+            if (itemCount != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.accentCyan.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text('$itemCount items',
+                    style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 10, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ]),
+        ])),
+        // Grid / List toggle
+        GestureDetector(
+          onTap: () => setState(() => _gridView = !_gridView),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            ),
+            child: Icon(
+              _gridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+              color: Colors.white, size: 18,
+            ),
           ),
-          child: Text('$cartCount',
-              style: const TextStyle(
-                  color: EnhancedTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.w600)),
         ),
-    ]),
-  );
+        if (cartCount > 0) ...[
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2))],
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 13),
+              const SizedBox(width: 4),
+              Text('$cartCount',
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ],
+      ]),
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0);
+  }
 
   // ── Customer Row ───────────────────────────────────────────────────────────
 
   Widget _customerRow(BuildContext context, AsyncValue customersAsync) {
     final selected = ref.watch(selectedCustomerProvider);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: GestureDetector(
         onTap: () {
           final customers = customersAsync.valueOrNull ?? [];
           _showCustomerPicker(customers);
         },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
             color: selected != null
-                ? EnhancedTheme.primaryTeal.withValues(alpha: 0.12)
+                ? EnhancedTheme.primaryTeal.withValues(alpha: 0.1)
                 : context.cardColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected != null
                   ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4)
                   : context.borderColor,
+              width: selected != null ? 1.5 : 1.0,
             ),
           ),
           child: Row(children: [
-            Icon(Icons.person_rounded,
-                color: selected != null ? EnhancedTheme.primaryTeal : context.hintColor, size: 20),
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: (selected != null ? EnhancedTheme.primaryTeal : context.hintColor)
+                    .withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(Icons.person_rounded,
+                  color: selected != null ? EnhancedTheme.primaryTeal : context.hintColor, size: 16),
+            ),
             const SizedBox(width: 10),
             Expanded(child: selected != null
                 ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(selected.name,
                         style: TextStyle(color: context.labelColor,
                             fontSize: 13, fontWeight: FontWeight.w600)),
-                    Text('Wallet: ₦${selected.walletBalance.toStringAsFixed(0)}',
-                        style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                    Row(children: [
+                      const Icon(Icons.account_balance_wallet_rounded, color: EnhancedTheme.successGreen, size: 11),
+                      const SizedBox(width: 4),
+                      Text('₦${selected.walletBalance.toStringAsFixed(0)}',
+                          style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
+                    ]),
                   ])
                 : Text('Link a customer (optional)',
                     style: TextStyle(color: context.hintColor, fontSize: 13))),
-            Icon(Icons.arrow_drop_down_rounded, color: context.hintColor),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                color: selected != null ? EnhancedTheme.primaryTeal : context.hintColor, size: 20),
           ]),
         ),
       ),
@@ -387,11 +589,16 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       length: 2,
       child: Column(children: [
         Container(
-          color: context.isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+          decoration: BoxDecoration(
+            color: context.isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+            border: Border(bottom: BorderSide(color: context.borderColor)),
+          ),
           child: TabBar(
             labelColor: EnhancedTheme.primaryTeal,
             unselectedLabelColor: context.hintColor,
             indicatorColor: EnhancedTheme.primaryTeal,
+            indicatorWeight: 3,
+            labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13),
             tabs: [
               Tab(text: 'Catalogue ($count)'),
               Tab(text: 'Cart (${cart.length})'),
@@ -417,33 +624,73 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           onChanged: (_) => setState(() {}),
           style: TextStyle(color: context.labelColor),
           decoration: InputDecoration(
-            hintText: 'Search items…',
+            hintText: 'Search items by name, brand, barcode…',
             hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
-            prefixIcon: Icon(Icons.search, color: context.hintColor, size: 20),
+            prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
+            suffixIcon: _searchCtrl.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.close_rounded, color: context.hintColor, size: 16),
+                    onPressed: () => setState(() => _searchCtrl.clear()))
+                : null,
             filled: true, fillColor: context.cardColor,
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(vertical: 13),
           ),
         ),
       ),
       Expanded(child: filtered.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
-        error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 48),
-          const SizedBox(height: 12),
-          Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
-          TextButton(
-            onPressed: () => ref.invalidate(retailInventoryProvider),
-            child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal)),
-          ),
+        loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2.5),
+          const SizedBox(height: 16),
+          Text('Loading catalogue…', style: TextStyle(color: context.hintColor, fontSize: 13)),
         ])),
+        error: (e, _) => Center(child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed, size: 36),
+            ),
+            const SizedBox(height: 16),
+            Text('Failed to load items', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 12), textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => ref.invalidate(retailInventoryProvider),
+              icon: const Icon(Icons.refresh_rounded, size: 16, color: EnhancedTheme.primaryTeal),
+              label: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: EnhancedTheme.primaryTeal),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ]),
+        )),
         data: (items) {
           if (items.isEmpty) {
             return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.inventory_2_outlined, color: context.hintColor, size: 52),
-              const SizedBox(height: 12),
-              Text('No items found', style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+              Container(
+                width: 88, height: 88,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                    EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                    EnhancedTheme.accentCyan.withValues(alpha: 0.08),
+                  ]),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.inventory_2_outlined, color: EnhancedTheme.primaryTeal, size: 40),
+              ),
+              const SizedBox(height: 16),
+              Text('No items found', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text(_searchCtrl.text.isEmpty ? 'Add items from the inventory module' : 'Try a different search term',
+                  style: TextStyle(color: context.subLabelColor, fontSize: 13)),
             ]));
           }
           return _gridView
@@ -451,26 +698,52 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-                    mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.1,
+                    mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.05,
                   ),
                   itemCount: items.length,
-                  itemBuilder: (_, i) => _catalogueGridCard(items[i], cart),
+                  itemBuilder: (_, i) => _catalogueGridCard(items[i], cart)
+                      .animate(delay: (i * 30).ms)
+                      .fadeIn(duration: 250.ms)
+                      .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1)),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                   itemCount: items.length,
-                  itemBuilder: (_, i) => _catalogueListItem(items[i], cart),
+                  itemBuilder: (_, i) => _catalogueListItem(items[i], cart)
+                      .animate(delay: (i * 25).ms)
+                      .fadeIn(duration: 250.ms)
+                      .slideX(begin: 0.05, end: 0),
                 );
         },
       )),
     ]);
   }
 
+  Color _categoryColor(Item item) {
+    // Derive accent color from item name keywords
+    final name = item.name.toLowerCase();
+    if (name.contains('pain') || name.contains('analg') || name.contains('ibuprofen') || name.contains('aspirin')) {
+      return EnhancedTheme.errorRed;
+    }
+    if (name.contains('antibiotic') || name.contains('amoxicil') || name.contains('cipro')) {
+      return EnhancedTheme.accentPurple;
+    }
+    if (name.contains('vitamin') || name.contains('supplement') || name.contains('zinc')) {
+      return EnhancedTheme.successGreen;
+    }
+    if (name.contains('antiviral') || name.contains('acyclo')) {
+      return EnhancedTheme.infoBlue;
+    }
+    return EnhancedTheme.primaryTeal;
+  }
+
   Widget _catalogueListItem(Item item, List<CartItem> cart) {
     final cartItem   = cart.where((c) => c.item.id == item.id).firstOrNull;
     final inCart     = cartItem?.quantity ?? 0;
     final outOfStock = item.stock == 0;
+    final lowStock   = item.stock > 0 && item.stock <= 5;
     final atStockCap = inCart >= item.stock;
+    final accentColor = outOfStock ? context.hintColor : _categoryColor(item);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
@@ -483,25 +756,33 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
             color: outOfStock
                 ? context.cardColor.withValues(alpha: 0.3)
                 : inCart > 0
-                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.08)
+                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.07)
                     : context.cardColor,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: inCart > 0
-                  ? EnhancedTheme.primaryTeal.withValues(alpha: 0.3)
+                  ? EnhancedTheme.primaryTeal.withValues(alpha: 0.35)
                   : context.borderColor,
+              width: inCart > 0 ? 1.5 : 1.0,
             ),
           ),
           child: Row(children: [
+            // Gradient icon background
             Container(
-              width: 44, height: 44,
+              width: 48, height: 48,
               decoration: BoxDecoration(
-                color: (outOfStock ? context.hintColor : EnhancedTheme.primaryTeal)
-                    .withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    accentColor.withValues(alpha: outOfStock ? 0.08 : 0.18),
+                    accentColor.withValues(alpha: outOfStock ? 0.04 : 0.08),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: accentColor.withValues(alpha: 0.2)),
               ),
-              child: Icon(Icons.medication_rounded,
-                  color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal, size: 22),
+              child: Icon(Icons.medication_rounded, color: accentColor, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -511,38 +792,73 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                       fontSize: 13, fontWeight: FontWeight.w600)),
               if (item.brand.isNotEmpty)
                 Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-              Text(outOfStock ? 'Out of stock' : '${item.stock} in stock',
+              const SizedBox(height: 3),
+              // Stock badge chip
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: outOfStock
+                      ? EnhancedTheme.errorRed.withValues(alpha: 0.12)
+                      : lowStock
+                          ? EnhancedTheme.warningAmber.withValues(alpha: 0.12)
+                          : EnhancedTheme.successGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  outOfStock ? 'Out of stock' : lowStock ? '${item.stock} left — low' : '${item.stock} in stock',
                   style: TextStyle(
                     color: outOfStock
-                        ? EnhancedTheme.errorRed.withValues(alpha: 0.7)
-                        : context.hintColor,
-                    fontSize: 10,
-                  )),
+                        ? EnhancedTheme.errorRed
+                        : lowStock
+                            ? EnhancedTheme.warningAmber
+                            : EnhancedTheme.successGreen,
+                    fontSize: 10, fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ])),
+            const SizedBox(width: 8),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('₦${item.price.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal,
-                    fontSize: 14, fontWeight: FontWeight.w700,
-                  )),
-              const SizedBox(height: 4),
+              // Price with currency color
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('₦', style: TextStyle(
+                  color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
+                  fontSize: 11, fontWeight: FontWeight.w600)),
+                Text(item.price.toStringAsFixed(0),
+                    style: TextStyle(
+                      color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal,
+                      fontSize: 15, fontWeight: FontWeight.w800,
+                    )),
+              ]),
+              const SizedBox(height: 6),
               if (!outOfStock && !atStockCap)
                 GestureDetector(
                   onTap: () => ref.read(cartProvider.notifier).addItem(item),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                      gradient: inCart > 0
+                          ? const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan])
+                          : null,
+                      color: inCart > 0 ? null : context.cardColor,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+                      border: inCart > 0 ? null : Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.5)),
                     ),
                     child: Text(inCart > 0 ? '+ More' : 'Add',
-                        style: const TextStyle(
-                            color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            color: inCart > 0 ? Colors.white : EnhancedTheme.primaryTeal,
+                            fontSize: 11, fontWeight: FontWeight.w700)),
                   ),
                 ),
               if (atStockCap && inCart > 0)
-                Text('Max stock', style: TextStyle(color: context.hintColor, fontSize: 10)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.warningAmber.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text('Max', style: TextStyle(color: EnhancedTheme.warningAmber, fontSize: 10, fontWeight: FontWeight.w600)),
+                ),
             ]),
           ]),
         ),
@@ -554,40 +870,56 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     final cartItem   = cart.where((c) => c.item.id == item.id).firstOrNull;
     final inCart     = cartItem?.quantity ?? 0;
     final outOfStock = item.stock == 0;
+    final lowStock   = item.stock > 0 && item.stock <= 5;
     final atStockCap = inCart >= item.stock;
+    final accentColor = outOfStock ? context.hintColor : _categoryColor(item);
 
     return GestureDetector(
       onTap: (outOfStock || atStockCap) ? null : () => ref.read(cartProvider.notifier).addItem(item),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(13),
             decoration: BoxDecoration(
               color: outOfStock
                   ? context.cardColor.withValues(alpha: 0.3)
                   : inCart > 0
                       ? EnhancedTheme.primaryTeal.withValues(alpha: 0.08)
                       : context.cardColor,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: inCart > 0
-                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4)
+                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.45)
                     : context.borderColor,
+                width: inCart > 0 ? 1.5 : 1.0,
               ),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Icon(Icons.medication_rounded,
-                    color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal, size: 22),
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        accentColor.withValues(alpha: outOfStock ? 0.08 : 0.2),
+                        accentColor.withValues(alpha: outOfStock ? 0.04 : 0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.medication_rounded, color: accentColor, size: 18),
+                ),
                 if (inCart > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                        color: EnhancedTheme.primaryTeal, borderRadius: BorderRadius.circular(8)),
+                      gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Text('$inCart',
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
                   ),
               ]),
               const Spacer(),
@@ -603,14 +935,31 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                     color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal,
                     fontSize: 14, fontWeight: FontWeight.w800,
                   )),
-              const SizedBox(height: 2),
-              Text(outOfStock ? 'Out of stock' : atStockCap ? 'Max in cart' : '${item.stock} left',
+              const SizedBox(height: 3),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: outOfStock
+                      ? EnhancedTheme.errorRed.withValues(alpha: 0.1)
+                      : lowStock
+                          ? EnhancedTheme.warningAmber.withValues(alpha: 0.1)
+                          : atStockCap
+                              ? EnhancedTheme.warningAmber.withValues(alpha: 0.1)
+                              : EnhancedTheme.successGreen.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  outOfStock ? 'Out of stock' : atStockCap ? 'Max in cart' : lowStock ? '${item.stock} left' : '${item.stock} left',
                   style: TextStyle(
-                    color: (outOfStock || atStockCap)
-                        ? EnhancedTheme.errorRed.withValues(alpha: 0.7)
-                        : context.hintColor,
-                    fontSize: 10,
-                  )),
+                    color: outOfStock
+                        ? EnhancedTheme.errorRed
+                        : (atStockCap || lowStock)
+                            ? EnhancedTheme.warningAmber
+                            : EnhancedTheme.successGreen,
+                    fontSize: 9, fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ]),
           ),
         ),
@@ -624,41 +973,76 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     return Column(children: [
       Expanded(child: cart.isEmpty
           ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.shopping_cart_outlined, color: context.hintColor, size: 52),
-              const SizedBox(height: 12),
-              Text('No items in cart', style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+              Container(
+                width: 88, height: 88,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                    EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+                    EnhancedTheme.accentCyan.withValues(alpha: 0.06),
+                  ]),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.shopping_cart_outlined, color: context.hintColor, size: 40),
+              ),
+              const SizedBox(height: 16),
+              Text('Cart is empty', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text('Tap any item to add it', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
             ]))
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               itemCount: cart.length,
-              itemBuilder: (_, i) => _RetailCartItem(key: ValueKey(cart[i].item.id), item: cart[i]),
+              itemBuilder: (_, i) => _RetailCartItem(
+                key: ValueKey(cart[i].item.id),
+                item: cart[i],
+              ).animate(delay: (i * 30).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0),
             )),
 
       // Summary + checkout
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: context.cardColor,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: context.borderColor),
               ),
               child: Column(children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('${cart.length} lines  ·  ${cart.fold<int>(0, (s, c) => s + c.quantity)} units',
-                      style: TextStyle(color: context.subLabelColor, fontSize: 13)),
-                  Text('₦${cartTotal.toStringAsFixed(2)}',
-                      style: TextStyle(color: context.labelColor,
-                          fontSize: 18, fontWeight: FontWeight.w700)),
-                ]),
-                const SizedBox(height: 10),
+                // Gradient total row
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                        EnhancedTheme.accentCyan.withValues(alpha: 0.08),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('${cart.length} lines · ${cart.fold<int>(0, (s, c) => s + c.quantity)} units',
+                          style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                      const Text('Total Amount', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ]),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      const Text('₦', style: TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11)),
+                      Text(cartTotal.toStringAsFixed(2),
+                          style: GoogleFonts.outfit(
+                              color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                    ]),
+                  ]),
+                ),
+                const SizedBox(height: 12),
                 Row(children: [
-                  Expanded(child: OutlinedButton(
+                  Expanded(child: OutlinedButton.icon(
                     onPressed: () {
                       ref.read(cartProvider.notifier).clearCart();
                       ref.read(selectedCustomerProvider.notifier).state = null;
@@ -667,19 +1051,30 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                       foregroundColor: EnhancedTheme.errorRed,
                       side: BorderSide(color: EnhancedTheme.errorRed.withValues(alpha: 0.4)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
                     ),
-                    child: const Text('Clear'),
+                    icon: const Icon(Icons.delete_sweep_rounded, size: 16),
+                    label: const Text('Clear', style: TextStyle(fontWeight: FontWeight.w600)),
                   )),
                   const SizedBox(width: 10),
-                  Expanded(flex: 2, child: ElevatedButton.icon(
-                    onPressed: _checkout,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: EnhancedTheme.primaryTeal,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  Expanded(flex: 2, child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 3))],
                     ),
-                    icon: const Icon(Icons.check_circle_rounded, size: 18),
-                    label: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: ElevatedButton.icon(
+                      onPressed: _checkout,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded, size: 18),
+                      label: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
                   )),
                 ]),
                 const SizedBox(height: 8),
@@ -689,6 +1084,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                     foregroundColor: EnhancedTheme.accentOrange,
                     side: BorderSide(color: EnhancedTheme.accentOrange.withValues(alpha: 0.5)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
                   icon: const Icon(Icons.send_rounded, size: 16),
                   label: const Text('Send to Cashier', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -700,8 +1096,6 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       ),
     ]);
   }
-
-
 }
 
 // ── Cart item row ─────────────────────────────────────────────────────────────
@@ -747,68 +1141,104 @@ class _RetailCartItemState extends ConsumerState<_RetailCartItem> {
   Widget build(BuildContext context) {
     final c = widget.item;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: context.cardColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: context.borderColor),
           ),
           child: Column(children: [
             Row(children: [
+              // Colored left accent strip
+              Container(
+                width: 4, height: 40,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
+                  ),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(c.item.name,
                     style: TextStyle(color: context.labelColor,
                         fontSize: 13, fontWeight: FontWeight.w600),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text('₦${c.item.price.toStringAsFixed(0)} × ${c.quantity} = ₦${c.total.toStringAsFixed(0)}',
-                    style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                RichText(text: TextSpan(
+                  style: TextStyle(color: context.subLabelColor, fontSize: 11),
+                  children: [
+                    TextSpan(text: '₦${c.item.price.toStringAsFixed(0)}'),
+                    const TextSpan(text: ' × '),
+                    TextSpan(text: '${c.quantity}',
+                        style: const TextStyle(color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
+                    const TextSpan(text: ' = '),
+                    TextSpan(text: '₦${c.total.toStringAsFixed(0)}',
+                        style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                  ],
+                )),
               ])),
+              const SizedBox(width: 8),
+              // Colored quantity controls
               Row(children: [
-                _qtyBtn(Icons.remove,
-                    () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity - 1)),
+                _qtyBtn(Icons.remove_rounded,
+                    () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity - 1),
+                    color: EnhancedTheme.errorRed),
                 _QtyField(
                   quantity: c.quantity,
                   maxStock: c.item.stock,
                   onChanged: (n) => ref.read(cartProvider.notifier).updateQuantity(c.item.id, n),
                 ),
-                _qtyBtn(Icons.add,
-                    () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity + 1)),
+                _qtyBtn(Icons.add_rounded,
+                    () => ref.read(cartProvider.notifier).updateQuantity(c.item.id, c.quantity + 1),
+                    color: EnhancedTheme.successGreen),
               ]),
             ]),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Row(children: [
-              Icon(Icons.discount_outlined, color: context.hintColor, size: 14),
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.warningAmber.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.discount_rounded, color: EnhancedTheme.warningAmber, size: 12),
+              ),
               const SizedBox(width: 6),
               Text('Discount:', style: TextStyle(color: context.hintColor, fontSize: 11)),
               const SizedBox(width: 6),
               SizedBox(
-                width: 72,
-                height: 26,
+                width: 76,
+                height: 28,
                 child: TextField(
                   controller: _discountCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   style: TextStyle(color: context.labelColor, fontSize: 12),
                   decoration: InputDecoration(
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     hintText: '0',
                     hintStyle: TextStyle(color: context.hintColor, fontSize: 12),
+                    prefixText: '₦',
+                    prefixStyle: TextStyle(color: context.hintColor, fontSize: 11),
                     filled: true, fillColor: context.cardColor,
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(7),
                         borderSide: BorderSide(color: context.borderColor)),
                     enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(7),
                         borderSide: BorderSide(color: context.borderColor)),
                     focusedBorder: const OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(6)),
-                        borderSide: BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+                        borderRadius: BorderRadius.all(Radius.circular(7)),
+                        borderSide: BorderSide(color: EnhancedTheme.warningAmber, width: 1.5)),
                   ),
                   onChanged: (v) {
                     final d = double.tryParse(v) ?? 0;
@@ -819,7 +1249,14 @@ class _RetailCartItemState extends ConsumerState<_RetailCartItem> {
               const Spacer(),
               GestureDetector(
                 onTap: () => ref.read(cartProvider.notifier).removeItem(c.item.id),
-                child: Icon(Icons.close_rounded, color: context.hintColor, size: 18),
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: const Icon(Icons.close_rounded, color: EnhancedTheme.errorRed, size: 14),
+                ),
               ),
             ]),
           ]),
@@ -828,16 +1265,16 @@ class _RetailCartItemState extends ConsumerState<_RetailCartItem> {
     );
   }
 
-  Widget _qtyBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+  Widget _qtyBtn(IconData icon, VoidCallback onTap, {required Color color}) => GestureDetector(
     onTap: onTap,
     child: Container(
-      width: 28, height: 28,
+      width: 30, height: 30,
       decoration: BoxDecoration(
-        color: context.cardColor,
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: context.borderColor),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Icon(icon, color: context.labelColor, size: 16),
+      child: Icon(icon, color: color, size: 15),
     ),
   );
 }
@@ -927,3 +1364,6 @@ class _QtyFieldState extends State<_QtyField> {
     );
   }
 }
+
+// ── Snack type helper ─────────────────────────────────────────────────────────
+enum _SnackType { success, error }

@@ -39,19 +39,21 @@ class AppShell extends ConsumerWidget {
         final result = await ref.read(syncServiceProvider).syncAll();
         if (result.hasWork && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: (result.failed == 0 ? EnhancedTheme.successGreen : EnhancedTheme.warningAmber).withValues(alpha: 0.92),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
             content: Row(children: [
               Icon(
                 result.failed == 0 ? Icons.cloud_done_rounded : Icons.cloud_sync_rounded,
-                color: Colors.white, size: 18),
+                color: Colors.white, size: 20),
               const SizedBox(width: 10),
               Expanded(child: Text(result.failed == 0
                   ? '${result.synced} offline sale${result.synced == 1 ? '' : 's'} synced successfully'
-                  : '${result.synced} synced, ${result.failed} still pending')),
+                  : '${result.synced} synced, ${result.failed} still pending',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
             ]),
-            backgroundColor: result.failed == 0
-                ? EnhancedTheme.successGreen
-                : EnhancedTheme.warningAmber,
-            duration: const Duration(seconds: 4),
           ));
         }
       }

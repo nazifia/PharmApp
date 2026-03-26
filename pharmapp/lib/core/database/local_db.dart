@@ -1091,6 +1091,12 @@ class LocalDb {
 
   String _periodWhere(String period, {String table = ''}) {
     final col = table.isEmpty ? 'created_at' : '$table.created_at';
+    if (period.startsWith('custom:')) {
+      final parts = period.split(':');
+      if (parts.length >= 3) {
+        return "$col >= '${parts[1]}' AND $col <= '${parts[2]} 23:59:59'";
+      }
+    }
     switch (period) {
       case 'today':   return "date($col) = date('now')";
       case 'week':    return "$col >= datetime('now', '-7 days')";

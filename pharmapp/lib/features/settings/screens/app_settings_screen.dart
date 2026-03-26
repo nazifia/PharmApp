@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pharmapp/core/config/app_config.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -40,8 +39,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   Widget build(BuildContext context) {
     final user      = ref.watch(currentUserProvider);
     final isDark    = ref.watch(themeModeProvider) == ThemeMode.dark;
-    final appMode   = ref.watch(appModeProvider);
-    final isProd    = appMode == AppMode.production;
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -85,9 +82,20 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                         _tapTile(
                           Icons.cleaning_services_outlined, 'Clear Cache',
                           'Free up local storage',
-                          () => ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Cache cleared'))),
+                          () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                              const SizedBox(width: 10),
+                              const Expanded(child: Text('Cache cleared', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                            ]),
+                          )),
                         ),
+                        _divider(),
+                        _inputTile(Icons.cloud_outlined, 'API Server URL', _apiUrlCtrl),
                         _divider(),
                         _tapTile(
                           Icons.info_outline, 'About PharmApp',
@@ -96,21 +104,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                           trailing: Text('v1.0.0',
                               style: TextStyle(color: context.hintColor, fontSize: 12)),
                         ),
-                      ]),
-                      const SizedBox(height: 16),
-                      _sectionCard('Environment', [
-                        _switchTile(
-                          isProd ? Icons.cloud_done_outlined : Icons.storage_outlined,
-                          'Production Mode',
-                          isProd ? 'Using Django REST backend' : 'Using local SQLite database',
-                          isProd,
-                          (v) => _confirmModeSwitch(context, v),
-                          activeColor: isProd ? EnhancedTheme.accentOrange : EnhancedTheme.primaryTeal,
-                        ),
-                        if (isProd) ...[
-                          _divider(),
-                          _inputTile(Icons.cloud_outlined, 'API Server URL', _apiUrlCtrl),
-                        ],
                       ]),
                       const SizedBox(height: 16),
                       _sectionCard('Account', [
@@ -242,41 +235,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                     : context.borderColor)),
       ]),
     );
-  }
-
-  Future<void> _confirmModeSwitch(BuildContext context, bool toProd) async {
-    final modeName = toProd ? 'Production' : 'Development';
-    final detail = toProd
-        ? 'The app will connect to the Django REST backend.\nMake sure the server is running and the API URL is correct.'
-        : 'The app will use the local SQLite database on this device.';
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Switch to $modeName?',
-            style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
-        content: Text(detail, style: TextStyle(color: context.subLabelColor, fontSize: 14)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: context.hintColor))),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: toProd ? EnhancedTheme.accentOrange : EnhancedTheme.primaryTeal,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: Text('Switch', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      await ref.read(appModeProvider.notifier)
-          .switchTo(toProd ? AppMode.production : AppMode.development);
-    }
   }
 
   Widget _dropdownTile(IconData icon, String title, String val,

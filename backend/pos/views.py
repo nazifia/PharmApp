@@ -729,15 +729,30 @@ def monthly_report(request):
     month = int(request.query_params.get("month", today.month))
     year = int(request.query_params.get("year", today.year))
 
-    sales_total = (
-        PosSale.objects.filter(
-            organization=org,
-            created__year=year,
-            created__month=month,
-            status__in=["completed", "partial_return"],
-        ).aggregate(t=Sum("total_amount"))["t"]
+    sales_qs = PosSale.objects.filter(
+        organization=org,
+        created__year=year,
+        created__month=month,
+        status__in=["completed", "partial_return"],
+    )
+
+    sales_total = sales_qs.aggregate(t=Sum("total_amount"))["t"] or 0
+
+    # Cost of goods sold — mirrors the profit_report logic in reports/views.py
+    from django.db.models import FloatField
+    cogs = (
+        SaleItem.objects.filter(
+            sale__in=sales_qs,
+            item__isnull=False,
+            item__cost__gt=0,
+        ).aggregate(
+            t=Sum(F("quantity") * F("item__cost"), output_field=FloatField())
+        )["t"]
         or 0
     )
+    # Fall back to 70 % estimate when no cost prices are recorded
+    if cogs == 0 and sales_total > 0:
+        cogs = float(sales_total) * 0.70
 
     expenses_total = (
         Expense.objects.filter(organization=org, date__year=year, date__month=month).aggregate(
@@ -746,12 +761,14 @@ def monthly_report(request):
         or 0
     )
 
+    net_profit = float(sales_total) - float(cogs) - float(expenses_total)
+
     return Response(
         {
             "month": f"{year}-{month:02d}",
             "totalSales": float(sales_total),
             "totalExpenses": float(expenses_total),
-            "netProfit": float(sales_total) - float(expenses_total),
+            "netProfit": net_profit,
         }
     )
 
