@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -87,7 +87,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showCreateSheet,
         backgroundColor: EnhancedTheme.primaryTeal,
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.black,
         icon: const Icon(Icons.add_rounded),
         label: Text('New Transfer',
             style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
@@ -582,7 +582,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: EnhancedTheme.successGreen,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
@@ -605,10 +605,10 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text('Transfer approved',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+                style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -620,10 +620,10 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.error_outline_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text(_apiError(e),
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+                style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -641,10 +641,10 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.cancel_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.cancel_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text('Transfer rejected',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+                style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -656,10 +656,10 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.error_outline_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text(_apiError(e),
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+                style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -754,7 +754,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EnhancedTheme.infoBlue,
-                  foregroundColor: Colors.white,
+                  foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -783,10 +783,10 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.inventory_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.inventory_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text('Transfer received — stock updated',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+                style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -798,10 +798,10 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.error_outline_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text(_apiError(e),
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+                style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -858,10 +858,10 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         content: Row(children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+          const Icon(Icons.warning_amber_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
           Expanded(child: Text('Please fill item name and quantity',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+              style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
       return;
@@ -885,10 +885,10 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text('Transfer created',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+                style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -901,10 +901,10 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.error_outline_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text(_apiError(e),
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+                style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -1061,14 +1061,14 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
           onPressed: _submitting ? null : _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: EnhancedTheme.primaryTeal,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.black,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
           ),
           child: _submitting
               ? const SizedBox(width: 20, height: 20,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
               : Text('Create Transfer',
                   style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
         )),

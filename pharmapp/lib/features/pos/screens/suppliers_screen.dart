@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,9 +76,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
-            const Expanded(child: Text('Supplier deleted', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            const Expanded(child: Text('Supplier deleted', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -90,9 +90,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.error_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('Failed to delete: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            Expanded(child: Text('Failed to delete: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -107,9 +107,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         content: Row(children: [
-          const Icon(Icons.info_rounded, color: Colors.white, size: 20),
+          const Icon(Icons.info_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
-          const Expanded(child: Text('Add at least one supplier first', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          const Expanded(child: Text('Add at least one supplier first', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
       return;
@@ -212,9 +212,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         margin: const EdgeInsets.all(16),
                         content: Row(children: [
-                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                          const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                           const SizedBox(width: 10),
-                          const Expanded(child: Text('Supplier added', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                          const Expanded(child: Text('Supplier added', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                         ]),
                       ));
                     }
@@ -226,9 +226,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         margin: const EdgeInsets.all(16),
                         content: Row(children: [
-                          const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                          const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                           const SizedBox(width: 10),
-                          Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                          Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                         ]),
                       ));
                     }
@@ -236,7 +236,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EnhancedTheme.accentPurple,
-                  foregroundColor: Colors.white,
+                  foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
@@ -298,7 +298,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
         backgroundColor: _tabController.index == 0
             ? EnhancedTheme.accentPurple
             : EnhancedTheme.primaryTeal,
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.black,
         elevation: 4,
         icon: const Icon(Icons.add_rounded),
         label: Text(
@@ -385,7 +385,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                       ],
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
-                    labelColor: Colors.white,
+                    labelColor: Colors.black,
                     unselectedLabelColor: context.subLabelColor,
                     labelStyle: GoogleFonts.outfit(
                         fontWeight: FontWeight.w700, fontSize: 13),
@@ -581,7 +581,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                   ),
                   child: Center(
                     child: Text(initial,
-                        style: GoogleFonts.outfit(color: Colors.white,
+                        style: GoogleFonts.outfit(color: Colors.black,
                             fontSize: 20, fontWeight: FontWeight.w800)),
                   ),
                 ),
@@ -967,9 +967,9 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         content: Row(children: [
-          const Icon(Icons.info_rounded, color: Colors.white, size: 20),
+          const Icon(Icons.info_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
-          const Expanded(child: Text('Please select a supplier', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          const Expanded(child: Text('Please select a supplier', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
       return;
@@ -994,9 +994,9 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         content: Row(children: [
-          const Icon(Icons.info_rounded, color: Colors.white, size: 20),
+          const Icon(Icons.info_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
-          const Expanded(child: Text('Add at least one item', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          const Expanded(child: Text('Add at least one item', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
       return;
@@ -1019,11 +1019,11 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text(status == 'completed'
                 ? 'Procurement dispatched to $destLabel'
-                : 'Procurement saved as draft', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                : 'Procurement saved as draft', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -1036,9 +1036,9 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.error_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -1207,7 +1207,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
                 backgroundColor: _destination == 'retail'
                     ? EnhancedTheme.infoBlue
                     : EnhancedTheme.accentPurple,
-                foregroundColor: Colors.white,
+                foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
@@ -1216,7 +1216,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
               child: _submitting
                   ? const SizedBox(width: 18, height: 18,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
+                          color: Colors.black, strokeWidth: 2))
                   : Text(
                       'Dispatch to ${_destination == 'retail' ? 'Retail' : 'Wholesale'}',
                       style: GoogleFonts.outfit(fontSize: 13,
@@ -1570,7 +1570,7 @@ class _ProcurementDetailSheetState
               backgroundColor: destination == 'retail'
                   ? EnhancedTheme.infoBlue
                   : EnhancedTheme.accentPurple,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
@@ -1593,9 +1593,9 @@ class _ProcurementDetailSheetState
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('Items dispatched to $label', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            Expanded(child: Text('Items dispatched to $label', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -1608,9 +1608,9 @@ class _ProcurementDetailSheetState
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.error_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -1755,7 +1755,7 @@ class _ProcurementDetailSheetState
                           fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EnhancedTheme.infoBlue,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
@@ -1771,7 +1771,7 @@ class _ProcurementDetailSheetState
                           fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EnhancedTheme.accentPurple,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),

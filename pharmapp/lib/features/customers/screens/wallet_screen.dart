@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,11 +51,11 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         content: Row(children: [
-          Icon(success ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.white, size: 20),
+          Icon(success ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
           Expanded(child: Text(success
               ? '${_isTopUp ? "Topped up" : "Deducted"} ₦${amount.toStringAsFixed(2)}'
-              : 'Operation failed — please try again', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+              : 'Operation failed — please try again', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
     }
@@ -101,16 +101,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   margin: const EdgeInsets.all(16),
                   content: Row(children: [
-                    Icon(success ? Icons.info_rounded : Icons.error_rounded, color: Colors.white, size: 20),
+                    Icon(success ? Icons.info_rounded : Icons.error_rounded, color: Colors.black, size: 20),
                     const SizedBox(width: 10),
-                    Expanded(child: Text(success ? 'Wallet reset to ₦0.00' : 'Reset failed', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                    Expanded(child: Text(success ? 'Wallet reset to ₦0.00' : 'Reset failed', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                   ]),
                 ));
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: EnhancedTheme.warningAmber,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
@@ -386,10 +386,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           ),
                           child: processing
                               ? const SizedBox(width: 18, height: 18,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                               : Text(_isTopUp ? 'Top Up' : 'Deduct',
                                   style: GoogleFonts.outfit(
-                                      color: Colors.white,
+                                      color: Colors.black,
                                       fontWeight: FontWeight.w800, fontSize: 13)),
                         ),
                       ),
@@ -526,10 +526,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         ] : [],
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, color: active ? Colors.white : context.subLabelColor, size: 16),
+        Icon(icon, color: active ? Colors.black : context.subLabelColor, size: 16),
         const SizedBox(width: 6),
         Text(label, style: TextStyle(
-            color: active ? Colors.white : context.labelColor,
+            color: active ? Colors.black : context.labelColor,
             fontSize: 13, fontWeight: FontWeight.w700)),
       ]),
     ),

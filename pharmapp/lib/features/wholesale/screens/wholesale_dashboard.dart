@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,7 +64,7 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
           enabled: false,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(role ?? 'Wholesale', style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700, fontSize: 13)),
-            const Text('Wholesale dashboard', style: TextStyle(color: Colors.white38, fontSize: 11)),
+            const Text('Wholesale dashboard', style: TextStyle(color: Colors.black38, fontSize: 11)),
           ]),
         ),
         const PopupMenuDivider(),
@@ -104,9 +104,9 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
       PopupMenuItem(
         value: value,
         child: Row(children: [
-          Icon(icon, size: 18, color: Colors.white70),
+          Icon(icon, size: 18, color: Colors.black87),
           const SizedBox(width: 10),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 13)),
+          Text(label, style: const TextStyle(color: Colors.black, fontSize: 13)),
         ]),
       );
 
@@ -323,11 +323,11 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
               ],
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+              const Icon(Icons.add_rounded, color: Colors.black, size: 18),
               const SizedBox(width: 6),
               Text('New Order',
                   style: GoogleFonts.inter(
-                      color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                      color: Colors.black, fontSize: 13, fontWeight: FontWeight.w600)),
             ]),
           ),
         ),

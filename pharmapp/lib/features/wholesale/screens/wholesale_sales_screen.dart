@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -306,7 +306,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
                   ),
                   child: Text(e.value, textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
-                          color: active ? Colors.white : context.subLabelColor,
+                          color: active ? Colors.black : context.subLabelColor,
                           fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
               ));
@@ -1167,10 +1167,10 @@ class _WholesaleReturnDialogState extends ConsumerState<_WholesaleReturnDialog> 
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         content: Row(children: [
-          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+          const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
           Expanded(child: Text('Item returned successfully',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+              style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
     } catch (e) {
@@ -1182,10 +1182,10 @@ class _WholesaleReturnDialogState extends ConsumerState<_WholesaleReturnDialog> 
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         content: Row(children: [
-          const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+          const Icon(Icons.error_outline_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
           Expanded(child: Text('Return failed: $e',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600))),
+              style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
     }
@@ -1312,14 +1312,14 @@ class _WholesaleReturnDialogState extends ConsumerState<_WholesaleReturnDialog> 
             onPressed: _submitting ? null : _submitReturn,
             style: ElevatedButton.styleFrom(
               backgroundColor: EnhancedTheme.warningAmber,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
             ),
             child: _submitting
                 ? const SizedBox(width: 20, height: 20,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                 : Text('Process Return',
                     style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
           )),

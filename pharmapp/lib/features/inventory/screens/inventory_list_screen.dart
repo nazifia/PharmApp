@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,10 +76,12 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   void _showAddItemSheet(BuildContext context) {
     final nameCtrl    = TextEditingController();
     final brandCtrl   = TextEditingController();
+    final costCtrl    = TextEditingController();
     final priceCtrl   = TextEditingController();
     final stockCtrl   = TextEditingController();
     final barcodeCtrl = TextEditingController();
     String form       = 'Tablet';
+    double markup     = 0.0;
     String store      = _currentStore;
     final formKey     = GlobalKey<FormState>();
 
@@ -128,13 +130,57 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                   _sheetField(brandCtrl, 'Brand / Manufacturer'),
                   const SizedBox(height: 12),
                   Row(children: [
-                    Expanded(child: _sheetField(priceCtrl, 'Price (₦) *',
+                    Expanded(child: _sheetField(costCtrl, 'Cost Price (₦)',
                         keyboardType: TextInputType.number,
-                        validator: (v) => double.tryParse(v ?? '') == null ? 'Invalid' : null)),
+                        onChanged: (v) {
+                          final cost = double.tryParse(v) ?? 0;
+                          if (cost > 0 && markup > 0) {
+                            priceCtrl.text = (cost * (1 + markup / 100)).toStringAsFixed(0);
+                            setModal(() {});
+                          }
+                        })),
                     const SizedBox(width: 12),
                     Expanded(child: _sheetField(stockCtrl, 'Stock Qty *',
                         keyboardType: TextInputType.number,
                         validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid' : null)),
+                  ]),
+                  const SizedBox(height: 12),
+                  // Markup selector
+                  Text('Markup %', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: [0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 35.0, 40.0, 45.0, 50.0, 60.0, 70.0, 80.0, 100.0].map((m) =>
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: GestureDetector(
+                          onTap: () {
+                            final cost = double.tryParse(costCtrl.text) ?? 0;
+                            setModal(() {
+                              markup = m;
+                              if (cost > 0) priceCtrl.text = (cost * (1 + m / 100)).toStringAsFixed(0);
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: markup == m ? EnhancedTheme.successGreen.withValues(alpha: 0.15) : ctx.cardColor,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: markup == m ? EnhancedTheme.successGreen : ctx.borderColor, width: markup == m ? 1.5 : 1),
+                            ),
+                            child: Text('${m % 1 == 0 ? m.toInt() : m}%', style: TextStyle(
+                                color: markup == m ? EnhancedTheme.successGreen : ctx.subLabelColor,
+                                fontSize: 12, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      )).toList()),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(child: _sheetField(priceCtrl, 'Selling Price (₦) *',
+                        keyboardType: TextInputType.number,
+                        validator: (v) => double.tryParse(v ?? '') == null ? 'Invalid' : null)),
                   ]),
                   const SizedBox(height: 12),
                   _sheetField(barcodeCtrl, 'Barcode (optional)', keyboardType: TextInputType.number),
@@ -165,10 +211,10 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                         ),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           Icon(store == s ? Icons.check_circle_rounded : Icons.circle_outlined,
-                              size: 14, color: store == s ? Colors.white : ctx.subLabelColor),
+                              size: 14, color: store == s ? Colors.black : ctx.subLabelColor),
                           const SizedBox(width: 6),
                           Text(s == 'retail' ? 'Retail' : 'Wholesale',
-                              style: TextStyle(color: store == s ? Colors.white : ctx.subLabelColor,
+                              style: TextStyle(color: store == s ? Colors.black : ctx.subLabelColor,
                                   fontSize: 13, fontWeight: FontWeight.w700)),
                         ]),
                       ),
@@ -181,7 +227,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                   const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: Row(children: ['Tablet','Capsule','Syrup','Inhaler','Sachet','Injection'].map((f) =>
+                    child: Row(children: ['Tablet','Capsule','Cream','Consumable','Galenical','Injection','Infusion','Inhaler','Suspension','Syrup','Drops','Solution','Eye-drop','Ear-drop','Eye-ointment','Rectal','Vaginal','Detergent','Drinks','Paste','Patch','Table-water','Food-item','Sweets','Soaps','Biscuits'].map((f) =>
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: GestureDetector(
@@ -211,6 +257,8 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                         'name':              nameCtrl.text.trim(),
                         'brand':             brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
                         'dosageForm':        form,
+                        'costPrice':         double.tryParse(costCtrl.text) ?? 0.0,
+                        'markup':            markup,
                         'price':             double.parse(priceCtrl.text),
                         'stock':             int.parse(stockCtrl.text),
                         'lowStockThreshold': 20,
@@ -229,9 +277,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           content: Row(children: [
-                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            Expanded(child: Text('${data['name']} added to ${(data['store'] as String).toUpperCase()}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                            Expanded(child: Text('${data['name']} added to ${(data['store'] as String).toUpperCase()}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                       } catch (e) {
@@ -242,9 +290,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           content: Row(children: [
-                            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                            const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                            Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                       }
@@ -266,7 +314,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                         alignment: Alignment.center,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         child: Text('Add Item',
-                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                            style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 16)),
                       ),
                     ),
                   )),
@@ -280,9 +328,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   }
 
   Widget _sheetField(TextEditingController ctrl, String label,
-      {TextInputType keyboardType = TextInputType.text, String? Function(String?)? validator}) {
+      {TextInputType keyboardType = TextInputType.text, String? Function(String?)? validator, void Function(String)? onChanged}) {
     return TextFormField(
-      controller: ctrl, keyboardType: keyboardType, validator: validator,
+      controller: ctrl, keyboardType: keyboardType, validator: validator, onChanged: onChanged,
       style: TextStyle(color: context.labelColor, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
@@ -306,7 +354,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddItemSheet(context),
         backgroundColor: EnhancedTheme.primaryTeal,
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.black,
         elevation: 4,
         icon: const Icon(Icons.add_rounded),
         label: Text('Add Item', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
@@ -350,7 +398,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
-                    labelColor: Colors.white,
+                    labelColor: Colors.black,
                     unselectedLabelColor: context.subLabelColor,
                     labelStyle: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w700),
                     unselectedLabelStyle: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w500),
@@ -560,7 +608,7 @@ class _StoreInventoryView extends ConsumerWidget {
           label: const Text('Retry'),
           style: ElevatedButton.styleFrom(
             backgroundColor: EnhancedTheme.primaryTeal,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),

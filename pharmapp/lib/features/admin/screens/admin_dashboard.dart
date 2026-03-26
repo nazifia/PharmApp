@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -453,8 +453,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
           ),
           const SizedBox(width: 10),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(role, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-            const Text('Admin Dashboard', style: TextStyle(color: Colors.white38, fontSize: 11)),
+            Text(role, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 13)),
+            const Text('Admin Dashboard', style: TextStyle(color: Colors.black38, fontSize: 11)),
           ]),
         ])),
         const PopupMenuDivider(),
@@ -678,8 +678,9 @@ class _AdminMoreSheet extends StatelessWidget {
             border: Border(
                 top: BorderSide(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3), width: 1.5)),
           ),
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.82),
           padding: const EdgeInsets.fromLTRB(24, 14, 24, 36),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+          child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 44, height: 5,
                 decoration: BoxDecoration(
                     color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3),
@@ -755,7 +756,7 @@ class _AdminMoreSheet extends StatelessWidget {
                 ]),
               ),
             ),
-          ]),
+          ])),
         ),
       ),
     );

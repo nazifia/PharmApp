@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -272,7 +272,7 @@ class _UserManagementScreenState
                                   r,
                                   style: GoogleFonts.inter(
                                     color: role == r
-                                        ? Colors.white
+                                        ? Colors.black
                                         : ctx.subLabelColor,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -329,9 +329,9 @@ class _UserManagementScreenState
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 margin: const EdgeInsets.all(16),
                                 content: Row(children: [
-                                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                  const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                                   const SizedBox(width: 10),
-                                  const Expanded(child: Text('User created', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                                  const Expanded(child: Text('User created', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                                 ]),
                               ));
                             } catch (e) {
@@ -342,9 +342,9 @@ class _UserManagementScreenState
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 margin: const EdgeInsets.all(16),
                                 content: Row(children: [
-                                  const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                                  const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                                   const SizedBox(width: 10),
-                                  Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                                  Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                                 ]),
                               ));
                             }
@@ -352,7 +352,7 @@ class _UserManagementScreenState
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
-                            foregroundColor: Colors.white,
+                            foregroundColor: Colors.black,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16)),
                           ),
@@ -441,9 +441,9 @@ class _UserManagementScreenState
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   margin: const EdgeInsets.all(16),
                   content: Row(children: [
-                    const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                    const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                     const SizedBox(width: 10),
-                    const Expanded(child: Text('Password changed', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                    const Expanded(child: Text('Password changed', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                   ]),
                 ));
               } catch (e) {
@@ -454,16 +454,16 @@ class _UserManagementScreenState
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   margin: const EdgeInsets.all(16),
                   content: Row(children: [
-                    const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                    const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                     const SizedBox(width: 10),
-                    Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                    Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                   ]),
                 ));
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: EnhancedTheme.primaryTeal,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
@@ -621,7 +621,7 @@ class _UserManagementScreenState
                                 r,
                                 style: GoogleFonts.inter(
                                   color: role == r
-                                      ? Colors.white
+                                      ? Colors.black
                                       : ctx.subLabelColor,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -680,7 +680,7 @@ class _UserManagementScreenState
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: isActive
-                                    ? Colors.white
+                                    ? Colors.black
                                     : ctx.subLabelColor,
                               ),
                             ),
@@ -688,7 +688,7 @@ class _UserManagementScreenState
                             Text('Active',
                                 style: GoogleFonts.inter(
                                   color: isActive
-                                      ? Colors.white
+                                      ? Colors.black
                                       : ctx.subLabelColor,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -731,7 +731,7 @@ class _UserManagementScreenState
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: !isActive
-                                    ? Colors.white
+                                    ? Colors.black
                                     : ctx.subLabelColor,
                               ),
                             ),
@@ -739,7 +739,7 @@ class _UserManagementScreenState
                             Text('Inactive',
                                 style: GoogleFonts.inter(
                                   color: !isActive
-                                      ? Colors.white
+                                      ? Colors.black
                                       : ctx.subLabelColor,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -786,9 +786,9 @@ class _UserManagementScreenState
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               margin: const EdgeInsets.all(16),
                               content: Row(children: [
-                                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                                 const SizedBox(width: 10),
-                                const Expanded(child: Text('User updated', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                                const Expanded(child: Text('User updated', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                               ]),
                             ));
                           } catch (e) {
@@ -799,9 +799,9 @@ class _UserManagementScreenState
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               margin: const EdgeInsets.all(16),
                               content: Row(children: [
-                                const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                                const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                                Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                               ]),
                             ));
                           }
@@ -809,7 +809,7 @@ class _UserManagementScreenState
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          foregroundColor: Colors.white,
+                          foregroundColor: Colors.black,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16)),
                         ),
@@ -888,9 +888,9 @@ class _UserManagementScreenState
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   margin: const EdgeInsets.all(16),
                   content: Row(children: [
-                    const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                    const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                     const SizedBox(width: 10),
-                    const Expanded(child: Text('User deleted', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                    const Expanded(child: Text('User deleted', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                   ]),
                 ));
               } catch (e) {
@@ -901,16 +901,16 @@ class _UserManagementScreenState
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   margin: const EdgeInsets.all(16),
                   content: Row(children: [
-                    const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                    const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                     const SizedBox(width: 10),
-                    Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                    Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                   ]),
                 ));
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: EnhancedTheme.errorRed,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
@@ -1164,7 +1164,7 @@ class _UserManagementScreenState
                 r,
                 style: GoogleFonts.inter(
                   color: active
-                      ? Colors.white
+                      ? Colors.black
                       : context.subLabelColor,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -1389,7 +1389,7 @@ class _UserManagementScreenState
                             ),
                             child: Icon(
                               _roleIcon(user.role),
-                              color: Colors.white, size: 10,
+                              color: Colors.black, size: 10,
                             ),
                           ),
                         ),

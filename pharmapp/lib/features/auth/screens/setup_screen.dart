@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -199,7 +199,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               ),
               child: const Icon(
                 Icons.waving_hand_rounded,
-                size: 48, color: Colors.white,
+                size: 48, color: Colors.black,
               ),
             ),
           ],
@@ -432,7 +432,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         ? null
                         : const Icon(
                             Icons.arrow_forward_rounded,
-                            color: Colors.white,
+                            color: Colors.black,
                             size: 18,
                           ),
                   ),

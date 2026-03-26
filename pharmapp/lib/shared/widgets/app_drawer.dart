@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -294,7 +294,7 @@ class _DrawerHeader extends StatelessWidget {
           ),
           child: Center(
             child: Text(initials,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
           ),
         ),
         const SizedBox(width: 14),
@@ -476,7 +476,7 @@ class _SubNavItem extends StatelessWidget {
                     color: EnhancedTheme.errorRed,
                     borderRadius: BorderRadius.circular(10)),
                   child: Text('$badge',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700))),
+                      style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w700))),
             ]),
           ),
         ),

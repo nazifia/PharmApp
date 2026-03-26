@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -284,7 +284,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   ],
                 ),
                 child: Text('$_unreadCount',
-                    style: GoogleFonts.outfit(color: Colors.white,
+                    style: GoogleFonts.outfit(color: Colors.black,
                         fontSize: 12, fontWeight: FontWeight.w700)),
               ).animate().scale(duration: 300.ms),
             const SizedBox(width: 8),

@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -201,10 +201,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       margin: const EdgeInsets.all(16),
       duration: const Duration(seconds: 5),
       content: Row(children: [
-        Icon(icon, color: Colors.white, size: 20),
+        Icon(icon, color: Colors.black, size: 20),
         const SizedBox(width: 10),
         Expanded(child: Text(msg,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
       ]),
     ));
   }
@@ -302,11 +302,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: Text('OK, Got It', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                  child: Text('OK, Got It', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black)),
                 )),
               ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
             ]),
@@ -353,13 +353,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
                   ),
-                  child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+                  child: const Icon(Icons.arrow_back_rounded, color: Colors.black, size: 18),
                 ),
               ),
               const SizedBox(width: 12),
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Payment',
-                    style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                    style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
                 Text('Complete the transaction',
                     style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
               ]),
@@ -400,7 +400,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         const SizedBox(width: 4),
                         Text(total.toStringAsFixed(2),
                             style: GoogleFonts.outfit(
-                                color: Colors.white, fontSize: 42, fontWeight: FontWeight.w800,
+                                color: Colors.black, fontSize: 42, fontWeight: FontWeight.w800,
                                 letterSpacing: -1.5)),
                       ]),
                       const SizedBox(height: 10),
@@ -594,18 +594,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                     disabledBackgroundColor: Colors.transparent,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                   ),
                   child: _processing
                       ? const SizedBox(width: 22, height: 22,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                          child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
                       : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Icon(_method.icon, size: 20, color: Colors.white),
+                          Icon(_method.icon, size: 20, color: Colors.black),
                           const SizedBox(width: 10),
                           Text('Confirm Payment  ₦${total.toStringAsFixed(2)}',
-                              style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                              style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black)),
                         ]),
                 )),
               ).animate().fadeIn(delay: 200.ms),
@@ -781,7 +781,7 @@ class _SuccessSheet extends StatelessWidget {
                   BoxShadow(color: EnhancedTheme.successGreen.withValues(alpha: 0.5), blurRadius: 24, spreadRadius: 2),
                 ],
               ),
-              child: const Icon(Icons.check_rounded, color: Colors.white, size: 44),
+              child: const Icon(Icons.check_rounded, color: Colors.black, size: 44),
             ).animate().scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
 
             const SizedBox(height: 18),
@@ -847,13 +847,13 @@ class _SuccessSheet extends StatelessWidget {
               ),
               child: SizedBox(width: double.infinity, child: ElevatedButton.icon(
                 onPressed: onViewReceipt,
-                icon: const Icon(Icons.receipt_long_rounded, size: 18, color: Colors.white),
+                icon: const Icon(Icons.receipt_long_rounded, size: 18, color: Colors.black),
                 label: Text('View & Print Receipt',
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.black)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
-                  foregroundColor: Colors.white,
+                  foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),

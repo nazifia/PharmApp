@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -96,7 +96,7 @@ class CustomerReportScreen extends ConsumerWidget {
                   child: Icon(Icons.cloud_off_rounded, color: context.hintColor, size: 40)),
                 const SizedBox(height: 16),
                 Text('Failed to load report',
-                    style: GoogleFonts.outfit(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600)),
+                    style: GoogleFonts.outfit(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 12), textAlign: TextAlign.center),
                 const SizedBox(height: 20),
@@ -108,9 +108,9 @@ class CustomerReportScreen extends ConsumerWidget {
                       gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
                       borderRadius: BorderRadius.circular(12)),
                     child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.refresh_rounded, color: Colors.white, size: 16),
+                      Icon(Icons.refresh_rounded, color: Colors.black, size: 16),
                       SizedBox(width: 8),
-                      Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                      Text('Retry', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
                     ]),
                   ),
                 ),
@@ -161,7 +161,7 @@ class CustomerReportScreen extends ConsumerWidget {
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Total Customers', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12, letterSpacing: 0.4)),
                     Text('${data.total}', style: GoogleFonts.outfit(
-                      color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800)),
+                      color: Colors.black, fontSize: 36, fontWeight: FontWeight.w800)),
                   ]),
                   const Spacer(),
                   // Debt badge
@@ -177,7 +177,7 @@ class CustomerReportScreen extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(_fmt(data.totalDebt),
                             style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 12, fontWeight: FontWeight.w800)),
-                        const Text('Outstanding', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                        const Text('Outstanding', style: TextStyle(color: Colors.black38, fontSize: 9)),
                       ]),
                     ),
                 ]),
@@ -382,7 +382,7 @@ class CustomerReportScreen extends ConsumerWidget {
               decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 36)),
             const SizedBox(height: 14),
-            Text(message, style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+            Text(message, style: const TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center),
           ]),
         ),

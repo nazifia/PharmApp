@@ -67,7 +67,12 @@
       "Bash(venv/scripts/python manage.py makemigrations authapp --name add_full_name_to_pharmuser)",
       "Bash(venv/scripts/python manage.py migrate)",
       "Bash(find C:UsersDellDesktopMY_PRODUCTSPharmApppharmapplib -name *payment* -type f)",
-      "Read(//c/Users/Dell/.claude/projects/C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp/8ef10600-f5c4-4659-bb76-a3bcdaff03ed/subagents/**)"
+      "Read(//c/Users/Dell/.claude/projects/C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp/8ef10600-f5c4-4659-bb76-a3bcdaff03ed/subagents/**)",
+      "Bash(find C:UsersDellDesktopMY_PRODUCTSPharmApppharmapplib -type f -name *dashboard*.dart)",
+      "Bash(find C:UsersDellDesktopMY_PRODUCTSPharmApp -name *.py -path */inventory*)",
+      "Bash(powershell -File:*)",
+      "Bash(powershell -Command \"\\(Get-Content sales_report_screen.dart -Raw\\) -replace ''rangePickerHeaderforegroundColor'', ''rangePickerHeaderForegroundColor'' | Set-Content sales_report_screen.dart -NoNewline\")",
+      "Bash(powershell -Command \":*)"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -133,12 +133,12 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                             Icon(
                               t == 'Wholesale' ? Icons.store_rounded : Icons.storefront_rounded,
-                              color: type == t ? Colors.white : ctx.subLabelColor,
+                              color: type == t ? Colors.black : ctx.subLabelColor,
                               size: 16,
                             ),
                             const SizedBox(width: 8),
                             Text(t, style: TextStyle(
-                                color: type == t ? Colors.white : ctx.subLabelColor,
+                                color: type == t ? Colors.black : ctx.subLabelColor,
                                 fontSize: 14, fontWeight: FontWeight.w700)),
                           ]),
                         ),
@@ -161,14 +161,14 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           content: Row(children: [
-                            Icon(result != null ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.white, size: 20),
+                            Icon(result != null ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            Expanded(child: Text(result != null ? '${result.name} added successfully' : 'Failed to add customer', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                            Expanded(child: Text(result != null ? '${result.name} added successfully' : 'Failed to add customer', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
+                        backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
@@ -284,7 +284,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EnhancedTheme.primaryTeal,
-                  foregroundColor: Colors.white,
+                  foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -446,7 +446,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               )] : [],
             ),
             child: Text(f, style: TextStyle(
-                color: active ? Colors.white : context.subLabelColor,
+                color: active ? Colors.black : context.subLabelColor,
                 fontSize: 12, fontWeight: FontWeight.w700)),
           ),
         );

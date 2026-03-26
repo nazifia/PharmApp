@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -79,10 +79,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.all(16),
       content: Row(children: [
-        Icon(icon, color: Colors.white, size: 20),
+        Icon(icon, color: Colors.black, size: 20),
         const SizedBox(width: 10),
         Expanded(child: Text(msg,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
       ]),
     ));
   }
@@ -515,7 +515,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                     ]),
                     const SizedBox(height: 16),
                     const Text('Patient / Customer name (optional)',
-                        style: TextStyle(color: Colors.white60, fontSize: 13)),
+                        style: TextStyle(color: Colors.white70, fontSize: 13)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: ctrl,
@@ -553,7 +553,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                             side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
                           ),
                         ),
-                        child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
                       )),
                       const SizedBox(width: 12),
                       Expanded(child: Container(
@@ -679,13 +679,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
             ),
-            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+            child: const Icon(Icons.arrow_back_rounded, color: Colors.black, size: 18),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Wholesale POS',
-              style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+              style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
           Row(children: [
             Text('Bulk order processing',
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
@@ -715,7 +715,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
             ),
             child: Icon(
               _gridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
-              color: Colors.white, size: 18,
+              color: Colors.black, size: 18,
             ),
           ),
         ),
@@ -729,10 +729,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               boxShadow: [BoxShadow(color: EnhancedTheme.accentCyan.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2))],
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 13),
+              const Icon(Icons.shopping_cart_rounded, color: Colors.black, size: 13),
               const SizedBox(width: 4),
               Text('$_cartCount',
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w700)),
             ]),
           ),
         ],
@@ -1051,7 +1051,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                           ),
                           child: Text(inCart ? '+ More' : 'Add',
                               style: TextStyle(
-                                  color: inCart ? Colors.white : EnhancedTheme.accentCyan,
+                                  color: inCart ? Colors.black : EnhancedTheme.accentCyan,
                                   fontSize: 11, fontWeight: FontWeight.w700)),
                         ),
                       ),
@@ -1113,7 +1113,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text('${cartItem!.qty}',
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                        style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w800)),
                   ),
               ]),
               const Spacer(),
@@ -1166,9 +1166,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   Widget _cartPanel() {
     return Column(children: [
       Expanded(child: _cart.isEmpty
-          ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
               Container(
-                width: 88, height: 88,
+                width: 60, height: 60,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [
                     EnhancedTheme.accentCyan.withValues(alpha: 0.1),
@@ -1176,12 +1176,12 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   ]),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.shopping_cart_outlined, color: context.hintColor, size: 40),
+                child: Icon(Icons.shopping_cart_outlined, color: context.hintColor, size: 28),
               ),
-              const SizedBox(height: 16),
-              Text('Cart is empty', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text('Tap any item to add it', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+              const SizedBox(height: 10),
+              Text('Cart is empty', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 3),
+              Text('Tap any item to add', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
             ]))
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -1227,13 +1227,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('${_cart.length} lines · $_cartCount units',
                           style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                      const Text('Order Total', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      const Text('Order Total', style: TextStyle(color: Colors.black87, fontSize: 12)),
                     ]),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                       const Text('₦', style: TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11)),
                       Text(_cartTotal.toStringAsFixed(2),
                           style: GoogleFonts.outfit(
-                              color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                              color: Colors.black, fontSize: 22, fontWeight: FontWeight.w800)),
                     ]),
                   ]),
                 ),
@@ -1262,13 +1262,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
-                        foregroundColor: Colors.white,
+                        foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 11),
                       ),
                       icon: _isSubmitting
                           ? const SizedBox(width: 16, height: 16,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                           : const Icon(Icons.check_circle_rounded, size: 18),
                       label: Text(_isSubmitting ? 'Processing…' : 'Checkout',
                           style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -1530,7 +1530,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                     const SizedBox(width: 4),
                     Text(_fmtNaira(widget.total).replaceAll('₦', ''),
                         style: GoogleFonts.outfit(
-                            color: Colors.white, fontSize: 38, fontWeight: FontWeight.w800,
+                            color: Colors.black, fontSize: 38, fontWeight: FontWeight.w800,
                             letterSpacing: -1)),
                   ]),
                 ]),
@@ -1646,15 +1646,15 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
                       disabledBackgroundColor: Colors.transparent,
-                      foregroundColor: Colors.white,
+                      foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 17),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     child: _isSubmitting
                         ? const SizedBox(width: 22, height: 22,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                         : Text('Confirm ${_fmtNaira(widget.total)}',
-                            style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                            style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black)),
                   ),
                 ),
               ),
@@ -1816,7 +1816,7 @@ class _WholesaleSuccessSheet extends StatelessWidget {
                   BoxShadow(color: EnhancedTheme.successGreen.withValues(alpha: 0.4), blurRadius: 20, spreadRadius: 2),
                 ],
               ),
-              child: const Icon(Icons.check_rounded, color: Colors.white, size: 44),
+              child: const Icon(Icons.check_rounded, color: Colors.black, size: 44),
             ).animate().scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
 
             const SizedBox(height: 20),
@@ -1873,11 +1873,11 @@ class _WholesaleSuccessSheet extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: Text('New Order', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.white)),
+                  child: Text('New Order', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.black)),
                 ),
               ),
             ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
@@ -1986,7 +1986,7 @@ class _WsCartItemWidgetState extends State<_WsCartItemWidget> {
                         style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700)),
                     const TextSpan(text: ' = '),
                     TextSpan(text: '₦${line.total.toStringAsFixed(0)}',
-                        style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                        style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
                   ],
                 )),
               ])),

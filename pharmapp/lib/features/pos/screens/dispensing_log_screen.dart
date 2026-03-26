@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,11 +68,11 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
           // ── Base colour roles ──────────────────────────────────────────────
           colorScheme: ColorScheme.dark(
             primary:           EnhancedTheme.primaryTeal,   // selected-date circles
-            onPrimary:         Colors.white,
+            onPrimary: Colors.black,
             secondary:         EnhancedTheme.accentCyan,    // accent
-            onSecondary:       Colors.white,
+            onSecondary: Colors.black,
             surface:           const Color(0xFF0F172A),     // dialog bg
-            onSurface:         Colors.white,
+            onSurface: Colors.black,
             onSurfaceVariant:  const Color(0xFF94A3B8),     // dim text
             outline:           Colors.white.withValues(alpha: 0.08),
           ),
@@ -89,9 +89,9 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
             rangePickerElevation:                0,
             rangePickerSurfaceTintColor:         Colors.transparent,
             rangePickerHeaderBackgroundColor:    EnhancedTheme.primaryTeal,
-            rangePickerHeaderForegroundColor:    Colors.white,
+            rangePickerHeaderForegroundColor: Colors.black,
             rangePickerHeaderHeadlineStyle: const TextStyle(
-              fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
+              fontSize: 20, fontWeight: FontWeight.w800, color: Colors.black),
             rangePickerHeaderHelpStyle: TextStyle(
               fontSize: 12, fontWeight: FontWeight.w600,
               color: Colors.white.withValues(alpha: 0.7)),
@@ -104,9 +104,9 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
             // Day cells
             dayStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             dayForegroundColor: WidgetStateProperty.resolveWith((s) {
-              if (s.contains(WidgetState.selected))  return Colors.white;
+              if (s.contains(WidgetState.selected))  return Colors.black;
               if (s.contains(WidgetState.disabled))  return const Color(0xFF475569);
-              return Colors.white;
+              return Colors.black;
             }),
             dayBackgroundColor: WidgetStateProperty.resolveWith((s) {
               if (s.contains(WidgetState.selected))  return EnhancedTheme.primaryTeal;
@@ -280,9 +280,9 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
           boxShadow: [BoxShadow(color: EnhancedTheme.accentPurple.withValues(alpha: 0.35), blurRadius: 8)],
         ),
         child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.medical_services_rounded, color: Colors.white, size: 13),
+          Icon(Icons.medical_services_rounded, color: Colors.black, size: 13),
           SizedBox(width: 5),
-          Text('Rx Log', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+          Text('Rx Log', style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w700)),
         ]),
       ),
     ]),
@@ -458,12 +458,12 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (isCustom) ...[
                   Icon(Icons.date_range_rounded, size: 11,
-                      color: active ? Colors.white : context.subLabelColor),
+                      color: active ? Colors.black : context.subLabelColor),
                   const SizedBox(width: 4),
                 ],
                 Text(label,
                     style: TextStyle(
-                        color: active ? Colors.white : context.subLabelColor,
+                        color: active ? Colors.black : context.subLabelColor,
                         fontSize: 11, fontWeight: FontWeight.w700)),
               ]),
             ),
@@ -551,7 +551,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
           label: const Text('Try Again'),
           style: ElevatedButton.styleFrom(
             backgroundColor: EnhancedTheme.primaryTeal,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),

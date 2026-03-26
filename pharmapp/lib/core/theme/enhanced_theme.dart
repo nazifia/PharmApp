@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -36,11 +36,11 @@ class EnhancedTheme {
       ),
       scaffoldBackgroundColor: primaryDark,
       textTheme: TextTheme(
-        displayLarge: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-        titleLarge:   GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white),
-        bodyLarge:    GoogleFonts.inter(color: Colors.white),
-        bodyMedium:   GoogleFonts.inter(color: Colors.white70),
-        labelLarge:   GoogleFonts.inter(color: Colors.white70, fontWeight: FontWeight.w500),
+        displayLarge: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black),
+        titleLarge:   GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.black),
+        bodyLarge:    GoogleFonts.inter(color: Colors.black),
+        bodyMedium:   GoogleFonts.inter(color: Colors.black87),
+        labelLarge:   GoogleFonts.inter(color: Colors.black87, fontWeight: FontWeight.w500),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -63,7 +63,7 @@ class EnhancedTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryTeal,
-          foregroundColor: Colors.white,
+          foregroundColor: Colors.black,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
@@ -79,7 +79,7 @@ class EnhancedTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: Colors.black.withValues(alpha: 0.85),
         actionTextColor: accentCyan,
-        contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        contentTextStyle: GoogleFonts.inter(color: Colors.black, fontSize: 14),
       ),
       dividerTheme: DividerThemeData(
         color: Colors.white.withValues(alpha: 0.08),
@@ -91,16 +91,16 @@ class EnhancedTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         titleTextStyle: GoogleFonts.outfit(
-          color: Colors.white,
+          color: Colors.black,
           fontSize: 20,
           fontWeight: FontWeight.w700,
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        textStyle: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
+        textStyle: GoogleFonts.inter(color: Colors.black87, fontSize: 13),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.transparent,
@@ -145,7 +145,7 @@ class EnhancedTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryTeal,
-          foregroundColor: Colors.white,
+          foregroundColor: Colors.black,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
@@ -161,7 +161,7 @@ class EnhancedTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: Colors.white,
+        color: Colors.black,
         elevation: 0,
         shadowColor: Colors.black.withValues(alpha:0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -170,7 +170,7 @@ class EnhancedTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: Colors.black.withValues(alpha: 0.85),
         actionTextColor: accentCyan,
-        contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        contentTextStyle: GoogleFonts.inter(color: Colors.black, fontSize: 14),
       ),
       dividerTheme: DividerThemeData(
         color: Colors.black.withValues(alpha: 0.08),
@@ -189,7 +189,7 @@ class EnhancedTheme {
         iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: Colors.white,
+        color: Colors.black,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         textStyle: GoogleFonts.inter(color: Colors.black87, fontSize: 13),
       ),

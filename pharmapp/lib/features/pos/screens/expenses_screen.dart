@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -103,9 +103,9 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('Expense deleted', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            Expanded(child: Text('Expense deleted', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -117,9 +117,9 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.error_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('Failed to delete: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            Expanded(child: Text('Failed to delete: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -305,9 +305,9 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           content: Row(children: [
-                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            const Expanded(child: Text('Expense added', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                            const Expanded(child: Text('Expense added', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                       }
@@ -319,9 +319,9 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           content: Row(children: [
-                            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                            const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                       }
@@ -344,10 +344,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                        const Icon(Icons.add_rounded, color: Colors.black, size: 20),
                         const SizedBox(width: 8),
                         Text('Add Expense',
-                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                            style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 16)),
                       ]),
                     ),
                   ),
@@ -367,7 +367,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddSheet,
         backgroundColor: EnhancedTheme.errorRed,
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.black,
         elevation: 4,
         icon: const Icon(Icons.add_rounded),
         label: Text('Add Expense', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),

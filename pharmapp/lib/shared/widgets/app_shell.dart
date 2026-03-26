@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,12 +47,12 @@ class AppShell extends ConsumerWidget {
             content: Row(children: [
               Icon(
                 result.failed == 0 ? Icons.cloud_done_rounded : Icons.cloud_sync_rounded,
-                color: Colors.white, size: 20),
+                color: Colors.black, size: 20),
               const SizedBox(width: 10),
               Expanded(child: Text(result.failed == 0
                   ? '${result.synced} offline sale${result.synced == 1 ? '' : 's'} synced successfully'
                   : '${result.synced} synced, ${result.failed} still pending',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
             ]),
           ));
         }
@@ -138,13 +138,13 @@ class _OfflineBanner extends StatelessWidget {
       color: EnhancedTheme.warningAmber,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(children: [
-        const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 15),
+        const Icon(Icons.cloud_off_rounded, color: Colors.black, size: 15),
         const SizedBox(width: 8),
         Expanded(child: Text(
           pendingCount > 0
               ? 'Offline — $pendingCount sale${pendingCount == 1 ? '' : 's'} queued for sync'
               : 'Offline — changes will sync when connected',
-          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+          style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w600),
         )),
       ]),
     );
@@ -310,7 +310,7 @@ class _NavBtn extends StatelessWidget {
                           constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                           child: Text(
                             badgeCount > 9 ? '9+' : '$badgeCount',
-                            style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800),
+                            style: const TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.w800),
                             textAlign: TextAlign.center,
                           ),
                         ),

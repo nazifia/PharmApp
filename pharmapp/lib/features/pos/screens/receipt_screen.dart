@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -61,7 +61,7 @@ class ReceiptSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4), blurRadius: 8)],
                 ),
-                child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 18),
+                child: const Icon(Icons.receipt_long_rounded, color: Colors.black, size: 18),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -153,10 +153,10 @@ class _PrintButtonState extends State<_PrintButton> {
                 width: 14, height: 14,
                 child: CircularProgressIndicator(
                     strokeWidth: 2, color: EnhancedTheme.primaryTeal))
-            : const Icon(Icons.print_rounded, size: 16, color: Colors.white),
+            : const Icon(Icons.print_rounded, size: 16, color: Colors.black),
         label: Text(_printing ? 'Printing…' : 'Print',
             style: TextStyle(
-                color: _printing ? EnhancedTheme.primaryTeal : Colors.white,
+                color: _printing ? EnhancedTheme.primaryTeal : Colors.black,
                 fontSize: 13,
                 fontWeight: FontWeight.w700)),
       ),
@@ -309,7 +309,7 @@ class _ReceiptCard extends StatelessWidget {
                       ],
                     ),
                     child: const Icon(Icons.local_pharmacy_rounded,
-                        color: Colors.white, size: 28),
+                        color: Colors.black, size: 28),
                   ),
                 ]).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
                 const SizedBox(height: 12),

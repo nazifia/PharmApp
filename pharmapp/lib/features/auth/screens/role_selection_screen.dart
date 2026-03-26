@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -186,7 +186,7 @@ class RoleSelectionScreen extends ConsumerWidget {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.black),
             onPressed: () => context.go('/login'),
           ),
           const SizedBox(width: 4),
@@ -194,7 +194,7 @@ class RoleSelectionScreen extends ConsumerWidget {
             child: Text(
               'Select Role',
               style: GoogleFonts.outfit(
-                color: Colors.white,
+                color: Colors.black,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
               ),
@@ -260,7 +260,7 @@ class RoleSelectionScreen extends ConsumerWidget {
               ),
               child: const Icon(
                 Icons.local_pharmacy_rounded,
-                color: Colors.white, size: 42,
+                color: Colors.black, size: 42,
               ),
             ),
           ],
@@ -271,7 +271,7 @@ class RoleSelectionScreen extends ConsumerWidget {
         Text(
           'What\'s Your Role?',
           style: GoogleFonts.outfit(
-            color: Colors.white,
+            color: Colors.black,
             fontSize: 28,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.6,
@@ -388,7 +388,7 @@ class _RoleCardState extends State<_RoleCard> {
                         Text(
                           widget.role,
                           style: GoogleFonts.outfit(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),

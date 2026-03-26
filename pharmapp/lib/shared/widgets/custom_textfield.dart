@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 
@@ -291,7 +291,7 @@ class CustomPasswordInput extends StatelessWidget {
         hintText: hintText,
         prefixIcon: const Icon(
           Icons.lock,
-          color: Colors.white54,
+          color: Colors.black54,
         ),
         suffixIcon: InkWell(
           onTap: onToggleVisibility,

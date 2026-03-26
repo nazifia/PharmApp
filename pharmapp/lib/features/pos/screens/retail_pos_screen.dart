@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -94,7 +94,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                     ]),
                     const SizedBox(height: 16),
                     const Text('Patient / Customer name (optional)',
-                        style: TextStyle(color: Colors.white60, fontSize: 13)),
+                        style: TextStyle(color: Colors.white70, fontSize: 13)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: ctrl,
@@ -132,7 +132,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                             side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
                           ),
                         ),
-                        child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
                       )),
                       const SizedBox(width: 12),
                       Expanded(child: Container(
@@ -203,10 +203,10 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.all(16),
       content: Row(children: [
-        Icon(icon, color: Colors.white, size: 20),
+        Icon(icon, color: Colors.black, size: 20),
         const SizedBox(width: 10),
         Expanded(child: Text(msg,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
       ]),
     ));
   }
@@ -460,13 +460,13 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
             ),
-            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+            child: const Icon(Icons.arrow_back_rounded, color: Colors.black, size: 18),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Retail POS',
-              style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+              style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
           Row(children: [
             Text('Retail dispensing',
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
@@ -496,7 +496,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
             ),
             child: Icon(
               _gridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
-              color: Colors.white, size: 18,
+              color: Colors.black, size: 18,
             ),
           ),
         ),
@@ -510,10 +510,10 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2))],
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 13),
+              const Icon(Icons.shopping_cart_rounded, color: Colors.black, size: 13),
               const SizedBox(width: 4),
               Text('$cartCount',
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w700)),
             ]),
           ),
         ],
@@ -846,7 +846,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                     ),
                     child: Text(inCart > 0 ? '+ More' : 'Add',
                         style: TextStyle(
-                            color: inCart > 0 ? Colors.white : EnhancedTheme.primaryTeal,
+                            color: inCart > 0 ? Colors.black : EnhancedTheme.primaryTeal,
                             fontSize: 11, fontWeight: FontWeight.w700)),
                   ),
                 ),
@@ -919,7 +919,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text('$inCart',
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                        style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w800)),
                   ),
               ]),
               const Spacer(),
@@ -972,9 +972,9 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
   Widget _cartPanel(List<CartItem> cart, double cartTotal) {
     return Column(children: [
       Expanded(child: cart.isEmpty
-          ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
               Container(
-                width: 88, height: 88,
+                width: 60, height: 60,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [
                     EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
@@ -982,12 +982,12 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   ]),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.shopping_cart_outlined, color: context.hintColor, size: 40),
+                child: Icon(Icons.shopping_cart_outlined, color: context.hintColor, size: 28),
               ),
-              const SizedBox(height: 16),
-              Text('Cart is empty', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text('Tap any item to add it', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+              const SizedBox(height: 10),
+              Text('Cart is empty', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 3),
+              Text('Tap any item to add', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
             ]))
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -1030,13 +1030,13 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('${cart.length} lines · ${cart.fold<int>(0, (s, c) => s + c.quantity)} units',
                           style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                      const Text('Total Amount', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      const Text('Total Amount', style: TextStyle(color: Colors.black87, fontSize: 12)),
                     ]),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                       const Text('₦', style: TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11)),
                       Text(cartTotal.toStringAsFixed(2),
                           style: GoogleFonts.outfit(
-                              color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                              color: Colors.black, fontSize: 22, fontWeight: FontWeight.w800)),
                     ]),
                   ]),
                 ),
@@ -1068,7 +1068,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
-                        foregroundColor: Colors.white,
+                        foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 11),
                       ),
@@ -1182,7 +1182,7 @@ class _RetailCartItemState extends ConsumerState<_RetailCartItem> {
                         style: const TextStyle(color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
                     const TextSpan(text: ' = '),
                     TextSpan(text: '₦${c.total.toStringAsFixed(0)}',
-                        style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                        style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
                   ],
                 )),
               ])),

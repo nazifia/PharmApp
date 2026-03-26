@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -143,9 +143,9 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       content: Row(children: [
         Icon(
           isError ? Icons.error_rounded : isSuccess ? Icons.check_circle_rounded : Icons.info_rounded,
-          color: Colors.white, size: 20),
+          color: Colors.black, size: 20),
         const SizedBox(width: 10),
-        Expanded(child: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+        Expanded(child: Text(msg, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
       ]),
     ));
   }
@@ -369,7 +369,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                       style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EnhancedTheme.infoBlue,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -385,7 +385,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                         style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: EnhancedTheme.successGreen,
-                      foregroundColor: Colors.white,
+                      foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
@@ -578,7 +578,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                                 fontWeight: FontWeight.w600)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: EnhancedTheme.primaryTeal,
-                          foregroundColor: Colors.white,
+                          foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
@@ -648,7 +648,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createCheck,
         backgroundColor: EnhancedTheme.primaryTeal,
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.black,
         elevation: 4,
         icon: const Icon(Icons.add_rounded),
         label: Text('New Check',
@@ -898,7 +898,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
             onPressed: () { Navigator.pop(ctx); _deleteCheck(id); },
             style: ElevatedButton.styleFrom(
                 backgroundColor: EnhancedTheme.errorRed,
-                foregroundColor: Colors.white,
+                foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10))),
             child: Text('Delete', style: GoogleFonts.outfit()),
@@ -961,7 +961,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
           label: Text('Retry', style: GoogleFonts.outfit()),
           style: ElevatedButton.styleFrom(
             backgroundColor: EnhancedTheme.primaryTeal,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
@@ -1013,9 +1013,9 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
           margin: const EdgeInsets.all(16),
           duration: const Duration(seconds: 1),
           content: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('${item.name} added to check', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            Expanded(child: Text('${item.name} added to check', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -1027,9 +1027,9 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Row(children: [
-            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+            const Icon(Icons.error_rounded, color: Colors.black, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }

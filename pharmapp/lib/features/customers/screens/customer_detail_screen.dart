@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,7 +77,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 icon: const Icon(Icons.refresh_rounded, size: 16),
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
+                    backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               ),
             ]))),
@@ -173,7 +173,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                     child: Center(
                       child: Text(initials.isNotEmpty ? initials : '?',
                           style: GoogleFonts.outfit(
-                              color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+                              color: Colors.black, fontSize: 26, fontWeight: FontWeight.w800)),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -264,7 +264,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                       onPressed: () => _showPayDebtDialog(context, ref, customer),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: EnhancedTheme.errorRed,
-                        foregroundColor: Colors.white,
+                        foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
@@ -373,10 +373,10 @@ class CustomerDetailScreen extends ConsumerWidget {
         ],
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, color: Colors.white, size: 18),
+        Icon(icon, color: Colors.black, size: 18),
         const SizedBox(width: 8),
         Text(label, style: GoogleFonts.outfit(
-            color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+            color: Colors.black, fontSize: 15, fontWeight: FontWeight.w700)),
       ]),
     ),
   );
@@ -472,16 +472,16 @@ class CustomerDetailScreen extends ConsumerWidget {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               margin: const EdgeInsets.all(16),
                               content: Row(children: [
-                                Icon(updated != null ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.white, size: 20),
+                                Icon(updated != null ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.black, size: 20),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text(updated != null ? 'Customer updated' : 'Update failed', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                                Expanded(child: Text(updated != null ? 'Customer updated' : 'Update failed', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                               ]),
                             ));
                           }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: EnhancedTheme.primaryTeal,
-                          foregroundColor: Colors.white,
+                          foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                         child: Text('Save Changes', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
@@ -534,9 +534,9 @@ class CustomerDetailScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   margin: const EdgeInsets.all(16),
                   content: Row(children: [
-                    Icon(success ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.white, size: 20),
+                    Icon(success ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.black, size: 20),
                     const SizedBox(width: 10),
-                    Expanded(child: Text(success ? 'Customer deleted' : 'Delete failed', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                    Expanded(child: Text(success ? 'Customer deleted' : 'Delete failed', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                   ]),
                 ));
                 if (success) { if (context.canPop()) { context.pop(); } else { context.go('/dashboard/customers'); } }
@@ -544,7 +544,7 @@ class CustomerDetailScreen extends ConsumerWidget {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: EnhancedTheme.errorRed,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               elevation: 0,
             ),
@@ -608,7 +608,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 selected: method == m,
                 onSelected: (_) => setDialogState(() => method = m),
                 selectedColor: EnhancedTheme.primaryTeal,
-                labelStyle: TextStyle(color: method == m ? Colors.white : context.subLabelColor, fontWeight: FontWeight.w600),
+                labelStyle: TextStyle(color: method == m ? Colors.black : context.subLabelColor, fontWeight: FontWeight.w600),
               ),
             )).toList()),
           ]),
@@ -629,16 +629,16 @@ class CustomerDetailScreen extends ConsumerWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     margin: const EdgeInsets.all(16),
                     content: Row(children: [
-                      Icon(success ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.white, size: 20),
+                      Icon(success ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.black, size: 20),
                       const SizedBox(width: 10),
-                      Expanded(child: Text(success ? 'Payment of ₦${amount.toStringAsFixed(2)} recorded' : 'Payment failed', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                      Expanded(child: Text(success ? 'Payment of ₦${amount.toStringAsFixed(2)} recorded' : 'Payment failed', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                     ]),
                   ));
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: EnhancedTheme.primaryTeal,
-                foregroundColor: Colors.white,
+                foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
               ),
@@ -831,11 +831,11 @@ class CustomerDetailScreen extends ConsumerWidget {
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(
           label == 'Wholesale' ? Icons.store_rounded : Icons.storefront_rounded,
-          color: selected ? Colors.white : context.hintColor, size: 16,
+          color: selected ? Colors.black : context.hintColor, size: 16,
         ),
         const SizedBox(width: 8),
         Text(label, style: TextStyle(
-            color: selected ? Colors.white : context.hintColor,
+            color: selected ? Colors.black : context.hintColor,
             fontSize: 13, fontWeight: FontWeight.w700)),
       ]),
     ));

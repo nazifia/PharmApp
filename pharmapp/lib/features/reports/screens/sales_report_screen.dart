@@ -21,7 +21,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   final _periods = ['Today', 'This Week', 'This Month', 'This Year'];
   DateTimeRange? _customRange;
 
-  // ── Computed period key ─────────────────────────────────────────────────────
+  // -- Computed period key -----------------------------------------------------
 
   String get _apiPeriod {
     if (_customRange != null) {
@@ -37,13 +37,13 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     }
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
+  // -- Helpers -----------------------------------------------------------------
 
   String _fmt(double v) {
-    if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000)   return '₦${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)     return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
+    if (v >= 10000000) return '?${(v / 10000000).toStringAsFixed(1)}Cr';
+    if (v >= 100000)   return '?${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 1000)     return '?${(v / 1000).toStringAsFixed(1)}K';
+    return '?${v.toStringAsFixed(0)}';
   }
 
   String _fmtDate(DateTime dt) {
@@ -51,7 +51,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     return '${m[dt.month - 1]} ${dt.day}';
   }
 
-  // ── Date range picker ───────────────────────────────────────────────────────
+  // -- Date range picker -------------------------------------------------------
 
   Future<void> _openDatePicker() async {
     final picked = await showDateRangePicker(
@@ -63,10 +63,10 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         data: Theme.of(ctx).copyWith(
           colorScheme: ColorScheme.dark(
             primary: EnhancedTheme.primaryTeal,
-            onPrimary: Colors.white,
+            onPrimary: Colors.black,
             secondary: EnhancedTheme.accentCyan,
             surface: const Color(0xFF0F172A),
-            onSurface: Colors.white,
+            onSurface: Colors.black,
             onSurfaceVariant: const Color(0xFF94A3B8),
             outline: Colors.white.withValues(alpha: 0.08),
           ),
@@ -77,14 +77,14 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             surfaceTintColor: Colors.transparent,
             rangePickerBackgroundColor: const Color(0xFF0F172A),
             rangePickerHeaderBackgroundColor: EnhancedTheme.primaryTeal,
-            rangePickerHeaderForegroundColor: Colors.white,
+            rangePickerHeaderForegroundColor: Colors.black,
             rangePickerHeaderHeadlineStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             weekdayStyle: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700, fontSize: 11),
             dayStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             dayForegroundColor: WidgetStateProperty.resolveWith((s) {
-              if (s.contains(WidgetState.selected)) return Colors.white;
+              if (s.contains(WidgetState.selected)) return Colors.black;
               if (s.contains(WidgetState.disabled)) return const Color(0xFF475569);
-              return Colors.white;
+              return Colors.black;
             }),
             dayBackgroundColor: WidgetStateProperty.resolveWith((s) {
               if (s.contains(WidgetState.selected)) return EnhancedTheme.primaryTeal;
@@ -113,7 +113,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     }
   }
 
-  // ── Build ───────────────────────────────────────────────────────────────────
+  // -- Build -------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +147,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────────
+  // -- Header ------------------------------------------------------------------
 
   Widget _header(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
@@ -168,7 +168,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         Text('Revenue & transaction analytics',
             style: TextStyle(color: context.hintColor, fontSize: 11)),
       ])),
-      // ── Date range picker button
+      // -- Date range picker button
       GestureDetector(
         onTap: _openDatePicker,
         child: Container(
@@ -189,7 +189,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       const SizedBox(width: 8),
       GestureDetector(
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Export — coming soon'))),
+            const SnackBar(content: Text('Export � coming soon'))),
         child: Container(
           padding: const EdgeInsets.all(9),
           decoration: BoxDecoration(
@@ -201,7 +201,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     ]),
   ).animate().fadeIn(duration: 350.ms);
 
-  // ── Period chips ────────────────────────────────────────────────────────────
+  // -- Period chips ------------------------------------------------------------
 
   Widget _periodSelector() => Padding(
     padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
@@ -235,7 +235,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   borderRadius: BorderRadius.circular(10)),
                 child: Text(p, textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: active ? Colors.white : Colors.white54,
+                        color: active ? Colors.black : Colors.black54,
                         fontSize: 11, fontWeight: FontWeight.w700))),
             ));
           }).toList()),
@@ -244,7 +244,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     ),
   ).animate().fadeIn(duration: 350.ms, delay: 80.ms);
 
-  // ── Custom range banner (shown when a date range is active) ─────────────────
+  // -- Custom range banner (shown when a date range is active) -----------------
 
   Widget _customRangeBanner() {
     if (_customRange == null) return const SizedBox.shrink();
@@ -266,7 +266,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             const Icon(Icons.calendar_month_rounded, color: EnhancedTheme.primaryTeal, size: 15),
             const SizedBox(width: 8),
             Expanded(child: Text(
-              '${_fmtDate(_customRange!.start)} – ${_fmtDate(_customRange!.end)}',
+              '${_fmtDate(_customRange!.start)} � ${_fmtDate(_customRange!.end)}',
               style: const TextStyle(
                   color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w700),
             )),
@@ -289,7 +289,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     ).animate().fadeIn(duration: 250.ms).slideY(begin: -0.15, end: 0);
   }
 
-  // ── States ──────────────────────────────────────────────────────────────────
+  // -- States ------------------------------------------------------------------
 
   Widget _loadingState() {
     return Center(
@@ -302,7 +302,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           child: const CircularProgressIndicator(
             color: EnhancedTheme.primaryTeal, strokeWidth: 3)),
         const SizedBox(height: 16),
-        Text('Loading report…',
+        Text('Loading report�',
             style: TextStyle(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.8), fontSize: 13)),
       ]),
     );
@@ -320,7 +320,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.2))),
           child: Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed.withValues(alpha: 0.6), size: 40)),
         const SizedBox(height: 16),
-        Text('Failed to load report', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600)),
+        Text('Failed to load report', style: GoogleFonts.outfit(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         Text('$e', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12), textAlign: TextAlign.center),
         const SizedBox(height: 20),
@@ -332,9 +332,9 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
               gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
               borderRadius: BorderRadius.circular(12)),
             child: const Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.refresh_rounded, color: Colors.white, size: 16),
+              Icon(Icons.refresh_rounded, color: Colors.black, size: 16),
               SizedBox(width: 8),
-              Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              Text('Retry', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
             ]),
           ),
         ),
@@ -342,7 +342,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     ));
   }
 
-  // ── Body ────────────────────────────────────────────────────────────────────
+  // -- Body --------------------------------------------------------------------
 
   Widget _buildBody(BuildContext context, SalesReportData data) {
     final grand = data.totalRevenue;
@@ -351,7 +351,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-        // ── KPI Hero Banner ───────────────────────────────────────────────────
+        // -- KPI Hero Banner ---------------------------------------------------
         ClipRRect(
           borderRadius: BorderRadius.circular(22),
           child: BackdropFilter(
@@ -382,7 +382,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Total Revenue', style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12, letterSpacing: 0.4)),
                     Text(_fmt(grand), style: GoogleFonts.outfit(
-                      color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
+                      color: Colors.black, fontSize: 32, fontWeight: FontWeight.w800)),
                   ]),
                 ]),
                 const SizedBox(height: 18),
@@ -399,7 +399,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0),
         const SizedBox(height: 22),
 
-        // ── Sales Breakdown ───────────────────────────────────────────────────
+        // -- Sales Breakdown ---------------------------------------------------
         _sectionHeader(context, 'Sales Breakdown', Icons.pie_chart_rounded, EnhancedTheme.accentCyan),
         const SizedBox(height: 12),
         ClipRRect(
@@ -424,7 +424,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
         const SizedBox(height: 22),
 
-        // ── Top Selling Items ─────────────────────────────────────────────────
+        // -- Top Selling Items -------------------------------------------------
         _sectionHeader(context, 'Top Selling Items', Icons.emoji_events_rounded, EnhancedTheme.warningAmber),
         const SizedBox(height: 12),
         if (data.topItems.isEmpty)
@@ -502,7 +502,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     );
   }
 
-  // ── Small widgets ────────────────────────────────────────────────────────────
+  // -- Small widgets ------------------------------------------------------------
 
   Widget _kpiBadge(String label, String value, IconData icon, Color color) {
     return Container(
@@ -534,7 +534,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           child: Icon(icon, color: color, size: 14)),
         const SizedBox(width: 10),
         Expanded(child: Text(label,
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
+            style: GoogleFonts.inter(color: Colors.black, fontSize: 13, fontWeight: FontWeight.w600))),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(

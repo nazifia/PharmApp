@@ -623,10 +623,9 @@ class PosApiClient {
     }
     try {
       final res = await _dio!.post('/pos/users/', data: {
-        'phone_number': phoneNumber,
+        'phoneNumber': phoneNumber,
         'password': password,
         'role': role,
-        'username': username,
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {

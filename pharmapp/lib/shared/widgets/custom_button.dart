@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 
 // ── Press-animation wrapper ───────────────────────────────────────────────────
@@ -104,7 +104,7 @@ class CustomButton extends StatelessWidget {
               text,
               style: textStyle ??
                   theme.textTheme.labelLarge?.copyWith(
-                    color: foregroundColor ?? Colors.white,
+                    color: foregroundColor ?? Colors.black,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -117,7 +117,7 @@ class CustomButton extends StatelessWidget {
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                      foregroundColor ?? Colors.white),
+                      foregroundColor ?? Colors.black),
                 ),
               ),
           ],

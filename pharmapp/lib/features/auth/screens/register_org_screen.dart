@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -212,7 +212,7 @@ class _RegisterOrgScreenState extends ConsumerState<RegisterOrgScreen>
               ),
               child: const Icon(
                 Icons.business_rounded,
-                size: 44, color: Colors.white,
+                size: 44, color: Colors.black,
               ),
             ),
           ],

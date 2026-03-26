@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -200,7 +200,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                   ),
                   child: Text(p, textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
-                          color: active ? Colors.white : context.subLabelColor,
+                          color: active ? Colors.black : context.subLabelColor,
                           fontSize: 10, fontWeight: FontWeight.w600)),
                 ),
               ));
@@ -349,7 +349,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                   ),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.percent_rounded, color: Colors.white, size: 22),
+                child: const Icon(Icons.percent_rounded, color: Colors.black, size: 22),
               ),
               const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

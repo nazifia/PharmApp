@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -174,9 +174,9 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
           boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4), blurRadius: 8)],
         ),
         child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.receipt_long_rounded, color: Colors.white, size: 14),
+          Icon(Icons.receipt_long_rounded, color: Colors.black, size: 14),
           SizedBox(width: 4),
-          Text('Receipts', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+          Text('Receipts', style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w700)),
         ]),
       ),
     ]),
@@ -256,7 +256,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
             ),
             child: Text(e.value, textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: active ? Colors.white : context.subLabelColor,
+                    color: active ? Colors.black : context.subLabelColor,
                     fontSize: 11, fontWeight: FontWeight.w700)),
           ),
         ));
@@ -297,7 +297,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
           label: const Text('Try Again'),
           style: ElevatedButton.styleFrom(
             backgroundColor: EnhancedTheme.primaryTeal,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
@@ -790,7 +790,7 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
           label: const Text('View & Print Receipt',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.white,
+            backgroundColor: EnhancedTheme.primaryTeal, foregroundColor: Colors.black,
             padding: const EdgeInsets.symmetric(vertical: 15),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
@@ -1082,9 +1082,9 @@ class _ReturnDialogState extends ConsumerState<_ReturnDialog> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         content: Row(children: [
-          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+          const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
-          const Expanded(child: Text('Item returned successfully', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          const Expanded(child: Text('Item returned successfully', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
     } catch (e) {
@@ -1096,9 +1096,9 @@ class _ReturnDialogState extends ConsumerState<_ReturnDialog> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         content: Row(children: [
-          const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+          const Icon(Icons.error_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
-          Expanded(child: Text('Return failed: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          Expanded(child: Text('Return failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
     }
@@ -1229,14 +1229,14 @@ class _ReturnDialogState extends ConsumerState<_ReturnDialog> {
             onPressed: _submitting ? null : _submitReturn,
             style: ElevatedButton.styleFrom(
               backgroundColor: EnhancedTheme.warningAmber,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
             ),
             child: _submitting
                 ? const SizedBox(width: 20, height: 20,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                 : const Text('Process Return',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           )),

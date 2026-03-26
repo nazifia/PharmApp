@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,6 +36,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     );
 
     String dosageForm = item.dosageForm;
+    double markup = item.markup;
     final formKey = GlobalKey<FormState>();
     bool _saving = false;
 
@@ -128,7 +129,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: ['Tablet', 'Capsule', 'Syrup', 'Inhaler', 'Sachet', 'Injection'].map((f) =>
+                      children: ['Tablet','Capsule','Cream','Consumable','Galenical','Injection','Infusion','Inhaler','Suspension','Syrup','Drops','Solution','Eye-drop','Ear-drop','Eye-ointment','Rectal','Vaginal','Detergent','Drinks','Paste','Patch','Table-water','Food-item','Sweets','Soaps','Biscuits'].map((f) =>
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: GestureDetector(
@@ -152,6 +153,38 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                       ).toList(),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  // Markup selector
+                  Text('Markup %', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: [0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 35.0, 40.0, 45.0, 50.0, 60.0, 70.0, 80.0, 100.0].map((m) =>
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: GestureDetector(
+                          onTap: () {
+                            final cost = double.tryParse(costCtrl.text) ?? 0;
+                            setModal(() {
+                              markup = m;
+                              if (cost > 0) priceCtrl.text = (cost * (1 + m / 100)).toStringAsFixed(0);
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: markup == m ? EnhancedTheme.successGreen.withValues(alpha: 0.15) : ctx.cardColor,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: markup == m ? EnhancedTheme.successGreen : ctx.borderColor, width: markup == m ? 1.5 : 1),
+                            ),
+                            child: Text('${m % 1 == 0 ? m.toInt() : m}%', style: TextStyle(
+                                color: markup == m ? EnhancedTheme.successGreen : ctx.subLabelColor,
+                                fontSize: 12, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      )).toList()),
+                  ),
                   const SizedBox(height: 28),
 
                   SizedBox(
@@ -166,6 +199,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           'dosageForm':         dosageForm,
                           'price':              double.parse(priceCtrl.text),
                           'costPrice':          double.tryParse(costCtrl.text) ?? 0,
+                          'markup':             markup,
                           'lowStockThreshold':  int.parse(thresholdCtrl.text),
                           'barcode':            barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
                           'expiryDate':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
@@ -184,9 +218,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             margin: const EdgeInsets.all(16),
                             content: Row(children: [
-                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                              const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                               const SizedBox(width: 10),
-                              Expanded(child: Text('${updated.name} updated successfully', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                              Expanded(child: Text('${updated.name} updated successfully', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                             ]),
                           ));
                         } catch (e) {
@@ -198,9 +232,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             margin: const EdgeInsets.all(16),
                             content: Row(children: [
-                              const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                              const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                               const SizedBox(width: 10),
-                              Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                              Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                             ]),
                           ));
                         }
@@ -225,9 +259,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: _saving
                               ? const SizedBox(height: 20, width: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
                               : Text('Save Changes',
-                                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                                  style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 16)),
                         ),
                       ),
                     ),
@@ -306,9 +340,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           content: Row(children: [
-                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            Expanded(child: Text('${item.name} deleted', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                            Expanded(child: Text('${item.name} deleted', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                         context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref));
@@ -320,15 +354,15 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           content: Row(children: [
-                            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                            const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                            Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: EnhancedTheme.errorRed, foregroundColor: Colors.white,
+                      backgroundColor: EnhancedTheme.errorRed, foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                     child: Text('Delete', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
@@ -508,9 +542,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               margin: const EdgeInsets.all(16),
                               content: Row(children: [
-                                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text('Stock updated to ${updated.stock} units ($reason)', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                                Expanded(child: Text('Stock updated to ${updated.stock} units ($reason)', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                               ]),
                             ));
                           }
@@ -522,16 +556,16 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               margin: const EdgeInsets.all(16),
                               content: Row(children: [
-                                const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                                const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                                Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                               ]),
                             ));
                           }
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: EnhancedTheme.accentCyan, foregroundColor: Colors.white,
+                        backgroundColor: EnhancedTheme.accentCyan, foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                       child: Text('Apply', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
@@ -595,7 +629,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EnhancedTheme.primaryTeal,
-                  foregroundColor: Colors.white,
+                  foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -810,6 +844,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     _divider(),
                     _detailRow('Cost Price', '₦${item.costPrice.toStringAsFixed(2)}',
                         Icons.shopping_bag_rounded, EnhancedTheme.accentCyan),
+                    if (item.markup > 0) ...[
+                      _divider(),
+                      _detailRow('Markup', '${item.markup % 1 == 0 ? item.markup.toInt() : item.markup}%',
+                          Icons.percent_rounded, EnhancedTheme.warningAmber),
+                    ],
                     _divider(),
                     _detailRow('Margin', '₦${(item.price - item.costPrice).toStringAsFixed(2)}',
                         Icons.trending_up_rounded, EnhancedTheme.successGreen),
@@ -841,9 +880,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Icon(Icons.edit_rounded, size: 18, color: Colors.white),
+                    const Icon(Icons.edit_rounded, size: 18, color: Colors.black),
                     const SizedBox(width: 8),
-                    Text('Edit', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                    Text('Edit', style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 15)),
                   ]),
                 ),
               ),

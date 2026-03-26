@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -121,9 +121,9 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
       content: Row(children: [
         Icon(
           isError ? Icons.error_rounded : isSuccess ? Icons.check_circle_rounded : Icons.info_rounded,
-          color: Colors.white, size: 20),
+          color: Colors.black, size: 20),
         const SizedBox(width: 10),
-        Expanded(child: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+        Expanded(child: Text(msg, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
       ]),
     ));
   }
@@ -279,7 +279,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                   label: Text('Accept', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EnhancedTheme.successGreen,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -292,7 +292,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                   label: Text('Reject', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EnhancedTheme.errorRed,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -725,7 +725,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
           label: Text('Retry', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
           style: ElevatedButton.styleFrom(
             backgroundColor: EnhancedTheme.primaryTeal,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.black,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
@@ -838,7 +838,7 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
                     gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.payment_rounded, color: Colors.white, size: 20),
+                  child: const Icon(Icons.payment_rounded, color: Colors.black, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -963,7 +963,7 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       child: Text('Confirm Payment',
-                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                          style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 14)),
                     ),
                   ),
                 )),

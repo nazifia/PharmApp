@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -963,8 +963,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           ),
           const SizedBox(width: 10),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(role, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-            const Text('Logged in', style: TextStyle(color: Colors.white38, fontSize: 11)),
+            Text(role, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text('Logged in', style: TextStyle(color: Colors.black38, fontSize: 11)),
           ]),
         ])),
         const PopupMenuDivider(),
@@ -991,7 +991,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
           child: Text(
             role.isNotEmpty ? role[0].toUpperCase() : 'U',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
           ),
         ),
       ),
@@ -1130,7 +1130,7 @@ class _MoreFeaturesSheet extends StatelessWidget {
                   gradient: const LinearGradient(
                     colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
                   borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.apps_rounded, color: Colors.white, size: 18),
+                child: const Icon(Icons.apps_rounded, color: Colors.black, size: 18),
               ),
               const SizedBox(width: 12),
               Text('More Features',
