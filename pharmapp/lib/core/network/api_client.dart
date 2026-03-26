@@ -12,14 +12,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Run the PharmApp backend on port 8000:
 ///   python manage.py runserver 8000
 final baseUrlProvider = StateProvider<String>((ref) {
+  // ignore: do_not_use_environment
+  const env = String.fromEnvironment('API_URL', defaultValue: '');
+  if (env.isNotEmpty) return env;
+
   if (!kIsWeb) {
-    // Mobile (Android/iOS) — check at runtime; default Android emulator IP
-    try {
-      // ignore: do_not_use_environment
-      const env = String.fromEnvironment('API_URL', defaultValue: '');
-      if (env.isNotEmpty) return env;
-    } catch (_) {}
-    return 'http://10.0.2.2:8000/api';
+    return 'http://10.0.2.2:8000/api'; // Android emulator default
   }
   return 'http://localhost:8000/api';
 });
