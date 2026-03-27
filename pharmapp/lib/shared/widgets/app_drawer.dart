@@ -6,6 +6,7 @@ import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/features/subscription/widgets/trial_banner.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 class AppDrawer extends ConsumerStatefulWidget {
@@ -75,6 +76,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     orgName: ref.watch(currentOrganizationProvider)?.name ?? '',
                   ),
                   Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
+                  // ── Trial / expiry banner ───────────────────────────────────
+                  const TrialBanner(),
 
                   // ── Nav items ──────────────────────────────────────────────
                   Expanded(
@@ -233,6 +236,16 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               _SubNavItem(icon: Icons.settings_rounded, label: 'Settings', route: '/dashboard/settings', onTap: navigate),
                             ],
                           ),
+
+                          // ══ SUBSCRIPTION ══════════════════════════════════════
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Billing'),
+                          _NavItem(
+                            icon: Icons.workspace_premium_rounded,
+                            label: 'Subscription & Plans',
+                            route: '/subscription',
+                            onTap: navigate,
+                          ),
                         ],
 
                       ],
@@ -313,14 +326,20 @@ class _DrawerHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis),
             ],
             const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text('Active',
-                  style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 10, fontWeight: FontWeight.w600)),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text('Active',
+                      style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 10, fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(width: 6),
+                const PlanBadge(),
+              ],
             ),
             if (orgName.isNotEmpty) ...[
               const SizedBox(height: 3),

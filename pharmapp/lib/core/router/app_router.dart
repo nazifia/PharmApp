@@ -36,6 +36,7 @@ import 'package:pharmapp/features/pos/screens/payment_requests_screen.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/auth/screens/user_management_screen.dart';
 import 'package:pharmapp/features/notifications/screens/notifications_screen.dart';
+import 'package:pharmapp/features/subscription/screens/subscription_screen.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -77,7 +78,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/verify-code',    name: 'verify_code',  builder: (_, __) => const VerifyCodeScreen()),
       GoRoute(path: '/role-selection', name: 'role_select',  builder: (_, __) => const RoleSelectionScreen()),
       GoRoute(path: '/setup',          name: 'setup',        builder: (_, __) => const SetupScreen()),
-      GoRoute(path: '/register-org',   name: 'register_org', builder: (_, __) => const RegisterOrgScreen()),
+      GoRoute(path: '/register-org',   name: 'register_org',  builder: (_, __) => const RegisterOrgScreen()),
+      GoRoute(path: '/subscription',   name: 'subscription',  builder: (_, __) => const SubscriptionScreen()),
 
       // ── Authenticated shell (persistent bottom nav bar) ────────────────────
       ShellRoute(

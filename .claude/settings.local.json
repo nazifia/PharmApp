@@ -72,7 +72,11 @@
       "Bash(find C:UsersDellDesktopMY_PRODUCTSPharmApp -name *.py -path */inventory*)",
       "Bash(powershell -File:*)",
       "Bash(powershell -Command \"\\(Get-Content sales_report_screen.dart -Raw\\) -replace ''rangePickerHeaderforegroundColor'', ''rangePickerHeaderForegroundColor'' | Set-Content sales_report_screen.dart -NoNewline\")",
-      "Bash(powershell -Command \":*)"
+      "Bash(powershell -Command \":*)",
+      "Bash(timeout /t 45 /nobreak)",
+      "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py migrate subscription --run-syncdb)",
+      "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py migrate subscription)",
+      "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py check)"
     ]
   }
 }

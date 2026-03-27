@@ -190,6 +190,7 @@ INSTALLED_APPS = [
     "customers",
     "pos",
     "reports",
+    "subscription",
 ]
 
 MIDDLEWARE = [

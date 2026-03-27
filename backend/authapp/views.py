@@ -82,6 +82,13 @@ def register_org_view(request):
         organization=org,
     )
 
+    # Bootstrap a 14-day free trial for the new org
+    try:
+        from subscription.models import Subscription
+        Subscription.get_or_create_trial(org)
+    except Exception:
+        pass  # non-fatal — subscription can be created later via GET /subscription/
+
     return Response({
         'access': _token_for(user),
         'user':   user.to_api_dict(),
