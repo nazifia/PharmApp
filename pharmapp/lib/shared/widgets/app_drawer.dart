@@ -279,6 +279,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 // ── Notification count provider ────────────────────────────────────────────────
 
 final notificationCountProvider = FutureProvider<int>((ref) async {
+  final token = ref.watch(authTokenProvider);
+  if (token == null) return 0;
   try {
     return await ref.read(posApiProvider).fetchNotificationCount();
   } catch (_) {

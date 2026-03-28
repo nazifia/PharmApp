@@ -51,12 +51,18 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
-      // Clear token from memory and persistent storage on 401
-      _ref.read(authTokenProvider.notifier).state = null;
-      SharedPreferences.getInstance().then((prefs) {
-        prefs.remove('auth_token');
-        prefs.remove('current_user');
-      });
+      // Only invalidate the session if we actually sent a Bearer token.
+      // If the token was null when the request fired, this 401 is a
+      // start-up race condition — do not wipe a valid token that may
+      // have been restored by checkAuthStatus() in the meantime.
+      final sentAuth = err.requestOptions.headers.containsKey('Authorization');
+      if (sentAuth) {
+        _ref.read(authTokenProvider.notifier).state = null;
+        SharedPreferences.getInstance().then((prefs) {
+          prefs.remove('auth_token');
+          prefs.remove('current_user');
+        });
+      }
     }
     super.onError(err, handler);
   }

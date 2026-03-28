@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
+import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 class SubscriptionScreen extends ConsumerWidget {
   const SubscriptionScreen({super.key});
@@ -15,7 +16,17 @@ class SubscriptionScreen extends ConsumerWidget {
     final asyncState  = ref.watch(subscriptionNotifierProvider);
     final isLoading   = asyncState is AsyncLoading;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(AppShell.roleFallback(ref));
+        }
+      },
+      child: Scaffold(
       backgroundColor: EnhancedTheme.primaryDark,
       body: Stack(
         children: [
@@ -33,7 +44,13 @@ class SubscriptionScreen extends ConsumerWidget {
                       IconButton(
                         icon: const Icon(Icons.arrow_back_ios_new_rounded,
                             color: Colors.black, size: 20),
-                        onPressed: () => context.pop(),
+                        onPressed: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go(AppShell.roleFallback(ref));
+                          }
+                        },
                       ),
                       const Expanded(
                         child: Text(
@@ -100,7 +117,7 @@ class SubscriptionScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 

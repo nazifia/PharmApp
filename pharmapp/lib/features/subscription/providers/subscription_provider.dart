@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'subscription_api_client.dart';
 
@@ -15,10 +16,25 @@ class SubscriptionNotifier extends StateNotifier<AsyncValue<Subscription>> {
   final Ref _ref;
 
   SubscriptionNotifier(this._ref) : super(const AsyncValue.loading()) {
+    // Listen for token changes so we fetch as soon as auth is restored,
+    // and reset to trial on logout.
+    _ref.listen<String?>(authTokenProvider, (_, token) {
+      if (token != null) {
+        _load();
+      } else {
+        state = AsyncValue.data(Subscription.defaultTrial());
+      }
+    });
     _load();
   }
 
   Future<void> _load() async {
+    // Skip if not yet authenticated — avoids a 401 on app startup before
+    // checkAuthStatus() has restored the token from SharedPreferences.
+    if (_ref.read(authTokenProvider) == null) {
+      state = AsyncValue.data(Subscription.defaultTrial());
+      return;
+    }
     state = const AsyncValue.loading();
     try {
       final sub = await _ref.read(subscriptionApiClientProvider).getSubscription();
