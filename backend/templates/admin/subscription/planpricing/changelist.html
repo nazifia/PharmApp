@@ -1,0 +1,420 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+/* ── Pricing Editor ─────────────────────────────────── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.pricing-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.pricing-card:hover {
+  box-shadow: 0 6px 32px rgba(0,0,0,0.5);
+}
+
+.pricing-card-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.plan-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.pricing-card-body {
+  padding: 16px 18px;
+}
+
+.pricing-field {
+  margin-bottom: 14px;
+}
+.pricing-field:last-child { margin-bottom: 0; }
+
+.pricing-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.pricing-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.pricing-input-wrap:focus-within {
+  border-color: #0d9488;
+  background: rgba(13,148,136,0.07);
+}
+
+.pricing-input-prefix {
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  background: rgba(255,255,255,0.04);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  white-space: nowrap;
+}
+
+.pricing-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 7px 10px;
+  width: 100%;
+  min-width: 0;
+}
+.pricing-input::placeholder { color: #475569; font-weight: 400; }
+
+.currency-select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.currency-select:focus { border-color: #0d9488; }
+.currency-select option {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+/* Active toggle */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.toggle-input { display: none; }
+.toggle-track {
+  width: 40px; height: 22px;
+  background: #334155;
+  border-radius: 11px;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-input:checked + .toggle-track { background: #0d9488; }
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.2s;
+}
+.toggle-input:checked + .toggle-track::after { left: 21px; }
+.toggle-label { font-size: 13px; color: #94a3b8; }
+
+/* Savings badge */
+.savings-badge {
+  display: inline-block;
+  background: rgba(16,185,129,0.15);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  margin-left: 6px;
+  letter-spacing: 0.05em;
+}
+
+/* Action bar */
+.pricing-action-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px 0 8px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  margin-top: 8px;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+.btn-save:hover  { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-save:active { filter: brightness(0.9); transform: translateY(0); }
+
+.btn-reset {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-reset:hover { border-color: #EF4444; color: #EF4444; }
+
+.pricing-hint {
+  font-size: 11.5px;
+  color: #475569;
+  margin-left: auto;
+}
+
+/* Default price reference */
+.default-ref {
+  font-size: 10.5px;
+  color: #475569;
+  margin-top: 3px;
+}
+
+/* Updated-at info */
+.updated-info {
+  font-size: 10.5px;
+  color: #475569;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+</style>
+{% endblock %}
+
+{% block content_title %}
+<h1>💰 Plan Pricing Editor</h1>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible" role="alert" style="margin-bottom:16px">
+      {{ msg }}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <p style="color:#94a3b8;margin-bottom:24px;font-size:13px">
+    Edit monthly and annual prices for each plan. Changes take effect immediately for new upgrades.
+    Existing active subscriptions are <strong>not</strong> automatically re-billed — this only
+    affects what the app shows as upgrade options.
+  </p>
+
+  <form method="post" id="pricing-form">
+    {% csrf_token %}
+    <input type="hidden" name="_pricing_action" value="save">
+
+    <div class="pricing-grid">
+      {% for item in plan_data %}
+      {% with pp=item.pp %}
+      <div class="pricing-card">
+
+        {# ── Header ── #}
+        <div class="pricing-card-header">
+          <span class="plan-badge" style="background:{{ item.color }}">
+            {{ item.label }}
+          </span>
+          {% if pp and pp.updated_at %}
+          <span style="font-size:10px;color:#475569">
+            Updated {{ pp.updated_at|date:"d M Y" }}
+          </span>
+          {% endif %}
+        </div>
+
+        {# ── Fields ── #}
+        <div class="pricing-card-body">
+
+          {# Monthly price #}
+          <div class="pricing-field">
+            <label>Monthly Price</label>
+            <div class="pricing-input-wrap">
+              <span class="pricing-input-prefix" id="pfx-monthly-{{ item.plan }}">
+                {{ pp.currency|default:"USD" }}
+              </span>
+              <input
+                type="number"
+                class="pricing-input"
+                name="monthly_{{ item.plan }}"
+                value="{{ pp.monthly_price|default:item.default_price }}"
+                min="0" step="0.01"
+                placeholder="0.00"
+                {% if item.plan == 'trial' %}readonly style="color:#64748b"{% endif %}
+                oninput="updateSavings('{{ item.plan }}')"
+              >
+            </div>
+            <div class="default-ref">Default: {{ pp.currency|default:"USD" }} {{ item.default_price }}</div>
+          </div>
+
+          {# Annual price #}
+          <div class="pricing-field">
+            <label>
+              Annual Price (total/year)
+              <span class="savings-badge" id="savings-{{ item.plan }}">
+                {% if pp and pp.annual_savings_pct > 0 %}Save {{ pp.annual_savings_pct }}%{% else %}No discount{% endif %}
+              </span>
+            </label>
+            <div class="pricing-input-wrap">
+              <span class="pricing-input-prefix">
+                {{ pp.currency|default:"USD" }}
+              </span>
+              <input
+                type="number"
+                class="pricing-input"
+                name="annual_{{ item.plan }}"
+                value="{{ pp.annual_price|default:'0.00' }}"
+                min="0" step="0.01"
+                placeholder="0 = disabled"
+                {% if item.plan == 'trial' %}readonly style="color:#64748b"{% endif %}
+                oninput="updateSavings('{{ item.plan }}')"
+              >
+            </div>
+            <div class="default-ref">0 = annual billing disabled for this plan</div>
+          </div>
+
+          {# Currency #}
+          <div class="pricing-field">
+            <label>Currency</label>
+            <select class="currency-select" name="currency_{{ item.plan }}"
+                    onchange="updatePrefixes('{{ item.plan }}', this.value)">
+              {% for cur in currencies %}
+              <option value="{{ cur }}" {% if pp and pp.currency == cur %}selected{% elif not pp and cur == 'USD' %}selected{% endif %}>
+                {{ cur }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {# Active toggle #}
+          <div class="pricing-field">
+            <label>Visibility</label>
+            <label class="toggle-wrap">
+              <input
+                type="checkbox"
+                class="toggle-input"
+                name="active_{{ item.plan }}"
+                {% if pp and pp.is_active or not pp %}checked{% endif %}
+                {% if item.plan == 'trial' %}disabled{% endif %}
+              >
+              <span class="toggle-track"></span>
+              <span class="toggle-label">
+                Show as upgrade option in the app
+              </span>
+            </label>
+            {% if item.plan == 'trial' %}
+            <div class="default-ref" style="margin-top:5px">Trial plan is always active</div>
+            {% endif %}
+          </div>
+
+          {# Last updated by #}
+          {% if pp and pp.updated_by %}
+          <div class="updated-info">
+            Last saved by <strong style="color:#94a3b8">{{ pp.updated_by }}</strong>
+            on {{ pp.updated_at|date:"d M Y H:i" }} UTC
+          </div>
+          {% endif %}
+
+        </div>{# end pricing-card-body #}
+      </div>{# end pricing-card #}
+      {% endwith %}
+      {% endfor %}
+    </div>{# end pricing-grid #}
+
+    {# ── Action bar ── #}
+    <div class="pricing-action-bar">
+      <button type="submit" class="btn-save">
+        💾 Save All Prices
+      </button>
+      <button type="button" class="btn-reset"
+              onclick="if(confirm('Reset all prices to factory defaults?')) { document.getElementById('pricing-action').value='reset'; document.getElementById('pricing-form').submit(); }">
+        🔄 Reset to Defaults
+      </button>
+      <span class="pricing-hint">
+        Changes are logged against all existing subscriptions on that plan.
+      </span>
+    </div>
+
+  </form>
+
+  {# Hidden reset form #}
+  <form method="post" id="reset-form" style="display:none">
+    {% csrf_token %}
+    <input type="hidden" id="pricing-action" name="_pricing_action" value="reset">
+  </form>
+
+</div>{# end content-main #}
+
+<script>
+function updateSavings(plan) {
+  var monthly = parseFloat(document.querySelector('[name="monthly_' + plan + '"]').value) || 0;
+  var annual  = parseFloat(document.querySelector('[name="annual_'  + plan + '"]').value) || 0;
+  var badge   = document.getElementById('savings-' + plan);
+  if (!badge) return;
+  if (annual > 0 && monthly > 0) {
+    var pct = Math.max(Math.round((monthly * 12 - annual) / (monthly * 12) * 100), 0);
+    badge.textContent = pct > 0 ? 'Save ' + pct + '%' : 'No discount';
+    badge.style.color = pct > 0 ? '#10b981' : '#64748b';
+  } else {
+    badge.textContent = 'No discount';
+    badge.style.color = '#64748b';
+  }
+}
+
+function updatePrefixes(plan, currency) {
+  document.querySelectorAll('#pfx-monthly-' + plan).forEach(function(el) {
+    el.textContent = currency;
+  });
+}
+
+// Wire up reset button properly
+document.querySelector('.btn-reset') && document.querySelector('.btn-reset').addEventListener('click', function(e) {
+  e.preventDefault();
+  if (confirm('Reset ALL prices to factory defaults?\n\nThis cannot be undone.')) {
+    document.getElementById('pricing-action').value = 'reset';
+    document.getElementById('reset-form').submit();
+  }
+});
+</script>
+{% endblock %}

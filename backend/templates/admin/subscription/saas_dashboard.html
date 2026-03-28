@@ -1,0 +1,321 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}SaaS Dashboard — PharmApp Admin{% endblock %}
+
+{% block content_title %}
+  <h1 style="display:flex;align-items:center;gap:10px">
+    <span style="background:rgba(13,148,136,.15);border:1px solid #0d9488;
+                 border-radius:8px;padding:6px 12px;font-size:22px">💳</span>
+    SaaS Dashboard
+    <span class="ov-superuser-pill"><i class="fas fa-crown"></i> Superuser View</span>
+  </h1>
+{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --saas-teal:   #0d9488;
+    --saas-blue:   #3b82f6;
+    --saas-amber:  #f59e0b;
+    --saas-purple: #8b5cf6;
+    --saas-cyan:   #06b6d4;
+    --saas-green:  #10b981;
+    --saas-red:    #ef4444;
+    --saas-grey:   #6b7280;
+    --card-bg:     rgba(30,41,59,.65);
+    --card-border: rgba(255,255,255,.1);
+  }
+
+  /* ── Reused ── */
+  .saas-section { font-size:11px;font-weight:700;letter-spacing:.08em;
+                  text-transform:uppercase;color:var(--saas-teal);
+                  margin:28px 0 10px; }
+
+  /* ── Summary grid ── */
+  .saas-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:6px; }
+  .saas-card { background:var(--card-bg);border:1px solid var(--card-border);
+               border-radius:14px;padding:18px 16px;position:relative;overflow:hidden; }
+  .saas-card__icon { font-size:26px;margin-bottom:8px; }
+  .saas-card__val  { font-size:28px;font-weight:800;line-height:1; }
+  .saas-card__lbl  { font-size:11px;color:#94a3b8;margin-top:4px; }
+  .saas-card--teal   { border-color:rgba(13,148,136,.4);  }
+  .saas-card--blue   { border-color:rgba(59,130,246,.4);  }
+  .saas-card--amber  { border-color:rgba(245,158,11,.4);  }
+  .saas-card--purple { border-color:rgba(139,92,246,.4);  }
+  .saas-card--cyan   { border-color:rgba(6,182,212,.4);   }
+  .saas-card--green  { border-color:rgba(16,185,129,.4);  }
+  .saas-card--red    { border-color:rgba(239,68,68,.4);   }
+  .saas-card--teal   .saas-card__val { color:var(--saas-teal);   }
+  .saas-card--blue   .saas-card__val { color:var(--saas-blue);   }
+  .saas-card--amber  .saas-card__val { color:var(--saas-amber);  }
+  .saas-card--purple .saas-card__val { color:var(--saas-purple); }
+  .saas-card--cyan   .saas-card__val { color:var(--saas-cyan);   }
+  .saas-card--green  .saas-card__val { color:var(--saas-green);  }
+  .saas-card--red    .saas-card__val { color:var(--saas-red);    }
+
+  /* ── Plan bar ── */
+  .plan-bar-wrap { display:flex;gap:3px;height:10px;border-radius:6px;overflow:hidden;margin-bottom:6px; }
+  .plan-bar-seg  { height:100%;min-width:2px; }
+  .plan-bar-legend { display:flex;gap:14px;font-size:11px;color:#94a3b8; }
+  .plan-bar-dot { display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px; }
+
+  /* ── Tables ── */
+  .saas-table { width:100%;border-collapse:collapse;font-size:13px; }
+  .saas-table th { text-align:left;padding:8px 12px;font-size:11px;
+                   letter-spacing:.05em;text-transform:uppercase;
+                   color:#94a3b8;border-bottom:1px solid rgba(255,255,255,.08); }
+  .saas-table td { padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04); }
+  .saas-table tr:last-child td { border-bottom:none; }
+  .saas-table tr:hover td { background:rgba(255,255,255,.03); }
+  .tbl-wrap { background:var(--card-bg);border:1px solid var(--card-border);
+              border-radius:14px;overflow:hidden;margin-bottom:20px; }
+
+  /* ── Badges ── */
+  .badge { display:inline-block;padding:2px 9px;border-radius:10px;
+           font-size:11px;font-weight:600; }
+  .badge-trial    { background:rgba(245,158,11,.15); color:var(--saas-amber);  }
+  .badge-starter  { background:rgba(59,130,246,.15); color:var(--saas-blue);   }
+  .badge-pro      { background:rgba(139,92,246,.15); color:var(--saas-purple); }
+  .badge-ent      { background:rgba(6,182,212,.15);  color:var(--saas-cyan);   }
+  .badge-active   { background:rgba(16,185,129,.15); color:var(--saas-green);  }
+  .badge-expired  { background:rgba(239,68,68,.15);  color:var(--saas-red);    }
+  .badge-suspend  { background:rgba(239,68,68,.15);  color:var(--saas-red);    }
+  .badge-expiring { background:rgba(245,158,11,.15); color:var(--saas-amber);  }
+
+  /* ── Days counter ── */
+  .days-ok  { color:var(--saas-green); font-weight:600; }
+  .days-warn{ color:var(--saas-amber); font-weight:600; }
+  .days-crit{ color:var(--saas-red);   font-weight:600; }
+
+  .action-btn { display:inline-block;padding:4px 10px;border-radius:7px;
+                font-size:11px;font-weight:600;text-decoration:none;
+                background:rgba(13,148,136,.12);color:var(--saas-teal);
+                border:1px solid rgba(13,148,136,.3); }
+  .action-btn:hover { background:rgba(13,148,136,.25);color:#fff; }
+</style>
+
+{# ── Top summary cards ───────────────────────────────────────────────────────── #}
+<div class="saas-section">Platform Overview</div>
+<div class="saas-grid">
+
+  <div class="saas-card saas-card--teal">
+    <div class="saas-card__icon">🏥</div>
+    <div class="saas-card__val">{{ total_orgs }}</div>
+    <div class="saas-card__lbl">Total Orgs</div>
+  </div>
+
+  <div class="saas-card saas-card--green">
+    <div class="saas-card__icon">✅</div>
+    <div class="saas-card__val">{{ active_count }}</div>
+    <div class="saas-card__lbl">Active (paid)</div>
+  </div>
+
+  <div class="saas-card saas-card--blue">
+    <div class="saas-card__icon">⏳</div>
+    <div class="saas-card__val">{{ trial_count }}</div>
+    <div class="saas-card__lbl">On Trial</div>
+  </div>
+
+  <div class="saas-card saas-card--red">
+    <div class="saas-card__icon">🚫</div>
+    <div class="saas-card__val">{{ expired_count }}</div>
+    <div class="saas-card__lbl">Expired</div>
+  </div>
+
+  <div class="saas-card saas-card--red">
+    <div class="saas-card__icon">⛔</div>
+    <div class="saas-card__val">{{ suspended_count }}</div>
+    <div class="saas-card__lbl">Suspended</div>
+  </div>
+
+  <div class="saas-card saas-card--green">
+    <div class="saas-card__icon">💰</div>
+    <div class="saas-card__val">${{ mrr|floatformat:0 }}</div>
+    <div class="saas-card__lbl">Est. MRR</div>
+  </div>
+
+</div>
+
+{# ── Plan distribution bar ───────────────────────────────────────────────────── #}
+{% if total_orgs %}
+<div class="saas-section">Plan Distribution</div>
+<div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:18px 20px;margin-bottom:20px">
+  <div class="plan-bar-wrap">
+    {% if plan_counts.trial %}
+      <div class="plan-bar-seg" style="background:var(--saas-amber);flex:{{ plan_counts.trial }}" title="Trial: {{ plan_counts.trial }}"></div>
+    {% endif %}
+    {% if plan_counts.starter %}
+      <div class="plan-bar-seg" style="background:var(--saas-blue);flex:{{ plan_counts.starter }}" title="Starter: {{ plan_counts.starter }}"></div>
+    {% endif %}
+    {% if plan_counts.professional %}
+      <div class="plan-bar-seg" style="background:var(--saas-purple);flex:{{ plan_counts.professional }}" title="Professional: {{ plan_counts.professional }}"></div>
+    {% endif %}
+    {% if plan_counts.enterprise %}
+      <div class="plan-bar-seg" style="background:var(--saas-cyan);flex:{{ plan_counts.enterprise }}" title="Enterprise: {{ plan_counts.enterprise }}"></div>
+    {% endif %}
+  </div>
+  <div class="plan-bar-legend" style="margin-top:10px">
+    <span><span class="plan-bar-dot" style="background:var(--saas-amber)"></span>Trial &nbsp;<b>{{ plan_counts.trial }}</b></span>
+    <span><span class="plan-bar-dot" style="background:var(--saas-blue)"></span>Starter &nbsp;<b>{{ plan_counts.starter }}</b></span>
+    <span><span class="plan-bar-dot" style="background:var(--saas-purple)"></span>Professional &nbsp;<b>{{ plan_counts.professional }}</b></span>
+    <span><span class="plan-bar-dot" style="background:var(--saas-cyan)"></span>Enterprise &nbsp;<b>{{ plan_counts.enterprise }}</b></span>
+  </div>
+</div>
+{% endif %}
+
+{# ── Trials expiring soon ────────────────────────────────────────────────────── #}
+<div class="saas-section">⚠️ Trials Expiring in 7 Days
+  {% if expiring_rows %}<span style="background:var(--saas-amber);color:#000;font-size:10px;border-radius:10px;padding:1px 7px;margin-left:6px">{{ expiring_rows|length }}</span>{% endif %}
+</div>
+{% if expiring_rows %}
+<div class="tbl-wrap">
+  <table class="saas-table">
+    <thead><tr>
+      <th>Organisation</th>
+      <th>Trial Ends</th>
+      <th>Days Left</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for row in expiring_rows %}
+      <tr>
+        <td><b>{{ row.org.name }}</b><br><span style="color:#64748b;font-size:11px">{{ row.org.slug }}</span></td>
+        <td>{{ row.sub.trial_ends_at|date:"Y-m-d H:i" }}</td>
+        <td>
+          {% if row.days_left == 0 %}
+            <span class="days-crit">Today!</span>
+          {% elif row.days_left <= 3 %}
+            <span class="days-crit">{{ row.days_left }} day{{ row.days_left|pluralize }}</span>
+          {% else %}
+            <span class="days-warn">{{ row.days_left }} days</span>
+          {% endif %}
+        </td>
+        <td>
+          <a class="action-btn" href="/admin/subscription/subscription/{{ row.sub.id }}/change/">Edit</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+  <p style="color:#64748b;font-style:italic">No trials expiring in the next 7 days.</p>
+{% endif %}
+
+{# ── Needs attention ─────────────────────────────────────────────────────────── #}
+<div class="saas-section">🔴 Needs Attention (Expired / Suspended)
+  {% if attention_subs %}<span style="background:var(--saas-red);color:#fff;font-size:10px;border-radius:10px;padding:1px 7px;margin-left:6px">{{ attention_subs|length }}</span>{% endif %}
+</div>
+{% if attention_subs %}
+<div class="tbl-wrap">
+  <table class="saas-table">
+    <thead><tr>
+      <th>Organisation</th>
+      <th>Plan</th>
+      <th>Status</th>
+      <th>Last Updated</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for sub in attention_subs %}
+      <tr>
+        <td><b>{{ sub.organization.name }}</b></td>
+        <td>
+          <span class="badge badge-{% if sub.plan == 'trial' %}trial{% elif sub.plan == 'starter' %}starter{% elif sub.plan == 'professional' %}pro{% else %}ent{% endif %}">
+            {{ sub.get_plan_display }}
+          </span>
+        </td>
+        <td>
+          <span class="badge badge-{% if sub.status == 'expired' %}expired{% elif sub.status == 'suspended' %}suspend{% else %}expired{% endif %}">
+            {{ sub.get_status_display }}
+          </span>
+        </td>
+        <td style="color:#64748b">{{ sub.updated_at|date:"Y-m-d" }}</td>
+        <td><a class="action-btn" href="/admin/subscription/subscription/{{ sub.id }}/change/">Edit</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+  <p style="color:#64748b;font-style:italic">No organisations need attention right now.</p>
+{% endif %}
+
+{# ── Recently upgraded / paid ────────────────────────────────────────────────── #}
+{% if upgraded_subs %}
+<div class="saas-section">🚀 Recently Upgraded (Paid Plans)</div>
+<div class="tbl-wrap">
+  <table class="saas-table">
+    <thead><tr>
+      <th>Organisation</th>
+      <th>Plan</th>
+      <th>External ID</th>
+      <th>Upgraded</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for sub in upgraded_subs %}
+      <tr>
+        <td><b>{{ sub.organization.name }}</b></td>
+        <td>
+          <span class="badge badge-{% if sub.plan == 'starter' %}starter{% elif sub.plan == 'professional' %}pro{% else %}ent{% endif %}">
+            {{ sub.get_plan_display }}
+          </span>
+        </td>
+        <td style="color:#64748b;font-size:11px">{{ sub.external_subscription_id|default:"—" }}</td>
+        <td style="color:#64748b">{{ sub.updated_at|date:"Y-m-d" }}</td>
+        <td><a class="action-btn" href="/admin/subscription/subscription/{{ sub.id }}/change/">Edit</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{# ── Recently joined ─────────────────────────────────────────────────────────── #}
+<div class="saas-section">🆕 Recently Joined Orgs</div>
+{% if recent_subs %}
+<div class="tbl-wrap">
+  <table class="saas-table">
+    <thead><tr>
+      <th>Organisation</th>
+      <th>Plan</th>
+      <th>Status</th>
+      <th>Trial Ends</th>
+      <th>Registered</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for sub in recent_subs %}
+      <tr>
+        <td><b>{{ sub.organization.name }}</b><br><span style="color:#64748b;font-size:11px">{{ sub.organization.slug }}</span></td>
+        <td>
+          <span class="badge badge-{% if sub.plan == 'trial' %}trial{% elif sub.plan == 'starter' %}starter{% elif sub.plan == 'professional' %}pro{% else %}ent{% endif %}">
+            {{ sub.get_plan_display }}
+          </span>
+        </td>
+        <td>
+          <span class="badge badge-{% if sub.status == 'active' %}active{% elif sub.status == 'expired' %}expired{% elif sub.status == 'suspended' %}suspend{% elif sub.status == 'expiring' %}expiring{% else %}trial{% endif %}">
+            {{ sub.get_status_display }}
+          </span>
+        </td>
+        <td style="color:#64748b">{{ sub.trial_ends_at|date:"Y-m-d"|default:"—" }}</td>
+        <td style="color:#64748b">{{ sub.created_at|date:"Y-m-d" }}</td>
+        <td><a class="action-btn" href="/admin/subscription/subscription/{{ sub.id }}/change/">Edit</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+  <p style="color:#64748b;font-style:italic">No subscriptions found.</p>
+{% endif %}
+
+<p style="color:#475569;font-size:11px;margin-top:20px">
+  Last refreshed: {{ now|date:"Y-m-d H:i:s" }} UTC &nbsp;·&nbsp;
+  <a href="." style="color:var(--saas-teal)">Refresh</a> &nbsp;·&nbsp;
+  <a href="/admin/subscription/subscription/" style="color:var(--saas-teal)">All Subscriptions</a>
+</p>
+
+{% endblock %}

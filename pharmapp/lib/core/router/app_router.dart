@@ -33,6 +33,7 @@ import 'package:pharmapp/features/pos/screens/expenses_screen.dart';
 import 'package:pharmapp/features/pos/screens/suppliers_screen.dart';
 import 'package:pharmapp/features/pos/screens/stock_check_screen.dart';
 import 'package:pharmapp/features/pos/screens/payment_requests_screen.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/auth/screens/user_management_screen.dart';
 import 'package:pharmapp/features/notifications/screens/notifications_screen.dart';
@@ -62,11 +63,51 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (!isAuthenticated) return '/login';
 
-      // Reports are restricted to Admin and Manager only
       final user = ref.read(currentUserProvider);
-      final role = user?.role ?? '';
-      final isAdminOrManager = role == 'Admin' || role == 'Manager';
-      if (loc.startsWith('/dashboard/reports') && !isAdminOrManager) {
+
+      // Reports — Admin / Manager only
+      if (loc.startsWith('/dashboard/reports') && !Rbac.can(user, AppPermission.viewReports)) {
+        return '/dashboard';
+      }
+
+      // User management — Admin / Manager only
+      if (loc == '/dashboard/users' && !Rbac.can(user, AppPermission.manageUsers)) {
+        return '/dashboard';
+      }
+
+      // Settings — Admin / Manager only
+      if (loc == '/dashboard/settings' && !Rbac.can(user, AppPermission.manageSettings)) {
+        return '/dashboard';
+      }
+
+      // Notifications — Admin / Manager only
+      if (loc == '/dashboard/notifications' && !Rbac.can(user, AppPermission.viewNotifications)) {
+        return '/dashboard';
+      }
+
+      // Expenses — Admin / Manager / Wholesale Manager
+      if (loc == '/dashboard/expenses' && !Rbac.can(user, AppPermission.manageExpenses)) {
+        return '/dashboard';
+      }
+
+      // Suppliers — Admin / Manager / Pharmacist / Wholesale Manager
+      if (loc == '/dashboard/suppliers' && !Rbac.can(user, AppPermission.manageSuppliers)) {
+        return '/dashboard';
+      }
+
+      // Transfers — Admin / Manager / Wholesale Manager / Wholesale Operator
+      if (loc == '/dashboard/transfers' && !Rbac.can(user, AppPermission.manageTransfers)) {
+        return '/dashboard';
+      }
+
+      // Wholesale POS — wholesale roles only
+      if (loc == '/dashboard/wholesale-pos' && !Rbac.can(user, AppPermission.wholesalePOS)) {
+        return '/dashboard';
+      }
+
+      // Wholesale sales / dashboard — wholesale roles only
+      if ((loc == '/dashboard/wholesale-sales' || loc == '/wholesale-dashboard') &&
+          !Rbac.can(user, AppPermission.viewWholesale)) {
         return '/dashboard';
       }
 
@@ -185,15 +226,15 @@ class _ErrorScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.white.withValues(alpha:0.15)),
                 ),
-                child: const Icon(Icons.error_outline, color: Colors.black, size: 48),
+                child: const Icon(Icons.error_outline, color: Colors.white, size: 48),
               ),
               const SizedBox(height: 24),
               const Text('Something went wrong',
-                  style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.w600)),
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Text(
                 error ?? 'An unexpected error occurred',
-                style: const TextStyle(color: Colors.black54, fontSize: 14),
+                style: const TextStyle(color: Colors.white54, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),

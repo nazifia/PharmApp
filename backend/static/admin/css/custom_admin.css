@@ -1604,3 +1604,128 @@ a:hover { color: #fff !important; }
   padding-top: 12px;
   border-top: 1px solid var(--pharm-border);
 }
+
+/* ===============================================================
+   CONTRAST FIXES — change / add / list forms (all admin pages)
+   Ensures WCAG AA readability on dark background.
+   =============================================================== */
+
+/* Change-form field labels (th cells) */
+.form-row > .field-box > label,
+.form-row > div > label,
+.required label,
+.form-row th,
+.form-row label {
+  color: var(--pharm-text) !important;
+}
+
+/* Field labels inside fieldsets */
+.module .form-row th,
+.module fieldset .form-row th {
+  color: var(--pharm-text) !important;
+  font-weight: 500;
+}
+
+/* Readonly field values */
+.readonly,
+.readonly p,
+.form-row .readonly {
+  color: var(--pharm-text) !important;
+}
+
+/* Help text — was #64748b (fails AA); bumped to --pharm-muted (#94a3b8) */
+.help, .help-block,
+.grp-help, p.help,
+.form-row p.help,
+fieldset .form-row .help {
+  color: var(--pharm-muted) !important;
+  font-size: 0.78rem;
+}
+
+/* Fieldset / module headers */
+fieldset h2,
+fieldset.module h2,
+.grp-collapse-handler,
+.collapse-handler {
+  color: var(--pharm-teal-light) !important;
+  background: linear-gradient(90deg, rgba(13,148,136,0.18) 0%, transparent 100%) !important;
+  border-left: 3px solid var(--pharm-teal) !important;
+}
+
+/* Inline admin table headers and cells */
+.inline-group thead th,
+.inline-group thead td,
+.tabular.inline-related thead th,
+.tabular.inline-related thead td {
+  background: rgba(13,148,136,0.15) !important;
+  color: var(--pharm-teal-light) !important;
+  border-color: var(--pharm-border) !important;
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inline-group tbody td,
+.tabular.inline-related tbody td,
+.tabular.inline-related tbody th {
+  color: var(--pharm-text) !important;
+  border-color: var(--pharm-border) !important;
+}
+
+.inline-group tbody tr:hover td,
+.tabular.inline-related tbody tr:hover td {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+/* Stacked inline field labels */
+.inline-related .form-row label,
+.inline-related .form-row th {
+  color: var(--pharm-text) !important;
+}
+
+/* Select / input placeholders */
+select option {
+  background: var(--pharm-surface) !important;
+  color: var(--pharm-text) !important;
+}
+
+/* Admin changelist empty message */
+#changelist .paginator, #changelist p {
+  color: var(--pharm-muted) !important;
+}
+
+/* Date hierarchy */
+.date-hierarchy a, #changelist-filter a {
+  color: var(--pharm-teal-light) !important;
+}
+#changelist-filter h2,
+#changelist-filter h3 {
+  color: var(--pharm-teal-light) !important;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Collapse/expand toggle links */
+.collapse-toggle,
+.grp-collapse-toggle {
+  color: var(--pharm-teal-light) !important;
+}
+
+/* Object history table */
+#change-history tbody td,
+#change-history tbody th {
+  color: var(--pharm-text) !important;
+  border-color: var(--pharm-border) !important;
+}
+
+/* Breadcrumb */
+.breadcrumb-item, .breadcrumb-item a,
+#content-main .breadcrumbs a {
+  color: var(--pharm-muted) !important;
+}
+.breadcrumb-item.active,
+#content-main .breadcrumbs {
+  color: var(--pharm-text) !important;
+}

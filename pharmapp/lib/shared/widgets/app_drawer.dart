@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
+import 'package:pharmapp/core/rbac/rbac_provider.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -31,12 +33,16 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    final user        = ref.watch(currentUserProvider);
-    final role        = user?.role ?? '';
-    final isAdmin     = role == 'Admin' || role == 'Manager';
-    final isWholesale = role.contains('Wholesale') || (user?.isWholesaleOperator ?? false) || isAdmin;
-    final isDark      = context.isDark;
-    final notifCount  = ref.watch(notificationCountProvider).valueOrNull ?? 0;
+    final user           = ref.watch(currentUserProvider);
+    final role           = user?.role ?? '';
+    final isAdmin        = ref.watch(canProvider(AppPermission.manageUsers));
+    final isWholesale    = ref.watch(canProvider(AppPermission.viewWholesale));
+    final canViewReports = ref.watch(canProvider(AppPermission.viewReports));
+    final canExpenses    = ref.watch(canProvider(AppPermission.manageExpenses));
+    final canSuppliers   = ref.watch(canProvider(AppPermission.manageSuppliers));
+    final canTransfers   = ref.watch(canProvider(AppPermission.manageTransfers));
+    final isDark         = context.isDark;
+    final notifCount     = ref.watch(notificationCountProvider).valueOrNull ?? 0;
 
     void navigate(String route) {
       Navigator.of(context).pop();
@@ -147,7 +153,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               _SubNavItem(icon: Icons.dashboard_rounded, label: 'WS Dashboard', route: '/wholesale-dashboard', onTap: navigate),
                               _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'WS POS', route: '/dashboard/wholesale-pos', onTap: navigate),
                               _SubNavItem(icon: Icons.receipt_long_rounded, label: 'WS Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
-                              _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
+                              if (canTransfers)
+                                _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
                               _SubNavItem(icon: Icons.inventory_rounded, label: 'Adjust WS Stock', route: '/dashboard/inventory', onTap: navigate),
                               _SubNavItem(icon: Icons.warning_amber_rounded, label: 'Low Stock Alerts', route: '/dashboard/inventory', onTap: navigate),
                               _SubNavItem(icon: Icons.hourglass_bottom_rounded, label: 'Expiry Alerts', route: '/dashboard/inventory', onTap: navigate),
@@ -169,15 +176,12 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           children: [
                             _SubNavItem(icon: Icons.inventory_rounded, label: 'Item List', route: '/dashboard/inventory', onTap: navigate),
                             _SubNavItem(icon: Icons.checklist_rtl_rounded, label: 'Stock Check', route: '/dashboard/stock-check', onTap: navigate),
-                            if (isWholesale) ...[
+                            if (canTransfers)
                               _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
-                              _SubNavItem(icon: Icons.warning_amber_rounded, label: 'Low Stock Alert', route: '/dashboard/inventory', onTap: navigate),
-                              _SubNavItem(icon: Icons.timer_rounded, label: 'Expiry Alerts', route: '/dashboard/inventory', onTap: navigate),
-                            ],
                           ],
                         ),
 
-                        if (isAdmin) ...[
+                        if (canViewReports) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Reports & Analytics'),
 
@@ -196,31 +200,35 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           ),
                         ],
 
-                        const SizedBox(height: 4),
-                        _SectionDivider(label: 'Finance'),
+                        if (canExpenses) ...[
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Finance'),
 
-                        // ══ FINANCE ═══════════════════════════════════════════
-                        _ExpandableSection(
-                          icon: Icons.attach_money_rounded, label: 'Finance',
-                          isExpanded: _expanded.contains('finance'),
-                          onToggle: () => _toggle('finance'),
-                          children: [
-                            _SubNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Expenses', route: '/dashboard/expenses', onTap: navigate),
-                          ],
-                        ),
+                          // ══ FINANCE ═══════════════════════════════════════════
+                          _ExpandableSection(
+                            icon: Icons.attach_money_rounded, label: 'Finance',
+                            isExpanded: _expanded.contains('finance'),
+                            onToggle: () => _toggle('finance'),
+                            children: [
+                              _SubNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Expenses', route: '/dashboard/expenses', onTap: navigate),
+                            ],
+                          ),
+                        ],
 
-                        const SizedBox(height: 4),
-                        _SectionDivider(label: 'Procurement'),
+                        if (canSuppliers) ...[
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Procurement'),
 
-                        // ══ PROCUREMENT ═══════════════════════════════════════
-                        _ExpandableSection(
-                          icon: Icons.local_shipping_rounded, label: 'Procurement',
-                          isExpanded: _expanded.contains('procurement'),
-                          onToggle: () => _toggle('procurement'),
-                          children: [
-                            _SubNavItem(icon: Icons.storefront_rounded, label: 'Suppliers', route: '/dashboard/suppliers', onTap: navigate),
-                          ],
-                        ),
+                          // ══ PROCUREMENT ═══════════════════════════════════════
+                          _ExpandableSection(
+                            icon: Icons.local_shipping_rounded, label: 'Procurement',
+                            isExpanded: _expanded.contains('procurement'),
+                            onToggle: () => _toggle('procurement'),
+                            children: [
+                              _SubNavItem(icon: Icons.storefront_rounded, label: 'Suppliers', route: '/dashboard/suppliers', onTap: navigate),
+                            ],
+                          ),
+                        ],
 
                         // ══ ADMIN ═════════════════════════════════════════════
                         if (isAdmin) ...[
@@ -236,17 +244,17 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               _SubNavItem(icon: Icons.settings_rounded, label: 'Settings', route: '/dashboard/settings', onTap: navigate),
                             ],
                           ),
-
-                          // ══ SUBSCRIPTION ══════════════════════════════════════
-                          const SizedBox(height: 4),
-                          _SectionDivider(label: 'Billing'),
-                          _NavItem(
-                            icon: Icons.workspace_premium_rounded,
-                            label: 'Subscription & Plans',
-                            route: '/subscription',
-                            onTap: navigate,
-                          ),
                         ],
+
+                        // ══ SUBSCRIPTION — visible to all users ════════════════
+                        const SizedBox(height: 4),
+                        _SectionDivider(label: 'Billing'),
+                        _NavItem(
+                          icon: Icons.workspace_premium_rounded,
+                          label: 'Subscription & Plans',
+                          route: '/subscription',
+                          onTap: navigate,
+                        ),
 
                       ],
                     ),

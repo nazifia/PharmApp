@@ -8,14 +8,46 @@ from .models import Organization, PharmUser, SiteConfig
 
 # ── Organisation ──────────────────────────────────────────────────────────────
 
+def _subscription_inline():
+    """Lazily import the inline to avoid circular imports at module load."""
+    try:
+        from subscription.admin import SubscriptionInline
+        return [SubscriptionInline]
+    except ImportError:
+        return []
+
+
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     """Visible and editable by superusers only."""
 
-    list_display  = ["name", "slug", "phone", "user_count", "created_at"]
+    list_display  = ["name", "slug", "phone", "user_count", "subscription_plan", "created_at"]
     search_fields = ["name", "slug", "phone"]
     readonly_fields = ["slug", "created_at", "user_count"]
     ordering = ["name"]
+    inlines  = []   # populated in get_inlines()
+
+    def get_inlines(self, request, obj):
+        return _subscription_inline()
+
+    @admin.display(description='Plan')
+    def subscription_plan(self, obj):
+        try:
+            sub = obj.subscription
+            colors = {
+                'trial':        '#F59E0B',
+                'starter':      '#3B82F6',
+                'professional': '#8B5CF6',
+                'enterprise':   '#06B6D4',
+            }
+            c = colors.get(sub.plan, '#6B7280')
+            return format_html(
+                '<span style="background:{};color:#fff;padding:2px 8px;'
+                'border-radius:10px;font-size:11px">{}</span>',
+                c, sub.get_plan_display(),
+            )
+        except Exception:
+            return format_html('<span style="color:#64748b;font-size:11px">—</span>')
 
     @admin.display(description="Users")
     def user_count(self, obj):

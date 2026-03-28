@@ -588,8 +588,8 @@ class _FeatureChip extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             _featureLabel(feature),
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.65), fontSize: 10),
+            style: const TextStyle(
+                color: Colors.black54, fontSize: 10),
           ),
         ],
       ),
@@ -676,7 +676,7 @@ class _FeatureMatrix extends StatelessWidget {
                             style: TextStyle(
                               color: p == currentPlan
                                   ? _planColor(p)
-                                  : Colors.white54,
+                                  : Colors.black45,
                               fontSize: 10,
                               fontWeight: p == currentPlan
                                   ? FontWeight.w700
@@ -719,7 +719,7 @@ class _FeatureMatrix extends StatelessWidget {
                                 ? Icon(Icons.check_circle_rounded,
                                     color: _planColor(p), size: 16)
                                 : Icon(Icons.remove_rounded,
-                                    color: Colors.white.withValues(alpha: 0.2),
+                                    color: Colors.black26,
                                     size: 16),
                           ),
                         ),

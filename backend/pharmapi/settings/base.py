@@ -31,6 +31,8 @@ JAZZMIN_SETTINGS = {
         {"name": "Dashboard", "url": "admin:index", "permissions": ["auth.view_user"]},
         # Superuser-only global overview — shows cross-org analytics
         {"name": "🌐 Global Overview", "url": "/admin/overview/", "permissions": ["authapp.view_organization"]},
+        # SaaS subscription dashboard
+        {"name": "💳 SaaS Dashboard", "url": "/admin/subscription/dashboard/", "permissions": ["authapp.view_organization"]},
         {"name": "API Docs", "url": "/api/", "new_window": True},
         {"model": "authapp.PharmUser"},
         {"app": "inventory"},
@@ -49,6 +51,7 @@ JAZZMIN_SETTINGS = {
     "hide_models": [],
     "order_with_respect_to": [
         "authapp",
+        "subscription",
         "inventory",
         "customers",
         "pos",
@@ -100,6 +103,9 @@ JAZZMIN_SETTINGS = {
         "pos.TransferRequest":    "fas fa-exchange-alt",
 
         "auth.Group": "fas fa-layer-group",
+
+        "subscription":                    "fas fa-credit-card",
+        "subscription.Subscription":       "fas fa-id-card",
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
@@ -107,16 +113,17 @@ JAZZMIN_SETTINGS = {
     # ── UI tweaks ──────────────────────────────────────────────────────────────
     "related_modal_active": True,
     "custom_css": "admin/css/custom_admin.css",
-    "custom_js": None,
+    "custom_js": "admin/js/theme_toggle.js",
     "use_google_fonts_cdn": True,
     "show_ui_builder": False,
 
     "changeform_format": "horizontal_tabs",
     "changeform_format_overrides": {
-        "authapp.pharmuser": "collapsible",
-        "pos.sale": "horizontal_tabs",
-        "pos.procurement": "horizontal_tabs",
-        "pos.stockcheck": "horizontal_tabs",
+        "authapp.pharmuser":           "collapsible",
+        "pos.sale":                    "horizontal_tabs",
+        "pos.procurement":             "horizontal_tabs",
+        "pos.stockcheck":              "horizontal_tabs",
+        "subscription.subscription":   "horizontal_tabs",
     },
 
     "language_chooser": False,
@@ -143,7 +150,7 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
     "theme": "superhero",
-    "dark_mode_theme": "superhero",
+    "default_theme_mode": "dark",
     "button_classes": {
         "primary":   "btn-primary",
         "secondary": "btn-secondary",

@@ -76,7 +76,8 @@
       "Bash(timeout /t 45 /nobreak)",
       "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py migrate subscription --run-syncdb)",
       "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py migrate subscription)",
-      "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py check)"
+      "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py check)",
+      "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py expire_trials --dry-run --verbose)"
     ]
   }
 }

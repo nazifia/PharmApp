@@ -1,0 +1,230 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+/* ── Quick-actions panel ───────────────────────────────────── */
+#sub-control-panel {
+  margin: 0 0 24px 0;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+#sub-control-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+#sub-control-panel .panel-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+#sub-control-panel .panel-body {
+  padding: 16px 20px;
+}
+
+/* Action button groups */
+.sub-action-group {
+  margin-bottom: 14px;
+}
+.sub-action-group:last-child { margin-bottom: 0; }
+
+.sub-action-group-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.sub-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Base button */
+.sub-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1.4;
+}
+.sub-btn:hover  { filter: brightness(1.15); transform: translateY(-1px); }
+.sub-btn:active { filter: brightness(0.9);  transform: translateY(0); }
+
+.sub-btn-teal     { background: #0d9488; color: #fff; }
+.sub-btn-blue     { background: #3B82F6; color: #fff; }
+.sub-btn-purple   { background: #8B5CF6; color: #fff; }
+.sub-btn-cyan     { background: #06B6D4; color: #fff; }
+.sub-btn-amber    { background: #F59E0B; color: #000; }
+.sub-btn-red      { background: #EF4444; color: #fff; }
+.sub-btn-green    { background: #10B981; color: #fff; }
+.sub-btn-slate    { background: rgba(255,255,255,0.1); color: #e2e8f0;
+                    border: 1px solid rgba(255,255,255,0.15); }
+
+/* Note input */
+.sub-note-row {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sub-note-row label {
+  font-size: 11.5px;
+  color: #64748b;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.sub-note-row input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 5px 10px;
+  font-size: 12px;
+  outline: none;
+  min-width: 0;
+}
+.sub-note-row input:focus {
+  border-color: #0d9488;
+  background: rgba(13,148,136,0.08);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if original %}
+{# ── Quick-action control panel ───────────────────────────────────────── #}
+<div id="sub-control-panel">
+
+  <div class="panel-header">
+    <h3>⚡ Quick Actions</h3>
+    <span style="font-size:11px;color:#64748b">
+      Changes take effect immediately and are logged in the audit trail below.
+    </span>
+  </div>
+
+  <div class="panel-body">
+    <form method="post" id="quick-action-form">
+      {% csrf_token %}
+      <input type="hidden" name="_quick_action" id="qa-field" value="">
+
+      {# ── Trial management ─────────────────────────────────────────────── #}
+      <div class="sub-action-group">
+        <div class="sub-action-group-label">Trial Management</div>
+        <div class="sub-action-buttons">
+          <button type="submit" class="sub-btn sub-btn-amber"
+                  onclick="setAction('extend_7')">
+            ⏳ Extend +7 days
+          </button>
+          <button type="submit" class="sub-btn sub-btn-amber"
+                  onclick="setAction('extend_30')">
+            ⏳ Extend +30 days
+          </button>
+          <button type="submit" class="sub-btn sub-btn-slate"
+                  onclick="setAction('reset')"
+                  title="Reset to a fresh 14-day trial, clears plan and billing info">
+            🔄 Reset to 14-day trial
+          </button>
+        </div>
+      </div>
+
+      {# ── Activate plan ────────────────────────────────────────────────── #}
+      <div class="sub-action-group">
+        <div class="sub-action-group-label">Activate Plan</div>
+        <div class="sub-action-buttons">
+          <button type="submit" class="sub-btn sub-btn-blue"
+                  onclick="setAction('activate_starter')">
+            🚀 Starter — $9.99/mo
+          </button>
+          <button type="submit" class="sub-btn sub-btn-purple"
+                  onclick="setAction('activate_professional')">
+            💎 Professional — $29.99/mo
+          </button>
+          <button type="submit" class="sub-btn sub-btn-cyan"
+                  onclick="setAction('activate_enterprise')">
+            👑 Enterprise — $79.99/mo
+          </button>
+        </div>
+      </div>
+
+      {# ── Account controls ─────────────────────────────────────────────── #}
+      <div class="sub-action-group">
+        <div class="sub-action-group-label">Account Control</div>
+        <div class="sub-action-buttons">
+          {% if is_suspended or is_cancelled or is_expired %}
+          <button type="submit" class="sub-btn sub-btn-green"
+                  onclick="setAction('reactivate')">
+            ✅ Reactivate
+          </button>
+          {% else %}
+          <button type="submit" class="sub-btn sub-btn-amber"
+                  onclick="setAction('suspend')"
+                  title="Block access until reactivated">
+            ⏸ Suspend
+          </button>
+          {% endif %}
+          <button type="submit" class="sub-btn sub-btn-red"
+                  onclick="return confirmAction('cancel', 'Cancel subscription for {{ original.organization.name }}? This blocks access until reactivated.')">
+            ✕ Cancel subscription
+          </button>
+        </div>
+      </div>
+
+      {# ── Optional note ────────────────────────────────────────────────── #}
+      <div class="sub-note-row">
+        <label for="action-note">📝 Note (optional):</label>
+        <input type="text" name="action_note" id="action-note"
+               placeholder="Reason, ticket number, or internal comment …"
+               maxlength="200">
+      </div>
+
+    </form>{# end quick-action-form #}
+  </div>{# end panel-body #}
+</div>{# end sub-control-panel #}
+
+<script>
+function setAction(action) {
+  document.getElementById('qa-field').value = action;
+}
+function confirmAction(action, msg) {
+  if (!confirm(msg)) return false;
+  setAction(action);
+  return true;
+}
+</script>
+
+{% endif %}{# end if original #}
+
+{{ block.super }}
+
+{% endblock %}
