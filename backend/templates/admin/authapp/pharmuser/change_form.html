@@ -1,0 +1,382 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+/* ── PharmUser change-form extras ──────────────────────────────── */
+
+.pu-card {
+  border: 1px solid var(--border-color, #dee2e6);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.pu-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--darkened-bg, rgba(0,0,0,0.06));
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  flex-wrap: wrap;
+}
+.pu-card-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--body-fg, #333);
+}
+.pu-card-body {
+  padding: 16px;
+}
+
+/* ── Role badge ─────────────────────────────────────────── */
+.role-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+
+/* ── Quick role buttons ─────────────────────────────────── */
+.role-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.role-btn-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--body-quiet-color, #888);
+  margin: 10px 0 5px;
+}
+.role-btn {
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: filter 0.12s, transform 0.08s;
+  background: var(--darkened-bg, rgba(0,0,0,0.06));
+  color: var(--body-fg, #333);
+}
+.role-btn:hover  { filter: brightness(1.12); transform: translateY(-1px); }
+.role-btn:active { transform: translateY(0); }
+.role-btn.active { color: #fff; border-color: transparent; }
+
+/* ── Permission table ───────────────────────────────────── */
+.perm-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.perm-table th {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--body-quiet-color, #888);
+  padding: 6px 10px;
+  text-align: center;
+  border-bottom: 2px solid var(--border-color, #dee2e6);
+}
+.perm-table th:first-child { text-align: left; }
+.perm-table td {
+  padding: 7px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  text-align: center;
+  vertical-align: middle;
+}
+.perm-table td:first-child {
+  text-align: left;
+  font-size: 12px;
+  color: var(--body-fg, #333);
+  font-weight: 500;
+}
+.perm-table tr:last-child td { border-bottom: none; }
+.perm-table tr:hover td { background: var(--darkened-bg, rgba(0,0,0,0.03)); }
+
+/* ── 3-state toggle ─────────────────────────────────────── */
+.perm-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-color, #dee2e6);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.perm-toggle input[type="radio"] { display: none; }
+.perm-toggle label {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--body-quiet-color, #888);
+  background: transparent;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+  user-select: none;
+  border-right: 1px solid var(--border-color, #dee2e6);
+}
+.perm-toggle label:last-child { border-right: none; }
+.perm-toggle label:hover { background: var(--darkened-bg, rgba(0,0,0,0.05)); }
+
+.perm-toggle input[value="inherit"]:checked + label,
+.perm-toggle label.inherit-active {
+  background: var(--darkened-bg, rgba(0,0,0,0.08));
+  color: var(--body-fg, #333);
+}
+.perm-toggle input[value="grant"]:checked + label {
+  background: #10b981;
+  color: #fff;
+}
+.perm-toggle input[value="revoke"]:checked + label {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* ── Effective badge ────────────────────────────────────── */
+.eff-yes { color: #10b981; font-weight: 700; font-size: 15px; }
+.eff-no  { color: #94a3b8; font-size: 15px; }
+.def-yes { color: #0d9488; font-weight: 700; font-size: 15px; }
+.def-no  { color: #94a3b8; font-size: 15px; }
+
+/* ── Override count badge ───────────────────────────────── */
+.override-count {
+  display: inline-block;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+/* ── Save button ────────────────────────────────────────── */
+.btn-save-perms {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 22px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 14px;
+  transition: filter 0.12s;
+}
+.btn-save-perms:hover { filter: brightness(1.1); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if current_role %}
+
+{# ══ 1. QUICK ROLE ASSIGNMENT ══════════════════════════════════════════ #}
+<div class="pu-card">
+  <div class="pu-card-header">
+    <span style="font-size:16px">👤</span>
+    <h3>Quick Role Assignment</h3>
+    <span style="margin-left:auto;font-size:12px;color:var(--body-quiet-color,#888)">
+      Current role:&nbsp;
+      <span class="role-badge"
+            style="background:{% if current_role == 'Admin' %}#EF4444{% elif current_role == 'Manager' %}#8B5CF6{% elif current_role == 'Pharmacist' %}#0D9488{% elif current_role == 'Pharm-Tech' %}#06B6D4{% elif current_role == 'Salesperson' %}#F59E0B{% elif current_role == 'Cashier' %}#10B981{% elif current_role == 'Wholesale Manager' %}#3B82F6{% elif current_role == 'Wholesale Operator' %}#6366F1{% else %}#64748B{% endif %}">
+        {{ current_role }}
+      </span>
+    </span>
+  </div>
+  <div class="pu-card-body">
+
+    {# Management #}
+    <div class="role-btn-section-label">Management</div>
+    <div class="role-btn-group">
+      {% if can_set_admin %}
+      <form method="post" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="_quick_role" value="Admin">
+        <button class="role-btn{% if current_role == 'Admin' %} active{% endif %}"
+                style="{% if current_role == 'Admin' %}background:#EF4444;{% endif %}border-color:#EF4444;color:{% if current_role == 'Admin' %}#fff{% else %}#EF4444{% endif %}">
+          Admin{% if current_role == 'Admin' %} ✓{% endif %}
+        </button>
+      </form>
+      {% endif %}
+      <form method="post" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="_quick_role" value="Manager">
+        <button class="role-btn{% if current_role == 'Manager' %} active{% endif %}"
+                style="{% if current_role == 'Manager' %}background:#8B5CF6;{% endif %}border-color:#8B5CF6;color:{% if current_role == 'Manager' %}#fff{% else %}#8B5CF6{% endif %}">
+          Manager{% if current_role == 'Manager' %} ✓{% endif %}
+        </button>
+      </form>
+    </div>
+
+    {# Retail / Clinical #}
+    <div class="role-btn-section-label">Retail / Clinical</div>
+    <div class="role-btn-group">
+      {% for rv, rl in all_roles %}{% if rv == 'Pharmacist' or rv == 'Pharm-Tech' or rv == 'Salesperson' or rv == 'Cashier' %}
+      <form method="post" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="_quick_role" value="{{ rv }}">
+        <button class="role-btn{% if current_role == rv %} active{% endif %}"
+                style="{% if current_role == rv %}background:{% if rv == 'Pharmacist' %}#0D9488{% elif rv == 'Pharm-Tech' %}#06B6D4{% elif rv == 'Salesperson' %}#F59E0B{% else %}#10B981{% endif %};{% endif %}border-color:{% if rv == 'Pharmacist' %}#0D9488{% elif rv == 'Pharm-Tech' %}#06B6D4{% elif rv == 'Salesperson' %}#F59E0B{% else %}#10B981{% endif %};color:{% if current_role == rv %}#fff{% elif rv == 'Salesperson' %}#b45309{% else %}{% if rv == 'Pharmacist' %}#0D9488{% elif rv == 'Pharm-Tech' %}#06B6D4{% else %}#10B981{% endif %}{% endif %}">
+          {{ rl }}{% if current_role == rv %} ✓{% endif %}
+        </button>
+      </form>
+      {% endif %}{% endfor %}
+    </div>
+
+    {# Wholesale #}
+    <div class="role-btn-section-label">
+      Wholesale
+      <span style="margin-left:6px;background:rgba(59,130,246,0.15);color:#3B82F6;
+                   border:1px solid rgba(59,130,246,0.4);border-radius:4px;
+                   padding:1px 6px;font-size:9px;font-weight:700">
+        Auto-sets Wholesale Operator flag
+      </span>
+    </div>
+    <div class="role-btn-group">
+      {% for rv, rl in all_roles %}{% if 'Wholesale' in rv %}
+      <form method="post" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="_quick_role" value="{{ rv }}">
+        <button class="role-btn{% if current_role == rv %} active{% endif %}"
+                style="{% if current_role == rv %}background:{% if rv == 'Wholesale Manager' %}#3B82F6{% elif rv == 'Wholesale Operator' %}#6366F1{% else %}#64748B{% endif %};{% endif %}border-color:{% if rv == 'Wholesale Manager' %}#3B82F6{% elif rv == 'Wholesale Operator' %}#6366F1{% else %}#64748B{% endif %};color:{% if current_role == rv %}#fff{% elif rv == 'Wholesale Manager' %}#3B82F6{% elif rv == 'Wholesale Operator' %}#6366F1{% else %}#64748B{% endif %}">
+          {{ rl }}{% if current_role == rv %} ✓{% endif %}
+        </button>
+      </form>
+      {% endif %}{% endfor %}
+    </div>
+
+    <p style="margin:10px 0 0;font-size:11px;color:var(--body-quiet-color,#888)">
+      Role buttons save only the role field. Other fields are edited in the form below.
+    </p>
+  </div>
+</div>
+
+{# ══ 2. INDIVIDUAL PERMISSION OVERRIDES ═══════════════════════════════ #}
+{% if perm_rows %}
+<div class="pu-card">
+  <div class="pu-card-header">
+    <span style="font-size:16px">🔐</span>
+    <h3>Individual Permission Overrides</h3>
+    {% if n_overrides %}
+    <span class="override-count">{{ n_overrides }} active</span>
+    {% endif %}
+    <span style="margin-left:auto;font-size:11px;color:var(--body-quiet-color,#888)">
+      Overrides take priority over role defaults. Changes take effect on next login.
+    </span>
+  </div>
+  <div class="pu-card-body" style="padding:0">
+
+    <form method="post" id="perm-form">
+      {% csrf_token %}
+      <input type="hidden" name="_save_permissions" value="1">
+
+      <table class="perm-table">
+        <thead>
+          <tr>
+            <th style="padding-left:16px">Permission</th>
+            <th>Role Default</th>
+            <th>Override</th>
+            <th>Effective Access</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in perm_rows %}
+          <tr>
+            {# Module name #}
+            <td style="padding-left:16px">{{ row.label }}</td>
+
+            {# Role default #}
+            <td>
+              {% if row.role_default %}
+                <span class="def-yes" title="Role has this by default">✅</span>
+              {% else %}
+                <span class="def-no" title="Role does not have this">❌</span>
+              {% endif %}
+            </td>
+
+            {# 3-state toggle #}
+            <td>
+              <div class="perm-toggle">
+                <input type="radio" id="inh_{{ row.key }}" name="perm_{{ row.key }}"
+                       value="inherit" {% if row.state == 'inherit' %}checked{% endif %}>
+                <label for="inh_{{ row.key }}"
+                       title="Use role default">Inherit</label>
+
+                <input type="radio" id="grn_{{ row.key }}" name="perm_{{ row.key }}"
+                       value="grant" {% if row.state == 'grant' %}checked{% endif %}>
+                <label for="grn_{{ row.key }}"
+                       title="Always grant (even if role lacks it)">Grant ↑</label>
+
+                <input type="radio" id="rev_{{ row.key }}" name="perm_{{ row.key }}"
+                       value="revoke" {% if row.state == 'revoke' %}checked{% endif %}>
+                <label for="rev_{{ row.key }}"
+                       title="Always revoke (even if role has it)">Revoke ↓</label>
+              </div>
+            </td>
+
+            {# Effective result #}
+            <td id="eff_{{ row.key }}">
+              {% if row.effective %}
+                <span class="eff-yes">✅ Allowed</span>
+              {% else %}
+                <span class="eff-no">❌ Denied</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div style="padding:14px 16px;border-top:1px solid var(--border-color,#dee2e6);
+                  display:flex;align-items:center;gap:14px">
+        <button type="submit" class="btn-save-perms">
+          💾 Save Permission Overrides
+        </button>
+        <span style="font-size:11px;color:var(--body-quiet-color,#888)">
+          Set to <strong>Inherit</strong> to remove an override and fall back to the role default.
+        </span>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endif %}
+
+{% endif %}{# end if current_role #}
+
+{{ block.super }}
+
+<script>
+/* Live-update the Effective column as toggles change */
+(function () {
+  var rows = {{ perm_rows|length }};
+  /* role_defaults keyed by perm key */
+  var defaults = {
+    {% for row in perm_rows %}"{{ row.key }}": {{ row.role_default|yesno:"true,false" }},{% endfor %}
+  };
+
+  document.querySelectorAll('.perm-toggle input[type="radio"]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      var key  = this.name.replace('perm_', '');
+      var val  = this.value;
+      var cell = document.getElementById('eff_' + key);
+      if (!cell) return;
+      var effective =
+        val === 'grant'  ? true  :
+        val === 'revoke' ? false :
+        defaults[key];
+      cell.innerHTML = effective
+        ? '<span class="eff-yes">✅ Allowed</span>'
+        : '<span class="eff-no">❌ Denied</span>';
+    });
+  });
+})();
+</script>
+
+{% endblock %}

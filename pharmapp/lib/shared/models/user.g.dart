@@ -18,6 +18,10 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       organizationSlug: json['organizationSlug'] as String? ?? '',
       organizationAddress: json['organizationAddress'] as String? ?? '',
       organizationPhone: json['organizationPhone'] as String? ?? '',
+      permissions: (json['permissions'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as bool),
+          ) ??
+          const <String, bool>{},
     );
 
 Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
@@ -33,4 +37,5 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'organizationSlug': instance.organizationSlug,
       'organizationAddress': instance.organizationAddress,
       'organizationPhone': instance.organizationPhone,
+      'permissions': instance.permissions,
     };

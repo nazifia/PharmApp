@@ -8,9 +8,9 @@
 {% org_dashboard_stats as stats %}
 
 {% if stats.is_superuser %}
-{# ═══════════════════════════════════════════════════════════
+ {% comment %} ═══════════════════════════════════════════════════════════
    SUPERUSER — Platform-wide overview
-   ═══════════════════════════════════════════════════════════ #}
+   ═══════════════════════════════════════════════════════════  {% endcomment %}
 
 <div class="dash-welcome dash-welcome--super">
   <div class="dash-welcome__icon"><i class="fas fa-crown"></i></div>

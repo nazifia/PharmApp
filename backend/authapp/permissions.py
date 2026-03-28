@@ -114,3 +114,47 @@ def require_role(request, allowed_roles: set, message: str = None):
         )
         return Response({'detail': detail}, status=status.HTTP_403_FORBIDDEN)
     return None
+
+
+# ── Permission key → allowed roles (mirrors Flutter rbac.dart _matrix) ────────
+
+_PERMISSION_ROLE_MAP: dict[str, set] = {
+    'viewReports':       REPORTS_ROLES,
+    'manageUsers':       SENIOR_ROLES,
+    'manageSettings':    SENIOR_ROLES,
+    'viewNotifications': NOTIFICATIONS_ROLES,
+    'viewSubscription':  SUBSCRIPTION_ROLES,
+    'retailPOS':         RETAIL_POS,
+    'wholesalePOS':      WHOLESALE_POS,
+    'viewWholesale':     WHOLESALE_POS,
+    'readInventory':     INVENTORY_READ,
+    'writeInventory':    INVENTORY_WRITE,
+    'readCustomers':     ALL_STAFF,
+    'writeCustomers':    CUSTOMERS_WRITE,
+    'manageExpenses':    EXPENSES_ROLES,
+    'manageSuppliers':   SUPPLIERS_ROLES,
+    'processPayments':   PAYMENTS_ROLES,
+    'manageTransfers':   TRANSFERS_ROLES,
+}
+
+
+def get_effective_permissions(user) -> dict:
+    """
+    Return the effective permission dict for a user:
+      1. Start from role defaults (from _PERMISSION_ROLE_MAP)
+      2. Apply any UserPermissionOverride rows for this user
+
+    Keys match Flutter AppPermission constants.
+    """
+    role     = getattr(user, 'role', '') or ''
+    defaults = {perm: role in allowed for perm, allowed in _PERMISSION_ROLE_MAP.items()}
+
+    try:
+        from authapp.models import UserPermissionOverride
+        for ov in UserPermissionOverride.objects.filter(user=user).only('permission', 'granted'):
+            if ov.permission in defaults:
+                defaults[ov.permission] = ov.granted
+    except Exception:
+        pass
+
+    return defaults

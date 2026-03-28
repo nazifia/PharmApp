@@ -32,6 +32,7 @@ mixin _$User {
   String get organizationSlug => throw _privateConstructorUsedError;
   String get organizationAddress => throw _privateConstructorUsedError;
   String get organizationPhone => throw _privateConstructorUsedError;
+  Map<String, bool> get permissions => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -54,7 +55,8 @@ abstract class $UserCopyWith<$Res> {
       String organizationName,
       String organizationSlug,
       String organizationAddress,
-      String organizationPhone});
+      String organizationPhone,
+      Map<String, bool> permissions});
 }
 
 /// @nodoc
@@ -81,6 +83,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? organizationSlug = null,
     Object? organizationAddress = null,
     Object? organizationPhone = null,
+    Object? permissions = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -127,6 +130,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.organizationPhone
           : organizationPhone // ignore: cast_nullable_to_non_nullable
               as String,
+      permissions: null == permissions
+          ? _value.permissions
+          : permissions // ignore: cast_nullable_to_non_nullable
+              as Map<String, bool>,
     ) as $Val);
   }
 }
@@ -149,7 +156,8 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       String organizationName,
       String organizationSlug,
       String organizationAddress,
-      String organizationPhone});
+      String organizationPhone,
+      Map<String, bool> permissions});
 }
 
 /// @nodoc
@@ -173,6 +181,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? organizationSlug = null,
     Object? organizationAddress = null,
     Object? organizationPhone = null,
+    Object? permissions = null,
   }) {
     return _then(_$UserImpl(
       id: null == id
@@ -219,6 +228,10 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.organizationPhone
           : organizationPhone // ignore: cast_nullable_to_non_nullable
               as String,
+      permissions: null == permissions
+          ? _value.permissions
+          : permissions // ignore: cast_nullable_to_non_nullable
+              as Map<String, bool>,
     ));
   }
 }
@@ -237,7 +250,8 @@ class _$UserImpl implements _User {
       this.organizationName = '',
       this.organizationSlug = '',
       this.organizationAddress = '',
-      this.organizationPhone = ''});
+      this.organizationPhone = '',
+      this.permissions = const <String, bool>{}});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -272,10 +286,13 @@ class _$UserImpl implements _User {
   @override
   @JsonKey()
   final String organizationPhone;
+  @override
+  @JsonKey()
+  final Map<String, bool> permissions;
 
   @override
   String toString() {
-    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, isWholesaleOperator: $isWholesaleOperator, organizationId: $organizationId, organizationName: $organizationName, organizationSlug: $organizationSlug, organizationAddress: $organizationAddress, organizationPhone: $organizationPhone)';
+    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, isWholesaleOperator: $isWholesaleOperator, organizationId: $organizationId, organizationName: $organizationName, organizationSlug: $organizationSlug, organizationAddress: $organizationAddress, organizationPhone: $organizationPhone, permissions: $permissions)';
   }
 
   @override
@@ -302,7 +319,9 @@ class _$UserImpl implements _User {
             (identical(other.organizationAddress, organizationAddress) ||
                 other.organizationAddress == organizationAddress) &&
             (identical(other.organizationPhone, organizationPhone) ||
-                other.organizationPhone == organizationPhone));
+                other.organizationPhone == organizationPhone) &&
+            (identical(other.permissions, permissions) ||
+                const DeepCollectionEquality().equals(other.permissions, permissions)));
   }
 
   @JsonKey(ignore: true)
@@ -310,7 +329,8 @@ class _$UserImpl implements _User {
   int get hashCode => Object.hash(
       runtimeType, id, phoneNumber, role, isActive, username, isWholesaleOperator,
       organizationId, organizationName, organizationSlug,
-      organizationAddress, organizationPhone);
+      organizationAddress, organizationPhone,
+      const DeepCollectionEquality().hash(permissions));
 
   @JsonKey(ignore: true)
   @override
@@ -338,7 +358,8 @@ abstract class _User implements User {
       final String organizationName,
       final String organizationSlug,
       final String organizationAddress,
-      final String organizationPhone}) = _$UserImpl;
+      final String organizationPhone,
+      final Map<String, bool> permissions}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
@@ -364,6 +385,8 @@ abstract class _User implements User {
   String get organizationAddress;
   @override
   String get organizationPhone;
+  @override
+  Map<String, bool> get permissions;
   @override
   @JsonKey(ignore: true)
   _$$UserImplCopyWith<_$UserImpl> get copyWith =>

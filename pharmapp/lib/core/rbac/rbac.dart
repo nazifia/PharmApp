@@ -95,10 +95,18 @@ const Map<String, Set<String>> _matrix = {
 class Rbac {
   const Rbac._();
 
-  /// Returns true if [user]'s role has [permission].
+  /// Returns true if [user] has [permission].
+  /// Individual overrides from [user.permissions] take precedence over role defaults.
   /// Null user / unknown role → false.
   static bool can(User? user, String permission) {
     if (user == null) return false;
+
+    // Individual override takes precedence over role default
+    if (user.permissions.containsKey(permission)) {
+      return user.permissions[permission]!;
+    }
+
+    // Fall back to role-based matrix
     final role = user.role;
     final allowed = _matrix[permission];
     if (allowed == null) return false;

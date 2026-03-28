@@ -37,6 +37,15 @@ class Organization(models.Model):
         return self.name
 
 
+def _get_user_permissions(user):
+    """Deferred import to avoid circular import at module load."""
+    try:
+        from authapp.permissions import get_effective_permissions
+        return get_effective_permissions(user)
+    except Exception:
+        return {}
+
+
 ROLE_CHOICES = [
     ('Admin', 'Admin'),
     ('Manager', 'Manager'),
@@ -93,10 +102,47 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
             'organizationSlug':     org.slug    if org else '',
             'organizationAddress':  org.address if org else '',
             'organizationPhone':    org.phone   if org else '',
+            'permissions':          _get_user_permissions(self),
         }
 
     def __str__(self):
         return f"{self.full_name or self.phone_number} ({self.role})"
+
+
+ALL_PERMISSIONS = [
+    'viewReports', 'manageUsers', 'manageSettings', 'viewNotifications',
+    'viewSubscription', 'retailPOS', 'wholesalePOS', 'viewWholesale',
+    'readInventory', 'writeInventory', 'readCustomers', 'writeCustomers',
+    'manageExpenses', 'manageSuppliers', 'processPayments', 'manageTransfers',
+]
+
+
+class UserPermissionOverride(models.Model):
+    """
+    Per-user permission override.
+    granted=True  → explicitly GRANT this permission (even if role doesn't have it)
+    granted=False → explicitly REVOKE this permission (even if role normally has it)
+    """
+    PERMISSION_CHOICES = [(p, p) for p in ALL_PERMISSIONS]
+
+    user       = models.ForeignKey(
+        PharmUser, on_delete=models.CASCADE, related_name='permission_overrides'
+    )
+    permission = models.CharField(max_length=50, choices=PERMISSION_CHOICES)
+    granted    = models.BooleanField(
+        default=True,
+        help_text='True = grant (even if role lacks it). False = revoke (even if role has it).'
+    )
+    note       = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'permission')
+        ordering        = ('permission',)
+
+    def __str__(self):
+        verb = 'GRANT' if self.granted else 'REVOKE'
+        return f"{verb} {self.permission} → {self.user}"
 
 
 # ── Site Configuration (singleton) ────────────────────────────────────────────
