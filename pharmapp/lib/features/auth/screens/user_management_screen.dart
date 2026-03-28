@@ -830,6 +830,319 @@ class _UserManagementScreenState
     );
   }
 
+  // ─── Permission overrides sheet ───────────────────────────────────────────
+  void _showPermissionsSheet(User user) {
+    final api = ref.read(posApiProvider);
+    // overrides: permKey → 'inherit' | 'grant' | 'revoke'
+    Map<String, String> overrides = {};
+    List<Map<String, dynamic>> rows = [];
+    bool loading = true;
+    bool saving = false;
+    String? error;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) {
+          // Load on first build
+          if (loading && rows.isEmpty && error == null) {
+            api.fetchUserPermissions(user.id).then((data) {
+              final rawRows = (data['rows'] as List?) ?? [];
+              setModal(() {
+                rows = rawRows.cast<Map<String, dynamic>>();
+                for (final r in rows) {
+                  overrides[r['key'] as String] =
+                      r['override_state'] as String? ?? 'inherit';
+                }
+                loading = false;
+              });
+            }).catchError((e) {
+              setModal(() {
+                error = e.toString();
+                loading = false;
+              });
+            });
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(28)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(ctx).size.height * 0.9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ctx.isDark
+                        ? const Color(0xFF1E293B)
+                        : Colors.white,
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28)),
+                    border: Border(
+                      top: BorderSide(
+                        color: EnhancedTheme.accentOrange
+                            .withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ── Handle ─────────────────────────────────
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Container(
+                          width: 44, height: 4,
+                          decoration: BoxDecoration(
+                            color: ctx.dividerColor,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Header ─────────────────────────────────
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 24),
+                        child: Row(children: [
+                          Container(
+                            width: 40, height: 40,
+                            decoration: BoxDecoration(
+                              color: EnhancedTheme.accentOrange
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.security_rounded,
+                                color: EnhancedTheme.accentOrange,
+                                size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Permission Overrides',
+                                    style: GoogleFonts.outfit(
+                                      color: ctx.labelColor,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                    )),
+                                Text(
+                                  user.username.isNotEmpty
+                                      ? user.username
+                                      : user.phoneNumber,
+                                  style: GoogleFonts.inter(
+                                    color: ctx.subLabelColor,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ]),
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 4),
+                        child: Text(
+                          'Overrides take priority over role defaults. '
+                          'Set to Inherit to use role default.',
+                          style: GoogleFonts.inter(
+                              color: ctx.hintColor, fontSize: 11),
+                        ),
+                      ),
+                      const Divider(height: 1),
+
+                      // ── Body ───────────────────────────────────
+                      Flexible(
+                        child: loading
+                            ? const Padding(
+                                padding: EdgeInsets.all(40),
+                                child: Center(
+                                    child: CircularProgressIndicator()),
+                              )
+                            : error != null
+                                ? Padding(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Text(error!,
+                                        style: GoogleFonts.inter(
+                                            color:
+                                                EnhancedTheme.errorRed)),
+                                  )
+                                : ListView.separated(
+                                    shrinkWrap: true,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 8),
+                                    itemCount: rows.length,
+                                    separatorBuilder: (_, __) =>
+                                        const Divider(
+                                            height: 1,
+                                            indent: 16,
+                                            endIndent: 16),
+                                    itemBuilder: (ctx, i) {
+                                      final row = rows[i];
+                                      final key =
+                                          row['key'] as String;
+                                      final label =
+                                          row['label'] as String;
+                                      final roleDefault =
+                                          row['role_default'] as bool;
+                                      final state =
+                                          overrides[key] ?? 'inherit';
+                                      final effective = state == 'grant'
+                                          ? true
+                                          : state == 'revoke'
+                                              ? false
+                                              : roleDefault;
+
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 6),
+                                        child: Row(children: [
+                                          // Label + effective badge
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(label,
+                                                    style: GoogleFonts.inter(
+                                                      color: ctx.labelColor,
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    )),
+                                                Row(children: [
+                                                  Icon(
+                                                    effective
+                                                        ? Icons
+                                                            .check_circle_rounded
+                                                        : Icons
+                                                            .cancel_rounded,
+                                                    color: effective
+                                                        ? EnhancedTheme
+                                                            .successGreen
+                                                        : ctx.hintColor,
+                                                    size: 12,
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    effective
+                                                        ? 'Allowed'
+                                                        : 'Denied',
+                                                    style: GoogleFonts.inter(
+                                                      color: effective
+                                                          ? EnhancedTheme
+                                                              .successGreen
+                                                          : ctx.hintColor,
+                                                      fontSize: 10,
+                                                    ),
+                                                  ),
+                                                  if (roleDefault) ...[
+                                                    const SizedBox(width: 6),
+                                                    Text('role ✓',
+                                                        style:
+                                                            GoogleFonts.inter(
+                                                          color:
+                                                              ctx.hintColor,
+                                                          fontSize: 10,
+                                                        )),
+                                                  ],
+                                                ]),
+                                              ],
+                                            ),
+                                          ),
+                                          // 3-state toggle
+                                          _PermToggle(
+                                            value: state,
+                                            onChanged: (v) => setModal(
+                                                () => overrides[key] = v),
+                                          ),
+                                        ]),
+                                      );
+                                    },
+                                  ),
+                      ),
+
+                      // ── Save button ────────────────────────────
+                      if (!loading && error == null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: EnhancedTheme.accentOrange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
+                              ),
+                              onPressed: saving
+                                  ? null
+                                  : () async {
+                                      setModal(() => saving = true);
+                                      try {
+                                        await api.saveUserPermissions(
+                                            user.id, overrides);
+                                        if (ctx.mounted) {
+                                          Navigator.pop(ctx);
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                            content: Text(
+                                                'Permissions saved',
+                                                style: GoogleFonts.inter()),
+                                            backgroundColor:
+                                                EnhancedTheme.successGreen,
+                                            behavior:
+                                                SnackBarBehavior.floating,
+                                          ));
+                                        }
+                                      } catch (e) {
+                                        setModal(() {
+                                          saving = false;
+                                          error = e.toString();
+                                        });
+                                      }
+                                    },
+                              icon: saving
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white))
+                                  : const Icon(Icons.save_rounded, size: 18),
+                              label: Text(
+                                saving ? 'Saving…' : 'Save Permission Overrides',
+                                style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   // ─── Delete confirmation dialog ───────────────────────────────────────────
   void _showDeleteConfirmation(User user) {
     showDialog(
@@ -1442,6 +1755,12 @@ class _UserManagementScreenState
                         ),
                         const SizedBox(height: 6),
                         _iconButton(
+                          Icons.security_rounded,
+                          EnhancedTheme.accentOrange,
+                          () => _showPermissionsSheet(user),
+                        ),
+                        const SizedBox(height: 6),
+                        _iconButton(
                           Icons.lock_reset_rounded,
                           EnhancedTheme.accentCyan,
                           () => _showChangePasswordDialog(user),
@@ -1516,6 +1835,51 @@ class _UserManagementScreenState
           border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
         child: Icon(icon, color: color, size: 18),
+      ),
+    );
+  }
+}
+
+// ── 3-state permission toggle ─────────────────────────────────────────────────
+
+class _PermToggle extends StatelessWidget {
+  const _PermToggle({required this.value, required this.onChanged});
+  final String value;           // 'inherit' | 'grant' | 'revoke'
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      _seg('Inherit', 'inherit', Colors.grey.shade600),
+      const SizedBox(width: 4),
+      _seg('Grant ↑', 'grant', EnhancedTheme.successGreen),
+      const SizedBox(width: 4),
+      _seg('Revoke ↓', 'revoke', EnhancedTheme.errorRed),
+    ]);
+  }
+
+  Widget _seg(String label, String seg, Color activeColor) {
+    final selected = value == seg;
+    return GestureDetector(
+      onTap: () => onChanged(seg),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? activeColor : activeColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: selected ? activeColor : activeColor.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: selected ? Colors.white : activeColor,
+          ),
+        ),
       ),
     );
   }

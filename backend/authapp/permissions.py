@@ -38,6 +38,26 @@ TRANSFERS_ROLES = {'Admin', 'Manager', 'Wholesale Manager', 'Wholesale Operator'
 NOTIFICATIONS_ROLES = SENIOR_ROLES
 SUBSCRIPTION_ROLES  = SENIOR_ROLES
 
+# Human-readable labels ordered for display (matches Flutter AppPermission keys)
+PERMISSION_LABELS = [
+    ('Reports & Analytics',    'viewReports'),
+    ('User Management',        'manageUsers'),
+    ('Settings',               'manageSettings'),
+    ('Notifications',          'viewNotifications'),
+    ('Subscription',           'viewSubscription'),
+    ('Retail POS',             'retailPOS'),
+    ('Wholesale POS',          'wholesalePOS'),
+    ('Wholesale Section',      'viewWholesale'),
+    ('Read Inventory',         'readInventory'),
+    ('Write Inventory',        'writeInventory'),
+    ('Read Customers',         'readCustomers'),
+    ('Write Customers',        'writeCustomers'),
+    ('Manage Expenses',        'manageExpenses'),
+    ('Manage Suppliers',       'manageSuppliers'),
+    ('Process Payments',       'processPayments'),
+    ('Manage Transfers',       'manageTransfers'),
+]
+
 
 # ── DRF Permission classes ─────────────────────────────────────────────────────
 

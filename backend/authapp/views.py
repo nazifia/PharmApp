@@ -6,6 +6,9 @@ from rest_framework import status
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Organization, PharmUser
+from .permissions import (
+    IsAdminOrManager, PERMISSION_LABELS, _PERMISSION_ROLE_MAP, get_effective_permissions
+)
 
 
 def _token_for(user):
@@ -93,3 +96,72 @@ def register_org_view(request):
         'access': _token_for(user),
         'user':   user.to_api_dict(),
     }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated, IsAdminOrManager])
+def user_permissions_view(request, user_id):
+    """
+    GET  /auth/users/<id>/permissions/
+         Returns per-permission matrix: role_default, override_state, effective.
+
+    POST /auth/users/<id>/permissions/
+         Body: { overrides: { permKey: 'inherit' | 'grant' | 'revoke', ... } }
+         Saves overrides and returns updated matrix.
+    """
+    from .models import UserPermissionOverride
+
+    # Scope: caller must be in same org (or superuser)
+    try:
+        target = PharmUser.objects.get(
+            pk=user_id, organization=request.user.organization
+        )
+    except PharmUser.DoesNotExist:
+        return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'POST':
+        overrides_input = request.data.get('overrides', {})
+        if not isinstance(overrides_input, dict):
+            return Response({'detail': 'overrides must be an object.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        valid_keys = {key for _, key in PERMISSION_LABELS}
+        for perm_key, state in overrides_input.items():
+            if perm_key not in valid_keys:
+                continue
+            if state == 'inherit':
+                UserPermissionOverride.objects.filter(user=target, permission=perm_key).delete()
+            elif state in ('grant', 'revoke'):
+                UserPermissionOverride.objects.update_or_create(
+                    user=target, permission=perm_key,
+                    defaults={'granted': state == 'grant'},
+                )
+
+    # Build response matrix
+    role = target.role or ''
+    overrides_qs = {
+        ov.permission: ov.granted
+        for ov in UserPermissionOverride.objects.filter(user=target)
+    }
+    rows = []
+    for label, key in PERMISSION_LABELS:
+        role_default = role in (_PERMISSION_ROLE_MAP.get(key) or set())
+        if key in overrides_qs:
+            override_state = 'grant' if overrides_qs[key] else 'revoke'
+            effective = overrides_qs[key]
+        else:
+            override_state = 'inherit'
+            effective = role_default
+        rows.append({
+            'key':           key,
+            'label':         label,
+            'role_default':  role_default,
+            'override_state': override_state,
+            'effective':     effective,
+        })
+
+    return Response({
+        'user_id': target.pk,
+        'role':    role,
+        'rows':    rows,
+    })

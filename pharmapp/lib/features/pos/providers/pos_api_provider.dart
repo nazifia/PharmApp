@@ -672,6 +672,36 @@ class PosApiClient {
     }
   }
 
+  /// Returns permission matrix from GET /auth/users/<id>/permissions/
+  Future<Map<String, dynamic>> fetchUserPermissions(int userId) async {
+    if (_isLocal) {
+      return {'user_id': userId, 'role': '', 'rows': []};
+    }
+    try {
+      final res = await _dio!.get('/auth/users/$userId/permissions/');
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to load permissions');
+    }
+  }
+
+  /// POST /auth/users/<id>/permissions/ with {overrides: {key: 'inherit'|'grant'|'revoke'}}
+  Future<Map<String, dynamic>> saveUserPermissions(
+      int userId, Map<String, String> overrides) async {
+    if (_isLocal) {
+      return {'user_id': userId, 'role': '', 'rows': []};
+    }
+    try {
+      final res = await _dio!.post(
+        '/auth/users/$userId/permissions/',
+        data: {'overrides': overrides},
+      );
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to save permissions');
+    }
+  }
+
   // ── Wholesale ──────────────────────────────────────────────────────────────
   Future<Map<String, dynamic>> fetchWholesaleDashboard() async {
     if (_isLocal) return LocalDb.instance.getWholesaleDashboard();
