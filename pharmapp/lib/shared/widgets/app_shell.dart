@@ -393,11 +393,12 @@ class _MoreSheet extends StatelessWidget {
     final canPayments = Rbac.can(user, AppPermission.processPayments);
     final canTransfers = Rbac.can(user, AppPermission.manageTransfers);
     final canInventory = Rbac.can(user, AppPermission.readInventory);
+    final canPOS      = Rbac.can(user, AppPermission.retailPOS);
 
     final tiles = [
       if (canReports)
         _MoreTile(Icons.analytics_rounded,              'Reports',     EnhancedTheme.accentPurple,  () => nav('/dashboard/reports')),
-      if (canInventory || isWholesale)
+      if (canPOS || isWholesale)
         _MoreTile(Icons.receipt_long_rounded,           'Sales',       EnhancedTheme.primaryTeal,   () => nav('/dashboard/sales')),
       if (canExpenses)
         _MoreTile(Icons.account_balance_wallet_rounded, 'Expenses',    EnhancedTheme.accentOrange,  () => nav('/dashboard/expenses')),
