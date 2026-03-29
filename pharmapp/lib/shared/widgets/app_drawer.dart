@@ -8,7 +8,9 @@ import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/features/subscription/widgets/trial_banner.dart';
+import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 class AppDrawer extends ConsumerStatefulWidget {
@@ -41,6 +43,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     final canExpenses    = ref.watch(canProvider(AppPermission.manageExpenses));
     final canSuppliers   = ref.watch(canProvider(AppPermission.manageSuppliers));
     final canTransfers   = ref.watch(canProvider(AppPermission.manageTransfers));
+    final canPOS         = ref.watch(canProvider(AppPermission.retailPOS));
+    final canReadInv     = ref.watch(canProvider(AppPermission.readInventory));
+    final canReadCust    = ref.watch(canProvider(AppPermission.readCustomers));
+    final canPayments    = ref.watch(canProvider(AppPermission.processPayments));
+    // Subscription feature gates
+    final hasCustFeature     = ref.watch(hasFeatureProvider(SaasFeature.customers));
+    final hasWsFeature       = ref.watch(hasFeatureProvider(SaasFeature.wholesale));
+    final hasReportsFeature  = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
     final isDark         = context.isDark;
     final notifCount     = ref.watch(notificationCountProvider).valueOrNull ?? 0;
 
@@ -93,22 +103,27 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // ══ DASHBOARD ═════════════════════════════════════════
                         _NavItem(icon: Icons.home_rounded, label: 'Dashboard', route: AppShell.roleFallback(ref), onTap: navigate),
 
+                        if (canPOS || isWholesale) ...[
                         const SizedBox(height: 4),
                         _SectionDivider(label: 'Operations'),
+                        ],
 
-                        // ══ DISPENSING ═════════════════════════════════════════
+                        // ══ DISPENSING ════════════════════════════════════════
+                        if (canPOS || isWholesale)
                         _ExpandableSection(
                           icon: Icons.medication_rounded, label: 'Dispensing',
                           isExpanded: _expanded.contains('dispensing'),
                           onToggle: () => _toggle('dispensing'),
                           children: [
-                            _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'Retail Dispense', route: '/dashboard/pos', onTap: navigate),
+                            if (canPOS)
+                              _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'Retail Dispense', route: '/dashboard/pos', onTap: navigate),
                             if (isWholesale)
                               _SubNavItem(icon: Icons.store_rounded, label: 'Wholesale Dispense', route: '/dashboard/wholesale-pos', onTap: navigate),
                           ],
                         ),
 
-                        // ══ CUSTOMERS ═════════════════════════════════════════
+                        // ══ CUSTOMERS ════════════════════════════════════════
+                        if (canReadCust && hasCustFeature)
                         _ExpandableSection(
                           icon: Icons.people_rounded, label: 'Customers',
                           isExpanded: _expanded.contains('customers'),
@@ -119,6 +134,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         ),
 
                         // ══ PAYMENTS ═════════════════════════════════════════
+                        if (canPayments)
                         _ExpandableSection(
                           icon: Icons.credit_card_rounded, label: 'Payments',
                           isExpanded: _expanded.contains('payments'),
@@ -128,7 +144,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           ],
                         ),
 
-                        // ══ SALES ═════════════════════════════════════════════
+                        // ══ SALES ════════════════════════════════════════════
+                        if (canPOS || isWholesale)
                         _ExpandableSection(
                           icon: Icons.receipt_long_rounded, label: 'Sales',
                           isExpanded: _expanded.contains('sales'),
@@ -136,13 +153,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           children: [
                             _SubNavItem(icon: Icons.history_rounded, label: 'Sales History', route: '/dashboard/sales', onTap: navigate),
                             _SubNavItem(icon: Icons.list_alt_rounded, label: 'Dispensing Log', route: '/dashboard/dispensing-log', onTap: navigate),
-                            if (isWholesale)
+                            if (isWholesale && hasWsFeature)
                               _SubNavItem(icon: Icons.store_rounded, label: 'Wholesale Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
                           ],
                         ),
 
                         // ══ WHOLESALE ─────────────────────────────────────────
-                        if (isWholesale) ...[
+                        if (isWholesale && hasWsFeature) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Wholesale'),
                           _ExpandableSection(
@@ -165,23 +182,25 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           ),
                         ],
 
-                        const SizedBox(height: 4),
-                        _SectionDivider(label: 'Inventory'),
+                        if (canReadInv) ...[
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Inventory'),
 
-                        // ══ INVENTORY ═════════════════════════════════════════
-                        _ExpandableSection(
-                          icon: Icons.inventory_2_rounded, label: 'Inventory',
-                          isExpanded: _expanded.contains('inventory'),
-                          onToggle: () => _toggle('inventory'),
-                          children: [
-                            _SubNavItem(icon: Icons.inventory_rounded, label: 'Item List', route: '/dashboard/inventory', onTap: navigate),
-                            _SubNavItem(icon: Icons.checklist_rtl_rounded, label: 'Stock Check', route: '/dashboard/stock-check', onTap: navigate),
-                            if (canTransfers)
-                              _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
-                          ],
-                        ),
+                          // ══ INVENTORY ═══════════════════════════════════════
+                          _ExpandableSection(
+                            icon: Icons.inventory_2_rounded, label: 'Inventory',
+                            isExpanded: _expanded.contains('inventory'),
+                            onToggle: () => _toggle('inventory'),
+                            children: [
+                              _SubNavItem(icon: Icons.inventory_rounded, label: 'Item List', route: '/dashboard/inventory', onTap: navigate),
+                              _SubNavItem(icon: Icons.checklist_rtl_rounded, label: 'Stock Check', route: '/dashboard/stock-check', onTap: navigate),
+                              if (canTransfers)
+                                _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
+                            ],
+                          ),
+                        ],
 
-                        if (canViewReports) ...[
+                        if (canViewReports && hasReportsFeature) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Reports & Analytics'),
 

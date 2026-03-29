@@ -50,7 +50,7 @@ const _seniorRoles    = {'Admin', 'Manager'};
 const _inventoryWrite = {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager'};
 const _inventoryRead  = {
   'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech',
-  'Salesperson', 'Cashier',
+  'Salesperson',
   'Wholesale Manager', 'Wholesale Operator', 'Wholesale Salesperson',
 };
 const _retailPOS = {
@@ -66,7 +66,7 @@ const _allStaff = {
 const _customersWrite = {'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech', 'Wholesale Manager'};
 const _expensesRoles  = {'Admin', 'Manager', 'Wholesale Manager'};
 const _suppliersRoles = {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager'};
-const _paymentsRoles  = {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager'};
+const _paymentsRoles  = {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager', 'Cashier'};
 const _transfersRoles = {'Admin', 'Manager', 'Wholesale Manager', 'Wholesale Operator'};
 
 // ── Permission → allowed role set mapping ────────────────────────────────────

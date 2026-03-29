@@ -35,6 +35,8 @@ import 'package:pharmapp/features/pos/screens/stock_check_screen.dart';
 import 'package:pharmapp/features/pos/screens/payment_requests_screen.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
+import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/features/auth/screens/user_management_screen.dart';
 import 'package:pharmapp/features/notifications/screens/notifications_screen.dart';
 import 'package:pharmapp/features/subscription/screens/subscription_screen.dart';
@@ -109,6 +111,38 @@ final routerProvider = Provider<GoRouter>((ref) {
       if ((loc == '/dashboard/wholesale-sales' || loc == '/wholesale-dashboard') &&
           !Rbac.can(user, AppPermission.viewWholesale)) {
         return '/dashboard';
+      }
+
+      // Inventory — readInventory required (Cashiers are excluded)
+      if ((loc == '/dashboard/inventory' || loc.startsWith('/item/')) &&
+          !Rbac.can(user, AppPermission.readInventory)) {
+        return '/dashboard';
+      }
+
+      // Payment requests — processPayments required
+      if (loc == '/dashboard/payment-requests' &&
+          !Rbac.can(user, AppPermission.processPayments)) {
+        return '/dashboard';
+      }
+
+      // ── Subscription feature gates (redirect to paywall) ──────────────────
+
+      // Customers — Starter plan and above
+      if ((loc.startsWith('/dashboard/customers') || loc.startsWith('/customer/')) &&
+          !ref.read(hasFeatureProvider(SaasFeature.customers))) {
+        return '/subscription';
+      }
+
+      // Reports — Starter plan and above
+      if (loc.startsWith('/dashboard/reports') &&
+          !ref.read(hasFeatureProvider(SaasFeature.basicReports))) {
+        return '/subscription';
+      }
+
+      // Wholesale — Professional plan and above
+      if ((loc.contains('wholesale') || loc == '/wholesale-dashboard') &&
+          !ref.read(hasFeatureProvider(SaasFeature.wholesale))) {
+        return '/subscription';
       }
 
       return null;

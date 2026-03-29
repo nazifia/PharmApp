@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -29,6 +30,8 @@ class AppShell extends ConsumerWidget {
     final role        = user?.role ?? '';
     final isAdmin     = role == 'Admin' || role == 'Manager';
     final isWholesale = role.contains('Wholesale') || (user?.isWholesaleOperator ?? false);
+    final canInventory = Rbac.can(user, AppPermission.readInventory);
+    final canCustomers = Rbac.can(user, AppPermission.readCustomers);
     final isDark      = Theme.of(context).brightness == Brightness.dark;
     final location    = GoRouterState.of(context).matchedLocation;
     final isOnline    = ref.watch(isOnlineProvider);
@@ -70,8 +73,6 @@ class AppShell extends ConsumerWidget {
         ? '/dashboard/wholesale-pos'
         : '/dashboard/pos';
 
-    final selectedIndex = _getSelectedIndex(location, homeRoute);
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       // Drawer is accessible from ALL authenticated screens via left-edge swipe.
@@ -85,10 +86,12 @@ class AppShell extends ConsumerWidget {
         Expanded(child: child),
       ]),
       bottomNavigationBar: _AppBottomNav(
-        selectedIndex: selectedIndex,
         isDark: isDark,
         homeRoute: homeRoute,
         posRoute: posRoute,
+        location: location,
+        canInventory: canInventory,
+        canCustomers: canCustomers,
         pendingCount: pending.length,
         onMoreTap: () => _showMoreSheet(context, ref, isAdmin, isWholesale),
       ),
@@ -105,17 +108,6 @@ class AppShell extends ConsumerWidget {
       return '/wholesale-dashboard';
     }
     return '/dashboard';
-  }
-
-  static int _getSelectedIndex(String location, String homeRoute) {
-    if (location == homeRoute ||
-        location == '/dashboard' ||
-        location == '/admin-dashboard' ||
-        location == '/wholesale-dashboard') { return 0; }
-    if (location.contains('/pos')) { return 1; }
-    if (location.contains('/inventory') || location.contains('/stock')) { return 2; }
-    if (location.contains('/customer')) { return 3; }
-    return -1; // detail / misc screens — no tab highlighted
   }
 
   static void _showMoreSheet(
@@ -159,30 +151,56 @@ class _OfflineBanner extends StatelessWidget {
 // ── Bottom Navigation Bar ─────────────────────────────────────────────────────
 
 class _AppBottomNav extends StatelessWidget {
-  final int selectedIndex;
   final bool isDark;
   final String homeRoute;
   final String posRoute;
+  final String location;
+  final bool canInventory;
+  final bool canCustomers;
   final int pendingCount;
   final VoidCallback onMoreTap;
 
   const _AppBottomNav({
-    required this.selectedIndex,
     required this.isDark,
     required this.homeRoute,
     required this.posRoute,
+    required this.location,
+    required this.canInventory,
+    required this.canCustomers,
     required this.pendingCount,
     required this.onMoreTap,
   });
+
+  int _selectedIndex(List<_NavItem> items) {
+    // Home tab matches multiple dashboard routes
+    if (location == homeRoute ||
+        location == '/dashboard' ||
+        location == '/admin-dashboard' ||
+        location == '/wholesale-dashboard') { return 0; }
+    for (int i = 1; i < items.length; i++) {
+      final r = items[i].route;
+      if (location == r ||
+          location.startsWith('$r/') ||
+          (r.contains('/pos') && location.contains('/pos')) ||
+          (r.contains('/inventory') && (location.contains('/inventory') || location.contains('/stock'))) ||
+          (r.contains('/customer') && location.contains('/customer'))) {
+        return i;
+      }
+    }
+    return -1;
+  }
 
   @override
   Widget build(BuildContext context) {
     final items = [
       _NavItem(Icons.home_outlined,          Icons.home_rounded,          'Home',      homeRoute),
       _NavItem(Icons.point_of_sale_outlined, Icons.point_of_sale_rounded, 'POS',       posRoute),
-      _NavItem(Icons.inventory_2_outlined,   Icons.inventory_2_rounded,   'Stock',     '/dashboard/inventory'),
-      _NavItem(Icons.people_outline,         Icons.people_rounded,        'Customers', '/dashboard/customers'),
+      if (canInventory)
+        _NavItem(Icons.inventory_2_outlined, Icons.inventory_2_rounded,   'Stock',     '/dashboard/inventory'),
+      if (canCustomers)
+        _NavItem(Icons.people_outline,       Icons.people_rounded,        'Customers', '/dashboard/customers'),
     ];
+    final selectedIndex = _selectedIndex(items);
 
     return ClipRect(
       child: BackdropFilter(
@@ -368,22 +386,37 @@ class _MoreSheet extends StatelessWidget {
       context.go('/login');
     }
 
+    final user        = ref.read(currentUserProvider);
+    final canReports  = Rbac.can(user, AppPermission.viewReports);
+    final canExpenses = Rbac.can(user, AppPermission.manageExpenses);
+    final canSuppliers = Rbac.can(user, AppPermission.manageSuppliers);
+    final canPayments = Rbac.can(user, AppPermission.processPayments);
+    final canTransfers = Rbac.can(user, AppPermission.manageTransfers);
+    final canInventory = Rbac.can(user, AppPermission.readInventory);
+
     final tiles = [
-      _MoreTile(Icons.analytics_rounded,              'Reports',     EnhancedTheme.accentPurple,  () => nav('/dashboard/reports')),
-      _MoreTile(Icons.receipt_long_rounded,           'Sales',       EnhancedTheme.primaryTeal,   () => nav('/dashboard/sales')),
-      _MoreTile(Icons.account_balance_wallet_rounded, 'Expenses',    EnhancedTheme.accentOrange,  () => nav('/dashboard/expenses')),
-      _MoreTile(Icons.request_page_rounded,           'Payments',    EnhancedTheme.infoBlue,      () => nav('/dashboard/payment-requests')),
-      _MoreTile(Icons.storefront_rounded,             'Suppliers',   EnhancedTheme.successGreen,  () => nav('/dashboard/suppliers')),
-      _MoreTile(Icons.fact_check_rounded,             'Stock Check', EnhancedTheme.warningAmber,  () => nav('/dashboard/stock-check')),
+      if (canReports)
+        _MoreTile(Icons.analytics_rounded,              'Reports',     EnhancedTheme.accentPurple,  () => nav('/dashboard/reports')),
+      if (canInventory || isWholesale)
+        _MoreTile(Icons.receipt_long_rounded,           'Sales',       EnhancedTheme.primaryTeal,   () => nav('/dashboard/sales')),
+      if (canExpenses)
+        _MoreTile(Icons.account_balance_wallet_rounded, 'Expenses',    EnhancedTheme.accentOrange,  () => nav('/dashboard/expenses')),
+      if (canPayments)
+        _MoreTile(Icons.request_page_rounded,           'Payments',    EnhancedTheme.infoBlue,      () => nav('/dashboard/payment-requests')),
+      if (canSuppliers)
+        _MoreTile(Icons.storefront_rounded,             'Suppliers',   EnhancedTheme.successGreen,  () => nav('/dashboard/suppliers')),
+      if (canInventory)
+        _MoreTile(Icons.fact_check_rounded,             'Stock Check', EnhancedTheme.warningAmber,  () => nav('/dashboard/stock-check')),
       if (isWholesale) ...[
-        _MoreTile(Icons.store_rounded,                'WS Sales',    EnhancedTheme.accentCyan,    () => nav('/dashboard/wholesale-sales')),
-        _MoreTile(Icons.swap_horiz_rounded,           'Transfers',   EnhancedTheme.accentPurple,  () => nav('/dashboard/transfers')),
+        _MoreTile(Icons.store_rounded,                  'WS Sales',    EnhancedTheme.accentCyan,    () => nav('/dashboard/wholesale-sales')),
+        if (canTransfers)
+          _MoreTile(Icons.swap_horiz_rounded,           'Transfers',   EnhancedTheme.accentPurple,  () => nav('/dashboard/transfers')),
       ],
       if (isAdmin) ...[
-        _MoreTile(Icons.people_alt_rounded,           'Users',       EnhancedTheme.primaryTeal,   () => nav('/dashboard/users')),
-        _MoreTile(Icons.notifications_rounded,        'Alerts',      EnhancedTheme.errorRed,      () => nav('/dashboard/notifications')),
+        _MoreTile(Icons.people_alt_rounded,             'Users',       EnhancedTheme.primaryTeal,   () => nav('/dashboard/users')),
+        _MoreTile(Icons.notifications_rounded,          'Alerts',      EnhancedTheme.errorRed,      () => nav('/dashboard/notifications')),
+        _MoreTile(Icons.settings_rounded,               'Settings',    isDark ? Colors.white54 : Colors.black54, () => nav('/dashboard/settings')),
       ],
-      _MoreTile(Icons.settings_rounded,               'Settings',    isDark ? Colors.white54 : Colors.black54,  () => nav('/dashboard/settings')),
     ];
 
     return Container(
