@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/customer.dart';
-import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import '../providers/customer_provider.dart';
 
 class CustomerListScreen extends ConsumerStatefulWidget {
@@ -210,6 +210,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
+      drawer: const AppDrawer(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddCustomerSheet(context),
         backgroundColor: EnhancedTheme.primaryTeal,
@@ -333,10 +334,14 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 12, 16, 12),
       child: Row(children: [
-        IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-          onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
-        ),
+        Builder(builder: (ctx) => IconButton(
+          icon: Icon(
+            ctx.canPop() ? Icons.arrow_back_rounded : Icons.menu_rounded,
+            color: context.labelColor),
+          onPressed: () => ctx.canPop()
+              ? ctx.pop()
+              : Scaffold.of(ctx).openDrawer(),
+        )),
         const SizedBox(width: 4),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Customers',

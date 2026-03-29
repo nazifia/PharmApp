@@ -14,6 +14,19 @@ class AuthRepository {
 
   bool get _isLocal => _dio == null;
 
+  /// Fetches the current authenticated user's profile from the backend.
+  /// Returns the cached/stub user in local dev mode.
+  Future<User> fetchCurrentUser(User fallback) async {
+    if (_isLocal) return fallback;
+    try {
+      final res = await _dio!.get('/auth/me/');
+      return User.fromJson(res.data as Map<String, dynamic>);
+    } catch (_) {
+      // Network unreachable — return the cached user unchanged
+      return fallback;
+    }
+  }
+
   Future<Map<String, dynamic>> login(String phoneNumber, String password) async {
     if (_isLocal) {
       final userData = await LocalDb.instance.authenticateUser(phoneNumber, password);

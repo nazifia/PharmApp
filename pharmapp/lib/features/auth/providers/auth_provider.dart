@@ -112,6 +112,25 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     }
   }
 
+  /// Re-fetches the current user's profile from the backend and updates
+  /// both the in-memory provider and the SharedPreferences cache.
+  /// Call this after session restore, after saving permission overrides,
+  /// or whenever the app resumes from background.
+  Future<void> refreshProfile() async {
+    final current = _ref.read(currentUserProvider);
+    if (current == null) return; // not logged in
+    try {
+      final fresh = await _ref
+          .read(authRepositoryProvider)
+          .fetchCurrentUser(current);
+      _ref.read(currentUserProvider.notifier).state = fresh;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('current_user', jsonEncode(fresh.toJson()));
+    } catch (_) {
+      // Silently ignore — keep the cached user
+    }
+  }
+
   void resetFlow() {
     _errorMessage = null;
     state = AuthFlowState.initial;

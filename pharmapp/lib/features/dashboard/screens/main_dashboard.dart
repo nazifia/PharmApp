@@ -286,21 +286,20 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25), width: 1.5),
           ),
           child: Row(children: [
-            // Menu button (narrow)
-            if (!wide2)
-              GestureDetector(
-                onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  margin: const EdgeInsets.only(right: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                  ),
-                  child: Icon(Icons.menu_rounded, color: context.labelColor, size: 20),
+            // Menu button — always visible so all users can access the drawer
+            GestureDetector(
+              onTap: () => _scaffoldKey.currentState?.openDrawer(),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(right: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                 ),
+                child: Icon(Icons.menu_rounded, color: context.labelColor, size: 20),
               ),
+            ),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(greeting, style: GoogleFonts.inter(color: EnhancedTheme.accentCyan, fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.5)),
               const SizedBox(height: 3),

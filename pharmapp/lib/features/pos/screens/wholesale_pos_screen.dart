@@ -13,7 +13,7 @@ import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/pos_api_provider.dart';
-import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
 const _kWalkInId = -1;
 const _kWalkInName = 'Walk-in Customer';
@@ -633,6 +633,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
+      drawer: const AppDrawer(),
       body: Stack(children: [
         Container(decoration: context.bgGradient),
         SafeArea(child: Column(children: [
@@ -670,8 +671,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha: 0.25)),
       ),
       child: Row(children: [
-        GestureDetector(
-          onTap: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
+        Builder(builder: (ctx) => GestureDetector(
+          onTap: () => ctx.canPop()
+              ? ctx.pop()
+              : Scaffold.of(ctx).openDrawer(),
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -679,9 +682,11 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
             ),
-            child: const Icon(Icons.arrow_back_rounded, color: Colors.black, size: 18),
+            child: Icon(
+              ctx.canPop() ? Icons.arrow_back_rounded : Icons.menu_rounded,
+              color: Colors.black, size: 18),
           ),
-        ),
+        )),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Wholesale POS',

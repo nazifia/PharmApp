@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/models/user.dart';
 
@@ -25,6 +26,9 @@ class AuthService {
   }
 
   /// Restores session from persistent storage (call on app startup).
+  /// First restores the cached user so the UI is immediately available,
+  /// then refreshes the profile from the backend in the background so that
+  /// any permission changes made via Django admin or the UI are picked up.
   Future<bool> checkAuthStatus() async {
     try {
       final prefs    = await SharedPreferences.getInstance().timeout(const Duration(seconds: 3));
@@ -33,12 +37,20 @@ class AuthService {
 
       if (token != null && userData != null) {
         final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
+        // 1. Restore immediately from cache so the UI is usable right away
         _ref.read(authFlowProvider.notifier).restoreSession(token, user);
+        // 2. Refresh from backend in background — picks up permission changes
+        _ref.read(authFlowProvider.notifier).refreshProfile().ignore();
         return true;
       }
     } catch (_) {}
     return false;
   }
+
+  /// Explicitly refreshes the current user's profile from the backend.
+  /// Call this after any permission change or when the app resumes.
+  Future<void> refreshProfile() =>
+      _ref.read(authFlowProvider.notifier).refreshProfile();
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -51,33 +63,23 @@ class AuthService {
 
   // ── Permissions ───────────────────────────────────────────────────────────────
 
+  /// Returns the list of AppPermission keys the current user has access to.
+  /// Respects individual overrides from the backend (via Rbac.can).
   List<String> getUserPermissions() {
-    switch (currentUser?.role) {
-      case 'Admin':
-        return [
-          'admin', 'manage_users', 'manage_inventory',
-          'manage_sales', 'view_reports', 'manage_wholesale',
-        ];
-      case 'Manager':
-        return ['manage_inventory', 'manage_sales', 'view_reports', 'manage_customers'];
-      case 'Pharmacist':
-      case 'Pharm-Tech':
-        return ['manage_inventory', 'manage_sales', 'view_reports'];
-      case 'Cashier':
-        return ['process_payments', 'view_sales'];
-      case 'Salesperson':
-        return ['create_sales', 'view_inventory'];
-      case 'Wholesale Manager':
-      case 'Wholesale Operator':
-      case 'Wholesale Salesperson':
-        return ['manage_wholesale', 'view_reports'];
-      default:
-        return [];
-    }
+    const all = [
+      AppPermission.viewReports,      AppPermission.manageUsers,
+      AppPermission.manageSettings,   AppPermission.viewNotifications,
+      AppPermission.viewSubscription, AppPermission.manageExpenses,
+      AppPermission.processPayments,  AppPermission.manageSuppliers,
+      AppPermission.writeInventory,   AppPermission.readInventory,
+      AppPermission.retailPOS,        AppPermission.wholesalePOS,
+      AppPermission.viewWholesale,    AppPermission.writeCustomers,
+      AppPermission.readCustomers,    AppPermission.manageTransfers,
+    ];
+    return all.where((p) => Rbac.can(currentUser, p)).toList();
   }
 
-  bool hasPermission(String permission) =>
-      getUserPermissions().contains(permission);
+  bool hasPermission(String permission) => Rbac.can(currentUser, permission);
 }
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService(ref));

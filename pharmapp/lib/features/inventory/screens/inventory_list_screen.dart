@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/item.dart';
-import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import '../providers/inventory_provider.dart';
 
@@ -351,6 +351,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.scaffoldBg,
+      drawer: const AppDrawer(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddItemSheet(context),
         backgroundColor: EnhancedTheme.primaryTeal,
@@ -446,10 +447,14 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: context.borderColor),
         ),
-        child: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: context.labelColor, size: 20),
-          onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
-        ),
+        child: Builder(builder: (ctx) => IconButton(
+          icon: Icon(
+            ctx.canPop() ? Icons.arrow_back_rounded : Icons.menu_rounded,
+            color: context.labelColor, size: 20),
+          onPressed: () => ctx.canPop()
+              ? ctx.pop()
+              : Scaffold.of(ctx).openDrawer(),
+        )),
       ),
       const SizedBox(width: 14),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

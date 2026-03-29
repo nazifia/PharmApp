@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/models/user.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -1095,6 +1096,14 @@ class _UserManagementScreenState
                                       try {
                                         await api.saveUserPermissions(
                                             user.id, overrides);
+                                        // If the saved user is the currently
+                                        // logged-in user, refresh their profile
+                                        // so the new permissions take effect
+                                        // immediately without re-login.
+                                        final currentUser = ref.read(currentUserProvider);
+                                        if (currentUser?.id == user.id) {
+                                          await ref.read(authFlowProvider.notifier).refreshProfile();
+                                        }
                                         if (ctx.mounted) {
                                           Navigator.pop(ctx);
                                           ScaffoldMessenger.of(context)

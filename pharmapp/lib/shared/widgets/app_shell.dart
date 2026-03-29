@@ -10,6 +10,7 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
 import 'package:pharmapp/features/customers/providers/customer_provider.dart';
+import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,10 @@ class AppShell extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      // Drawer is accessible from ALL authenticated screens via left-edge swipe.
+      // Screens that have their own Scaffold+drawer (dashboard, inventory, etc.)
+      // will use their inner drawer; screens without one fall back to this outer drawer.
+      drawer: const AppDrawer(),
       body: Column(children: [
         // ── Offline banner ──────────────────────────────────────────────────
         if (!isOnline)
