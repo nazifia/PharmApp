@@ -77,7 +77,8 @@
       "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py migrate subscription --run-syncdb)",
       "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py migrate subscription)",
       "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py check)",
-      "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py expire_trials --dry-run --verbose)"
+      "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py expire_trials --dry-run --verbose)",
+      "Bash(find /c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/backend/templates -type f -name \"*.html\" ! -path \"*/venv/*\" -exec wc -l {} +)"
     ]
   }
 }
