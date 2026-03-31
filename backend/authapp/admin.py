@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
-from django.utils.html import format_html, mark_safe
+from django.utils.html import conditional_escape, format_html, mark_safe
 from django.urls import reverse
 
 from .admin_mixins import OrgScopedAdminMixin
@@ -345,6 +345,7 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
 
         role   = obj.role
         color  = ROLE_COLORS.get(role, '#6B7280')
+        role   = conditional_escape(role)
 
         # Fetch overrides for this user
         override_map = {

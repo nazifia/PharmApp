@@ -26,7 +26,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.html import format_html
+from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
 
 from .models import (
@@ -615,8 +615,8 @@ class SubscriptionAdmin(admin.ModelAdmin):
             obj.refresh_status()
             plan_c   = PLAN_COLORS.get(obj.plan, '#6B7280')
             status_c = STATUS_COLORS.get(obj.status, '#6B7280')
-            plan_lbl  = obj.get_plan_display()
-            stat_lbl  = obj.get_status_display()
+            plan_lbl  = conditional_escape(obj.get_plan_display())
+            stat_lbl  = conditional_escape(obj.get_status_display())
 
             trial_html = ''
             if obj.plan == 'trial' and obj.trial_ends_at:
@@ -676,11 +676,12 @@ class SubscriptionAdmin(admin.ModelAdmin):
             cycle = obj.billing_cycle or 'monthly'
             cycle_icon = '📅' if cycle == 'annual' else '🗓'
             cycle_color = '#10B981' if cycle == 'annual' else '#64748b'
+            cycle_label = conditional_escape(cycle.title())
             cycle_html = (
                 f'<span style="font-size:11px;color:{cycle_color};'
                 f'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);'
                 f'padding:3px 10px;border-radius:10px;margin-left:6px">'
-                f'{cycle_icon} {cycle.title()} billing</span>'
+                f'{cycle_icon} {cycle_label} billing</span>'
             ) if obj.plan != 'trial' else ''
 
             html = (

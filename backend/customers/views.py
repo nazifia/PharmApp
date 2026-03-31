@@ -1,9 +1,10 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.throttling import ScopedRateThrottle
 from .models import Customer, WalletTransaction
 from authapp.utils import require_org
 
@@ -102,7 +103,9 @@ def wallet_transactions(request, pk):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def wallet_topup(request, pk):
+    request.throttle_scope = 'wallet'
     org, err = require_org(request)
     if err:
         return err
@@ -139,7 +142,9 @@ def wallet_topup(request, pk):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def wallet_deduct(request, pk):
+    request.throttle_scope = 'wallet'
     org, err = require_org(request)
     if err:
         return err
@@ -183,7 +188,9 @@ def customer_sales(request, pk):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def wallet_reset(request, pk):
+    request.throttle_scope = 'wallet'
     org, err = require_org(request)
     if err:
         return err
@@ -204,7 +211,9 @@ def wallet_reset(request, pk):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def record_payment(request, pk):
+    request.throttle_scope = 'wallet'
     org, err = require_org(request)
     if err:
         return err

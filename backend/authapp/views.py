@@ -1,3 +1,4 @@
+import re
 from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -69,6 +70,8 @@ def register_org_view(request):
         return Response({'detail': 'phone_number is required.'}, status=status.HTTP_400_BAD_REQUEST)
     if not password or len(password) < 8:
         return Response({'detail': 'password must be at least 8 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not re.search(r'[A-Za-z]', password) or not re.search(r'\d', password):
+        return Response({'detail': 'password must contain at least one letter and one digit.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if PharmUser.objects.filter(phone_number=phone).exists():
         return Response({'detail': 'A user with this phone number already exists.'},

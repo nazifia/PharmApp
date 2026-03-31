@@ -6,7 +6,7 @@ Shows a cross-organisation summary dashboard for the software owner/developer.
 """
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Sum, Max
+from django.db.models import Count, Sum, Max, F
 from django.shortcuts import render
 from django.utils.timezone import now
 
@@ -63,9 +63,7 @@ def global_overview_view(request):
             "active_users":   users.filter(is_active=True).count(),
             "total_users":    users.count(),
             "total_items":    items.count(),
-            "low_stock":      items.filter(stock__gt=0).extra(
-                                  where=["stock <= low_stock_threshold"]
-                              ).count(),
+            "low_stock":      items.filter(stock__gt=0, stock__lte=F('low_stock_threshold')).count(),
             "out_of_stock":   items.filter(stock__lte=0).count(),
             "stock_value":    stock_val,
             "total_customers": customers.count(),

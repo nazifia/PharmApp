@@ -235,6 +235,11 @@ REST_FRAMEWORK = {
         "anon": "100/day",
         "user": "2000/day",
         "auth": "10/minute",
+        # Financial endpoint scopes
+        "checkout": "60/minute",         # POS checkout & item returns
+        "wallet": "20/minute",           # Wallet top-up / deduct / reset / record payment
+        "payment_request": "30/minute",  # Accept / reject / complete payment requests
+        "procurement": "20/minute",      # Create / complete procurement orders
     },
 }
 

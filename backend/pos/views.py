@@ -1,13 +1,16 @@
+import re
 import uuid
+from datetime import date as _date
 from decimal import Decimal
 from django.db import transaction
 from django.db.models import Q, Sum, F
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.throttling import ScopedRateThrottle
 
 from inventory.models import Item
 from customers.models import Customer, WalletTransaction
@@ -39,10 +42,12 @@ from .models import (
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def checkout(request):
     """
     Process a sale. Supports split payments, wallet, cashier assignment.
     """
+    request.throttle_scope = 'checkout'
     data = request.data
     org, err = require_org(request)
     if err:
@@ -299,8 +304,10 @@ def sale_detail(request, pk):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def return_item(request, pk):
     """Return items from a sale. Restores stock and optionally refunds wallet."""
+    request.throttle_scope = 'checkout'
     org, err = require_org(request)
     if err:
         return err
@@ -488,7 +495,9 @@ def payment_request_list(request):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def accept_payment_request(request, pk):
+    request.throttle_scope = 'payment_request'
     org, err = require_org(request)
     if err:
         return err
@@ -504,7 +513,9 @@ def accept_payment_request(request, pk):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def reject_payment_request(request, pk):
+    request.throttle_scope = 'payment_request'
     org, err = require_org(request)
     if err:
         return err
@@ -520,8 +531,10 @@ def reject_payment_request(request, pk):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def complete_payment_request(request, pk):
     """Cashier completes payment - creates a Sale from the payment request."""
+    request.throttle_scope = 'payment_request'
     org, err = require_org(request)
     if err:
         return err
@@ -665,10 +678,14 @@ def dispensing_stats(request):
 
 
 @api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
 def expense_category_list(request):
     if request.method == "GET":
         return Response([c.to_api_dict() for c in ExpenseCategory.objects.all()])
-    cat = ExpenseCategory.objects.create(name=request.data.get("name", ""))
+    name = (request.data.get("name") or "").strip()
+    if not name:
+        return Response({"detail": "name is required."}, status=status.HTTP_400_BAD_REQUEST)
+    cat, _ = ExpenseCategory.objects.get_or_create(name=name)
     return Response(cat.to_api_dict(), status=status.HTTP_201_CREATED)
 
 
@@ -679,8 +696,13 @@ def expense_list(request):
         return err
     if request.method == "GET":
         expenses = Expense.objects.filter(organization=org).select_related("category")
-        date_from = request.query_params.get("from")
-        date_to = request.query_params.get("to")
+        date_from_raw = request.query_params.get("from")
+        date_to_raw = request.query_params.get("to")
+        try:
+            date_from = _date.fromisoformat(date_from_raw) if date_from_raw else None
+            date_to = _date.fromisoformat(date_to_raw) if date_to_raw else None
+        except ValueError:
+            return Response({"detail": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
         if date_from:
             expenses = expenses.filter(date__gte=date_from)
         if date_to:
@@ -874,8 +896,10 @@ def procurement_list(request):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def complete_procurement(request, pk):
     """Mark procurement as completed and add items to inventory (retail or wholesale)."""
+    request.throttle_scope = 'procurement'
     org, err = require_org(request)
     if err:
         return err
@@ -1190,7 +1214,12 @@ def change_password(request, pk):
     new_password = request.data.get("newPassword", "").strip()
     if len(new_password) < 8:
         return Response(
-            {"detail": "Password must be at least 8 characters"},
+            {"detail": "Password must be at least 8 characters."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not re.search(r'[A-Za-z]', new_password) or not re.search(r'\d', new_password):
+        return Response(
+            {"detail": "Password must contain at least one letter and one digit."},
             status=status.HTTP_400_BAD_REQUEST,
         )
     user.set_password(new_password)
