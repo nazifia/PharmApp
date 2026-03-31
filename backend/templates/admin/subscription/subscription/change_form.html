@@ -160,20 +160,90 @@
 
       {# ── Activate plan ────────────────────────────────────────────────── #}
       <div class="sub-action-group">
-        <div class="sub-action-group-label">Activate Plan</div>
+        <div class="sub-action-group-label">Activate Plan — Monthly</div>
         <div class="sub-action-buttons">
           <button type="submit" class="sub-btn sub-btn-blue"
                   onclick="setAction('activate_starter')">
-            🚀 Starter — $9.99/mo
+            🚀 Starter
+            {% with pp=plan_pricing.starter %}
+              {% if pp %} — {{ pp.currency }} {{ pp.monthly_price }}/mo{% endif %}
+            {% endwith %}
           </button>
           <button type="submit" class="sub-btn sub-btn-purple"
                   onclick="setAction('activate_professional')">
-            💎 Professional — $29.99/mo
+            💎 Professional
+            {% with pp=plan_pricing.professional %}
+              {% if pp %} — {{ pp.currency }} {{ pp.monthly_price }}/mo{% endif %}
+            {% endwith %}
           </button>
           <button type="submit" class="sub-btn sub-btn-cyan"
                   onclick="setAction('activate_enterprise')">
-            👑 Enterprise — $79.99/mo
+            👑 Enterprise
+            {% with pp=plan_pricing.enterprise %}
+              {% if pp %} — {{ pp.currency }} {{ pp.monthly_price }}/mo{% endif %}
+            {% endwith %}
           </button>
+        </div>
+      </div>
+
+      {# ── Activate plan — Annual ───────────────────────────────────────── #}
+      <div class="sub-action-group">
+        <div class="sub-action-group-label">
+          Activate Plan — Annual
+          <span style="color:#10b981;font-size:10px;margin-left:6px;font-weight:700">SAVE MORE</span>
+        </div>
+        <div class="sub-action-buttons">
+          {% with pp=plan_pricing.starter %}
+          {% if pp and pp.annual_price %}
+          <button type="submit" class="sub-btn sub-btn-blue"
+                  style="border:2px solid #10b981"
+                  onclick="setAction('activate_starter_annual')">
+            🚀 Starter/yr — {{ pp.currency }} {{ pp.annual_price }}/yr
+            {% if pp.annual_savings_pct > 0 %}
+            <span style="background:#10b981;color:#fff;border-radius:4px;
+                         padding:1px 5px;font-size:10px;margin-left:2px">
+              Save {{ pp.annual_savings_pct }}%
+            </span>
+            {% endif %}
+          </button>
+          {% endif %}{% endwith %}
+
+          {% with pp=plan_pricing.professional %}
+          {% if pp and pp.annual_price %}
+          <button type="submit" class="sub-btn sub-btn-purple"
+                  style="border:2px solid #10b981"
+                  onclick="setAction('activate_professional_annual')">
+            💎 Professional/yr — {{ pp.currency }} {{ pp.annual_price }}/yr
+            {% if pp.annual_savings_pct > 0 %}
+            <span style="background:#10b981;color:#fff;border-radius:4px;
+                         padding:1px 5px;font-size:10px;margin-left:2px">
+              Save {{ pp.annual_savings_pct }}%
+            </span>
+            {% endif %}
+          </button>
+          {% endif %}{% endwith %}
+
+          {% with pp=plan_pricing.enterprise %}
+          {% if pp and pp.annual_price %}
+          <button type="submit" class="sub-btn sub-btn-cyan"
+                  style="border:2px solid #10b981"
+                  onclick="setAction('activate_enterprise_annual')">
+            👑 Enterprise/yr — {{ pp.currency }} {{ pp.annual_price }}/yr
+            {% if pp.annual_savings_pct > 0 %}
+            <span style="background:#10b981;color:#fff;border-radius:4px;
+                         padding:1px 5px;font-size:10px;margin-left:2px">
+              Save {{ pp.annual_savings_pct }}%
+            </span>
+            {% endif %}
+          </button>
+          {% endif %}{% endwith %}
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:#475569">
+          Annual billing sets <strong>Billing Cycle → Annual</strong> and activates the plan.
+          Update <em>Current Period End</em> to the renewal date after saving.
+          <a href="/admin/subscription/planpricing/" style="color:#0d9488;margin-left:6px">
+            ✏️ Edit annual prices
+          </a>
         </div>
       </div>
 

@@ -2,6 +2,8 @@
 admin_tags — context helpers for the PharmApp admin dashboard.
 Loaded in templates with {% load admin_tags %}.
 """
+from datetime import timedelta
+
 from django import template
 from django.db.models import Sum, Count, Max
 from django.utils.timezone import now
@@ -62,6 +64,9 @@ def _platform_stats(Organization, PharmUser, Item, Customer, Sale, Expense):
 
     recent_orgs = Organization.objects.order_by("-created_at")[:5]
 
+    # ── Subscription stats ────────────────────────────────────────────────────
+    sub_stats = _subscription_platform_stats()
+
     return {
         "is_superuser":   True,
         "total_orgs":     total_orgs,
@@ -77,6 +82,7 @@ def _platform_stats(Organization, PharmUser, Item, Customer, Sale, Expense):
         "out_of_stock":   out_of_stock,
         "low_stock":      low_stock,
         "recent_orgs":    recent_orgs,
+        **sub_stats,
     }
 
 
@@ -103,6 +109,9 @@ def _org_stats(org, PharmUser, Item, Customer, Sale, Expense, PaymentRequest):
         where=["stock <= low_stock_threshold"]
     ).count()
 
+    # ── Subscription stats ────────────────────────────────────────────────────
+    sub_stats = _subscription_org_stats(org)
+
     return {
         "is_superuser":    False,
         "org":             org,
@@ -120,4 +129,71 @@ def _org_stats(org, PharmUser, Item, Customer, Sale, Expense, PaymentRequest):
         "net_revenue":     float(total_revenue) - float(total_expenses),
         "pending_requests": pending_reqs.count(),
         "last_sale":       last_sale,
+        **sub_stats,
     }
+
+
+# ── Subscription helpers ──────────────────────────────────────────────────────
+
+def _subscription_platform_stats():
+    """Platform-wide subscription KPIs for the superuser dashboard."""
+    try:
+        from subscription.models import Subscription, PlanPricing
+        from django.utils.timezone import now as _now
+
+        _now_dt = _now()
+        in_7 = _now_dt + timedelta(days=7)
+
+        plan_counts = {
+            'trial':        Subscription.objects.filter(plan='trial').count(),
+            'starter':      Subscription.objects.filter(plan='starter').count(),
+            'professional': Subscription.objects.filter(plan='professional').count(),
+            'enterprise':   Subscription.objects.filter(plan='enterprise').count(),
+        }
+
+        live_prices = PlanPricing.get_all_prices()
+        mrr = sum(
+            plan_counts.get(plan, 0) * price
+            for plan, price in live_prices.items()
+            if plan != 'trial'
+        )
+
+        return {
+            "sub_plan_counts":    plan_counts,
+            "sub_mrr":            round(mrr, 2),
+            "sub_active":         Subscription.objects.filter(status='active').count(),
+            "sub_expiring":       Subscription.objects.filter(
+                                      plan='trial',
+                                      trial_ends_at__gte=_now_dt,
+                                      trial_ends_at__lte=in_7,
+                                  ).count(),
+            "sub_expired":        Subscription.objects.filter(status='expired').count(),
+            "sub_suspended":      Subscription.objects.filter(status='suspended').count(),
+        }
+    except Exception:
+        return {}
+
+
+def _subscription_org_stats(org):
+    """Per-org subscription info for the org-admin dashboard."""
+    try:
+        from subscription.models import Subscription
+        from django.utils.timezone import now as _now
+
+        sub = Subscription.objects.get(organization=org)
+        sub.refresh_status()
+        days = None
+        if sub.plan == 'trial' and sub.trial_ends_at:
+            days = max((sub.trial_ends_at - _now()).days, 0)
+        return {
+            "subscription":         sub,
+            "sub_plan":             sub.plan,
+            "sub_plan_display":     sub.get_plan_display(),
+            "sub_status":           sub.status,
+            "sub_status_display":   sub.get_status_display(),
+            "sub_trial_days":       days,
+            "sub_is_trial":         sub.plan == 'trial',
+            "sub_is_expiring":      sub.status in ('expiring', 'expired'),
+        }
+    except Exception:
+        return {}

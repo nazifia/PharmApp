@@ -1156,6 +1156,36 @@ a:hover { color: #fff !important; }
 .dash-action-btn--amber  { background: var(--pharm-warning); color: #1a1a1a !important; }
 .dash-action-btn--gray   { background: #475569;              color: #fff !important; }
 
+/* Subscription status card (org-admin dashboard) */
+.dash-sub-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+}
+.dash-sub-card--trial   { border-color: rgba(59,130,246,0.4);  background: rgba(59,130,246,0.07); }
+.dash-sub-card--warn    { border-color: rgba(245,158,11,0.5);  background: rgba(245,158,11,0.07); }
+.dash-sub-card--active  { border-color: rgba(16,185,129,0.4);  background: rgba(16,185,129,0.07); }
+.dash-sub-card__plan {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pharm-teal, #0d9488);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.dash-sub-card__status {
+  font-size: 13px;
+  color: var(--pharm-text-muted, #94a3b8);
+}
+
 /* Recent orgs list */
 .dash-recent-list {
   background: var(--pharm-surface);

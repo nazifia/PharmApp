@@ -169,6 +169,12 @@ class PlanPricing(models.Model):
             )
 
 
+BILLING_CYCLE_CHOICES = [
+    ('monthly', 'Monthly'),
+    ('annual',  'Annual'),
+]
+
+
 class Subscription(models.Model):
     """
     One subscription per Organization — created automatically when the org is
@@ -180,8 +186,14 @@ class Subscription(models.Model):
         on_delete=models.CASCADE,
         related_name='subscription',
     )
-    plan   = models.CharField(max_length=20, choices=PLAN_CHOICES, default='trial')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='trial')
+    plan          = models.CharField(max_length=20, choices=PLAN_CHOICES, default='trial')
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='trial')
+    billing_cycle = models.CharField(
+        max_length=10,
+        choices=BILLING_CYCLE_CHOICES,
+        default='monthly',
+        help_text='Monthly or annual billing. Annual shows a discounted total/year price.',
+    )
 
     trial_ends_at      = models.DateTimeField(null=True, blank=True)
     current_period_end = models.DateTimeField(null=True, blank=True)
@@ -277,6 +289,7 @@ class Subscription(models.Model):
         return {
             'plan':               self.plan,
             'status':             self.status,
+            'billing_cycle':      self.billing_cycle,
             'trial_ends_at':      self.trial_ends_at.isoformat()      if self.trial_ends_at      else None,
             'current_period_end': self.current_period_end.isoformat() if self.current_period_end else None,
             'usage':              self._usage(),

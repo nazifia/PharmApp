@@ -265,15 +265,17 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           ),
                         ],
 
-                        // ══ SUBSCRIPTION — visible to all users ════════════════
-                        const SizedBox(height: 4),
-                        _SectionDivider(label: 'Billing'),
-                        _NavItem(
-                          icon: Icons.workspace_premium_rounded,
-                          label: 'Subscription & Plans',
-                          route: '/subscription',
-                          onTap: navigate,
-                        ),
+                        // ══ SUBSCRIPTION — visible to Admin & Manager only ══════
+                        if (isAdmin) ...[
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Billing'),
+                          _NavItem(
+                            icon: Icons.workspace_premium_rounded,
+                            label: 'Subscription & Plans',
+                            route: '/subscription',
+                            onTap: navigate,
+                          ),
+                        ],
 
                       ],
                     ),

@@ -195,7 +195,7 @@ def activate_enterprise(modeladmin, request, queryset):
 def reset_to_trial(modeladmin, request, queryset):
     for sub in queryset:
         old = f"{sub.plan}/{sub.status}"
-        sub.plan = 'trial'; sub.status = 'trial'
+        sub.plan = 'trial'; sub.status = 'trial'; sub.billing_cycle = 'monthly'
         sub.trial_ends_at = timezone.now() + timedelta(days=14)
         sub.current_period_end = None; sub.external_subscription_id = ''
         sub.save()
@@ -269,13 +269,16 @@ class SubscriptionAdmin(admin.ModelAdmin):
         ('Plan & Billing', {
             'fields': (
                 ('plan', 'status'),
-                ('trial_ends_at', 'current_period_end'),
+                ('billing_cycle', 'current_period_end'),
+                'trial_ends_at',
                 'external_subscription_id',
             ),
             'description': (
                 'Changing <strong>Plan</strong> to a paid tier auto-sets status '
                 'to <em>Active</em> and clears the trial date. '
-                'Changing to <em>Trial</em> recalculates status from the trial end date.'
+                'Changing to <em>Trial</em> recalculates status from the trial end date. '
+                '<strong>Billing Cycle</strong>: Monthly = charged each month; '
+                'Annual = charged once per year at the discounted annual price.'
             ),
         }),
         # Tab: plan-features-tab
@@ -345,6 +348,11 @@ class SubscriptionAdmin(admin.ModelAdmin):
         if obj.plan == 'trial' and obj.trial_ends_at:
             days = (obj.trial_ends_at - now).days
 
+        # Fetch live prices for all paid plans to show on activate buttons
+        pricing = {}
+        for pp in PlanPricing.objects.all():
+            pricing[pp.plan] = pp
+
         return {
             'plan_color':        PLAN_COLORS.get(obj.plan, '#6B7280'),
             'status_color':      STATUS_COLORS.get(obj.status, '#6B7280'),
@@ -358,6 +366,9 @@ class SubscriptionAdmin(admin.ModelAdmin):
             'is_cancelled':      obj.status == 'cancelled',
             'is_active':         obj.status == 'active',
             'is_expired':        obj.status == 'expired',
+            'is_annual':         obj.billing_cycle == 'annual',
+            'billing_cycle':     obj.billing_cycle,
+            'plan_pricing':      pricing,   # {plan: PlanPricing obj}
         }
 
     def _handle_quick_action(self, request, obj, action, note=''):
@@ -395,26 +406,32 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 f"{obj.trial_ends_at.strftime('%Y-%m-%d %H:%M')} UTC."
             )
 
-        # ── Activate a specific paid plan ─────────────────────────────────
-        if action in ('activate_starter', 'activate_professional', 'activate_enterprise'):
-            plan_map = {
-                'activate_starter':      'starter',
-                'activate_professional': 'professional',
-                'activate_enterprise':   'enterprise',
-            }
-            new_plan = plan_map[action]
+        # ── Activate a specific paid plan (monthly or annual) ─────────────
+        _activate_map = {
+            'activate_starter':         ('starter',      'monthly'),
+            'activate_professional':    ('professional', 'monthly'),
+            'activate_enterprise':      ('enterprise',   'monthly'),
+            'activate_starter_annual':      ('starter',      'annual'),
+            'activate_professional_annual': ('professional', 'annual'),
+            'activate_enterprise_annual':   ('enterprise',   'annual'),
+        }
+        if action in _activate_map:
+            new_plan, cycle = _activate_map[action]
             old_plan = obj.plan
             obj.plan          = new_plan
+            obj.billing_cycle = cycle
             obj.status        = 'active'
             obj.trial_ends_at = None
             obj.save()
+            cycle_label = 'annually' if cycle == 'annual' else 'monthly'
             SubscriptionEvent.objects.create(
                 subscription=obj, event_type='activated',
                 old_value=old_plan, new_value=new_plan,
-                performed_by=actor, note=note,
+                performed_by=actor,
+                note=note or f'Billed {cycle_label}',
             )
             return _redirect(
-                f"Subscription activated on {new_plan.title()} plan."
+                f"Subscription activated on {new_plan.title()} plan ({cycle_label})."
             )
 
         # ── Suspend ───────────────────────────────────────────────────────
@@ -472,6 +489,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
             old = f"{obj.plan}/{obj.status}"
             obj.plan                    = 'trial'
             obj.status                  = 'trial'
+            obj.billing_cycle           = 'monthly'
             obj.trial_ends_at           = timezone.now() + timedelta(days=14)
             obj.current_period_end      = None
             obj.external_subscription_id = ''
@@ -624,21 +642,46 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
             price_html = ''
             try:
-                pp    = PlanPricing.objects.get(plan=obj.plan)
-                price = float(pp.monthly_price)
-                if price > 0:
+                pp = PlanPricing.objects.get(plan=obj.plan)
+                is_annual = obj.billing_cycle == 'annual'
+                if is_annual and float(pp.annual_price) > 0:
+                    effective_monthly = float(pp.annual_price) / 12
+                    savings = pp.annual_savings_pct
+                    savings_badge = (
+                        f'<span style="background:#10B981;color:#fff;'
+                        f'padding:1px 6px;border-radius:8px;font-size:10px;margin-left:4px">'
+                        f'Save {savings}%</span>'
+                    ) if savings > 0 else ''
+                    price_html = (
+                        f'<span style="font-size:12px;color:#94a3b8;margin-left:12px">'
+                        f'{pp.currency} {float(pp.annual_price):.2f}/yr '
+                        f'<span style="color:#64748b">(≈ {pp.currency} {effective_monthly:.2f}/mo)</span>'
+                        f'{savings_badge}</span>'
+                    )
+                elif float(pp.monthly_price) > 0:
                     savings = pp.annual_savings_pct
                     annual_hint = (
-                        f' &nbsp;<span style="background:#10B981;color:#fff;'
+                        f' &nbsp;<span style="background:rgba(16,185,129,0.15);color:#10b981;'
+                        f'border:1px solid rgba(16,185,129,0.3);'
                         f'padding:1px 6px;border-radius:8px;font-size:10px">'
                         f'Save {savings}% annually</span>'
                     ) if savings > 0 else ''
                     price_html = (
                         f'<span style="font-size:12px;color:#94a3b8;margin-left:12px">'
-                        f'{pp.currency} {price:.2f}/mo{annual_hint}</span>'
+                        f'{pp.currency} {float(pp.monthly_price):.2f}/mo{annual_hint}</span>'
                     )
             except PlanPricing.DoesNotExist:
                 pass
+
+            cycle = obj.billing_cycle or 'monthly'
+            cycle_icon = '📅' if cycle == 'annual' else '🗓'
+            cycle_color = '#10B981' if cycle == 'annual' else '#64748b'
+            cycle_html = (
+                f'<span style="font-size:11px;color:{cycle_color};'
+                f'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);'
+                f'padding:3px 10px;border-radius:10px;margin-left:6px">'
+                f'{cycle_icon} {cycle.title()} billing</span>'
+            ) if obj.plan != 'trial' else ''
 
             html = (
                 f'<div style="background:linear-gradient(135deg,#1e293b,#0f172a);'
@@ -649,6 +692,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 f'border-radius:20px;font-size:13px;font-weight:700">{plan_lbl}</span>'
                 f'<span style="background:{status_c};color:#fff;padding:4px 14px;'
                 f'border-radius:20px;font-size:13px;font-weight:700">{stat_lbl}</span>'
+                f'{cycle_html}'
                 f'{price_html}'
                 f'</div>'
                 f'{trial_html}'
