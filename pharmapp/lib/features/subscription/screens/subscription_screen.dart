@@ -7,14 +7,19 @@ import 'package:pharmapp/features/subscription/providers/subscription_provider.d
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
+// ── Local billing-cycle state ──────────────────────────────────────────────────
+final _billingCycleProvider =
+    StateProvider<BillingCycle>((ref) => BillingCycle.monthly);
+
 class SubscriptionScreen extends ConsumerWidget {
   const SubscriptionScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sub         = ref.watch(currentSubscriptionProvider);
-    final asyncState  = ref.watch(subscriptionNotifierProvider);
-    final isLoading   = asyncState is AsyncLoading;
+    final sub        = ref.watch(currentSubscriptionProvider);
+    final asyncState = ref.watch(subscriptionNotifierProvider);
+    final isLoading  = asyncState is AsyncLoading;
+    final cycle      = ref.watch(_billingCycleProvider);
 
     return PopScope(
       canPop: false,
@@ -85,12 +90,21 @@ class SubscriptionScreen extends ConsumerWidget {
                       _UsageCard(sub: sub),
                       const SizedBox(height: 20),
 
-                      const Text(
-                        'Available Plans',
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700),
+                      // ── Section header + billing toggle ───────────────────
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Available Plans',
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          _BillingToggle(cycle: cycle, ref: ref),
+                        ],
                       ),
                       const SizedBox(height: 12),
 
@@ -98,7 +112,9 @@ class SubscriptionScreen extends ConsumerWidget {
                       ...SubscriptionPlan.values.map(
                         (plan) => _PlanCard(
                           plan:      plan,
-                          isCurrent: sub.plan == plan,
+                          isCurrent: sub.plan == plan &&
+                              sub.billingCycle == cycle,
+                          cycle:     cycle,
                           ref:       ref,
                         ),
                       ),
@@ -118,6 +134,114 @@ class SubscriptionScreen extends ConsumerWidget {
         ],
       ),
     ));
+  }
+}
+
+// ── Billing Toggle ────────────────────────────────────────────────────────────
+
+class _BillingToggle extends StatelessWidget {
+  final BillingCycle cycle;
+  final WidgetRef    ref;
+  const _BillingToggle({required this.cycle, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ToggleSegment(
+            label: 'Monthly',
+            isSelected: cycle == BillingCycle.monthly,
+            onTap: () => ref
+                .read(_billingCycleProvider.notifier)
+                .state = BillingCycle.monthly,
+          ),
+          _ToggleSegment(
+            label: 'Annual',
+            isSelected: cycle == BillingCycle.annual,
+            onTap: () => ref
+                .read(_billingCycleProvider.notifier)
+                .state = BillingCycle.annual,
+            badge: 'Save 20%',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleSegment extends StatelessWidget {
+  final String  label;
+  final bool    isSelected;
+  final VoidCallback onTap;
+  final String? badge;
+
+  const _ToggleSegment({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    this.badge,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? EnhancedTheme.primaryTeal
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black54,
+                fontSize: 12,
+                fontWeight:
+                    isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+            if (badge != null) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : EnhancedTheme.successGreen.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  badge!,
+                  style: TextStyle(
+                    color: isSelected
+                        ? Colors.white
+                        : EnhancedTheme.successGreen,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -344,11 +468,13 @@ class _UsageRow extends StatelessWidget {
 class _PlanCard extends ConsumerStatefulWidget {
   final SubscriptionPlan plan;
   final bool             isCurrent;
+  final BillingCycle     cycle;
   final WidgetRef        ref;
 
   const _PlanCard({
     required this.plan,
     required this.isCurrent,
+    required this.cycle,
     required this.ref,
   });
 
@@ -364,6 +490,8 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
     final planColor = _planColor(widget.plan);
     final limits    = UsageLimits.forPlan(widget.plan);
     final features  = SaasFeature.forPlan(widget.plan);
+    final isAnnual  = widget.cycle == BillingCycle.annual;
+    final savings   = widget.plan.annualSavings;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -428,11 +556,47 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
                                           fontWeight: FontWeight.w700)),
                                 ),
                               ],
+                              // Annual savings badge
+                              if (isAnnual && savings > 0) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: EnhancedTheme.successGreen
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'Save \$${savings.toStringAsFixed(0)}/yr',
+                                    style: const TextStyle(
+                                        color: EnhancedTheme.successGreen,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                          Text(widget.plan.price,
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.plan.priceLabel(widget.cycle),
+                            style: const TextStyle(
+                                color: Colors.black54, fontSize: 12),
+                          ),
+                          if (isAnnual &&
+                              widget.plan.monthlyAmount > 0) ...[
+                            const SizedBox(height: 1),
+                            Text(
+                              '\$${widget.plan.monthlyAmount.toStringAsFixed(2)}/mo billed monthly',
                               style: const TextStyle(
-                                  color: Colors.black54, fontSize: 12)),
+                                color: Colors.black38,
+                                fontSize: 10,
+                                decoration: TextDecoration.lineThrough,
+                                decorationColor: Colors.black26,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -526,9 +690,14 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
     if (_loading) return;
     setState(() => _loading = true);
 
+    final messenger = ScaffoldMessenger.of(context);
+
     final url = await widget.ref
         .read(subscriptionNotifierProvider.notifier)
-        .upgradePlan(widget.plan.name);
+        .upgradePlan(
+          widget.plan.name,
+          billingCycle: widget.cycle.apiValue,
+        );
 
     if (!mounted) return;
     setState(() => _loading = false);
@@ -536,16 +705,19 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
     if (url != null && url.isNotEmpty) {
       // In a real app, launch the payment URL:
       // await launchUrl(Uri.parse(url));
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Redirecting to payment: $url'),
           backgroundColor: EnhancedTheme.successGreen,
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Plan upgrade initiated. Check your email.'),
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Plan upgrade to ${widget.plan.displayName} '
+            '(${widget.cycle.displayName}) initiated. Check your email.',
+          ),
           backgroundColor: EnhancedTheme.primaryTeal,
         ),
       );
@@ -735,7 +907,7 @@ class _FeatureMatrix extends StatelessWidget {
                             child: SaasFeature.forPlan(p).contains(key)
                                 ? Icon(Icons.check_circle_rounded,
                                     color: _planColor(p), size: 16)
-                                : Icon(Icons.remove_rounded,
+                                : const Icon(Icons.remove_rounded,
                                     color: Colors.black26,
                                     size: 16),
                           ),

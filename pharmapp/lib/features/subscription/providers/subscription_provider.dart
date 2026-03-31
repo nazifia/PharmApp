@@ -51,11 +51,13 @@ class SubscriptionNotifier extends StateNotifier<AsyncValue<Subscription>> {
   Future<void> refresh() => _load();
 
   /// Optimistically upgrades the in-memory plan while the network call runs.
-  Future<String?> upgradePlan(String planId) async {
+  /// [billingCycle] is 'monthly' or 'annual'.
+  Future<String?> upgradePlan(String planId,
+      {String billingCycle = 'monthly'}) async {
     try {
       final result = await _ref
           .read(subscriptionApiClientProvider)
-          .upgradePlan(planId);
+          .upgradePlan(planId, billingCycle);
 
       await _load(); // refresh from backend
       return result['checkout_url'] as String?; // may return a payment URL

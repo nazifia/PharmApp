@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
 import '../../../shared/models/customer.dart';
+
+const _kCustomersCacheKey = 'cache_customers';
 
 // ── Wallet transaction ─────────────────────────────────────────────────────────
 
@@ -92,8 +96,24 @@ class CustomerApiClient {
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List : data as List;
-      return list.map((e) => Customer.fromJson(e as Map<String, dynamic>)).toList();
+      final customers = list.map((e) => Customer.fromJson(e as Map<String, dynamic>)).toList();
+
+      // Persist for offline access.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kCustomersCacheKey, jsonEncode(list));
+
+      return customers;
     } on DioException catch (e) {
+      // Connection-level failure — serve from cache if available.
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kCustomersCacheKey);
+        if (raw != null && raw.isNotEmpty) {
+          final list = jsonDecode(raw) as List;
+          return list.map((e) => Customer.fromJson(e as Map<String, dynamic>)).toList();
+        }
+        throw Exception('You are offline and no cached customer data is available yet.');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load customers');
     }
   }

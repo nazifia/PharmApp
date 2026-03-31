@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/database/local_db.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/connectivity_provider.dart';
+import '../../../core/offline/offline_queue.dart';
 import '../../../shared/models/sale.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -35,6 +37,10 @@ class PosApiClient {
       final res = await _dio!.post('/pos/checkout/', data: payload.toJson());
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      // No response means a connection-level failure (no internet, timeout, etc.).
+      // Re-throw the original DioException so CheckoutNotifier can detect offline
+      // and enqueue the sale instead of showing a generic error.
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Checkout failed');
     }
   }
@@ -1016,10 +1022,30 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
 
   Future<Map<String, dynamic>?> processCheckout(CheckoutPayload payload) async {
     state = const AsyncValue.loading();
+
+    // Short-circuit: if device is already offline, enqueue without a network call.
+    final isOnline = _ref.read(isOnlineProvider);
+    if (!isOnline) {
+      await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
+      state = const AsyncValue.data(null);
+      return {'offline': true};
+    }
+
     try {
       final result = await _ref.read(posApiProvider).submitCheckout(payload);
       state = const AsyncValue.data(null);
       return result;
+    } on DioException catch (e, st) {
+      // Connection-level failure even though we thought we were online.
+      // Queue the sale and return the offline marker so the UI shows the
+      // "Queued for sync" sheet rather than a generic error.
+      if (e.response == null) {
+        await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       return null;

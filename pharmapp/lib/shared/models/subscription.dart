@@ -1,6 +1,28 @@
 /// Subscription model — plain Dart, no codegen needed.
 library;
 
+// ── Billing Cycle ─────────────────────────────────────────────────────────────
+
+enum BillingCycle {
+  monthly,
+  annual;
+
+  String get displayName => switch (this) {
+        monthly => 'Monthly',
+        annual  => 'Annual',
+      };
+
+  String get apiValue => switch (this) {
+        monthly => 'monthly',
+        annual  => 'annual',
+      };
+
+  static BillingCycle fromString(String? value) => switch (value) {
+        'annual' => BillingCycle.annual,
+        _        => BillingCycle.monthly,
+      };
+}
+
 // ── Plan enum ─────────────────────────────────────────────────────────────────
 
 enum SubscriptionPlan {
@@ -16,12 +38,41 @@ enum SubscriptionPlan {
         enterprise   => 'Enterprise',
       };
 
+  /// Monthly price label.
   String get price => switch (this) {
         trial        => 'Free',
         starter      => '\$9.99/mo',
         professional => '\$29.99/mo',
         enterprise   => '\$79.99/mo',
       };
+
+  /// Monthly price as a number (0 for trial).
+  double get monthlyAmount => switch (this) {
+        trial        => 0,
+        starter      => 9.99,
+        professional => 29.99,
+        enterprise   => 79.99,
+      };
+
+  /// Equivalent monthly cost when billed annually (20 % discount).
+  double get annualMonthlyAmount => (monthlyAmount * 0.80 * 100).roundToDouble() / 100;
+
+  /// Total charged annually.
+  double get annualTotal => (annualMonthlyAmount * 12 * 100).roundToDouble() / 100;
+
+  /// Annual savings vs 12 months of monthly billing.
+  double get annualSavings =>
+      (monthlyAmount * 12 * 100).roundToDouble() / 100 - annualTotal;
+
+  /// Price label for the given billing cycle.
+  String priceLabel(BillingCycle cycle) {
+    if (monthlyAmount == 0) return 'Free';
+    return switch (cycle) {
+      BillingCycle.monthly => '\$${monthlyAmount.toStringAsFixed(2)}/mo',
+      BillingCycle.annual  =>
+        '\$${annualMonthlyAmount.toStringAsFixed(2)}/mo · \$${annualTotal.toStringAsFixed(2)}/yr',
+    };
+  }
 
   /// Numeric rank — used to compare "is plan X at least as high as Y?"
   int get rank => switch (this) {
@@ -155,6 +206,7 @@ class CurrentUsage {
 class Subscription {
   final SubscriptionPlan   plan;
   final SubscriptionStatus status;
+  final BillingCycle       billingCycle;
   final DateTime?          trialEndsAt;
   final DateTime?          currentPeriodEnd;
   final UsageLimits        limits;
@@ -164,6 +216,7 @@ class Subscription {
   Subscription({
     required this.plan,
     required this.status,
+    this.billingCycle    = BillingCycle.monthly,
     this.trialEndsAt,
     this.currentPeriodEnd,
     required this.limits,
@@ -194,11 +247,13 @@ class Subscription {
   // ── Serialization ────────────────────────────────────────────────────────────
 
   factory Subscription.fromJson(Map<String, dynamic> json) {
-    final plan   = SubscriptionPlan.fromString(json['plan'] as String?);
-    final status = SubscriptionStatus.fromString(json['status'] as String?);
+    final plan         = SubscriptionPlan.fromString(json['plan'] as String?);
+    final status       = SubscriptionStatus.fromString(json['status'] as String?);
+    final billingCycle = BillingCycle.fromString(json['billing_cycle'] as String?);
     return Subscription(
       plan:             plan,
       status:           status,
+      billingCycle:     billingCycle,
       trialEndsAt:      json['trial_ends_at']      != null
           ? DateTime.tryParse(json['trial_ends_at'] as String)
           : null,

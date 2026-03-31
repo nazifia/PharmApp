@@ -23,9 +23,14 @@ class SubscriptionApiClient {
   }
 
   /// POST /subscription/upgrade/ — request a plan upgrade.
+  /// [billingCycle] is 'monthly' or 'annual'.
   /// Backend should redirect to payment gateway / confirm upgrade.
-  Future<Map<String, dynamic>> upgradePlan(String planId) async {
-    final res = await _dio.post('/subscription/upgrade/', data: {'plan_id': planId});
+  Future<Map<String, dynamic>> upgradePlan(
+      String planId, String billingCycle) async {
+    final res = await _dio.post('/subscription/upgrade/', data: {
+      'plan_id':       planId,
+      'billing_cycle': billingCycle,
+    });
     return res.data as Map<String, dynamic>;
   }
 

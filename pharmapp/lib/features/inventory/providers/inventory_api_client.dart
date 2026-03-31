@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
 import '../../../shared/models/item.dart';
+
+const _kInventoryCachePrefix = 'cache_inventory';
 
 class InventoryApiClient {
   final Dio? _dio;
@@ -28,6 +32,11 @@ class InventoryApiClient {
       return (await LocalDb.instance.getItems(search: search, store: store))
           .map(_toItem).toList();
     }
+    // Cache key per store variant (not keyed by search — searches are volatile).
+    final cacheKey = search == null
+        ? '$_kInventoryCachePrefix${store != null ? "_$store" : ""}'
+        : null;
+
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
@@ -37,8 +46,26 @@ class InventoryApiClient {
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List : data as List;
-      return list.map((e) => Item.fromJson(_norm(e as Map<String, dynamic>))).toList();
+      final items = list.map((e) => Item.fromJson(_norm(e as Map<String, dynamic>))).toList();
+
+      // Persist successful result for offline access (non-search only).
+      if (cacheKey != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(cacheKey, jsonEncode(list));
+      }
+
+      return items;
     } on DioException catch (e) {
+      // Connection-level failure — serve from cache if available.
+      if (e.response == null && cacheKey != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(cacheKey);
+        if (raw != null && raw.isNotEmpty) {
+          final list = jsonDecode(raw) as List;
+          return list.map((e) => Item.fromJson(_norm(e as Map<String, dynamic>))).toList();
+        }
+        throw Exception('You are offline and no cached inventory is available yet.');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load inventory');
     }
   }
