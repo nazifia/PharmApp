@@ -227,7 +227,7 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
 
               // ── Top Products ─────────────────────────────────────────────
               _buildSectionHeader(context, 'Top Products This Month',
-                  Icons.local_pharmacy_rounded, EnhancedTheme.primaryTeal)
+                  Icons.inventory_2_rounded, EnhancedTheme.primaryTeal)
                   .animate().fadeIn(delay: 480.ms),
               const SizedBox(height: 10),
               salesMonthAsync.when(

@@ -175,28 +175,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           width: 100, height: 100,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              colors: [
-                EnhancedTheme.primaryTeal.withValues(alpha: 0.18),
-                EnhancedTheme.accentCyan.withValues(alpha: 0.12),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(
-              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25),
-              width: 1.5,
-            ),
             boxShadow: [
               BoxShadow(
-                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
             ],
           ),
-          child: const Icon(Icons.local_pharmacy_rounded,
-              size: 52, color: EnhancedTheme.primaryTeal),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Image.asset(
+              'assets/icons/app_icon.png',
+              width: 100, height: 100,
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
         const SizedBox(height: 16),
         Text(orgName,

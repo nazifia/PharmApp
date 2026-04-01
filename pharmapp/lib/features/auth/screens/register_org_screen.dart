@@ -335,9 +335,12 @@ class _RegisterOrgScreenState extends ConsumerState<RegisterOrgScreen>
                   textColor: _textMid,
                   fillColor: _inputFill,
                   enabledBorderColor: _inputBorder,
-                  prefixIcon: const Icon(
-                    Icons.local_pharmacy_rounded,
-                    color: EnhancedTheme.primaryTeal,
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Image.asset(
+                      'assets/icons/app_icon.png',
+                      width: 24, height: 24,
+                    ),
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {

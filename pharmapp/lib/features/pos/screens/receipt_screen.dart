@@ -298,18 +298,19 @@ class _ReceiptCard extends StatelessWidget {
                     width: 56, height: 56,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
-                        begin: Alignment.topLeft, end: Alignment.bottomRight,
-                      ),
                       boxShadow: [
                         BoxShadow(
                           color: EnhancedTheme.primaryTeal.withValues(alpha: 0.45),
                           blurRadius: 16, spreadRadius: 2),
                       ],
                     ),
-                    child: const Icon(Icons.local_pharmacy_rounded,
-                        color: Colors.black, size: 28),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/icons/app_icon.png',
+                        width: 56, height: 56,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                 ]).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
                 const SizedBox(height: 12),

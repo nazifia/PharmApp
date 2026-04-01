@@ -245,11 +245,6 @@ class RoleSelectionScreen extends ConsumerWidget {
               width: 88, height: 88,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(26),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0D9488), Color(0xFF06B6D4)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF0D9488).withValues(alpha: 0.50),
@@ -258,9 +253,13 @@ class RoleSelectionScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.local_pharmacy_rounded,
-                color: Colors.black, size: 42,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(26),
+                child: Image.asset(
+                  'assets/icons/app_icon.png',
+                  width: 88, height: 88,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ],
