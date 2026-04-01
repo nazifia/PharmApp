@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.http import HttpResponse
+from django.http import JsonResponse
 from django.urls import path, include
 from authapp.admin_views import global_overview_view
 from subscription.admin_views import saas_dashboard_view
@@ -25,3 +26,18 @@ urlpatterns = [
     path('api/reports/',      include('reports.urls')),
     path('api/subscription/', include('subscription.urls')),
 ]
+
+
+
+
+path('api/', lambda request: JsonResponse({
+        "message": "PharmApp API is working",
+        "endpoints": [
+            "/api/auth/",
+            "/api/inventory/",
+            "/api/customers/",
+            "/api/pos/",
+            "/api/reports/",
+            "/api/subscription/"
+        ]
+    })),

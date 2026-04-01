@@ -5,21 +5,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Base URL ─────────────────────────────────────────────────────────────────
 
-/// Resolves the backend base URL for the current platform.
-/// Android emulator uses 10.0.2.2 to reach host localhost.
-/// Web and desktop (Windows/Linux/macOS) use localhost directly.
-///
-/// Run the PharmApp backend on port 8000:
-///   python manage.py runserver 8000
+/// Resolves the backend base URL.
+/// - Debug: localhost (web/desktop) or 10.0.2.2 (Android emulator)
+/// - Release: https://PharmApp.pythonanywhere.com/api
+/// Override at build time via --dart-define=API_URL=... (takes priority always).
+/// Override at runtime via SharedPreferences key 'api_base_url' (see main.dart).
 final baseUrlProvider = StateProvider<String>((ref) {
   // ignore: do_not_use_environment
   const env = String.fromEnvironment('API_URL', defaultValue: '');
   if (env.isNotEmpty) return env;
 
-  if (!kIsWeb) {
-    return 'http://10.0.2.2:8000/api'; // Android emulator default
+  if (kDebugMode) {
+    if (!kIsWeb) return 'http://10.0.2.2:8000/api'; // Android emulator
+    return 'http://localhost:8000/api';
   }
-  return 'http://localhost:8000/api';
+
+  return 'https://PharmApp.pythonanywhere.com/api';
 });
 
 // ── Auth token ────────────────────────────────────────────────────────────────

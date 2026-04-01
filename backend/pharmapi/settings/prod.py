@@ -68,6 +68,14 @@ _cors_origins = [o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", "").s
 if not _cors_origins:
     raise ImproperlyConfigured("CORS_ALLOWED_ORIGINS environment variable is required and must be non-empty in production.")
 CORS_ALLOWED_ORIGINS = _cors_origins
+CORS_ALLOW_CREDENTIALS = True
+
+from corsheaders.defaults import default_headers  # noqa: E402
+CORS_ALLOW_HEADERS = [
+    *default_headers,
+    "skip_auth",
+    "skip-auth",
+]
 
 # ── Security headers ──────────────────────────────────────────────────────────
 
@@ -119,4 +127,11 @@ LOGGING = {
 
 # Static files                                                                                                                                
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # folder where collectstatic dumps files  
+
+CSRF_TRUSTED_ORIGINS = _cors_origins
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+CONN_HEALTH_CHECKS = True
+
+SECURE_BROWSER_XSS_FILTER = True
