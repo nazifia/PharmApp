@@ -1,5 +1,4 @@
 {
-  
   "permissions": {
     "allow": [
       "Bash(flutter pub:*)",
@@ -79,7 +78,10 @@
       "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py migrate subscription)",
       "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py check)",
       "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev python manage.py expire_trials --dry-run --verbose)",
-      "Bash(find /c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/backend/templates -type f -name \"*.html\" ! -path \"*/venv/*\" -exec wc -l {} +)"
+      "Bash(find /c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/backend/templates -type f -name \"*.html\" ! -path \"*/venv/*\" -exec wc -l {} +)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\assets\\\\icons\")",
+      "Bash(cp \"C:\\\\Users\\\\Dell\\\\Downloads\\\\Modern pharmacy and health app logo.png\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\assets\\\\icons\\\\app_icon.png\")",
+      "Bash(dart run:*)"
     ]
   }
 }
