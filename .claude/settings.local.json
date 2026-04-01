@@ -1,4 +1,5 @@
 {
+  
   "permissions": {
     "allow": [
       "Bash(flutter pub:*)",
