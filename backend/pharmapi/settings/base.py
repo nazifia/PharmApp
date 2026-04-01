@@ -257,6 +257,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 # ── Static files ──────────────────────────────────────────────────────────────
 
 STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
