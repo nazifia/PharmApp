@@ -1,5 +1,12 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
+
+const _kSalesReportPrefix    = 'cache_report_sales_';
+const _kInventoryReportKey   = 'cache_report_inventory';
+const _kCustomerReportKey    = 'cache_report_customers';
+const _kProfitReportPrefix   = 'cache_report_profit_';
 
 // ── Data models (unchanged) ────────────────────────────────────────────────────
 
@@ -100,6 +107,7 @@ class ReportsApiClient {
     if (_isLocal) {
       return SalesReportData.fromJson(await LocalDb.instance.getSalesReport(period));
     }
+    final cacheKey = '$_kSalesReportPrefix$period';
     try {
       final Map<String, dynamic> queryParams;
       if (isCustom) {
@@ -109,8 +117,16 @@ class ReportsApiClient {
         queryParams = {'period': period};
       }
       final res = await _dio!.get('/reports/sales/', queryParameters: queryParams);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(cacheKey, jsonEncode(res.data));
       return SalesReportData.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(cacheKey);
+        if (raw != null) return SalesReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        throw Exception('Offline — no cached sales report available');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load sales report');
     }
   }
@@ -119,8 +135,16 @@ class ReportsApiClient {
     if (_isLocal) return InventoryReportData.fromJson(await LocalDb.instance.getInventoryReport());
     try {
       final res = await _dio!.get('/reports/inventory/');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kInventoryReportKey, jsonEncode(res.data));
       return InventoryReportData.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kInventoryReportKey);
+        if (raw != null) return InventoryReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        throw Exception('Offline — no cached inventory report available');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load inventory report');
     }
   }
@@ -129,18 +153,35 @@ class ReportsApiClient {
     if (_isLocal) return CustomerReportData.fromJson(await LocalDb.instance.getCustomerReport());
     try {
       final res = await _dio!.get('/reports/customers/');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kCustomerReportKey, jsonEncode(res.data));
       return CustomerReportData.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kCustomerReportKey);
+        if (raw != null) return CustomerReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        throw Exception('Offline — no cached customer report available');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load customer report');
     }
   }
 
   Future<ProfitReportData> fetchProfitReport(String period) async {
     if (_isLocal) return ProfitReportData.fromJson(await LocalDb.instance.getProfitReport(period));
+    final cacheKey = '$_kProfitReportPrefix$period';
     try {
       final res = await _dio!.get('/reports/profit/', queryParameters: {'period': period});
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(cacheKey, jsonEncode(res.data));
       return ProfitReportData.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(cacheKey);
+        if (raw != null) return ProfitReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        throw Exception('Offline — no cached profit report available');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load profit report');
     }
   }

@@ -1,11 +1,16 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/database/local_db.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/connectivity_provider.dart';
 import '../../../core/offline/offline_queue.dart';
 import '../../../shared/models/sale.dart';
+
+const _kSalesCacheKey           = 'cache_sales_list';
+const _kPaymentRequestsCacheKey = 'cache_payment_requests';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  POS API CLIENT — dev (local SQLite) + prod (Django REST)
@@ -18,6 +23,18 @@ class PosApiClient {
   PosApiClient.remote(Dio dio) : _dio = dio;
 
   bool get _isLocal => _dio == null;
+
+  // ── Cache helpers ──────────────────────────────────────────────────────────
+  Future<void> _cacheStr(String key, dynamic data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, jsonEncode(data));
+  }
+
+  Future<dynamic> _getCache(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(key);
+    return raw != null ? jsonDecode(raw) : null;
+  }
 
   // ── Sales ──────────────────────────────────────────────────────────────────
   Future<Map<String, dynamic>> submitCheckout(CheckoutPayload payload) async {
@@ -51,6 +68,8 @@ class PosApiClient {
       return LocalDb.instance
           .getSales(from: from, to: to, customerId: customerId, search: search);
     }
+    // Only cache unfiltered list requests (for the sales history screen default view).
+    final isCacheable = from == null && to == null && customerId == null && (search == null || search.isEmpty);
     try {
       final params = <String, dynamic>{};
       if (from != null) params['from'] = from;
@@ -60,10 +79,21 @@ class PosApiClient {
       final res = await _dio!.get('/pos/sales/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
-      return data is Map && data.containsKey('results')
+      final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      if (isCacheable) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_kSalesCacheKey, jsonEncode(list));
+      }
+      return list;
     } on DioException catch (e) {
+      if (e.response == null && isCacheable) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kSalesCacheKey);
+        if (raw != null) return jsonDecode(raw) as List;
+        throw Exception('Offline — no cached sales history available');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load sales');
     }
   }
@@ -76,8 +106,15 @@ class PosApiClient {
     }
     try {
       final res = await _dio!.get('/pos/sales/$id/');
-      return res.data as Map<String, dynamic>;
+      final data = res.data as Map<String, dynamic>;
+      await _cacheStr('cache_sale_$id', data);
+      return data;
     } on DioException catch (e) {
+      if (e.response == null) {
+        final cached = await _getCache('cache_sale_$id');
+        if (cached != null) return cached as Map<String, dynamic>;
+        throw Exception('Offline — sale detail not cached');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Sale not found');
     }
   }
@@ -111,16 +148,29 @@ class PosApiClient {
   // ── Payment Requests ───────────────────────────────────────────────────────
   Future<List<dynamic>> fetchPaymentRequests({String? status}) async {
     if (_isLocal) return LocalDb.instance.getPaymentRequests(status: status);
+    // Only cache the unfiltered list so the screen can load offline.
+    final isCacheable = status == null;
     try {
       final params = <String, dynamic>{};
       if (status != null) params['status'] = status;
       final res = await _dio!.get('/pos/payment-requests/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
-      return data is Map && data.containsKey('results')
+      final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      if (isCacheable) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_kPaymentRequestsCacheKey, jsonEncode(list));
+      }
+      return list;
     } on DioException catch (e) {
+      if (e.response == null && isCacheable) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kPaymentRequestsCacheKey);
+        if (raw != null) return jsonDecode(raw) as List;
+        throw Exception('Offline — no cached payment requests available');
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load payment requests');
     }
@@ -149,6 +199,7 @@ class PosApiClient {
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow; // connection failure — let caller queue
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to send to cashier');
     }
@@ -162,6 +213,7 @@ class PosApiClient {
       final res = await _dio!.post('/pos/payment-requests/$id/accept/');
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to accept request');
     }
   }
@@ -174,6 +226,7 @@ class PosApiClient {
       final res = await _dio!.post('/pos/payment-requests/$id/reject/');
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to reject request');
     }
   }
@@ -188,6 +241,7 @@ class PosApiClient {
           data: {'payment': payment, 'payment_method': paymentMethod});
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to complete payment request');
     }
@@ -200,6 +254,7 @@ class PosApiClient {
       return LocalDb.instance
           .getDispensingLog(search: search, from: from, to: to);
     }
+    final isCacheable = (search == null || search.isEmpty) && from == null && to == null;
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
@@ -208,10 +263,17 @@ class PosApiClient {
       final res = await _dio!.get('/pos/dispensing-log/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
-      return data is Map && data.containsKey('results')
+      final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      if (isCacheable) await _cacheStr('cache_dispensing_log', list);
+      return list;
     } on DioException catch (e) {
+      if (e.response == null && isCacheable) {
+        final cached = await _getCache('cache_dispensing_log');
+        if (cached != null) return cached as List;
+        throw Exception('Offline — no cached dispensing log available');
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load dispensing log');
     }
@@ -221,8 +283,15 @@ class PosApiClient {
     if (_isLocal) return LocalDb.instance.getDispensingStats();
     try {
       final res = await _dio!.get('/pos/dispensing-log/stats/');
-      return res.data as Map<String, dynamic>;
+      final data = res.data as Map<String, dynamic>;
+      await _cacheStr('cache_dispensing_stats', data);
+      return data;
     } on DioException catch (e) {
+      if (e.response == null) {
+        final cached = await _getCache('cache_dispensing_stats');
+        if (cached != null) return cached as Map<String, dynamic>;
+        throw Exception('Offline — no cached dispensing stats available');
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load dispensing stats');
     }
@@ -234,10 +303,17 @@ class PosApiClient {
     try {
       final res = await _dio!.get('/pos/expense-categories/');
       final data = res.data;
-      return data is Map && data.containsKey('results')
+      final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      await _cacheStr('cache_expense_categories', list);
+      return list;
     } on DioException catch (e) {
+      if (e.response == null) {
+        final cached = await _getCache('cache_expense_categories');
+        if (cached != null) return cached as List;
+        throw Exception('Offline — no cached expense categories available');
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load expense categories');
     }
@@ -257,6 +333,7 @@ class PosApiClient {
 
   Future<List<dynamic>> fetchExpenses({String? from, String? to}) async {
     if (_isLocal) return LocalDb.instance.getExpenses(from: from, to: to);
+    final isCacheable = from == null && to == null;
     try {
       final params = <String, dynamic>{};
       if (from != null) params['from'] = from;
@@ -264,10 +341,17 @@ class PosApiClient {
       final res = await _dio!.get('/pos/expenses/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
-      return data is Map && data.containsKey('results')
+      final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      if (isCacheable) await _cacheStr('cache_expenses', list);
+      return list;
     } on DioException catch (e) {
+      if (e.response == null && isCacheable) {
+        final cached = await _getCache('cache_expenses');
+        if (cached != null) return cached as List;
+        throw Exception('Offline — no cached expenses available');
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load expenses');
     }
@@ -315,14 +399,22 @@ class PosApiClient {
     if (_isLocal) {
       return LocalDb.instance.getMonthlyReport(month: month, year: year);
     }
+    final isCacheable = month == null && year == null;
     try {
       final params = <String, dynamic>{};
       if (month != null) params['month'] = month;
       if (year != null) params['year'] = year;
       final res = await _dio!.get('/pos/monthly-report/',
           queryParameters: params.isNotEmpty ? params : null);
-      return res.data as Map<String, dynamic>;
+      final data = res.data as Map<String, dynamic>;
+      if (isCacheable) await _cacheStr('cache_monthly_report', data);
+      return data;
     } on DioException catch (e) {
+      if (e.response == null && isCacheable) {
+        final cached = await _getCache('cache_monthly_report');
+        if (cached != null) return cached as Map<String, dynamic>;
+        throw Exception('Offline — no cached monthly report available');
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load monthly report');
     }
@@ -331,16 +423,24 @@ class PosApiClient {
   // ── Suppliers ──────────────────────────────────────────────────────────────
   Future<List<dynamic>> fetchSuppliers({String? search}) async {
     if (_isLocal) return LocalDb.instance.getSuppliers(search: search);
+    final isCacheable = search == null || search.isEmpty;
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
       final res = await _dio!.get('/pos/suppliers/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
-      return data is Map && data.containsKey('results')
+      final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      if (isCacheable) await _cacheStr('cache_suppliers', list);
+      return list;
     } on DioException catch (e) {
+      if (e.response == null && isCacheable) {
+        final cached = await _getCache('cache_suppliers');
+        if (cached != null) return cached as List;
+        throw Exception('Offline — no cached suppliers available');
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load suppliers');
     }
@@ -381,16 +481,24 @@ class PosApiClient {
   // ── Procurements ───────────────────────────────────────────────────────────
   Future<List<dynamic>> fetchProcurements({String? search}) async {
     if (_isLocal) return LocalDb.instance.getProcurements(search: search);
+    final isCacheable = search == null || search.isEmpty;
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
       final res = await _dio!.get('/pos/procurements/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
-      return data is Map && data.containsKey('results')
+      final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      if (isCacheable) await _cacheStr('cache_procurements', list);
+      return list;
     } on DioException catch (e) {
+      if (e.response == null && isCacheable) {
+        final cached = await _getCache('cache_procurements');
+        if (cached != null) return cached as List;
+        throw Exception('Offline — no cached procurements available');
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load procurements');
     }
@@ -445,10 +553,17 @@ class PosApiClient {
     try {
       final res = await _dio!.get('/pos/stock-checks/');
       final data = res.data;
-      return data is Map && data.containsKey('results')
+      final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      await _cacheStr('cache_stock_checks', list);
+      return list;
     } on DioException catch (e) {
+      if (e.response == null) {
+        final cached = await _getCache('cache_stock_checks');
+        if (cached != null) return cached as List;
+        throw Exception('Offline — no cached stock checks available');
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load stock checks');
     }

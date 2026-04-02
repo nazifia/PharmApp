@@ -22,8 +22,10 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Eagerly preload inventory and customers so POS/Stock/Customer screens
-    // are ready instantly when navigated to.
+    // are ready instantly when navigated to. Retail POS uses retailInventoryProvider
+    // (separate cache key), so preload it here too so offline reads succeed.
     ref.watch(inventoryListProvider);
+    ref.watch(retailInventoryProvider);
     ref.watch(customerListProvider);
 
     final user        = ref.watch(currentUserProvider);
@@ -34,8 +36,10 @@ class AppShell extends ConsumerWidget {
     final canCustomers = Rbac.can(user, AppPermission.readCustomers);
     final isDark      = Theme.of(context).brightness == Brightness.dark;
     final location    = GoRouterState.of(context).matchedLocation;
-    final isOnline    = ref.watch(isOnlineProvider);
-    final pending     = ref.watch(offlineQueueProvider);
+    final isOnline      = ref.watch(isOnlineProvider);
+    final pendingSales  = ref.watch(offlineQueueProvider);
+    final pendingMuts   = ref.watch(offlineMutationQueueProvider);
+    final pending       = pendingSales.length + pendingMuts.length;
 
     // Auto-sync when coming back online
     ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) async {
@@ -54,7 +58,7 @@ class AppShell extends ConsumerWidget {
                 color: Colors.black, size: 20),
               const SizedBox(width: 10),
               Expanded(child: Text(result.failed == 0
-                  ? '${result.synced} offline sale${result.synced == 1 ? '' : 's'} synced successfully'
+                  ? '${result.synced} offline operation${result.synced == 1 ? '' : 's'} synced successfully'
                   : '${result.synced} synced, ${result.failed} still pending',
                 style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
             ]),
@@ -82,7 +86,7 @@ class AppShell extends ConsumerWidget {
       body: Column(children: [
         // ── Offline banner ──────────────────────────────────────────────────
         if (!isOnline)
-          _OfflineBanner(pendingCount: pending.length),
+          _OfflineBanner(pendingCount: pending),
         Expanded(child: child),
       ]),
       bottomNavigationBar: _AppBottomNav(
@@ -92,7 +96,7 @@ class AppShell extends ConsumerWidget {
         location: location,
         canInventory: canInventory,
         canCustomers: canCustomers,
-        pendingCount: pending.length,
+        pendingCount: pending,
         onMoreTap: () => _showMoreSheet(context, ref, isAdmin, isWholesale),
       ),
     );

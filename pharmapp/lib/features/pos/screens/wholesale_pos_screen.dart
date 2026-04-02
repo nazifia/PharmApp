@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -602,15 +603,32 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         patientName: patientName.isEmpty ? null : patientName,
       );
       if (!mounted) return;
+      setState(() => _cart.clear());
       _showSnackBar('Payment request sent to cashier', type: _SnackType.success);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.response == null) {
+        await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/payment-requests/',
+          body: {
+            'items': items,
+            if (effectiveCustomerId != null) 'customer_id': effectiveCustomerId,
+            'payment_type': 'wholesale',
+            if (patientName.isNotEmpty) 'patientName': patientName,
+          },
+          description: 'Wholesale payment request${patientName.isNotEmpty ? ' for $patientName' : ''}',
+        );
+        setState(() => _cart.clear());
+        _showSnackBar('Offline — request queued for sync', type: _SnackType.warning);
+      } else {
+        final msg = e.response?.data is Map && e.response!.data['detail'] != null
+            ? e.response!.data['detail'].toString()
+            : 'Request failed (${e.response?.statusCode ?? e.message})';
+        _showSnackBar(msg, type: _SnackType.error);
+      }
     } catch (e) {
       if (!mounted) return;
-      final msg = e is DioException
-          ? (e.response?.data is Map && e.response!.data['detail'] != null
-              ? e.response!.data['detail'].toString()
-              : 'Request failed (${e.response?.statusCode ?? e.message})')
-          : '$e';
-      _showSnackBar(msg, type: _SnackType.error);
+      _showSnackBar('$e', type: _SnackType.error);
     }
   }
 

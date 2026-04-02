@@ -76,10 +76,23 @@ class InventoryApiClient {
       if (row == null) throw Exception('Item not found');
       return _toItem(row);
     }
+    const prefix = 'cache_inventory_item_';
     try {
       final res = await _dio!.get('/inventory/items/$id/');
-      return Item.fromJson(_norm(res.data as Map<String, dynamic>));
+      final normalized = _norm(res.data as Map<String, dynamic>);
+      // Cache for offline access.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('$prefix$id', jsonEncode(normalized));
+      return Item.fromJson(normalized);
     } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString('$prefix$id');
+        if (raw != null) {
+          return Item.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        }
+        throw Exception('You are offline and this item is not cached yet.');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Item not found');
     }
   }
@@ -104,6 +117,7 @@ class InventoryApiClient {
       final res = await _dio!.post('/inventory/items/', data: data);
       return Item.fromJson(_norm(res.data as Map<String, dynamic>));
     } on DioException catch (e) {
+      if (e.response == null) rethrow; // connection failure — let caller queue
       throw Exception(e.response?.data?['detail'] ?? 'Failed to create item');
     }
   }
@@ -114,6 +128,7 @@ class InventoryApiClient {
       final res = await _dio!.patch('/inventory/items/$itemId/', data: data);
       return Item.fromJson(_norm(res.data as Map<String, dynamic>));
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to update item');
     }
   }
@@ -123,6 +138,7 @@ class InventoryApiClient {
     try {
       await _dio!.delete('/inventory/items/$itemId/');
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to delete item');
     }
   }
@@ -134,6 +150,7 @@ class InventoryApiClient {
           data: {'adjustment': adjustment, 'reason': reason});
       return Item.fromJson(_norm(res.data as Map<String, dynamic>));
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to adjust stock');
     }
   }

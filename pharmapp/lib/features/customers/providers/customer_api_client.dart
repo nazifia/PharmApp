@@ -124,10 +124,20 @@ class CustomerApiClient {
       if (row == null) throw Exception('Customer not found');
       return Customer.fromJson(row);
     }
+    const prefix = 'cache_customer_';
     try {
       final res = await _dio!.get('/customers/$id/');
-      return Customer.fromJson(res.data as Map<String, dynamic>);
+      final data = res.data as Map<String, dynamic>;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('$prefix$id', jsonEncode(data));
+      return Customer.fromJson(data);
     } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString('$prefix$id');
+        if (raw != null) return Customer.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        throw Exception('You are offline and this customer is not cached yet.');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Customer not found');
     }
   }
@@ -138,6 +148,7 @@ class CustomerApiClient {
       final res = await _dio!.post('/customers/', data: data);
       return Customer.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to create customer');
     }
   }
@@ -148,6 +159,7 @@ class CustomerApiClient {
       final res = await _dio!.patch('/customers/$id/', data: data);
       return Customer.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to update customer');
     }
   }
@@ -157,6 +169,7 @@ class CustomerApiClient {
     try {
       await _dio!.delete('/customers/$id/');
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to delete customer');
     }
   }
@@ -168,13 +181,25 @@ class CustomerApiClient {
       return (await LocalDb.instance.getWalletTransactions(id))
           .map((r) => WalletTransaction.fromJson(r)).toList();
     }
+    final cacheKey = 'cache_wallet_txns_$id';
     try {
       final res = await _dio!.get('/customers/$id/wallet/transactions/');
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List : data as List;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(cacheKey, jsonEncode(list));
       return list.map((e) => WalletTransaction.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(cacheKey);
+        if (raw != null) {
+          final list = jsonDecode(raw) as List;
+          return list.map((e) => WalletTransaction.fromJson(e as Map<String, dynamic>)).toList();
+        }
+        throw Exception('You are offline and wallet history is not cached yet.');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load wallet transactions');
     }
   }
@@ -184,6 +209,7 @@ class CustomerApiClient {
     try {
       await _dio!.post('/customers/$id/wallet/topup/', data: {'amount': amount});
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to top up wallet');
     }
   }
@@ -193,6 +219,7 @@ class CustomerApiClient {
     try {
       await _dio!.post('/customers/$id/wallet/deduct/', data: {'amount': amount});
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to deduct from wallet');
     }
   }
@@ -202,6 +229,7 @@ class CustomerApiClient {
     try {
       await _dio!.post('/customers/$id/wallet/reset/');
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to reset wallet');
     }
   }
@@ -211,6 +239,7 @@ class CustomerApiClient {
     try {
       await _dio!.post('/customers/$id/record-payment/', data: {'amount': amount, 'method': method});
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to record payment');
     }
   }
@@ -222,13 +251,25 @@ class CustomerApiClient {
       return (await LocalDb.instance.getCustomerSales(id))
           .map((r) => CustomerSale.fromJson(r)).toList();
     }
+    final cacheKey = 'cache_customer_sales_$id';
     try {
       final res = await _dio!.get('/customers/$id/sales/');
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List : data as List;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(cacheKey, jsonEncode(list));
       return list.map((e) => CustomerSale.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(cacheKey);
+        if (raw != null) {
+          final list = jsonDecode(raw) as List;
+          return list.map((e) => CustomerSale.fromJson(e as Map<String, dynamic>)).toList();
+        }
+        throw Exception('You are offline and customer sales are not cached yet.');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load customer sales');
     }
   }

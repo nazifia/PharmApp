@@ -1,9 +1,11 @@
 ﻿import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
@@ -66,6 +68,18 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
       _showSnack('Request accepted', EnhancedTheme.successGreen);
       setState(() => _selectedRequest = null);
       _loadRequests();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.response == null) {
+        await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/payment-requests/$id/accept/',
+          description: 'Accept payment request #$id',
+        );
+        _showSnack('Offline — acceptance queued for sync', EnhancedTheme.warningAmber);
+        setState(() => _selectedRequest = null);
+      } else {
+        _showError('Failed to accept: ${e.response?.data?['detail'] ?? e.message}');
+      }
     } catch (e) {
       if (!mounted) return;
       _showError('Failed to accept: $e');
@@ -79,6 +93,18 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
       _showSnack('Request rejected', EnhancedTheme.errorRed);
       setState(() => _selectedRequest = null);
       _loadRequests();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.response == null) {
+        await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/payment-requests/$id/reject/',
+          description: 'Reject payment request #$id',
+        );
+        _showSnack('Offline — rejection queued for sync', EnhancedTheme.warningAmber);
+        setState(() => _selectedRequest = null);
+      } else {
+        _showError('Failed to reject: ${e.response?.data?['detail'] ?? e.message}');
+      }
     } catch (e) {
       if (!mounted) return;
       _showError('Failed to reject: $e');
@@ -104,6 +130,22 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
       _showSnack('Payment completed', EnhancedTheme.successGreen);
       setState(() => _selectedRequest = null);
       _loadRequests();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.response == null) {
+        await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/payment-requests/$id/complete/',
+          body: {
+            'payment': result['payment'],
+            'payment_method': result['paymentMethod'],
+          },
+          description: 'Complete payment request #$id',
+        );
+        _showSnack('Offline — completion queued for sync', EnhancedTheme.warningAmber);
+        setState(() => _selectedRequest = null);
+      } else {
+        _showError('Failed to complete: ${e.response?.data?['detail'] ?? e.message}');
+      }
     } catch (e) {
       if (!mounted) return;
       _showError('Failed to complete: $e');

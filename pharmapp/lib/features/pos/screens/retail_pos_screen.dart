@@ -1,9 +1,11 @@
 ﻿import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/cart_item.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -179,7 +181,28 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         patientName: patientName.isEmpty ? null : patientName,
       );
       if (!mounted) return;
+      ref.read(cartProvider.notifier).clearCart();
+      ref.read(selectedCustomerProvider.notifier).state = null;
       _showSnackBar('Payment request sent to cashier', type: _SnackType.success);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.response == null) {
+        await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/payment-requests/',
+          body: {
+            'items': items,
+            if (customerId != null) 'customer_id': customerId,
+            'payment_type': 'retail',
+            if (patientName.isNotEmpty) 'patientName': patientName,
+          },
+          description: 'Send payment request to cashier${patientName.isNotEmpty ? ' for $patientName' : ''}',
+        );
+        ref.read(cartProvider.notifier).clearCart();
+        ref.read(selectedCustomerProvider.notifier).state = null;
+        _showSnackBar('Offline — request queued for sync', type: _SnackType.warning);
+      } else {
+        _showSnackBar(e.response?.data?['detail']?.toString() ?? '$e', type: _SnackType.error);
+      }
     } catch (e) {
       if (!mounted) return;
       _showSnackBar('$e', type: _SnackType.error);
@@ -191,12 +214,16 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         ? EnhancedTheme.successGreen
         : type == _SnackType.error
             ? EnhancedTheme.errorRed
-            : EnhancedTheme.infoBlue;
+            : type == _SnackType.warning
+                ? EnhancedTheme.warningAmber
+                : EnhancedTheme.infoBlue;
     final icon = type == _SnackType.success
         ? Icons.check_circle_rounded
         : type == _SnackType.error
             ? Icons.error_rounded
-            : Icons.info_rounded;
+            : type == _SnackType.warning
+                ? Icons.cloud_off_rounded
+                : Icons.info_rounded;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       backgroundColor: color.withValues(alpha: 0.92),
       behavior: SnackBarBehavior.floating,
@@ -1371,4 +1398,4 @@ class _QtyFieldState extends State<_QtyField> {
 }
 
 // ── Snack type helper ─────────────────────────────────────────────────────────
-enum _SnackType { success, error }
+enum _SnackType { success, error, warning }
