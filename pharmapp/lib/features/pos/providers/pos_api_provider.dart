@@ -141,6 +141,7 @@ class PosApiClient {
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Return failed');
     }
   }
@@ -326,6 +327,7 @@ class PosApiClient {
           await _dio!.post('/pos/expense-categories/', data: {'name': name});
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to create expense category');
     }
@@ -379,6 +381,7 @@ class PosApiClient {
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to create expense');
     }
@@ -389,6 +392,7 @@ class PosApiClient {
     try {
       await _dio!.delete('/pos/expenses/$id/');
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to delete expense');
     }
@@ -463,6 +467,7 @@ class PosApiClient {
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to create supplier');
     }
@@ -473,6 +478,7 @@ class PosApiClient {
     try {
       await _dio!.delete('/pos/suppliers/$id/');
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to delete supplier');
     }
@@ -526,6 +532,7 @@ class PosApiClient {
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to create procurement');
     }
@@ -542,6 +549,7 @@ class PosApiClient {
           data: {'destination': destination});
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to complete procurement');
     }
@@ -575,6 +583,7 @@ class PosApiClient {
       final res = await _dio!.post('/pos/stock-checks/');
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to create stock check');
     }
@@ -601,6 +610,7 @@ class PosApiClient {
           .post('/pos/stock-checks/$checkId/items/', data: {'item_id': itemId});
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to add stock check item');
     }
@@ -620,6 +630,7 @@ class PosApiClient {
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to update stock check item');
     }
@@ -631,6 +642,7 @@ class PosApiClient {
       final res = await _dio!.post('/pos/stock-checks/$id/approve/');
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to approve stock check');
     }
@@ -641,6 +653,7 @@ class PosApiClient {
     try {
       await _dio!.delete('/pos/stock-checks/$id/');
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to delete stock check');
     }
@@ -750,6 +763,7 @@ class PosApiClient {
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to create user');
     }
   }
@@ -759,6 +773,7 @@ class PosApiClient {
     try {
       await _dio!.delete('/pos/users/$id/');
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to delete user');
     }
   }
@@ -771,6 +786,7 @@ class PosApiClient {
       await _dio!.post('/pos/users/$id/change-password/',
           data: {'new_password': newPassword});
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to change password');
     }
@@ -789,6 +805,7 @@ class PosApiClient {
       final res = await _dio!.patch('/pos/users/$id/', data: data);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to update user');
     }
   }
@@ -819,6 +836,7 @@ class PosApiClient {
       );
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to save permissions');
     }
   }
@@ -942,6 +960,7 @@ class PosApiClient {
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Return failed');
     }
   }
@@ -1015,6 +1034,7 @@ class PosApiClient {
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to create transfer');
     }
@@ -1029,6 +1049,7 @@ class PosApiClient {
           data: {'approvedQty': approvedQty});
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to approve transfer');
     }
@@ -1040,6 +1061,7 @@ class PosApiClient {
       final res = await _dio!.post('/pos/wholesale/transfers/$id/reject/');
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to reject transfer');
     }
@@ -1051,6 +1073,7 @@ class PosApiClient {
       final res = await _dio!.post('/pos/wholesale/transfers/$id/receive/');
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to receive transfer');
     }
@@ -1171,3 +1194,786 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
 final checkoutProvider =
     StateNotifierProvider<CheckoutNotifier, AsyncValue<void>>(
         (ref) => CheckoutNotifier(ref));
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  OFFLINE-AWARE WRITE NOTIFIERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Returns (retail + wholesale) ─────────────────────────────────────────────
+
+class PosReturnNotifier extends StateNotifier<AsyncValue<void>> {
+  final PosApiClient _api;
+  final Ref _ref;
+  PosReturnNotifier(this._api, this._ref) : super(const AsyncValue.data(null));
+
+  Future<Map<String, dynamic>?> returnItem(int saleId,
+      {required int saleItemId,
+      required int quantity,
+      String refundMethod = 'wallet',
+      String reason = ''}) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.returnItem(saleId,
+          saleItemId: saleItemId,
+          quantity: quantity,
+          refundMethod: refundMethod,
+          reason: reason);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/sales/$saleId/return-item/',
+          body: {'sale_item_id': saleItemId, 'quantity': quantity,
+                 'refund_method': refundMethod, 'reason': reason},
+          description: 'Return item from sale #$saleId',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+}
+
+final posReturnNotifierProvider =
+    StateNotifierProvider<PosReturnNotifier, AsyncValue<void>>(
+        (ref) => PosReturnNotifier(ref.watch(posApiProvider), ref));
+
+// ── Payment Requests ──────────────────────────────────────────────────────────
+
+class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
+  final PosApiClient _api;
+  final Ref _ref;
+  PaymentRequestNotifier(this._api, this._ref)
+      : super(const AsyncValue.data(null));
+
+  Future<Map<String, dynamic>?> sendToCashier(
+      List<Map<String, dynamic>> items,
+      {int? customerId, int? cashierId,
+       String paymentType = 'retail', String? patientName}) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.sendToCashier(items,
+          customerId: customerId, cashierId: cashierId,
+          paymentType: paymentType, patientName: patientName);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        final body = {
+          'items': items,
+          if (customerId != null) 'customer_id': customerId,
+          if (cashierId != null) 'cashier_id': cashierId,
+          'payment_type': paymentType,
+          if (patientName != null && patientName.isNotEmpty) 'patientName': patientName,
+        };
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/payment-requests/',
+          body: body,
+          description: 'Send to cashier',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> acceptPaymentRequest(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.acceptPaymentRequest(id);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/payment-requests/$id/accept/',
+          description: 'Accept payment request #$id',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> rejectPaymentRequest(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.rejectPaymentRequest(id);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/payment-requests/$id/reject/',
+          description: 'Reject payment request #$id',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+}
+
+final paymentRequestNotifierProvider =
+    StateNotifierProvider<PaymentRequestNotifier, AsyncValue<void>>(
+        (ref) => PaymentRequestNotifier(ref.watch(posApiProvider), ref));
+
+// ── Expenses ──────────────────────────────────────────────────────────────────
+
+class ExpenseNotifier extends StateNotifier<AsyncValue<void>> {
+  final PosApiClient _api;
+  final Ref _ref;
+  ExpenseNotifier(this._api, this._ref) : super(const AsyncValue.data(null));
+
+  Future<Map<String, dynamic>?> createExpenseCategory(String name) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.createExpenseCategory(name);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/expense-categories/',
+          body: {'name': name},
+          description: 'Create expense category "$name"',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<bool> deleteExpense(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.deleteExpense(id);
+      state = const AsyncValue.data(null);
+      return true;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'DELETE', '/pos/expenses/$id/',
+          description: 'Delete expense #$id',
+        );
+        state = const AsyncValue.data(null);
+        return true;
+      }
+      state = AsyncValue.error(e, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> createExpense({
+    required int categoryId, required double amount,
+    String description = '', String? date,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.createExpense(
+        categoryId: categoryId, amount: amount,
+        description: description, date: date);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/expenses/',
+          body: {'category_id': categoryId, 'amount': amount,
+                 'description': description, if (date != null) 'date': date},
+          description: 'Create expense ₦$amount',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+}
+
+final expenseNotifierProvider =
+    StateNotifierProvider<ExpenseNotifier, AsyncValue<void>>(
+        (ref) => ExpenseNotifier(ref.watch(posApiProvider), ref));
+
+// ── Suppliers ─────────────────────────────────────────────────────────────────
+
+class SupplierNotifier extends StateNotifier<AsyncValue<void>> {
+  final PosApiClient _api;
+  final Ref _ref;
+  SupplierNotifier(this._api, this._ref) : super(const AsyncValue.data(null));
+
+  Future<Map<String, dynamic>?> createSupplier({
+    required String name, String phone = '', String contactInfo = '',
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.createSupplier(
+          name: name, phone: phone, contactInfo: contactInfo);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/suppliers/',
+          body: {'name': name, 'phone': phone, 'contact_info': contactInfo},
+          description: 'Create supplier "$name"',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<bool> deleteSupplier(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.deleteSupplier(id);
+      state = const AsyncValue.data(null);
+      return true;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'DELETE', '/pos/suppliers/$id/',
+          description: 'Delete supplier #$id',
+        );
+        state = const AsyncValue.data(null);
+        return true;
+      }
+      state = AsyncValue.error(e, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+}
+
+final supplierNotifierProvider =
+    StateNotifierProvider<SupplierNotifier, AsyncValue<void>>(
+        (ref) => SupplierNotifier(ref.watch(posApiProvider), ref));
+
+// ── Procurements ──────────────────────────────────────────────────────────────
+
+class ProcurementNotifier extends StateNotifier<AsyncValue<void>> {
+  final PosApiClient _api;
+  final Ref _ref;
+  ProcurementNotifier(this._api, this._ref) : super(const AsyncValue.data(null));
+
+  Future<Map<String, dynamic>?> createProcurement({
+    required int supplierId, required List<Map<String, dynamic>> items,
+    String status = 'draft', String destination = 'retail',
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.createProcurement(
+          supplierId: supplierId, items: items,
+          status: status, destination: destination);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/procurements/',
+          body: {'supplier_id': supplierId, 'items': items,
+                 'status': status, 'destination': destination},
+          description: 'Create procurement from supplier #$supplierId',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> completeProcurement(int id,
+      {String destination = 'retail'}) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.completeProcurement(id, destination: destination);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/procurements/$id/complete/',
+          body: {'destination': destination},
+          description: 'Complete procurement #$id',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+}
+
+final procurementNotifierProvider =
+    StateNotifierProvider<ProcurementNotifier, AsyncValue<void>>(
+        (ref) => ProcurementNotifier(ref.watch(posApiProvider), ref));
+
+// ── Stock Checks ──────────────────────────────────────────────────────────────
+
+class StockCheckNotifier extends StateNotifier<AsyncValue<void>> {
+  final PosApiClient _api;
+  final Ref _ref;
+  StockCheckNotifier(this._api, this._ref) : super(const AsyncValue.data(null));
+
+  Future<Map<String, dynamic>?> createStockCheck() async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.createStockCheck();
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/stock-checks/',
+          description: 'Create stock check',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> addStockCheckItem(int checkId, int itemId) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.addStockCheckItem(checkId, itemId);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/stock-checks/$checkId/items/',
+          body: {'item_id': itemId},
+          description: 'Add item to stock check #$checkId',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> updateStockCheckItem(
+      int checkId, int itemId, int actualQuantity, String itemStatus) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.updateStockCheckItem(
+          checkId, itemId, actualQuantity, itemStatus);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'PATCH', '/pos/stock-checks/$checkId/items/$itemId/',
+          body: {'actual_quantity': actualQuantity, 'status': itemStatus},
+          description: 'Update stock check item #$itemId',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> approveStockCheck(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.approveStockCheck(id);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/stock-checks/$id/approve/',
+          description: 'Approve stock check #$id',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<bool> deleteStockCheck(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.deleteStockCheck(id);
+      state = const AsyncValue.data(null);
+      return true;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'DELETE', '/pos/stock-checks/$id/',
+          description: 'Delete stock check #$id',
+        );
+        state = const AsyncValue.data(null);
+        return true;
+      }
+      state = AsyncValue.error(e, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+}
+
+final stockCheckNotifierProvider =
+    StateNotifierProvider<StockCheckNotifier, AsyncValue<void>>(
+        (ref) => StockCheckNotifier(ref.watch(posApiProvider), ref));
+
+// ── Transfers ─────────────────────────────────────────────────────────────────
+
+class TransferNotifier extends StateNotifier<AsyncValue<void>> {
+  final PosApiClient _api;
+  final Ref _ref;
+  TransferNotifier(this._api, this._ref) : super(const AsyncValue.data(null));
+
+  Future<Map<String, dynamic>?> createTransfer({
+    required String itemName, required int requestedQty,
+    String unit = 'Pcs', bool fromWholesale = true, String notes = '',
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.createTransfer(
+          itemName: itemName, requestedQty: requestedQty,
+          unit: unit, fromWholesale: fromWholesale, notes: notes);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/wholesale/transfers/',
+          body: {'itemName': itemName, 'requestedQty': requestedQty,
+                 'unit': unit, 'fromWholesale': fromWholesale, 'notes': notes},
+          description: 'Create transfer "$itemName"',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> approveTransfer(int id, int approvedQty) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.approveTransfer(id, approvedQty);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/wholesale/transfers/$id/approve/',
+          body: {'approvedQty': approvedQty},
+          description: 'Approve transfer #$id',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> rejectTransfer(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.rejectTransfer(id);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/wholesale/transfers/$id/reject/',
+          description: 'Reject transfer #$id',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> receiveTransfer(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.receiveTransfer(id);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/wholesale/transfers/$id/receive/',
+          description: 'Receive transfer #$id',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+}
+
+final transferNotifierProvider =
+    StateNotifierProvider<TransferNotifier, AsyncValue<void>>(
+        (ref) => TransferNotifier(ref.watch(posApiProvider), ref));
+
+// ── User Management ───────────────────────────────────────────────────────────
+
+class UserNotifier extends StateNotifier<AsyncValue<void>> {
+  final PosApiClient _api;
+  final Ref _ref;
+  UserNotifier(this._api, this._ref) : super(const AsyncValue.data(null));
+
+  Future<Map<String, dynamic>?> createUser({
+    required String phoneNumber, required String password,
+    String role = 'Cashier', String username = '',
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.createUser(
+          phoneNumber: phoneNumber, password: password,
+          role: role, username: username);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/users/',
+          body: {'phoneNumber': phoneNumber, 'password': password,
+                 'role': role},
+          description: 'Create user "$phoneNumber"',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<bool> deleteUser(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.deleteUser(id);
+      state = const AsyncValue.data(null);
+      return true;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'DELETE', '/pos/users/$id/',
+          description: 'Delete user #$id',
+        );
+        state = const AsyncValue.data(null);
+        return true;
+      }
+      state = AsyncValue.error(e, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+
+  Future<bool> changePassword(int id, String newPassword) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.changePassword(id, newPassword);
+      state = const AsyncValue.data(null);
+      return true;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/users/$id/change-password/',
+          body: {'new_password': newPassword},
+          description: 'Change password for user #$id',
+        );
+        state = const AsyncValue.data(null);
+        return true;
+      }
+      state = AsyncValue.error(e, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> updateUser(int id,
+      {String? role, bool? isActive, String? username}) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.updateUser(
+          id, role: role, isActive: isActive, username: username);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        final body = <String, dynamic>{};
+        if (role != null) body['role'] = role;
+        if (isActive != null) body['is_active'] = isActive;
+        if (username != null) body['username'] = username;
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'PATCH', '/pos/users/$id/',
+          body: body,
+          description: 'Update user #$id',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> saveUserPermissions(
+      int userId, Map<String, String> overrides) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.saveUserPermissions(userId, overrides);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/auth/users/$userId/permissions/',
+          body: {'overrides': overrides},
+          description: 'Save permissions for user #$userId',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+}
+
+final userNotifierProvider =
+    StateNotifierProvider<UserNotifier, AsyncValue<void>>(
+        (ref) => UserNotifier(ref.watch(posApiProvider), ref));
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+class NotificationActionNotifier extends StateNotifier<AsyncValue<void>> {
+  final PosApiClient _api;
+  final Ref _ref;
+  NotificationActionNotifier(this._api, this._ref)
+      : super(const AsyncValue.data(null));
+
+  Future<void> markRead(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.markNotificationRead(id);
+      state = const AsyncValue.data(null);
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/notifications/$id/read/',
+          description: 'Mark notification #$id read',
+        );
+        state = const AsyncValue.data(null);
+        return;
+      }
+      state = AsyncValue.error(e, st);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+}
+
+final notificationActionNotifierProvider =
+    StateNotifierProvider<NotificationActionNotifier, AsyncValue<void>>(
+        (ref) => NotificationActionNotifier(ref.watch(posApiProvider), ref));
+

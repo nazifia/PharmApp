@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -61,7 +62,30 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
     });
   }
 
+  /// Optimistically update the status of a request in the local list and close the detail view.
+  void _updateLocalStatus(int id, String newStatus) {
+    setState(() {
+      _selectedRequest = null;
+      _requests = _requests.map((r) {
+        final rid = (r['id'] as num?)?.toInt();
+        if (rid == id) return <String, dynamic>{...(r as Map<String, dynamic>), 'status': newStatus};
+        return r;
+      }).toList();
+    });
+  }
+
   Future<void> _acceptRequest(int id) async {
+    final isOnline = ref.read(isOnlineProvider);
+    if (!isOnline) {
+      await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+        'POST', '/pos/payment-requests/$id/accept/',
+        description: 'Accept payment request #$id',
+      );
+      if (!mounted) return;
+      _showSnack('Offline — acceptance queued for sync', EnhancedTheme.warningAmber);
+      _updateLocalStatus(id, 'accepted');
+      return;
+    }
     try {
       await ref.read(posApiProvider).acceptPaymentRequest(id);
       if (!mounted) return;
@@ -76,7 +100,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
           description: 'Accept payment request #$id',
         );
         _showSnack('Offline — acceptance queued for sync', EnhancedTheme.warningAmber);
-        setState(() => _selectedRequest = null);
+        _updateLocalStatus(id, 'accepted');
       } else {
         _showError('Failed to accept: ${e.response?.data?['detail'] ?? e.message}');
       }
@@ -87,6 +111,17 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
   }
 
   Future<void> _rejectRequest(int id) async {
+    final isOnline = ref.read(isOnlineProvider);
+    if (!isOnline) {
+      await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+        'POST', '/pos/payment-requests/$id/reject/',
+        description: 'Reject payment request #$id',
+      );
+      if (!mounted) return;
+      _showSnack('Offline — rejection queued for sync', EnhancedTheme.warningAmber);
+      _updateLocalStatus(id, 'rejected');
+      return;
+    }
     try {
       await ref.read(posApiProvider).rejectPaymentRequest(id);
       if (!mounted) return;
@@ -101,7 +136,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
           description: 'Reject payment request #$id',
         );
         _showSnack('Offline — rejection queued for sync', EnhancedTheme.warningAmber);
-        setState(() => _selectedRequest = null);
+        _updateLocalStatus(id, 'rejected');
       } else {
         _showError('Failed to reject: ${e.response?.data?['detail'] ?? e.message}');
       }
@@ -120,6 +155,22 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
       ),
     );
     if (result == null || !mounted) return;
+
+    final isOnline = ref.read(isOnlineProvider);
+    if (!isOnline) {
+      await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+        'POST', '/pos/payment-requests/$id/complete/',
+        body: {
+          'payment': result['payment'],
+          'payment_method': result['paymentMethod'],
+        },
+        description: 'Complete payment request #$id',
+      );
+      if (!mounted) return;
+      _showSnack('Offline — completion queued for sync', EnhancedTheme.warningAmber);
+      _updateLocalStatus(id, 'completed');
+      return;
+    }
     try {
       await ref.read(posApiProvider).completePaymentRequest(
         id,
@@ -142,7 +193,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
           description: 'Complete payment request #$id',
         );
         _showSnack('Offline — completion queued for sync', EnhancedTheme.warningAmber);
-        setState(() => _selectedRequest = null);
+        _updateLocalStatus(id, 'completed');
       } else {
         _showError('Failed to complete: ${e.response?.data?['detail'] ?? e.message}');
       }
@@ -350,9 +401,10 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 icon: const Icon(Icons.payment_rounded, size: 18),
                 label: Text('Complete Payment', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  padding: EdgeInsets.zero,
+                  backgroundColor: EnhancedTheme.primaryTeal,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 2,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
               )),

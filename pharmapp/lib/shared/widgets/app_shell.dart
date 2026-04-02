@@ -134,20 +134,27 @@ class _OfflineBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: EnhancedTheme.warningAmber,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Row(children: [
-        const Icon(Icons.cloud_off_rounded, color: Colors.black, size: 15),
-        const SizedBox(width: 8),
-        Expanded(child: Text(
-          pendingCount > 0
-              ? 'Offline — $pendingCount sale${pendingCount == 1 ? '' : 's'} queued for sync'
-              : 'Offline — changes will sync when connected',
-          style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w600),
-        )),
-      ]),
+    return GestureDetector(
+      onTap: () => context.go('/dashboard/sync-queue'),
+      child: Container(
+        width: double.infinity,
+        color: EnhancedTheme.warningAmber,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Row(children: [
+          const Icon(Icons.cloud_off_rounded, color: Colors.black, size: 15),
+          const SizedBox(width: 8),
+          Expanded(child: Text(
+            pendingCount > 0
+                ? 'Offline — $pendingCount operation${pendingCount == 1 ? '' : 's'} queued for sync'
+                : 'Offline — changes will sync when connected',
+            style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w600),
+          )),
+          if (pendingCount > 0) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right_rounded, color: Colors.black, size: 16),
+          ],
+        ]),
+      ),
     );
   }
 }
@@ -398,6 +405,9 @@ class _MoreSheet extends StatelessWidget {
     final canTransfers = Rbac.can(user, AppPermission.manageTransfers);
     final canInventory = Rbac.can(user, AppPermission.readInventory);
     final canPOS      = Rbac.can(user, AppPermission.retailPOS);
+    final pendingSales = ref.read(offlineQueueProvider);
+    final pendingMuts  = ref.read(offlineMutationQueueProvider);
+    final pendingTotal = pendingSales.length + pendingMuts.length;
 
     final tiles = [
       if (canReports)
@@ -422,6 +432,8 @@ class _MoreSheet extends StatelessWidget {
         _MoreTile(Icons.notifications_rounded,          'Alerts',      EnhancedTheme.errorRed,      () => nav('/dashboard/notifications')),
         _MoreTile(Icons.settings_rounded,               'Settings',    isDark ? Colors.white54 : Colors.black54, () => nav('/dashboard/settings')),
       ],
+      if (pendingTotal > 0)
+        _MoreTile(Icons.cloud_sync_rounded,             'Sync ($pendingTotal)', EnhancedTheme.warningAmber, () => nav('/dashboard/sync-queue')),
     ];
 
     return Container(

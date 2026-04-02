@@ -41,6 +41,7 @@ import 'package:pharmapp/features/auth/screens/user_management_screen.dart';
 import 'package:pharmapp/features/notifications/screens/notifications_screen.dart';
 import 'package:pharmapp/features/subscription/screens/subscription_screen.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/sync_queue_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -188,6 +189,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'payment-requests',name: 'payment_requests',builder: (_, __) => const PaymentRequestsScreen()),
               GoRoute(path: 'transfers',       name: 'transfers',       builder: (_, __) => const TransfersScreen()),
               GoRoute(path: 'wholesale-sales', name: 'wholesale_sales', builder: (_, __) => const WholesaleSalesScreen()),
+              GoRoute(path: 'sync-queue',      name: 'sync_queue',      builder: (_, __) => const SyncQueueScreen()),
             ],
           ),
 
