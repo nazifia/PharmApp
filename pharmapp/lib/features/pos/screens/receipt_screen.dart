@@ -488,35 +488,29 @@ class _ReceiptCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
-                        EnhancedTheme.accentCyan.withValues(alpha: 0.12),
-                      ],
-                    ),
+                    color: Colors.transparent,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                        blurRadius: 12, offset: const Offset(0, 4)),
-                    ],
+                        color: EnhancedTheme.primaryTeal,
+                        width: 1.5),
                   ),
                   child: Row(children: [
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('TOTAL AMOUNT',
                           style: TextStyle(
-                              color: textHint, fontSize: 10,
+                              color: isDark ? Colors.white : const Color(0xFF0F766E),
+                              fontSize: 10,
                               fontWeight: FontWeight.w700, letterSpacing: 1.5)),
                       const SizedBox(height: 2),
                       Text(isWholesale ? 'Wholesale Sale' : 'Retail Sale',
-                          style: TextStyle(color: textMid, fontSize: 11)),
+                          style: TextStyle(
+                              color: isDark ? EnhancedTheme.primaryTeal : const Color(0xFF0D9488),
+                              fontSize: 11, fontWeight: FontWeight.w600)),
                     ]),
                     const Spacer(),
                     Text('₦${_fmt(total)}',
-                        style: const TextStyle(
-                            color: EnhancedTheme.primaryTeal,
+                        style: TextStyle(
+                            color: isDark ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal,
                             fontSize: 26, fontWeight: FontWeight.w900)),
                   ]),
                 ),
@@ -901,17 +895,26 @@ Future<Uint8List> _buildPdf(
           pw.SizedBox(height: 2),
         ],
         pw.Container(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: pw.BoxDecoration(
-            color: PdfColor(0.051, 0.580, 0.533, 0.1),
+            color: PdfColors.white,
             borderRadius: pw.BorderRadius.circular(4),
+            border: pw.Border.all(color: teal, width: 1.2),
           ),
           child: pw.Row(children: [
-            pw.Text('TOTAL',
-                style: pw.TextStyle(font: fontBold, fontSize: 12, color: teal)),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('TOTAL AMOUNT',
+                    style: pw.TextStyle(font: fontBold, fontSize: 8, color: teal,
+                        letterSpacing: 1.2)),
+                pw.Text(isWholesale ? 'Wholesale Sale' : 'Retail Sale',
+                    style: pw.TextStyle(font: fontBold, fontSize: 7, color: black)),
+              ],
+            ),
             pw.Spacer(),
             pw.Text(fmt(total),
-                style: pw.TextStyle(font: fontBold, fontSize: 14, color: teal)),
+                style: pw.TextStyle(font: fontBold, fontSize: 16, color: black)),
           ]),
         ),
 
