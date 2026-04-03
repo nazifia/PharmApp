@@ -533,9 +533,10 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     try {
       final dt = DateTime.parse(raw);
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      final h = dt.hour.toString().padLeft(2, '0');
+      final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
       final m = dt.minute.toString().padLeft(2, '0');
-      return '${months[dt.month - 1]} ${dt.day}, $h:$m';
+      final ampm = dt.hour < 12 ? 'AM' : 'PM';
+      return '${months[dt.month - 1]} ${dt.day}, $hour12:$m $ampm';
     } catch (_) {
       return raw.length > 16 ? raw.substring(0, 16) : raw;
     }
@@ -1021,9 +1022,10 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
     try {
       final dt = DateTime.parse(raw);
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      final h = dt.hour.toString().padLeft(2, '0');
+      final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
       final m = dt.minute.toString().padLeft(2, '0');
-      return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $h:$m';
+      final ampm = dt.hour < 12 ? 'AM' : 'PM';
+      return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $hour12:$m $ampm';
     } catch (_) {
       return raw;
     }

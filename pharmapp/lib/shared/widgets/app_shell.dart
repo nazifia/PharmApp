@@ -44,43 +44,45 @@ class AppShell extends ConsumerWidget {
     final pendingMuts   = ref.watch(offlineMutationQueueProvider);
     final pending       = pendingSales.length + pendingMuts.length;
 
-    // Auto-sync when coming back online
+    // Auto-sync when coming back online (or on startup if already online with pending items)
     ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) async {
-      if (nowOnline && !(wasOnline ?? true)) {
-        final result = await ref.read(syncServiceProvider).syncAll();
+      if (!nowOnline || wasOnline == true) return;
+      final hasPending = ref.read(offlineQueueProvider).isNotEmpty ||
+                         ref.read(offlineMutationQueueProvider).isNotEmpty;
+      if (!hasPending) return;
+      final result = await ref.read(syncServiceProvider).syncAll();
 
-        // Invalidate all data providers so open screens reload fresh data
-        // from the server instead of showing stale offline-cached values.
-        if (result.synced > 0) {
-          ref.invalidate(salesListProvider);
-          ref.invalidate(salesReportProvider);
-          ref.invalidate(profitReportProvider);
-          ref.invalidate(inventoryReportProvider);
-          ref.invalidate(customerReportProvider);
-          ref.invalidate(inventoryListProvider);
-          ref.invalidate(retailInventoryProvider);
-          ref.invalidate(customerListProvider);
-        }
+      // Invalidate all data providers so open screens reload fresh data
+      // from the server instead of showing stale offline-cached values.
+      if (result.synced > 0) {
+        ref.invalidate(salesListProvider);
+        ref.invalidate(salesReportProvider);
+        ref.invalidate(profitReportProvider);
+        ref.invalidate(inventoryReportProvider);
+        ref.invalidate(customerReportProvider);
+        ref.invalidate(inventoryListProvider);
+        ref.invalidate(retailInventoryProvider);
+        ref.invalidate(customerListProvider);
+      }
 
-        if (result.hasWork && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            backgroundColor: (result.failed == 0 ? EnhancedTheme.successGreen : EnhancedTheme.warningAmber).withValues(alpha: 0.92),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 4),
-            content: Row(children: [
-              Icon(
-                result.failed == 0 ? Icons.cloud_done_rounded : Icons.cloud_sync_rounded,
-                color: Colors.black, size: 20),
-              const SizedBox(width: 10),
-              Expanded(child: Text(result.failed == 0
-                  ? '${result.synced} offline operation${result.synced == 1 ? '' : 's'} synced successfully'
-                  : '${result.synced} synced, ${result.failed} still pending',
-                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-            ]),
-          ));
-        }
+      if (result.hasWork && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: (result.failed == 0 ? EnhancedTheme.successGreen : EnhancedTheme.warningAmber).withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 4),
+          content: Row(children: [
+            Icon(
+              result.failed == 0 ? Icons.cloud_done_rounded : Icons.cloud_sync_rounded,
+              color: Colors.black, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(result.failed == 0
+                ? '${result.synced} offline operation${result.synced == 1 ? '' : 's'} synced successfully'
+                : '${result.synced} synced, ${result.failed} still pending',
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+          ]),
+        ));
       }
     });
 

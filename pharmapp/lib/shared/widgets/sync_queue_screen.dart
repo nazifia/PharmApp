@@ -946,7 +946,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
     if (diff.inMinutes < 1) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return DateFormat('MMM d, HH:mm').format(dt);
+    return DateFormat('MMM d, h:mm a').format(dt);
   }
 
   Color _methodColor(String method) {

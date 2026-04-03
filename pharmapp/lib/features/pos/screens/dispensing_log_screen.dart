@@ -759,9 +759,10 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
     try {
       final dt = DateTime.parse(raw).toLocal();
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      final hour = dt.hour.toString().padLeft(2, '0');
+      final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
       final minute = dt.minute.toString().padLeft(2, '0');
-      return '${months[dt.month - 1]} ${dt.day}, $hour:$minute';
+      final ampm = dt.hour < 12 ? 'AM' : 'PM';
+      return '${months[dt.month - 1]} ${dt.day}, $hour12:$minute $ampm';
     } catch (_) {
       return raw.length > 16 ? raw.substring(0, 16) : raw;
     }

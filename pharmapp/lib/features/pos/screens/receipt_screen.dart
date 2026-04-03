@@ -610,9 +610,10 @@ class _ReceiptCard extends StatelessWidget {
         'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
       ];
-      final h = dt.hour.toString().padLeft(2, '0');
+      final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
       final m = dt.minute.toString().padLeft(2, '0');
-      return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $h:$m';
+      final ampm = dt.hour < 12 ? 'AM' : 'PM';
+      return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $hour12:$m $ampm';
     } catch (_) {
       return raw.length > 16 ? raw.substring(0, 16) : raw;
     }
@@ -730,7 +731,7 @@ Future<Uint8List> _buildPdf(
     const months = ['Jan','Feb','Mar','Apr','May','Jun',
                     'Jul','Aug','Sep','Oct','Nov','Dec'];
     dateStr = '${months[dt.month-1]} ${dt.day}, ${dt.year}  '
-        '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+        '${dt.hour % 12 == 0 ? 12 : dt.hour % 12}:${dt.minute.toString().padLeft(2,'0')} ${dt.hour < 12 ? 'AM' : 'PM'}';
   } catch (_) {}
 
   // Build payments map

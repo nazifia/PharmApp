@@ -27,7 +27,7 @@ class WalletTransaction {
         final dt = DateTime.parse(rawDate).toLocal();
         formatted = '${dt.day.toString().padLeft(2,'0')}/'
             '${dt.month.toString().padLeft(2,'0')}/${dt.year}  '
-            '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+            '${dt.hour % 12 == 0 ? 12 : dt.hour % 12}:${dt.minute.toString().padLeft(2,'0')} ${dt.hour < 12 ? 'AM' : 'PM'}';
       } catch (_) {}
     }
     return WalletTransaction(
