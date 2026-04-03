@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/config/app_config.dart';
+import 'core/inactivity/inactivity_provider.dart';
 import 'core/theme/enhanced_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
@@ -69,7 +70,11 @@ class _AppStartup extends ConsumerWidget {
             ),
           );
         }
-        return const PharmApp();
+        final authenticated = snap.data == true;
+        final app = const PharmApp();
+        return authenticated
+            ? InactivityGuard(child: app)
+            : app;
       },
     );
   }
