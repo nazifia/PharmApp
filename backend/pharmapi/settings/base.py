@@ -149,8 +149,6 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
-    "default_theme": "dark",
-    "default_theme_mode": "dark",
     "button_classes": {
         "primary":   "btn-primary",
         "secondary": "btn-secondary",
