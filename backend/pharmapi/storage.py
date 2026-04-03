@@ -1,22 +1,19 @@
 try:
-    from whitenoise.storage import CompressedManifestStaticFilesStorage as _Base
+    from whitenoise.storage import CompressedStaticFilesStorage as _Base
 except ImportError:
     # whitenoise is a production dependency; not installed in dev.
-    # Provide a no-op base so this module is importable everywhere.
-    from django.contrib.staticfiles.storage import ManifestStaticFilesStorage as _Base
+    from django.contrib.staticfiles.storage import StaticFilesStorage as _Base
 
 
-class RelaxedManifestStaticFilesStorage(_Base):
+class CompressedNoManifestStorage(_Base):
     """
-    Subclass of WhiteNoise's CompressedManifestStaticFilesStorage with
-    manifest_strict disabled.
+    WhiteNoise CompressedStaticFilesStorage without a manifest.
 
-    By default, ManifestStaticFilesStorage raises ValueError when a static
-    file is referenced (via {% static %} or storage.url()) but has no entry
-    in the staticfiles.json manifest.  Jazzmin always calls
-    static('vendor/bootswatch/default/bootstrap.min.css') at request time,
-    even when Bootstrap is served from a CDN and the bootswatch file is not
-    present on the server.  With manifest_strict=False, missing entries
-    silently fall back to the unhashed path instead of raising a 500.
+    Serves static files with gzip/brotli compression but keeps original
+    filenames (no content-hash suffix).  This avoids the manifest lookup
+    that CompressedManifestStaticFilesStorage performs: jazzmin always calls
+    static('vendor/bootswatch/default/bootstrap.min.css') at request time
+    even when Bootstrap is served via CDN, which raises ValueError when that
+    file is absent from the manifest.  Without a manifest, the call simply
+    returns the raw /static/ path and the browser handles the 404 silently.
     """
-    manifest_strict = False

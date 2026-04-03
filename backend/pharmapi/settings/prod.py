@@ -55,7 +55,7 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "pharmapi.storage.RelaxedManifestStaticFilesStorage",
+        "BACKEND": "pharmapi.storage.CompressedNoManifestStorage",
     },
 }
 
