@@ -25,12 +25,7 @@ urlpatterns = [
     path('api/pos/',       include('pos.urls')),
     path('api/reports/',      include('reports.urls')),
     path('api/subscription/', include('subscription.urls')),
-]
-
-
-
-
-path('api/', lambda request: JsonResponse({
+    path('api/', lambda request: JsonResponse({
         "message": "PharmApp API is working",
         "endpoints": [
             "/api/auth/",
@@ -41,3 +36,4 @@ path('api/', lambda request: JsonResponse({
             "/api/subscription/"
         ]
     })),
+]
