@@ -265,3 +265,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_TZ = True
+
+LOGIN_REDIRECT_URL = "/admin/"
+LOGIN_URL = "/admin/login/"
