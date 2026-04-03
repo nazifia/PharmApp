@@ -5,7 +5,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
+import 'package:pharmapp/core/offline/sync_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
@@ -450,22 +452,31 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
           ),
           // Tab content
           Expanded(
-            child: TabBarView(
-              controller: _tabCtrl,
-              children: [
-                _StoreInventoryView(
-                  store: 'retail',
-                  filter: _filter,
-                  isGrid: _isGrid,
-                  applyFilter: _applyFilter,
-                ),
-                _StoreInventoryView(
-                  store: 'wholesale',
-                  filter: _filter,
-                  isGrid: _isGrid,
-                  applyFilter: _applyFilter,
-                ),
-              ],
+            child: RefreshIndicator(
+              onRefresh: () async {
+                if (ref.read(isOnlineProvider)) {
+                  await ref.read(syncServiceProvider).syncAll();
+                }
+                ref.invalidate(retailInventoryProvider);
+                ref.invalidate(wholesaleInventoryProvider);
+              },
+              child: TabBarView(
+                controller: _tabCtrl,
+                children: [
+                  _StoreInventoryView(
+                    store: 'retail',
+                    filter: _filter,
+                    isGrid: _isGrid,
+                    applyFilter: _applyFilter,
+                  ),
+                  _StoreInventoryView(
+                    store: 'wholesale',
+                    filter: _filter,
+                    isGrid: _isGrid,
+                    applyFilter: _applyFilter,
+                  ),
+                ],
+              ),
             ),
           ),
         ])),

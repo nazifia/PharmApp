@@ -413,8 +413,23 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         isWholesale: true,
         paymentMethod: method,
       );
-      final result = await ref.read(posApiProvider).submitCheckout(payload);
+      final result = await ref.read(checkoutProvider.notifier).processCheckout(payload);
       if (!mounted) return;
+
+      if (result == null) {
+        // Server returned an error — checkoutProvider.error has details
+        final err = ref.read(checkoutProvider).error;
+        String msg = 'Checkout failed';
+        if (err is DioException) {
+          msg = err.response?.data is Map && err.response!.data['detail'] != null
+              ? err.response!.data['detail'].toString()
+              : 'Checkout failed (${err.response?.statusCode ?? err.message})';
+        } else if (err != null) {
+          msg = 'Checkout failed: $err';
+        }
+        _showSnackBar(msg, type: _SnackType.error);
+        return;
+      }
 
       final total = _cartTotal;
       final name  = _selectedCustomerName ?? 'Customer';
@@ -427,7 +442,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       });
 
       if (result['offline'] == true) {
-        // Queued while offline
+        // Queued while offline — will sync automatically when back online
         _showSnackBar('No connection — sale saved and will sync when online', type: _SnackType.warning);
       } else {
         final receiptId = result['receiptId'] as String? ?? result['receipt_id'] as String? ?? '';
@@ -450,12 +465,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      final msg = e is DioException
-          ? (e.response?.data is Map && e.response!.data['detail'] != null
-              ? e.response!.data['detail'].toString()
-              : 'Checkout failed (${e.response?.statusCode ?? e.message})')
-          : 'Checkout failed: $e';
-      _showSnackBar(msg, type: _SnackType.error);
+      _showSnackBar('Checkout failed: $e', type: _SnackType.error);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

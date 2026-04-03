@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
+import 'package:pharmapp/shared/models/sale.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
@@ -24,6 +25,10 @@ class PaymentRequestsScreen extends ConsumerStatefulWidget {
 
 class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
   List<dynamic> _requests = [];
+  List<PendingMutation> _offlinePendingMutations = [];
+  // Tracks local accept/reject state for offline requests (key = mutation.id).
+  // Absent = pending, 'accepted' = accepted, 'rejected' = rejected.
+  final Map<String, String> _offlineRequestStatuses = {};
   bool _loading = true;
   String? _error;
   String _filter = 'all';
@@ -43,15 +48,27 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
 
   Future<void> _loadRequests() async {
     setState(() { _loading = true; _error = null; });
+    String? error;
+    List<dynamic> reqs = [];
     try {
       final status = _filter == 'all' ? null : _filter;
-      final reqs = await ref.read(posApiProvider).fetchPaymentRequests(status: status);
-      if (!mounted) return;
-      setState(() { _requests = reqs; _loading = false; });
+      reqs = await ref.read(posApiProvider).fetchPaymentRequests(status: status);
     } catch (e) {
-      if (!mounted) return;
-      setState(() { _error = e.toString(); _loading = false; });
+      error = e.toString();
     }
+    if (!mounted) return;
+    // Also surface any payment requests that were created offline
+    // (queued as POST /pos/payment-requests/ mutations) so the cashier
+    // can complete them without waiting for connectivity to be restored.
+    final mutations = ref.read(offlineMutationQueueProvider);
+    setState(() {
+      _requests = reqs;
+      _error = error;
+      _loading = false;
+      _offlinePendingMutations = mutations
+          .where((m) => m.method == 'POST' && m.path == '/pos/payment-requests/')
+          .toList();
+    });
   }
 
   Future<void> _loadDetail(Map<String, dynamic> request) async {
@@ -201,6 +218,79 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
       if (!mounted) return;
       _showError('Failed to complete: $e');
     }
+  }
+
+  /// Mark an offline-created payment request as accepted locally.
+  void _acceptOfflineRequest(String mutationId) {
+    setState(() => _offlineRequestStatuses[mutationId] = 'accepted');
+  }
+
+  /// Reject and discard an offline-created payment request.
+  Future<void> _rejectOfflineRequest(PendingMutation mutation) async {
+    await ref.read(offlineMutationQueueProvider.notifier).remove(mutation.id);
+    if (!mounted) return;
+    _showSnack('Request discarded', EnhancedTheme.errorRed);
+    setState(() {
+      _offlinePendingMutations =
+          _offlinePendingMutations.where((m) => m.id != mutation.id).toList();
+      _offlineRequestStatuses.remove(mutation.id);
+    });
+  }
+
+  /// Complete an offline-created payment request (one that only exists in
+  /// the mutation queue, not yet on the server).  Instead of the three-step
+  /// server flow (create → accept → complete), we replace the original
+  /// "send to cashier" mutation with a direct checkout sale so the sync
+  /// service can submit it as a single transaction when back online.
+  Future<void> _completeOfflineRequest(PendingMutation mutation) async {
+    final body = mutation.body ?? {};
+    final rawItems = (body['items'] as List<dynamic>?) ?? [];
+    final total = rawItems.fold<double>(0, (s, item) {
+      final p = (item['price'] as num?)?.toDouble() ?? 0;
+      final q = (item['quantity'] as num?)?.toDouble() ?? 1;
+      final d = (item['discount'] as num?)?.toDouble() ?? 0;
+      return s + (p * q - d);
+    });
+
+    final result = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder: (_) => _CompletePaymentDialog(requestId: 0, totalAmount: total),
+    );
+    if (result == null || !mounted) return;
+
+    // Build a CheckoutPayload from the items and chosen payment method
+    final checkoutPayload = CheckoutPayload(
+      items: rawItems.map<SaleItemPayload>((item) => SaleItemPayload(
+        barcode:  (item['barcode'] as String?) ?? '',
+        itemId:   (item['itemId'] as num?)?.toInt(),
+        quantity: (item['quantity'] as num?)?.toInt() ?? 1,
+        price:    (item['price'] as num?)?.toDouble() ?? 0,
+        discount: (item['discount'] as num?)?.toDouble() ?? 0,
+      )).toList(),
+      payment: PaymentPayload(
+        cash:         ((result['payment'] as Map)['cash'] as num?)?.toDouble() ?? 0,
+        pos:          ((result['payment'] as Map)['pos'] as num?)?.toDouble() ?? 0,
+        bankTransfer: ((result['payment'] as Map)['bankTransfer'] as num?)?.toDouble() ?? 0,
+        wallet:       ((result['payment'] as Map)['wallet'] as num?)?.toDouble() ?? 0,
+      ),
+      customerId:    (body['customer_id'] as num?)?.toInt(),
+      totalAmount:   total,
+      isWholesale:   (body['payment_type'] as String?) == 'wholesale',
+      paymentMethod: result['paymentMethod'] as String,
+    );
+
+    // Replace the pending payment-request mutation with a direct checkout
+    // so the sync service can process it as a single /pos/checkout/ call.
+    await ref.read(offlineMutationQueueProvider.notifier).remove(mutation.id);
+    await ref.read(offlineQueueProvider.notifier).enqueue(checkoutPayload);
+
+    if (!mounted) return;
+    _showSnack('Payment queued — will sync when online', EnhancedTheme.warningAmber);
+    setState(() {
+      _offlinePendingMutations =
+          _offlinePendingMutations.where((m) => m.id != mutation.id).toList();
+      _offlineRequestStatuses.remove(mutation.id);
+    });
   }
 
   void _showSnack(String msg, Color color) {
@@ -527,8 +617,17 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
   // ── List View ──────────────────────────────────────────────────────────────
 
   Widget _buildList() {
-    // Count by status
-    final pendingCount = _requests.where((r) => r['status'] == 'pending').length;
+    // Offline-queued "send to cashier" mutations respect the active filter:
+    // each mutation's effective status is tracked in _offlineRequestStatuses.
+    final offlineToShow = _offlinePendingMutations.where((m) {
+      if (_filter == 'all') return true;
+      final s = _offlineRequestStatuses[m.id] ?? 'pending';
+      return s == _filter;
+    }).toList();
+    final pendingCount = _requests.where((r) => r['status'] == 'pending').length
+        + _offlinePendingMutations
+            .where((m) => (_offlineRequestStatuses[m.id] ?? 'pending') == 'pending')
+            .length;
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -607,20 +706,30 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                     child: EnhancedTheme.loadingShimmer(height: 100, radius: 18),
                   )),
                 )
-              : _error != null
+              // Show error only when there is nothing offline to display either
+              : (_error != null && offlineToShow.isEmpty)
                   ? _errorState()
-                  : _requests.isEmpty
+                  : (offlineToShow.isEmpty && _requests.isEmpty)
                       ? _emptyState()
                       : RefreshIndicator(
                           color: EnhancedTheme.primaryTeal,
                           onRefresh: _loadRequests,
                           child: ListView.builder(
                             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                            itemCount: _requests.length,
-                            itemBuilder: (_, i) => _requestCard(_requests[i])
-                                .animate(delay: (i * 50).ms)
-                                .fadeIn(duration: 300.ms)
-                                .slideY(begin: 0.05, end: 0),
+                            itemCount: offlineToShow.length + _requests.length,
+                            itemBuilder: (_, i) {
+                              if (i < offlineToShow.length) {
+                                return _offlineRequestCard(offlineToShow[i])
+                                    .animate(delay: (i * 50).ms)
+                                    .fadeIn(duration: 300.ms)
+                                    .slideY(begin: 0.05, end: 0);
+                              }
+                              final j = i - offlineToShow.length;
+                              return _requestCard(_requests[j])
+                                  .animate(delay: (i * 50).ms)
+                                  .fadeIn(duration: 300.ms)
+                                  .slideY(begin: 0.05, end: 0);
+                            },
                           ),
                         )),
         ])),
@@ -770,6 +879,173 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
     );
   }
 
+  Widget _offlineRequestCard(PendingMutation mutation) {
+    final body = mutation.body ?? {};
+    final rawItems = (body['items'] as List<dynamic>?) ?? [];
+    final patientName = (body['patientName'] as String?) ?? 'Walk-in';
+    final isWholesale = (body['payment_type'] as String?) == 'wholesale';
+    final total = rawItems.fold<double>(0, (s, item) {
+      final p = (item['price'] as num?)?.toDouble() ?? 0;
+      final q = (item['quantity'] as num?)?.toDouble() ?? 1;
+      final d = (item['discount'] as num?)?.toDouble() ?? 0;
+      return s + (p * q - d);
+    });
+
+    final localStatus = _offlineRequestStatuses[mutation.id] ?? 'pending';
+    final statusColor = localStatus == 'accepted'
+        ? EnhancedTheme.infoBlue
+        : EnhancedTheme.warningAmber;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: statusColor.withValues(alpha: 0.45)),
+              boxShadow: [BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 10, offset: const Offset(0, 4))],
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // ── Header row ──────────────────────────────────────────────────
+              Row(children: [
+                Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [
+                      statusColor.withValues(alpha: 0.18),
+                      statusColor.withValues(alpha: 0.06),
+                    ]),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Icon(
+                    localStatus == 'accepted'
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.cloud_off_rounded,
+                    color: statusColor, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Offline Request',
+                      style: GoogleFonts.outfit(
+                          color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text(
+                    localStatus == 'accepted'
+                        ? 'Ready for payment'
+                        : 'Pending acceptance',
+                    style: TextStyle(color: context.hintColor, fontSize: 12)),
+                ])),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(
+                    localStatus == 'accepted' ? 'ACCEPTED' : 'OFFLINE',
+                    style: TextStyle(
+                        color: statusColor, fontSize: 10, fontWeight: FontWeight.w800)),
+                ),
+              ]),
+              const SizedBox(height: 14),
+
+              // ── Info row ─────────────────────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: context.isDark
+                      ? Colors.white.withValues(alpha: 0.04)
+                      : Colors.black.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: context.borderColor),
+                ),
+                child: Row(children: [
+                  Icon(Icons.medication_rounded, color: context.hintColor, size: 14),
+                  const SizedBox(width: 6),
+                  Text('${rawItems.length} item${rawItems.length == 1 ? '' : 's'}',
+                      style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+                  const SizedBox(width: 10),
+                  Container(width: 1, height: 12, color: context.dividerColor),
+                  const SizedBox(width: 10),
+                  Icon(Icons.person_outline_rounded, color: context.hintColor, size: 14),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text(
+                    '${isWholesale ? 'Wholesale' : 'Retail'} · $patientName',
+                    style: TextStyle(color: context.subLabelColor, fontSize: 12),
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                  )),
+                ]),
+              ),
+              const SizedBox(height: 14),
+
+              // ── Amount ───────────────────────────────────────────────────────
+              Text('₦${total.toStringAsFixed(2)}',
+                  style: GoogleFonts.outfit(
+                      color: EnhancedTheme.primaryTeal,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900)),
+              const SizedBox(height: 14),
+
+              // ── Action buttons ───────────────────────────────────────────────
+              if (localStatus == 'pending') ...[
+                Row(children: [
+                  Expanded(child: ElevatedButton.icon(
+                    onPressed: () => _acceptOfflineRequest(mutation.id),
+                    icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+                    label: Text('Accept', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: EnhancedTheme.successGreen,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  )),
+                  const SizedBox(width: 10),
+                  Expanded(child: ElevatedButton.icon(
+                    onPressed: () => _rejectOfflineRequest(mutation),
+                    icon: const Icon(Icons.cancel_outlined, size: 16),
+                    label: Text('Reject', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: EnhancedTheme.errorRed,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  )),
+                ]),
+              ] else if (localStatus == 'accepted') ...[
+                SizedBox(width: double.infinity, child: ElevatedButton.icon(
+                  onPressed: () => _completeOfflineRequest(mutation),
+                  icon: const Icon(Icons.payment_rounded, size: 16),
+                  label: Text('Complete Payment',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: EnhancedTheme.primaryTeal,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                )),
+              ],
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _emptyState() {
     return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
       Container(
@@ -850,16 +1126,31 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
   final _walletCtrl = TextEditingController();
 
   static const _methods = [
-    {'key': 'cash',   'label': 'Cash',   'icon': Icons.payments_rounded},
-    {'key': 'pos',    'label': 'POS',    'icon': Icons.credit_card_rounded},
+    {'key': 'cash',     'label': 'Cash',     'icon': Icons.payments_rounded},
+    {'key': 'pos',      'label': 'POS',      'icon': Icons.credit_card_rounded},
     {'key': 'transfer', 'label': 'Transfer', 'icon': Icons.swap_horiz_rounded},
-    {'key': 'wallet', 'label': 'Wallet', 'icon': Icons.account_balance_wallet_rounded},
+    {'key': 'wallet',   'label': 'Wallet',   'icon': Icons.account_balance_wallet_rounded},
+    {'key': 'split',    'label': 'Split',    'icon': Icons.call_split_rounded},
   ];
+
+  bool get _isSplit => _method == 'split';
+
+  double get _splitCash     => double.tryParse(_cashCtrl.text)     ?? 0;
+  double get _splitPos      => double.tryParse(_posCtrl.text)      ?? 0;
+  double get _splitTransfer => double.tryParse(_transferCtrl.text) ?? 0;
+  double get _splitWallet   => double.tryParse(_walletCtrl.text)   ?? 0;
+  double get _splitSum      => _splitCash + _splitPos + _splitTransfer + _splitWallet;
+  double get _remaining     => widget.totalAmount - _splitSum;
+  bool   get _splitValid    => !_isSplit || _remaining.abs() < 0.01;
 
   @override
   void initState() {
     super.initState();
     _cashCtrl.text = widget.totalAmount.toStringAsFixed(2);
+    // Rebuild remaining indicator when any split field changes
+    for (final c in [_cashCtrl, _posCtrl, _transferCtrl, _walletCtrl]) {
+      c.addListener(() { if (_isSplit && mounted) setState(() {}); });
+    }
   }
 
   @override
@@ -880,26 +1171,23 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
       _walletCtrl.text = '';
       switch (key) {
         case 'cash':     _cashCtrl.text = widget.totalAmount.toStringAsFixed(2); break;
-        case 'pos':      _posCtrl.text = widget.totalAmount.toStringAsFixed(2); break;
+        case 'pos':      _posCtrl.text  = widget.totalAmount.toStringAsFixed(2); break;
         case 'transfer': _transferCtrl.text = widget.totalAmount.toStringAsFixed(2); break;
-        case 'wallet':   _walletCtrl.text = widget.totalAmount.toStringAsFixed(2); break;
+        case 'wallet':   _walletCtrl.text   = widget.totalAmount.toStringAsFixed(2); break;
+        case 'split':    break; // user fills in each field manually
       }
     });
   }
 
   void _confirm() {
-    final cash = double.tryParse(_cashCtrl.text) ?? 0;
-    final pos = double.tryParse(_posCtrl.text) ?? 0;
-    final transfer = double.tryParse(_transferCtrl.text) ?? 0;
-    final wallet = double.tryParse(_walletCtrl.text) ?? 0;
-
+    if (!_splitValid) return;
     Navigator.pop(context, {
       'paymentMethod': _method,
       'payment': {
-        'cash': cash,
-        'pos': pos,
-        'bankTransfer': transfer,
-        'wallet': wallet,
+        'cash':        double.tryParse(_cashCtrl.text)     ?? 0,
+        'pos':         double.tryParse(_posCtrl.text)      ?? 0,
+        'bankTransfer': double.tryParse(_transferCtrl.text) ?? 0,
+        'wallet':      double.tryParse(_walletCtrl.text)   ?? 0,
       },
     });
   }
@@ -970,42 +1258,44 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
                   fontWeight: FontWeight.w700, letterSpacing: 0.5)),
               const SizedBox(height: 10),
               GridView.count(
-                crossAxisCount: 2,
+                crossAxisCount: 3,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8,
-                childAspectRatio: 2.8,
+                childAspectRatio: 2.4,
                 children: _methods.map((m) {
                   final key = m['key'] as String;
                   final active = _method == key;
+                  final isSplitChip = key == 'split';
+                  final chipColor = isSplitChip ? EnhancedTheme.accentPurple : EnhancedTheme.primaryTeal;
                   return GestureDetector(
                     onTap: () => _selectMethod(key),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       decoration: BoxDecoration(
                         gradient: active
                             ? LinearGradient(colors: [
-                                EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
-                                EnhancedTheme.accentCyan.withValues(alpha: 0.1),
+                                chipColor.withValues(alpha: 0.2),
+                                chipColor.withValues(alpha: 0.08),
                               ])
                             : null,
                         color: active ? null : context.cardColor,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: active ? EnhancedTheme.primaryTeal : context.borderColor,
+                          color: active ? chipColor : context.borderColor,
                           width: active ? 1.5 : 1,
                         ),
                       ),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(m['icon'] as IconData,
-                            color: active ? EnhancedTheme.primaryTeal : context.subLabelColor, size: 16),
-                        const SizedBox(width: 6),
-                        Text(m['label'] as String, style: TextStyle(
-                          color: active ? EnhancedTheme.primaryTeal : context.subLabelColor,
-                          fontSize: 13, fontWeight: FontWeight.w700,
-                        )),
+                            color: active ? chipColor : context.subLabelColor, size: 15),
+                        const SizedBox(width: 5),
+                        Flexible(child: Text(m['label'] as String, style: TextStyle(
+                          color: active ? chipColor : context.subLabelColor,
+                          fontSize: 12, fontWeight: FontWeight.w700,
+                        ), overflow: TextOverflow.ellipsis)),
                       ]),
                     ),
                   );
@@ -1013,17 +1303,59 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
               ),
               const SizedBox(height: 20),
 
+              // Split remaining indicator
+              if (_isSplit) ...[
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _splitValid
+                        ? EnhancedTheme.successGreen.withValues(alpha: 0.1)
+                        : EnhancedTheme.errorRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _splitValid
+                          ? EnhancedTheme.successGreen.withValues(alpha: 0.4)
+                          : EnhancedTheme.errorRed.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Row(children: [
+                    Icon(
+                      _splitValid ? Icons.check_circle_rounded : Icons.info_rounded,
+                      color: _splitValid ? EnhancedTheme.successGreen : EnhancedTheme.errorRed,
+                      size: 15),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(
+                      _splitValid
+                          ? 'Split balanced — total ₦${_splitSum.toStringAsFixed(2)}'
+                          : _remaining > 0
+                              ? 'Remaining: ₦${_remaining.toStringAsFixed(2)}'
+                              : 'Over by: ₦${(-_remaining).toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: _splitValid ? EnhancedTheme.successGreen : EnhancedTheme.errorRed,
+                        fontSize: 12, fontWeight: FontWeight.w600),
+                    )),
+                  ]),
+                ),
+                const SizedBox(height: 14),
+              ],
+
               // Amount inputs
               Text('Amount Breakdown', style: TextStyle(color: context.subLabelColor, fontSize: 12,
                   fontWeight: FontWeight.w700, letterSpacing: 0.5)),
               const SizedBox(height: 10),
-              _amountField('Cash', _cashCtrl, Icons.payments_rounded),
+              _amountField('Cash',     _cashCtrl,     Icons.payments_rounded,
+                  enabled: _isSplit || _method == 'cash'),
               const SizedBox(height: 8),
-              _amountField('POS', _posCtrl, Icons.credit_card_rounded),
+              _amountField('POS',      _posCtrl,      Icons.credit_card_rounded,
+                  enabled: _isSplit || _method == 'pos'),
               const SizedBox(height: 8),
-              _amountField('Transfer', _transferCtrl, Icons.swap_horiz_rounded),
+              _amountField('Transfer', _transferCtrl, Icons.swap_horiz_rounded,
+                  enabled: _isSplit || _method == 'transfer'),
               const SizedBox(height: 8),
-              _amountField('Wallet', _walletCtrl, Icons.account_balance_wallet_rounded),
+              _amountField('Wallet',   _walletCtrl,   Icons.account_balance_wallet_rounded,
+                  enabled: _isSplit || _method == 'wallet'),
               const SizedBox(height: 24),
 
               // Actions
@@ -1040,24 +1372,28 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
                 )),
                 const SizedBox(width: 12),
                 Expanded(child: ElevatedButton(
-                  onPressed: _confirm,
+                  onPressed: _splitValid ? _confirm : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
+                    disabledBackgroundColor: Colors.transparent,
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   child: Ink(
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          colors: [EnhancedTheme.successGreen, Color(0xFF059669)]),
+                      gradient: LinearGradient(colors: _splitValid
+                          ? [EnhancedTheme.successGreen, const Color(0xFF059669)]
+                          : [Colors.grey.shade700, Colors.grey.shade800]),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Container(
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       child: Text('Confirm Payment',
-                          style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 14)),
+                          style: GoogleFonts.outfit(
+                              color: _splitValid ? Colors.black : Colors.white54,
+                              fontWeight: FontWeight.w700, fontSize: 14)),
                     ),
                   ),
                 )),
@@ -1069,40 +1405,56 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
     );
   }
 
-  Widget _amountField(String label, TextEditingController ctrl, IconData icon) {
+  Widget _amountField(String label, TextEditingController ctrl, IconData icon,
+      {bool enabled = true}) {
+    final iconColor = enabled ? context.hintColor : context.hintColor.withValues(alpha: 0.35);
+    final textColor = enabled ? context.labelColor : context.labelColor.withValues(alpha: 0.35);
+    final labelColor = enabled ? context.subLabelColor : context.subLabelColor.withValues(alpha: 0.35);
+    final fillColor = enabled ? context.cardColor : context.cardColor.withValues(alpha: 0.5);
+    final borderColor = enabled ? context.borderColor : context.borderColor.withValues(alpha: 0.4);
+
     return Row(children: [
       Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: context.cardColor,
+          color: fillColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: context.borderColor),
+          border: Border.all(color: borderColor),
         ),
-        child: Icon(icon, color: context.hintColor, size: 16),
+        child: Icon(icon, color: iconColor, size: 16),
       ),
       const SizedBox(width: 10),
       SizedBox(width: 72, child: Text(label,
-          style: TextStyle(color: context.subLabelColor, fontSize: 13, fontWeight: FontWeight.w500))),
+          style: TextStyle(color: labelColor, fontSize: 13, fontWeight: FontWeight.w500))),
       Expanded(child: SizedBox(
         height: 44,
         child: TextField(
           controller: ctrl,
+          enabled: enabled,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700),
+          style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w700),
           decoration: InputDecoration(
             isDense: true,
             prefixText: '₦ ',
-            prefixStyle: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w600),
+            prefixStyle: TextStyle(
+                color: enabled
+                    ? EnhancedTheme.primaryTeal
+                    : EnhancedTheme.primaryTeal.withValues(alpha: 0.35),
+                fontSize: 13, fontWeight: FontWeight.w600),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             filled: true,
-            fillColor: context.cardColor,
+            fillColor: fillColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: context.borderColor),
+              borderSide: BorderSide(color: borderColor),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: context.borderColor),
+              borderSide: BorderSide(color: borderColor),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: borderColor),
             ),
             focusedBorder: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(10)),

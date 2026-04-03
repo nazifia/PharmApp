@@ -166,10 +166,14 @@ class PosApiClient {
       }
       return list;
     } on DioException catch (e) {
-      if (e.response == null && isCacheable) {
+      if (e.response == null) {
         final prefs = await SharedPreferences.getInstance();
         final raw = prefs.getString(_kPaymentRequestsCacheKey);
-        if (raw != null) return jsonDecode(raw) as List;
+        if (raw != null) {
+          final list = jsonDecode(raw) as List;
+          if (status == null) return list;
+          return list.where((r) => r['status'] == status).toList();
+        }
         throw Exception('Offline — no cached payment requests available');
       }
       throw Exception(
@@ -1148,6 +1152,13 @@ final posApiProvider = Provider<PosApiClient>((ref) {
   if (isDev) return PosApiClient.local();
   return PosApiClient.remote(ref.watch(dioProvider));
 });
+
+/// Watched by AppShell on startup to warm the payment-requests cache so that
+/// the cashier's screen has data available when the device goes offline.
+final paymentRequestsPreloadProvider =
+    FutureProvider.autoDispose<List<dynamic>>(
+  (ref) => ref.watch(posApiProvider).fetchPaymentRequests(),
+);
 
 bool isOfflineResult(Map<String, dynamic>? result) =>
     result != null && result['offline'] == true;

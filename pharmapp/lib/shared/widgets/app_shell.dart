@@ -11,6 +11,9 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
 import 'package:pharmapp/features/customers/providers/customer_provider.dart';
+import 'package:pharmapp/features/pos/screens/sales_history_screen.dart';
+import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
@@ -21,12 +24,12 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Eagerly preload inventory and customers so POS/Stock/Customer screens
-    // are ready instantly when navigated to. Retail POS uses retailInventoryProvider
-    // (separate cache key), so preload it here too so offline reads succeed.
+    // Eagerly preload inventory, customers and payment requests so screens
+    // are ready instantly when navigated to, and offline reads succeed.
     ref.watch(inventoryListProvider);
     ref.watch(retailInventoryProvider);
     ref.watch(customerListProvider);
+    ref.watch(paymentRequestsPreloadProvider);
 
     final user        = ref.watch(currentUserProvider);
     final role        = user?.role ?? '';
@@ -45,6 +48,20 @@ class AppShell extends ConsumerWidget {
     ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) async {
       if (nowOnline && !(wasOnline ?? true)) {
         final result = await ref.read(syncServiceProvider).syncAll();
+
+        // Invalidate all data providers so open screens reload fresh data
+        // from the server instead of showing stale offline-cached values.
+        if (result.synced > 0) {
+          ref.invalidate(salesListProvider);
+          ref.invalidate(salesReportProvider);
+          ref.invalidate(profitReportProvider);
+          ref.invalidate(inventoryReportProvider);
+          ref.invalidate(customerReportProvider);
+          ref.invalidate(inventoryListProvider);
+          ref.invalidate(retailInventoryProvider);
+          ref.invalidate(customerListProvider);
+        }
+
         if (result.hasWork && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             backgroundColor: (result.failed == 0 ? EnhancedTheme.successGreen : EnhancedTheme.warningAmber).withValues(alpha: 0.92),
@@ -84,9 +101,9 @@ class AppShell extends ConsumerWidget {
       // will use their inner drawer; screens without one fall back to this outer drawer.
       drawer: const AppDrawer(),
       body: Column(children: [
-        // ── Offline banner ──────────────────────────────────────────────────
-        if (!isOnline)
-          _OfflineBanner(pendingCount: pending),
+        // ── Offline / Sync banner ─────────────────────────────────────────────
+        if (!isOnline || pending > 0)
+          const _OfflineBanner(),
         Expanded(child: child),
       ]),
       bottomNavigationBar: _AppBottomNav(
@@ -126,36 +143,136 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-// ── Offline banner ────────────────────────────────────────────────────────────
+// ── Offline / Sync banner ─────────────────────────────────────────────────────
 
-class _OfflineBanner extends StatelessWidget {
-  final int pendingCount;
-  const _OfflineBanner({required this.pendingCount});
+class _OfflineBanner extends ConsumerStatefulWidget {
+  const _OfflineBanner();
+
+  @override
+  ConsumerState<_OfflineBanner> createState() => _OfflineBannerState();
+}
+
+class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
+  bool _syncing = false;
 
   @override
   Widget build(BuildContext context) {
+    final isOnline  = ref.watch(isOnlineProvider);
+    final pendingSales  = ref.watch(offlineQueueProvider);
+    final pendingMuts   = ref.watch(offlineMutationQueueProvider);
+    final pending   = pendingSales.length + pendingMuts.length;
+
     return GestureDetector(
-      onTap: () => context.go('/dashboard/sync-queue'),
+      onTap: isOnline ? _triggerSync : () => context.go('/dashboard/sync-queue'),
       child: Container(
         width: double.infinity,
-        color: EnhancedTheme.warningAmber,
+        color: isOnline ? EnhancedTheme.primaryTeal : EnhancedTheme.warningAmber,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Row(children: [
-          const Icon(Icons.cloud_off_rounded, color: Colors.black, size: 15),
+          Icon(
+            isOnline ? Icons.cloud_sync_rounded : Icons.cloud_off_rounded,
+            color: Colors.black, size: 15,
+          ),
           const SizedBox(width: 8),
           Expanded(child: Text(
-            pendingCount > 0
-                ? 'Offline — $pendingCount operation${pendingCount == 1 ? '' : 's'} queued for sync'
-                : 'Offline — changes will sync when connected',
+            !isOnline
+                ? pending > 0
+                    ? 'Offline — $pending operation${pending == 1 ? '' : 's'} queued for sync'
+                    : 'Offline — changes will sync when connected'
+                : _syncing
+                    ? 'Syncing $pending operation${pending == 1 ? '' : 's'}...'
+                    : '$pending operation${pending == 1 ? '' : 's'} pending — tap to sync now',
             style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w600),
           )),
-          if (pendingCount > 0) ...[
+          if (_syncing)
+            const SizedBox(
+              width: 14, height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2, color: Colors.black,
+              ),
+            )
+          else if (isOnline && pending > 0) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.sync_rounded, color: Colors.black, size: 16),
+          ]
+          else if (!isOnline && pending > 0) ...[
             const SizedBox(width: 6),
             const Icon(Icons.chevron_right_rounded, color: Colors.black, size: 16),
           ],
         ]),
       ),
     );
+  }
+
+  Future<void> _triggerSync() async {
+    if (_syncing) return;
+    setState(() => _syncing = true);
+
+    final result = await ref.read(syncServiceProvider).syncAll();
+
+    if (!mounted) return;
+    setState(() => _syncing = false);
+
+    // Invalidate all data providers so open screens reload fresh data
+    if (result.synced > 0) {
+      ref.invalidate(salesListProvider);
+      ref.invalidate(salesReportProvider);
+      ref.invalidate(profitReportProvider);
+      ref.invalidate(inventoryReportProvider);
+      ref.invalidate(customerReportProvider);
+      ref.invalidate(inventoryListProvider);
+      ref.invalidate(retailInventoryProvider);
+      ref.invalidate(customerListProvider);
+    }
+
+    if (result.hasWork) {
+      final msg = result.failed == 0
+          ? '${result.synced} offline operation${result.synced == 1 ? '' : 's'} synced successfully'
+          : '${result.synced} synced, ${result.failed} still pending';
+      final bgColor = result.failed == 0
+          ? EnhancedTheme.successGreen
+          : EnhancedTheme.warningAmber;
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: bgColor.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        content: Row(children: [
+          Icon(
+            result.failed == 0
+                ? Icons.cloud_done_rounded
+                : Icons.cloud_sync_rounded,
+            color: Colors.black, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(msg,
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+          )),
+        ]),
+      ));
+    } else if (!mounted) {
+      return;
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.infoBlue.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+        content: const Row(children: [
+          Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('Nothing to sync',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          )),
+        ]),
+      ));
+    }
   }
 }
 
