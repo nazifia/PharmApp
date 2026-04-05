@@ -40,7 +40,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     String dosageForm = item.dosageForm;
     double markup = item.markup;
     final formKey = GlobalKey<FormState>();
-    bool _saving = false;
+    bool saving = false;
 
     showModalBottomSheet(
       context: context,
@@ -192,9 +192,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _saving ? null : () async {
+                      onPressed: saving ? null : () async {
                         if (!formKey.currentState!.validate()) return;
-                        setModal(() => _saving = true);
+                        setModal(() => saving = true);
                         final payload = {
                           'name':               nameCtrl.text.trim(),
                           'brand':              brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
@@ -226,7 +226,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             ]),
                           ));
                         } on DioException catch (e) {
-                          setModal(() => _saving = false);
+                          setModal(() => saving = false);
                           if (!context.mounted) return;
                           if (e.response == null) {
                             await ref.read(offlineMutationQueueProvider.notifier).enqueue(
@@ -234,7 +234,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                               body: payload,
                               description: 'Update item "${payload['name'] ?? item.name}"',
                             );
-                            Navigator.of(ctx).pop();
+                            if (!context.mounted) return;
+                            if (ctx.mounted) Navigator.of(ctx).pop();
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                               backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
                               behavior: SnackBarBehavior.floating,
@@ -260,7 +261,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             ));
                           }
                         } catch (e) {
-                          setModal(() => _saving = false);
+                          setModal(() => saving = false);
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
@@ -284,16 +285,16 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                       ),
                       child: Ink(
                         decoration: BoxDecoration(
-                          gradient: _saving
+                          gradient: saving
                               ? null
                               : const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
-                          color: _saving ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4) : null,
+                          color: saving ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4) : null,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Container(
                           alignment: Alignment.center,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: _saving
+                          child: saving
                               ? const SizedBox(height: 20, width: 20,
                                   child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
                               : Text('Save Changes',
@@ -389,6 +390,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             'DELETE', '/inventory/items/${item.id}/',
                             description: 'Delete item "${item.name}"',
                           );
+                          if (!context.mounted) return;
                           context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref));
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
@@ -619,12 +621,14 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         } on DioException catch (e) {
                           if (mounted) {
                             if (e.response == null) {
+                              final messenger = ScaffoldMessenger.of(context);
                               await ref.read(offlineMutationQueueProvider.notifier).enqueue(
                                 'POST', '/inventory/items/${item.id}/adjust-stock/',
                                 body: {'adjustment': adjustment, 'reason': reason},
                                 description: 'Adjust stock for "${item.name}" ($reason)',
                               );
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              if (!context.mounted) return;
+                              messenger.showSnackBar(SnackBar(
                                 backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

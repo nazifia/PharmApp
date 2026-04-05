@@ -71,7 +71,7 @@ class _AppStartup extends ConsumerWidget {
           );
         }
         final authenticated = snap.data == true;
-        final app = const PharmApp();
+        const app = PharmApp();
         return authenticated
             ? InactivityGuard(child: app)
             : app;

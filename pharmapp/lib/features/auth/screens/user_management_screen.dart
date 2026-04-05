@@ -311,6 +311,7 @@ class _UserManagementScreenState
                           onPressed: () async {
                             if (!formKey.currentState!.validate()) return;
                             Navigator.of(ctx).pop();
+                            final messenger = ScaffoldMessenger.of(context);
                             try {
                               await ref
                                   .read(posApiProvider)
@@ -324,7 +325,7 @@ class _UserManagementScreenState
                                   );
                               if (!context.mounted) return;
                               setState(() {});
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              messenger.showSnackBar(SnackBar(
                                 backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -337,7 +338,7 @@ class _UserManagementScreenState
                               ));
                             } catch (e) {
                               if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              messenger.showSnackBar(SnackBar(
                                 backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -431,25 +432,26 @@ class _UserManagementScreenState
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
               Navigator.of(ctx).pop();
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 await ref
                     .read(posApiProvider)
                     .changePassword(user.id, passCtrl.text.trim());
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                messenger.showSnackBar(SnackBar(
                   backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   margin: const EdgeInsets.all(16),
-                  content: Row(children: [
-                    const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                    const SizedBox(width: 10),
-                    const Expanded(child: Text('Password changed', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                  content: const Row(children: [
+                    Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                    SizedBox(width: 10),
+                    Expanded(child: Text('Password changed', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                   ]),
                 ));
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                messenger.showSnackBar(SnackBar(
                   backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -772,6 +774,7 @@ class _UserManagementScreenState
                       child: ElevatedButton(
                         onPressed: () async {
                           Navigator.of(ctx).pop();
+                          final messenger = ScaffoldMessenger.of(context);
                           try {
                             await ref.read(posApiProvider).updateUser(
                               user.id,
@@ -781,20 +784,20 @@ class _UserManagementScreenState
                             );
                             if (!context.mounted) return;
                             setState(() {});
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            messenger.showSnackBar(SnackBar(
                               backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               margin: const EdgeInsets.all(16),
-                              content: Row(children: [
-                                const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                                const SizedBox(width: 10),
-                                const Expanded(child: Text('User updated', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                              content: const Row(children: [
+                                Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                                SizedBox(width: 10),
+                                Expanded(child: Text('User updated', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                               ]),
                             ));
                           } catch (e) {
                             if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            messenger.showSnackBar(SnackBar(
                               backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1093,6 +1096,7 @@ class _UserManagementScreenState
                                   ? null
                                   : () async {
                                       setModal(() => saving = true);
+                                      final messenger = ScaffoldMessenger.of(context);
                                       try {
                                         await api.saveUserPermissions(
                                             user.id, overrides);
@@ -1104,9 +1108,9 @@ class _UserManagementScreenState
                                         if (currentUser?.id == user.id) {
                                           await ref.read(authFlowProvider.notifier).refreshProfile();
                                         }
-                                        if (ctx.mounted) {
-                                          Navigator.pop(ctx);
-                                          ScaffoldMessenger.of(context)
+                                        if (ctx.mounted) Navigator.pop(ctx);
+                                        if (context.mounted) {
+                                          messenger
                                               .showSnackBar(SnackBar(
                                             content: Text(
                                                 'Permissions saved',
@@ -1198,26 +1202,27 @@ class _UserManagementScreenState
           ElevatedButton(
             onPressed: () async {
               Navigator.of(ctx).pop();
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 await ref
                     .read(posApiProvider)
                     .deleteUser(user.id);
                 if (!context.mounted) return;
                 setState(() {});
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                messenger.showSnackBar(SnackBar(
                   backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   margin: const EdgeInsets.all(16),
-                  content: Row(children: [
-                    const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                    const SizedBox(width: 10),
-                    const Expanded(child: Text('User deleted', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                  content: const Row(children: [
+                    Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                    SizedBox(width: 10),
+                    Expanded(child: Text('User deleted', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                   ]),
                 ));
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                messenger.showSnackBar(SnackBar(
                   backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

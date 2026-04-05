@@ -295,6 +295,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                             body: data,
                             description: 'Add item "${data['name']}"',
                           );
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
                             behavior: SnackBarBehavior.floating,

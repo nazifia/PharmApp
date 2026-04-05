@@ -130,8 +130,8 @@ class SyncService {
         .where((e) => e.attempts > 0)
         .toList();
 
-    for (final s in failedSales) await saleNotifier.remove(s.id);
-    for (final m in failedMuts)  await mutNotifier.remove(m.id);
+    for (final s in failedSales) { await saleNotifier.remove(s.id); }
+    for (final m in failedMuts)  { await mutNotifier.remove(m.id); }
 
     return failedSales.length + failedMuts.length;
   }

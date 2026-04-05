@@ -113,8 +113,8 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
     final muts = ref.read(offlineMutationQueueProvider);
     final saleNotifier = ref.read(offlineQueueProvider.notifier);
     final mutNotifier = ref.read(offlineMutationQueueProvider.notifier);
-    for (final s in sales) await saleNotifier.remove(s.id);
-    for (final m in muts) await mutNotifier.remove(m.id);
+    for (final s in sales) { await saleNotifier.remove(s.id); }
+    for (final m in muts)  { await mutNotifier.remove(m.id); }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
@@ -972,8 +972,9 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
     if (path.contains('procurement')) return Icons.local_shipping_rounded;
     if (path.contains('stock-check')) return Icons.fact_check_rounded;
     if (path.contains('transfer')) return Icons.swap_horiz_rounded;
-    if (path.contains('users') || path.contains('auth'))
+    if (path.contains('users') || path.contains('auth')) {
       return Icons.person_rounded;
+    }
     if (path.contains('notification')) return Icons.notifications_rounded;
     return Icons.cloud_upload_rounded;
   }

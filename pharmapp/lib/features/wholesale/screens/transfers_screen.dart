@@ -711,12 +711,12 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
                 border: Border.all(color: EnhancedTheme.infoBlue.withValues(alpha: 0.15)),
               ),
               child: Row(children: [
-                Text('$src', style: GoogleFonts.outfit(color: EnhancedTheme.accentPurple,
+                Text(src, style: GoogleFonts.outfit(color: EnhancedTheme.accentPurple,
                     fontSize: 13, fontWeight: FontWeight.w700)),
                 const SizedBox(width: 8),
                 const Icon(Icons.arrow_forward_rounded, color: EnhancedTheme.infoBlue, size: 16),
                 const SizedBox(width: 8),
-                Text('$dst', style: GoogleFonts.outfit(color: EnhancedTheme.successGreen,
+                Text(dst, style: GoogleFonts.outfit(color: EnhancedTheme.successGreen,
                     fontSize: 13, fontWeight: FontWeight.w700)),
                 const Spacer(),
                 Container(
