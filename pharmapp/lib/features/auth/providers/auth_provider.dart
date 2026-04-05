@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/shared/models/user.dart';
 import 'package:pharmapp/shared/models/organization.dart';
@@ -23,6 +24,9 @@ final currentOrganizationProvider = Provider<Organization?>((ref) {
     id: user.organizationId,
     name: user.organizationName,
     slug: user.organizationSlug,
+    address: user.organizationAddress.isEmpty ? null : user.organizationAddress,
+    phone: user.organizationPhone.isEmpty ? null : user.organizationPhone,
+    logoUrl: user.organizationLogo.isEmpty ? null : user.organizationLogo,
   );
 });
 
@@ -129,6 +133,18 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     } catch (_) {
       // Silently ignore — keep the cached user
     }
+  }
+
+  /// Uploads a new logo for the org and patches the cached user so the
+  /// drawer updates immediately without a full re-login.
+  Future<void> uploadOrgLogo(XFile imageFile) async {
+    final newLogoUrl = await _ref.read(authRepositoryProvider).uploadOrgLogo(imageFile);
+    final current = _ref.read(currentUserProvider);
+    if (current == null) return;
+    final updated = current.copyWith(organizationLogo: newLogoUrl);
+    _ref.read(currentUserProvider.notifier).state = updated;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('current_user', jsonEncode(updated.toJson()));
   }
 
   void resetFlow() {

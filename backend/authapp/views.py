@@ -101,6 +101,33 @@ def register_org_view(request):
     }, status=status.HTTP_201_CREATED)
 
 
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminOrManager])
+def org_logo_view(request):
+    """
+    PATCH /auth/org/logo/
+    Multipart: { logo: <file> }
+    Replaces the caller's organisation logo and returns { logoUrl }.
+    """
+    org = request.user.organization
+    if org is None:
+        return Response({'detail': 'No organisation linked to this account.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    logo_file = request.FILES.get('logo')
+    if not logo_file:
+        return Response({'detail': 'logo file is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Delete old file to avoid orphan uploads
+    if org.logo:
+        org.logo.delete(save=False)
+
+    org.logo = logo_file
+    org.save(update_fields=['logo'])
+
+    return Response({'logoUrl': request.build_absolute_uri(org.logo.url)})
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsAdminOrManager])
 def user_permissions_view(request, user_id):

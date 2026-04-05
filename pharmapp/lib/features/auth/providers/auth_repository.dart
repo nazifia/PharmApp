@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/database/local_db.dart';
 import '../../../shared/models/user.dart';
 
@@ -60,6 +61,25 @@ class AuthRepository {
       if (body is Map) {
         throw Exception(body['detail'] ?? body['error'] ?? 'Invalid credentials');
       }
+      throw Exception('Network error — check server connection');
+    }
+  }
+
+  /// Uploads a new logo for the caller's organisation.
+  /// Returns the absolute URL of the uploaded logo.
+  Future<String> uploadOrgLogo(XFile imageFile) async {
+    if (_isLocal) {
+      throw Exception('Logo upload requires a live backend connection.');
+    }
+    try {
+      final formData = FormData.fromMap({
+        'logo': await MultipartFile.fromFile(imageFile.path, filename: imageFile.name),
+      });
+      final res = await _dio!.patch('/auth/org/logo/', data: formData);
+      return (res.data as Map<String, dynamic>)['logoUrl'] as String;
+    } on DioException catch (e) {
+      final body = e.response?.data;
+      if (body is Map) throw Exception(body['detail'] ?? 'Upload failed');
       throw Exception('Network error — check server connection');
     }
   }

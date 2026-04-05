@@ -90,6 +90,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     username: user?.username ?? '',
                     phoneNumber: user?.phoneNumber ?? '',
                     orgName: ref.watch(currentOrganizationProvider)?.name ?? '',
+                    orgLogo: ref.watch(currentOrganizationProvider)?.logoUrl,
                   ),
                   Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
                   // ── Trial / expiry banner ───────────────────────────────────
@@ -316,31 +317,56 @@ class _DrawerHeader extends StatelessWidget {
   final String username;
   final String phoneNumber;
   final String orgName;
-  const _DrawerHeader({required this.role, required this.username, required this.phoneNumber, required this.orgName});
+  final String? orgLogo;
+  const _DrawerHeader({required this.role, required this.username, required this.phoneNumber, required this.orgName, this.orgLogo});
+
+  Widget _buildOrgAvatar(BuildContext context) {
+    if (orgLogo != null && orgLogo!.isNotEmpty) {
+      return ClipOval(
+        child: Container(
+          width: 52, height: 52,
+          decoration: BoxDecoration(
+            border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.5), width: 2),
+          ),
+          child: Image.network(
+            orgLogo!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _fallbackAvatar(context),
+          ),
+        ),
+      );
+    }
+    return _fallbackAvatar(context);
+  }
+
+  Widget _fallbackAvatar(BuildContext context) {
+    final displayName = username.isNotEmpty ? username : phoneNumber;
+    final initials = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+    return Container(
+      width: 52, height: 52,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.5), width: 2),
+      ),
+      child: Center(
+        child: Text(initials,
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final displayName = username.isNotEmpty ? username : phoneNumber;
-    final initials = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
       child: Row(children: [
-        Container(
-          width: 52, height: 52,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.5), width: 2),
-          ),
-          child: Center(
-            child: Text(initials,
-                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
-          ),
-        ),
+        _buildOrgAvatar(context),
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
