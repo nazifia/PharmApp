@@ -176,6 +176,7 @@ class _ReceiptCard extends StatelessWidget {
   String get orgName    => saleData['organizationName']    as String? ?? 'PharmApp';
   String get orgAddress => saleData['organizationAddress'] as String? ?? '';
   String get orgPhone   => saleData['organizationPhone']   as String? ?? '';
+  String get orgLogo    => saleData['organizationLogo']    as String? ?? '';
   String get customerName =>
       saleData['customerName'] as String? ?? saleData['buyerName'] as String? ?? 'Walk-in';
   String get cashierName   => saleData['cashierName']  as String? ?? '';
@@ -305,11 +306,22 @@ class _ReceiptCard extends StatelessWidget {
                       ],
                     ),
                     child: ClipOval(
-                      child: Image.asset(
-                        'assets/icons/app_icon.png',
-                        width: 56, height: 56,
-                        fit: BoxFit.cover,
-                      ),
+                      child: orgLogo.isNotEmpty
+                          ? Image.network(
+                              orgLogo,
+                              width: 56, height: 56,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Image.asset(
+                                'assets/icons/app_icon.png',
+                                width: 56, height: 56,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Image.asset(
+                              'assets/icons/app_icon.png',
+                              width: 56, height: 56,
+                              fit: BoxFit.cover,
+                            ),
                     ),
                   ),
                 ]).animate().scale(duration: 400.ms, curve: Curves.elasticOut),

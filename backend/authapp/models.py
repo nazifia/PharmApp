@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.conf import settings
 from django.utils.text import slugify
 
 
@@ -11,6 +12,7 @@ class Organization(models.Model):
     slug    = models.SlugField(max_length=220, unique=True, blank=True)
     address = models.TextField(blank=True, default='')
     phone   = models.CharField(max_length=20, blank=True, default='')
+    logo    = models.ImageField(upload_to='org_logos/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
@@ -31,6 +33,7 @@ class Organization(models.Model):
             'slug':    self.slug,
             'address': self.address,
             'phone':   self.phone,
+            'logoUrl': self.logo.url if self.logo else None,
         }
 
     def __str__(self):
@@ -102,6 +105,7 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
             'organizationSlug':     org.slug    if org else '',
             'organizationAddress':  org.address if org else '',
             'organizationPhone':    org.phone   if org else '',
+            'organizationLogo':     org.logo.url if org and org.logo else '',
             'permissions':          _get_user_permissions(self),
         }
 

@@ -4,6 +4,7 @@ class Organization {
   final String slug;
   final String? address;
   final String? phone;
+  final String? logoUrl;
 
   const Organization({
     required this.id,
@@ -11,6 +12,7 @@ class Organization {
     required this.slug,
     this.address,
     this.phone,
+    this.logoUrl,
   });
 
   factory Organization.fromJson(Map<String, dynamic> json) => Organization(
@@ -19,6 +21,7 @@ class Organization {
         slug: json['slug'] as String,
         address: json['address'] as String?,
         phone: json['phone'] as String?,
+        logoUrl: json['logoUrl'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -27,5 +30,6 @@ class Organization {
         'slug': slug,
         if (address != null) 'address': address,
         if (phone != null) 'phone': phone,
+        if (logoUrl != null) 'logoUrl': logoUrl,
       };
 }

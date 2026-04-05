@@ -17,6 +17,7 @@ class User with _$User {
     @Default('') String organizationSlug,
     @Default('') String organizationAddress,
     @Default('') String organizationPhone,
+    @Default('') String organizationLogo,
     @Default(<String, bool>{}) Map<String, bool> permissions,
   }) = _User;
 

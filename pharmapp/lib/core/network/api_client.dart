@@ -23,6 +23,24 @@ final baseUrlProvider = StateProvider<String>((ref) {
   return 'https://PharmApp.pythonanywhere.com/api';
 });
 
+/// Derived from [baseUrlProvider] — same origin without `/api` suffix.
+/// Used to resolve media URLs like `/media/org_logos/avatar.png`.
+final mediaBaseUrlProvider = StateProvider<String>((ref) {
+  final base = ref.watch(baseUrlProvider);
+  return base.endsWith('/api') ? base.substring(0, base.length - 4) : base;
+});
+
+/// Resolves a relative media path (e.g. '/media/org_logos/x.png')
+/// or raw filename (e.g. 'org_logos/x.png') to a full URL.
+/// Returns the input unchanged if it already starts with 'http'.
+String resolvedMediaUrl(String path, {String? mediaBase}) {
+  if (path.isEmpty) return '';
+  if (path.startsWith('http')) return path;
+  mediaBase ??= 'http://localhost:8000'; // safe default; overridden in practice
+  final cleanPath = path.startsWith('/') ? path : '/$path';
+  return '$mediaBase$cleanPath';
+}
+
 // ── Auth token ────────────────────────────────────────────────────────────────
 
 /// Holds the raw JWT access token in memory.

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/widgets/custom_button.dart';
@@ -101,6 +102,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ? savedUser!.organizationName : 'PharmApp';
     final orgAddress = savedUser?.organizationAddress ?? '';
     final orgPhone   = savedUser?.organizationPhone ?? '';
+    final orgLogoUrl = savedUser?.organizationLogo.isNotEmpty == true
+        ? resolvedMediaUrl(savedUser!.organizationLogo, mediaBase: ref.read(mediaBaseUrlProvider)) : '';
 
     return Scaffold(
       backgroundColor: _bg3,
@@ -148,7 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 child: Column(
                   children: [
                     const SizedBox(height: 60),
-                    _buildLogo(orgName, orgAddress, orgPhone),
+                    _buildLogo(orgName, orgAddress, orgPhone, orgLogoUrl),
                     const SizedBox(height: 48),
                     _buildLoginCard(isLoading),
                     const SizedBox(height: 32),
@@ -168,7 +171,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  Widget _buildLogo(String orgName, String orgAddress, String orgPhone) {
+  Widget _buildLogo(String orgName, String orgAddress, String orgPhone, String orgLogoUrl) {
+    final Widget logoImage = orgLogoUrl.isNotEmpty
+        ? Image.network(
+            orgLogoUrl,
+            width: 100, height: 100,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Image.asset(
+              'assets/icons/app_icon.png',
+              width: 100, height: 100,
+              fit: BoxFit.cover,
+            ),
+          )
+        : Image.asset(
+            'assets/icons/app_icon.png',
+            width: 100, height: 100,
+            fit: BoxFit.cover,
+          );
     return Column(
       children: [
         Container(
@@ -185,11 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(28),
-            child: Image.asset(
-              'assets/icons/app_icon.png',
-              width: 100, height: 100,
-              fit: BoxFit.cover,
-            ),
+            child: logoImage,
           ),
         ),
         const SizedBox(height: 16),
