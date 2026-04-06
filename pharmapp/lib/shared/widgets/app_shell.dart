@@ -58,6 +58,11 @@ class _AppShellState extends ConsumerState<AppShell>
   /// platforms where OS-level network events are unreliable such as web/Windows).
   Timer? _retryTimer;
 
+  /// Guards automatic sync triggers (timer, connectivity change, queue load,
+  /// lifecycle resume) from running concurrently. Manual taps from the
+  /// _OfflineBanner bypass this guard and use their own _syncing flag.
+  bool _autoSyncing = false;
+
   @override
   void initState() {
     super.initState();
@@ -93,7 +98,9 @@ class _AppShellState extends ConsumerState<AppShell>
 
   /// Sync pending offline items if the device is online.
   /// [delayMs] adds a stabilisation pause so the connection is ready.
+  /// Guarded by [_autoSyncing] so concurrent automatic triggers don't overlap.
   Future<void> _syncIfNeeded({int delayMs = 0}) async {
+    if (_autoSyncing) return;
     if (delayMs > 0) {
       await Future.delayed(Duration(milliseconds: delayMs));
     }
@@ -109,7 +116,13 @@ class _AppShellState extends ConsumerState<AppShell>
     // Checking hasPending here would cause a race-condition false-negative that
     // silently skips the sync until the 30-second timer fires.
 
-    final result = await ref.read(syncServiceProvider).syncAll();
+    _autoSyncing = true;
+    SyncResult result;
+    try {
+      result = await ref.read(syncServiceProvider).syncAll();
+    } finally {
+      _autoSyncing = false;
+    }
     if (!mounted) return;
 
     if (result.synced > 0) {

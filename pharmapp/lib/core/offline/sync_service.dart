@@ -63,15 +63,12 @@ class SyncService {
 
   SyncService(this.ref);
 
-  /// Guards against concurrent [syncAll] invocations (e.g. from the periodic
-  /// timer, the connectivity listener, and the queue listeners firing at once).
-  bool _isSyncing = false;
-
   /// Attempt to sync **both** queues (sales + generic mutations).
+  ///
+  /// This method is intentionally unguarded — callers are responsible for
+  /// preventing unwanted concurrent calls (AppShell guards auto-syncs;
+  /// _OfflineBanner guards manual taps via its own _syncing flag).
   Future<SyncResult> syncAll() async {
-    if (_isSyncing) return const SyncResult();
-    _isSyncing = true;
-
     int salesSynced = 0, mutationsSynced = 0;
     int failedSales = 0, failedMutations = 0;
     String? error;
@@ -121,8 +118,6 @@ class SyncService {
       }
     } catch (e) {
       error = e.toString();
-    } finally {
-      _isSyncing = false;
     }
 
     return SyncResult(
