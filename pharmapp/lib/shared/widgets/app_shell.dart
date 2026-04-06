@@ -1,4 +1,5 @@
-﻿import 'dart:ui';
+﻿import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,16 +52,31 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell>
     with WidgetsBindingObserver {
 
+  /// Periodic fallback timer — retries sync every 30 s while items are queued.
+  /// Handles environments where connectivity_plus cannot detect that the
+  /// *server* came back (e.g. local dev with Django stopped/restarted, or
+  /// platforms where OS-level network events are unreliable such as web/Windows).
+  Timer? _retryTimer;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // Sync on startup: runs after the first frame so providers are ready.
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncIfNeeded());
+    _startRetryTimer();
+  }
+
+  void _startRetryTimer() {
+    _retryTimer?.cancel();
+    _retryTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _syncIfNeeded();
+    });
   }
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
