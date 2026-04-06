@@ -502,9 +502,13 @@ def accept_payment_request(request, pk):
     if err:
         return err
     pr = get_object_or_404(PaymentRequest, pk=pk, organization=org)
+    # Idempotent: if already accepted, return current state as success.
+    # This handles duplicate requests from double-taps or offline sync replays.
+    if pr.status == "accepted":
+        return Response(pr.to_api_dict())
     if pr.status != "pending":
         return Response(
-            {"detail": f"Request is already {pr.status}"},
+            {"detail": f"Cannot accept a request that is already {pr.status}"},
             status=status.HTTP_400_BAD_REQUEST,
         )
     pr.status = "accepted"
@@ -520,9 +524,12 @@ def reject_payment_request(request, pk):
     if err:
         return err
     pr = get_object_or_404(PaymentRequest, pk=pk, organization=org)
+    # Idempotent: if already rejected, return current state as success.
+    if pr.status == "rejected":
+        return Response(pr.to_api_dict())
     if pr.status != "pending":
         return Response(
-            {"detail": f"Request is already {pr.status}"},
+            {"detail": f"Cannot reject a request that is already {pr.status}"},
             status=status.HTTP_400_BAD_REQUEST,
         )
     pr.status = "rejected"

@@ -38,6 +38,10 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
   List<dynamic> _detailItems = [];
   bool _detailLoading = false;
 
+  /// IDs currently being acted on (accept / reject / complete in-flight).
+  /// Buttons are disabled while their request ID is in this set.
+  final Set<int> _actingIds = {};
+
   static const _filters = ['all', 'pending', 'accepted', 'completed', 'rejected'];
 
   @override
@@ -92,78 +96,91 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
   }
 
   Future<void> _acceptRequest(int id) async {
-    final isOnline = ref.read(isOnlineProvider);
-    if (!isOnline) {
-      await ref.read(offlineMutationQueueProvider.notifier).enqueue(
-        'POST', '/pos/payment-requests/$id/accept/',
-        description: 'Accept payment request #$id',
-      );
-      if (!mounted) return;
-      _showSnack('Offline — acceptance queued for sync', EnhancedTheme.warningAmber);
-      _updateLocalStatus(id, 'accepted');
-      return;
-    }
+    if (_actingIds.contains(id)) return; // already in-flight
+    setState(() => _actingIds.add(id));
     try {
-      await ref.read(posApiProvider).acceptPaymentRequest(id);
-      if (!mounted) return;
-      _showSnack('Request accepted', EnhancedTheme.successGreen);
-      setState(() => _selectedRequest = null);
-      _loadRequests();
-    } on DioException catch (e) {
-      if (!mounted) return;
-      if (e.response == null) {
+      final isOnline = ref.read(isOnlineProvider);
+      if (!isOnline) {
         await ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/payment-requests/$id/accept/',
           description: 'Accept payment request #$id',
         );
+        if (!mounted) return;
         _showSnack('Offline — acceptance queued for sync', EnhancedTheme.warningAmber);
         _updateLocalStatus(id, 'accepted');
-      } else {
-        _showError('Failed to accept: ${e.response?.data?['detail'] ?? e.message}');
+        return;
       }
-    } catch (e) {
-      if (!mounted) return;
-      _showError('Failed to accept: $e');
+      try {
+        await ref.read(posApiProvider).acceptPaymentRequest(id);
+        if (!mounted) return;
+        _showSnack('Request accepted', EnhancedTheme.successGreen);
+        setState(() => _selectedRequest = null);
+        _loadRequests();
+      } on DioException catch (e) {
+        if (!mounted) return;
+        if (e.response == null) {
+          await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+            'POST', '/pos/payment-requests/$id/accept/',
+            description: 'Accept payment request #$id',
+          );
+          _showSnack('Offline — acceptance queued for sync', EnhancedTheme.warningAmber);
+          _updateLocalStatus(id, 'accepted');
+        } else {
+          _showError('Failed to accept: ${e.response?.data?['detail'] ?? e.message}');
+        }
+      } catch (e) {
+        if (!mounted) return;
+        _showError('Failed to accept: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _actingIds.remove(id));
     }
   }
 
   Future<void> _rejectRequest(int id) async {
-    final isOnline = ref.read(isOnlineProvider);
-    if (!isOnline) {
-      await ref.read(offlineMutationQueueProvider.notifier).enqueue(
-        'POST', '/pos/payment-requests/$id/reject/',
-        description: 'Reject payment request #$id',
-      );
-      if (!mounted) return;
-      _showSnack('Offline — rejection queued for sync', EnhancedTheme.warningAmber);
-      _updateLocalStatus(id, 'rejected');
-      return;
-    }
+    if (_actingIds.contains(id)) return; // already in-flight
+    setState(() => _actingIds.add(id));
     try {
-      await ref.read(posApiProvider).rejectPaymentRequest(id);
-      if (!mounted) return;
-      _showSnack('Request rejected', EnhancedTheme.errorRed);
-      setState(() => _selectedRequest = null);
-      _loadRequests();
-    } on DioException catch (e) {
-      if (!mounted) return;
-      if (e.response == null) {
+      final isOnline = ref.read(isOnlineProvider);
+      if (!isOnline) {
         await ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/payment-requests/$id/reject/',
           description: 'Reject payment request #$id',
         );
+        if (!mounted) return;
         _showSnack('Offline — rejection queued for sync', EnhancedTheme.warningAmber);
         _updateLocalStatus(id, 'rejected');
-      } else {
-        _showError('Failed to reject: ${e.response?.data?['detail'] ?? e.message}');
+        return;
       }
-    } catch (e) {
-      if (!mounted) return;
-      _showError('Failed to reject: $e');
+      try {
+        await ref.read(posApiProvider).rejectPaymentRequest(id);
+        if (!mounted) return;
+        _showSnack('Request rejected', EnhancedTheme.errorRed);
+        setState(() => _selectedRequest = null);
+        _loadRequests();
+      } on DioException catch (e) {
+        if (!mounted) return;
+        if (e.response == null) {
+          await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+            'POST', '/pos/payment-requests/$id/reject/',
+            description: 'Reject payment request #$id',
+          );
+          _showSnack('Offline — rejection queued for sync', EnhancedTheme.warningAmber);
+          _updateLocalStatus(id, 'rejected');
+        } else {
+          _showError('Failed to reject: ${e.response?.data?['detail'] ?? e.message}');
+        }
+      } catch (e) {
+        if (!mounted) return;
+        _showError('Failed to reject: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _actingIds.remove(id));
     }
   }
 
   Future<void> _completeRequest(int id) async {
+    if (_actingIds.contains(id)) return; // already in-flight
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
       builder: (_) => _CompletePaymentDialog(
@@ -173,34 +190,10 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
     );
     if (result == null || !mounted) return;
 
-    final isOnline = ref.read(isOnlineProvider);
-    if (!isOnline) {
-      await ref.read(offlineMutationQueueProvider.notifier).enqueue(
-        'POST', '/pos/payment-requests/$id/complete/',
-        body: {
-          'payment': result['payment'],
-          'payment_method': result['paymentMethod'],
-        },
-        description: 'Complete payment request #$id',
-      );
-      if (!mounted) return;
-      _showSnack('Offline — completion queued for sync', EnhancedTheme.warningAmber);
-      _updateLocalStatus(id, 'completed');
-      return;
-    }
+    setState(() => _actingIds.add(id));
     try {
-      await ref.read(posApiProvider).completePaymentRequest(
-        id,
-        result['payment'] as Map<String, dynamic>,
-        result['paymentMethod'] as String,
-      );
-      if (!mounted) return;
-      _showSnack('Payment completed', EnhancedTheme.successGreen);
-      setState(() => _selectedRequest = null);
-      _loadRequests();
-    } on DioException catch (e) {
-      if (!mounted) return;
-      if (e.response == null) {
+      final isOnline = ref.read(isOnlineProvider);
+      if (!isOnline) {
         await ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/payment-requests/$id/complete/',
           body: {
@@ -209,14 +202,43 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
           },
           description: 'Complete payment request #$id',
         );
+        if (!mounted) return;
         _showSnack('Offline — completion queued for sync', EnhancedTheme.warningAmber);
         _updateLocalStatus(id, 'completed');
-      } else {
-        _showError('Failed to complete: ${e.response?.data?['detail'] ?? e.message}');
+        return;
       }
-    } catch (e) {
-      if (!mounted) return;
-      _showError('Failed to complete: $e');
+      try {
+        await ref.read(posApiProvider).completePaymentRequest(
+          id,
+          result['payment'] as Map<String, dynamic>,
+          result['paymentMethod'] as String,
+        );
+        if (!mounted) return;
+        _showSnack('Payment completed', EnhancedTheme.successGreen);
+        setState(() => _selectedRequest = null);
+        _loadRequests();
+      } on DioException catch (e) {
+        if (!mounted) return;
+        if (e.response == null) {
+          await ref.read(offlineMutationQueueProvider.notifier).enqueue(
+            'POST', '/pos/payment-requests/$id/complete/',
+            body: {
+              'payment': result['payment'],
+              'payment_method': result['paymentMethod'],
+            },
+            description: 'Complete payment request #$id',
+          );
+          _showSnack('Offline — completion queued for sync', EnhancedTheme.warningAmber);
+          _updateLocalStatus(id, 'completed');
+        } else {
+          _showError('Failed to complete: ${e.response?.data?['detail'] ?? e.message}');
+        }
+      } catch (e) {
+        if (!mounted) return;
+        _showError('Failed to complete: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _actingIds.remove(id));
     }
   }
 
@@ -457,12 +479,16 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(children: [
                 Expanded(child: ElevatedButton.icon(
-                  onPressed: () => _acceptRequest(id),
-                  icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                  onPressed: _actingIds.contains(id) ? null : () => _acceptRequest(id),
+                  icon: _actingIds.contains(id)
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      : const Icon(Icons.check_circle_outline_rounded, size: 18),
                   label: Text('Accept', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EnhancedTheme.successGreen,
                     foregroundColor: Colors.black,
+                    disabledBackgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.5),
+                    disabledForegroundColor: Colors.black54,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -470,12 +496,16 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 )),
                 const SizedBox(width: 12),
                 Expanded(child: ElevatedButton.icon(
-                  onPressed: () => _rejectRequest(id),
-                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  onPressed: _actingIds.contains(id) ? null : () => _rejectRequest(id),
+                  icon: _actingIds.contains(id)
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      : const Icon(Icons.cancel_outlined, size: 18),
                   label: Text('Reject', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EnhancedTheme.errorRed,
                     foregroundColor: Colors.black,
+                    disabledBackgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.5),
+                    disabledForegroundColor: Colors.black54,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -487,12 +517,16 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SizedBox(width: double.infinity, child: ElevatedButton.icon(
-                onPressed: () => _completeRequest(id),
-                icon: const Icon(Icons.payment_rounded, size: 18),
+                onPressed: _actingIds.contains(id) ? null : () => _completeRequest(id),
+                icon: _actingIds.contains(id)
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                    : const Icon(Icons.payment_rounded, size: 18),
                 label: Text('Complete Payment', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EnhancedTheme.primaryTeal,
                   foregroundColor: Colors.black,
+                  disabledBackgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.5),
+                  disabledForegroundColor: Colors.black54,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 2,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
