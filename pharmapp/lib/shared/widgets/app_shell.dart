@@ -114,12 +114,14 @@ class _AppShellState extends ConsumerState<AppShell>
 
     if (result.synced > 0) {
       ref.invalidate(salesListProvider);
+      ref.invalidate(offlineSalesProvider);
       ref.invalidate(salesReportProvider);
       ref.invalidate(profitReportProvider);
       ref.invalidate(inventoryReportProvider);
       ref.invalidate(customerReportProvider);
       ref.invalidate(inventoryListProvider);
       ref.invalidate(retailInventoryProvider);
+      ref.invalidate(wholesaleInventoryProvider);
       ref.invalidate(customerListProvider);
     }
 
@@ -212,15 +214,17 @@ class _AppShellState extends ConsumerState<AppShell>
     // Trigger sync when the offline queues finish loading from SharedPreferences
     // on startup (OfflineQueueNotifier._reload() is async — it completes AFTER
     // the first frame, so the initState post-frame callback may see an empty
-    // queue even though items are stored on disk). These listeners fire the
-    // moment items appear in state, covering the startup race condition.
+    // queue even though items are stored on disk). Also triggers immediately
+    // when a new item is added to a non-empty queue so that momentarily-offline
+    // writes are retried as soon as connectivity is back, without waiting for
+    // the 30-second periodic timer.
     ref.listen<List<PendingSale>>(offlineQueueProvider, (previous, next) {
-      if ((previous == null || previous.isEmpty) && next.isNotEmpty) {
+      if (next.isNotEmpty && (previous == null || next.length > previous.length)) {
         _syncIfNeeded();
       }
     });
     ref.listen<List<PendingMutation>>(offlineMutationQueueProvider, (previous, next) {
-      if ((previous == null || previous.isEmpty) && next.isNotEmpty) {
+      if (next.isNotEmpty && (previous == null || next.length > previous.length)) {
         _syncIfNeeded();
       }
     });
@@ -320,6 +324,15 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
 
   Future<void> _triggerSync() async {
     if (_syncing) return;
+
+    // Snapshot pending count BEFORE calling syncAll() — if syncAll() returns
+    // no work but pendingBefore > 0, it means another sync was already running
+    // (SyncService._running guard). Show a "sync in progress" message instead
+    // of the misleading "Nothing to sync".
+    final pendingSales = ref.read(offlineQueueProvider);
+    final pendingMuts  = ref.read(offlineMutationQueueProvider);
+    final pendingBefore = pendingSales.length + pendingMuts.length;
+
     setState(() => _syncing = true);
 
     final result = await ref.read(syncServiceProvider).syncAll();
@@ -330,12 +343,14 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
     // Invalidate all data providers so open screens reload fresh data
     if (result.synced > 0) {
       ref.invalidate(salesListProvider);
+      ref.invalidate(offlineSalesProvider);
       ref.invalidate(salesReportProvider);
       ref.invalidate(profitReportProvider);
       ref.invalidate(inventoryReportProvider);
       ref.invalidate(customerReportProvider);
       ref.invalidate(inventoryListProvider);
       ref.invalidate(retailInventoryProvider);
+      ref.invalidate(wholesaleInventoryProvider);
       ref.invalidate(customerListProvider);
     }
 
@@ -371,6 +386,26 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
       ));
     } else if (!mounted) {
       return;
+    } else if (pendingBefore > 0) {
+      // Sync was blocked by an in-flight auto-sync — inform the user it's
+      // already running rather than showing the misleading "Nothing to sync".
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.infoBlue.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+        content: const Row(children: [
+          SizedBox(
+            width: 16, height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+          ),
+          SizedBox(width: 10),
+          Expanded(child: Text('Sync already in progress…',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          )),
+        ]),
+      ));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: EnhancedTheme.infoBlue.withValues(alpha: 0.92),

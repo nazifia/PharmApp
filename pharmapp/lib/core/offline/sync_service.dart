@@ -1,194 +1,221 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/network/api_client.dart';
-import '../../shared/models/sale.dart';
+
 import '../../features/pos/providers/pos_api_provider.dart';
 import '../../features/inventory/providers/inventory_provider.dart';
 import '../../features/customers/providers/customer_provider.dart';
-import '../../features/reports/providers/reports_provider.dart';
-import '../../features/pos/screens/sales_history_screen.dart';
+import '../../shared/models/sale.dart';
 import 'offline_queue.dart';
+import '../network/api_client.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Result
-// ─────────────────────────────────────────────────────────────────────────────
+/// Cache keys that must be cleared after a successful sync so that the
+/// Riverpod providers re-fetch fresh data from the backend.
+const _kSyncCacheKeys = [
+  'cache_inventory',
+  'cache_inventory_retail',
+  'cache_inventory_wholesale',
+  'cache_customers',
+  'cache_wholesale_customers',
+  'cache_expenses',
+  'cache_suppliers',
+  'cache_procurements',
+  'cache_stock_checks',
+  'cache_transfers',
+  'cache_payment_requests',
+  'cache_dispensing',
+  'cache_notifications',
+];
 
+/// Sync result summary returned by [SyncService.syncAll].
 class SyncResult {
-  final int synced;
-  final int failed;
+  final int salesSynced;
+  final int mutationsSynced;
+  final int failedSales;
+  final int failedMutations;
+  final String? error;
   final bool authExpired;
-  const SyncResult({this.synced = 0, this.failed = 0, this.authExpired = false});
+
+  const SyncResult({
+    this.salesSynced = 0,
+    this.mutationsSynced = 0,
+    this.failedSales = 0,
+    this.failedMutations = 0,
+    this.error,
+    this.authExpired = false,
+  });
+
+  /// Total successful syncs (sales + mutations).
+  int get synced => salesSynced + mutationsSynced;
+
+  /// Total failed syncs (sales + mutations).
+  int get failed => failedSales + failedMutations;
+
+  /// Whether there was any work attempted.
   bool get hasWork => synced > 0 || failed > 0;
+
+  bool get hasErrors => failedSales > 0 || failedMutations > 0 || error != null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Service
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Maximum number of attempts before a queued item is automatically discarded.
-const _kMaxAttempts = 5;
-
+/// Central service that replays offline queues when connectivity is restored.
 class SyncService {
-  final Ref _ref;
-  bool _running = false;
+  final Ref ref;
 
-  SyncService(this._ref);
+  SyncService(this.ref);
 
-  /// Attempt to submit every pending sale AND every queued API mutation.
-  /// Returns combined counts of successes and failures.
+  /// Guards against concurrent [syncAll] invocations (e.g. from the periodic
+  /// timer, the connectivity listener, and the queue listeners firing at once).
+  bool _isSyncing = false;
+
+  /// Attempt to sync **both** queues (sales + generic mutations).
   Future<SyncResult> syncAll() async {
-    if (_running) return const SyncResult();
-    _running = true;
+    if (_isSyncing) return const SyncResult();
+    _isSyncing = true;
 
-    int synced = 0;
-    int failed = 0;
+    int salesSynced = 0, mutationsSynced = 0;
+    int failedSales = 0, failedMutations = 0;
+    String? error;
     bool authExpired = false;
 
     try {
-      // Guard: if the auth token is missing, skip network sync entirely.
-      // This avoids hammering the server with unauthenticated requests when
-      // the user's session has expired during an offline period.
-      final token = _ref.read(authTokenProvider);
-      if (token == null) {
-        return const SyncResult(authExpired: true);
-      }
-
-      // ── 1. Replay POS sales ────────────────────────────────────────────────
-      final saleNotifier = _ref.read(offlineQueueProvider.notifier);
-      final sales = List.of(_ref.read(offlineQueueProvider));
-
-      for (final entry in sales) {
-        // Auto-discard items that have exhausted all retry attempts.
-        if (entry.attempts >= _kMaxAttempts) {
-          await saleNotifier.remove(entry.id);
-          continue;
-        }
+      // ── 1. Sync pending sales ────────────────────────────────────────────
+      final salesQueue = ref.read(offlineQueueProvider);
+      for (final sale in List<PendingSale>.from(salesQueue)) {
         try {
-          final payload = CheckoutPayload.fromJson(entry.payload);
-          await _ref.read(posApiProvider).submitCheckout(payload);
-          await saleNotifier.remove(entry.id);
-          synced++;
-        } on DioException catch (e) {
-          // 401 means the token expired — stop immediately, don't burn retries.
-          if (e.response?.statusCode == 401) {
+          await ref
+              .read(posApiProvider)
+              .submitCheckout(CheckoutPayload.fromJson(sale.payload));
+          await ref.read(offlineQueueProvider.notifier).remove(sale.id);
+          salesSynced++;
+        } catch (e) {
+          if (e is DioException && e.response?.statusCode == 401) {
             authExpired = true;
-            await saleNotifier.markAttempt(entry.id);
-            failed++;
-            break;
           }
-          await saleNotifier.markAttempt(entry.id);
-          failed++;
-        } catch (_) {
-          await saleNotifier.markAttempt(entry.id);
-          failed++;
+          await ref.read(offlineQueueProvider.notifier).markAttempt(sale.id);
+          failedSales++;
         }
       }
 
-      // If auth is expired, skip mutation replay — they'll all fail too.
-      if (!authExpired) {
-        // ── 2. Replay generic API mutations (inventory / customer writes) ──────
-        final mutNotifier = _ref.read(offlineMutationQueueProvider.notifier);
-        final mutations   = List.of(_ref.read(offlineMutationQueueProvider));
-        final dio         = _ref.read(dioProvider);
-
-        for (final m in mutations) {
-          // Auto-discard items that have exhausted all retry attempts.
-          if (m.attempts >= _kMaxAttempts) {
-            await mutNotifier.remove(m.id);
-            continue;
+      // ── 2. Sync generic mutations ────────────────────────────────────────
+      final mutationQueue = ref.read(offlineMutationQueueProvider);
+      for (final mut in List<PendingMutation>.from(mutationQueue)) {
+        try {
+          await _syncMutation(mut);
+          await ref.read(offlineMutationQueueProvider.notifier).remove(mut.id);
+          mutationsSynced++;
+        } catch (e) {
+          if (e is DioException && e.response?.statusCode == 401) {
+            authExpired = true;
           }
-          try {
-            switch (m.method.toUpperCase()) {
-              case 'POST':
-                await dio.post(m.path, data: m.body);
-                break;
-              case 'PATCH':
-                await dio.patch(m.path, data: m.body);
-                break;
-              case 'PUT':
-                await dio.put(m.path, data: m.body);
-                break;
-              case 'DELETE':
-                await dio.delete(m.path);
-                break;
-            }
-            await mutNotifier.remove(m.id);
-            synced++;
-          } on DioException catch (e) {
-            if (e.response?.statusCode == 401) {
-              authExpired = true;
-              await mutNotifier.markAttempt(m.id);
-              failed++;
-              break;
-            }
-            await mutNotifier.markAttempt(m.id);
-            failed++;
-          } catch (_) {
-            await mutNotifier.markAttempt(m.id);
-            failed++;
-          }
+          await ref
+              .read(offlineMutationQueueProvider.notifier)
+              .markAttempt(mut.id);
+          failedMutations++;
         }
       }
 
-      // If any operations were synced successfully, clear stale SharedPreferences
-      // caches AND invalidate Riverpod providers so every open screen reloads
-      // fresh data from the server automatically.
-      if (synced > 0) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('cache_sales_list');
-        await prefs.remove('cache_payment_requests');
-        for (final period in ['today', 'week', 'month', 'quarter', 'year']) {
-          await prefs.remove('cache_report_sales_$period');
-          await prefs.remove('cache_report_profit_$period');
-        }
-        await prefs.remove('cache_report_inventory');
-        await prefs.remove('cache_report_customers');
-
-        // Invalidate Riverpod providers so open screens refresh automatically.
-        _ref.invalidate(inventoryListProvider);
-        _ref.invalidate(retailInventoryProvider);
-        _ref.invalidate(customerListProvider);
-        _ref.invalidate(paymentRequestsPreloadProvider);
-        _ref.invalidate(salesReportProvider);
-        _ref.invalidate(profitReportProvider);
-        _ref.invalidate(inventoryReportProvider);
-        _ref.invalidate(customerReportProvider);
-        _ref.invalidate(salesListProvider);
+      // ── 3. Invalidate stale caches on success ────────────────────────────
+      if (salesSynced > 0 || mutationsSynced > 0) {
+        await _clearSyncedCaches();
+        _invalidateProviders();
       }
-
-      return SyncResult(synced: synced, failed: failed, authExpired: authExpired);
-    } catch (_) {
-      // Should not normally happen — all inner operations have their own
-      // try/catch. This outer catch is a safety net so that _running is
-      // ALWAYS reset even if something unexpected throws (e.g. provider
-      // disposal, SharedPreferences I/O error). Without this, _running
-      // would stay true permanently and every future sync call would silently
-      // return SyncResult() with zero work done and no snackbar.
-      return SyncResult(synced: synced, failed: failed, authExpired: authExpired);
+    } catch (e) {
+      error = e.toString();
     } finally {
-      // CRITICAL: always reset _running regardless of how the method exits.
-      _running = false;
+      _isSyncing = false;
+    }
+
+    return SyncResult(
+      salesSynced: salesSynced,
+      mutationsSynced: mutationsSynced,
+      failedSales: failedSales,
+      failedMutations: failedMutations,
+      error: error,
+      authExpired: authExpired,
+    );
+  }
+
+  /// Replay a single mutation against the backend.
+  Future<void> _syncMutation(PendingMutation mut) async {
+    final dio = ref.read(dioProvider);
+    switch (mut.method) {
+      case 'POST':
+        await dio.post(mut.path, data: mut.body);
+        break;
+      case 'PATCH':
+        await dio.patch(mut.path, data: mut.body);
+        break;
+      case 'PUT':
+        await dio.put(mut.path, data: mut.body);
+        break;
+      case 'DELETE':
+        await dio.delete(mut.path);
+        break;
+      default:
+        throw UnsupportedError('Unsupported HTTP method: ${mut.method}');
     }
   }
 
-  /// Remove all queue entries that have at least one failed attempt.
+  /// Remove all cache entries that may contain stale offline data.
+  Future<void> _clearSyncedCaches() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in _kSyncCacheKeys) {
+      await prefs.remove(key);
+    }
+  }
+
+  /// Discard all items that have failed multiple times (attempts > 0).
   Future<int> discardFailed() async {
-    final saleNotifier = _ref.read(offlineQueueProvider.notifier);
-    final mutNotifier  = _ref.read(offlineMutationQueueProvider.notifier);
+    int removed = 0;
+    final saleNotifier = ref.read(offlineQueueProvider.notifier);
+    final mutNotifier = ref.read(offlineMutationQueueProvider.notifier);
 
-    final failedSales = _ref.read(offlineQueueProvider)
+    final failedSales =
+        ref.read(offlineQueueProvider).where((e) => e.attempts > 0).toList();
+    for (final s in failedSales) {
+      await saleNotifier.remove(s.id);
+      removed++;
+    }
+
+    final failedMuts = ref
+        .read(offlineMutationQueueProvider)
         .where((e) => e.attempts > 0)
         .toList();
-    final failedMuts  = _ref.read(offlineMutationQueueProvider)
-        .where((e) => e.attempts > 0)
-        .toList();
+    for (final m in failedMuts) {
+      await mutNotifier.remove(m.id);
+      removed++;
+    }
 
-    for (final s in failedSales) { await saleNotifier.remove(s.id); }
-    for (final m in failedMuts)  { await mutNotifier.remove(m.id); }
+    return removed;
+  }
 
-    return failedSales.length + failedMuts.length;
+  /// Invalidate Riverpod providers so they re-fetch from the backend.
+  void _invalidateProviders() {
+    ref.invalidate(inventoryListProvider);
+    ref.invalidate(retailInventoryProvider);
+    ref.invalidate(wholesaleInventoryProvider);
+    ref.invalidate(customerListProvider);
+    // Other providers are auto-dispose and will refetch when next accessed.
+    // Clearing SharedPreferences caches above is sufficient for offline reads.
   }
 }
 
+/// Provider that gives easy access to the sync service.
 final syncServiceProvider = Provider<SyncService>((ref) => SyncService(ref));
+
+/// Convenience notifier that exposes the last sync result.
+class SyncStatusNotifier extends StateNotifier<AsyncValue<SyncResult>> {
+  SyncStatusNotifier() : super(const AsyncValue.data(SyncResult()));
+
+  Future<void> syncAll(Ref ref) async {
+    state = const AsyncValue.loading();
+    final service = ref.read(syncServiceProvider);
+    final result = await service.syncAll();
+    state = AsyncValue.data(result);
+  }
+}
+
+final syncStatusProvider =
+    StateNotifierProvider<SyncStatusNotifier, AsyncValue<SyncResult>>(
+  (ref) => SyncStatusNotifier(),
+);

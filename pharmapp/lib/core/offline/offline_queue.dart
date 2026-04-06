@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,8 +11,8 @@ const _kQueueKey = 'offline_sale_queue';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class PendingSale {
-  final String id;                      // microsecondsSinceEpoch string
-  final Map<String, dynamic> payload;   // CheckoutPayload.toJson()
+  final String id; // microsecondsSinceEpoch string
+  final Map<String, dynamic> payload; // CheckoutPayload.toJson()
   final DateTime queuedAt;
   final int attempts;
 
@@ -23,23 +24,25 @@ class PendingSale {
   });
 
   Map<String, dynamic> toJson() => {
-    'id':       id,
-    'payload':  payload,
-    'queuedAt': queuedAt.toIso8601String(),
-    'attempts': attempts,
-  };
+        'id': id,
+        'payload': payload,
+        'queuedAt': queuedAt.toIso8601String(),
+        'attempts': attempts,
+      };
 
   factory PendingSale.fromJson(Map<String, dynamic> j) => PendingSale(
-    id:       j['id'] as String,
-    payload:  Map<String, dynamic>.from(j['payload'] as Map),
-    queuedAt: DateTime.parse(j['queuedAt'] as String),
-    attempts: (j['attempts'] as num?)?.toInt() ?? 0,
-  );
+        id: j['id'] as String,
+        payload: Map<String, dynamic>.from(j['payload'] as Map),
+        queuedAt: DateTime.parse(j['queuedAt'] as String),
+        attempts: (j['attempts'] as num?)?.toInt() ?? 0,
+      );
 
   PendingSale copyWith({int? attempts}) => PendingSale(
-    id: id, payload: payload, queuedAt: queuedAt,
-    attempts: attempts ?? this.attempts,
-  );
+        id: id,
+        payload: payload,
+        queuedAt: queuedAt,
+        attempts: attempts ?? this.attempts,
+      );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -48,11 +51,13 @@ class PendingSale {
 
 Future<List<PendingSale>> _loadRaw() async {
   final prefs = await SharedPreferences.getInstance();
-  final raw   = prefs.getString(_kQueueKey);
+  final raw = prefs.getString(_kQueueKey);
   if (raw == null || raw.isEmpty) return [];
   try {
     final list = jsonDecode(raw) as List;
-    return list.map((e) => PendingSale.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => PendingSale.fromJson(e as Map<String, dynamic>))
+        .toList();
   } catch (_) {
     return [];
   }
@@ -69,19 +74,32 @@ Future<void> _saveRaw(List<PendingSale> queue) async {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class OfflineQueueNotifier extends StateNotifier<List<PendingSale>> {
+  Completer<void>? _initCompleter;
+
   OfflineQueueNotifier() : super([]) {
+    _initCompleter = Completer<void>();
     _reload();
   }
 
   Future<void> _reload() async {
-    state = await _loadRaw();
+    final loaded = await _loadRaw();
+    state = loaded;
+    _initCompleter?.complete();
+  }
+
+  /// Wait until the initial load from disk is complete.
+  Future<void> ensureLoaded() async {
+    if (_initCompleter?.isCompleted == false) {
+      await _initCompleter!.future;
+    }
   }
 
   /// Enqueue a checkout to be synced later.
   Future<PendingSale> enqueue(CheckoutPayload payload) async {
+    await ensureLoaded();
     final entry = PendingSale(
-      id:       DateTime.now().microsecondsSinceEpoch.toString(),
-      payload:  payload.toJson(),
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      payload: payload.toJson(),
       queuedAt: DateTime.now(),
     );
     final queue = List<PendingSale>.from(state)..add(entry);
@@ -99,7 +117,9 @@ class OfflineQueueNotifier extends StateNotifier<List<PendingSale>> {
 
   /// Increment retry counter for a failed entry.
   Future<void> markAttempt(String id) async {
-    final queue = state.map((e) => e.id == id ? e.copyWith(attempts: e.attempts + 1) : e).toList();
+    final queue = state
+        .map((e) => e.id == id ? e.copyWith(attempts: e.attempts + 1) : e)
+        .toList();
     await _saveRaw(queue);
     state = queue;
   }
@@ -121,11 +141,11 @@ const _kMutationQueueKey = 'offline_mutations';
 
 /// A single API write operation to be replayed when connectivity is restored.
 class PendingMutation {
-  final String id;                       // microsecondsSinceEpoch string
-  final String method;                   // 'POST' | 'PATCH' | 'PUT' | 'DELETE'
-  final String path;                     // e.g. '/inventory/items/'
-  final Map<String, dynamic>? body;      // request body (null for DELETE)
-  final String description;             // human-readable: "Add item Panadol"
+  final String id; // microsecondsSinceEpoch string
+  final String method; // 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+  final String path; // e.g. '/inventory/items/'
+  final Map<String, dynamic>? body; // request body (null for DELETE)
+  final String description; // human-readable: "Add item Panadol"
   final DateTime queuedAt;
   final int attempts;
 
@@ -140,39 +160,47 @@ class PendingMutation {
   });
 
   Map<String, dynamic> toJson() => {
-    'id':          id,
-    'method':      method,
-    'path':        path,
-    'body':        body,
-    'description': description,
-    'queuedAt':    queuedAt.toIso8601String(),
-    'attempts':    attempts,
-  };
+        'id': id,
+        'method': method,
+        'path': path,
+        'body': body,
+        'description': description,
+        'queuedAt': queuedAt.toIso8601String(),
+        'attempts': attempts,
+      };
 
   factory PendingMutation.fromJson(Map<String, dynamic> j) => PendingMutation(
-    id:          j['id'] as String,
-    method:      j['method'] as String,
-    path:        j['path'] as String,
-    body:        j['body'] != null ? Map<String, dynamic>.from(j['body'] as Map) : null,
-    description: (j['description'] as String?) ?? '',
-    queuedAt:    DateTime.parse(j['queuedAt'] as String),
-    attempts:    (j['attempts'] as num?)?.toInt() ?? 0,
-  );
+        id: j['id'] as String,
+        method: j['method'] as String,
+        path: j['path'] as String,
+        body: j['body'] != null
+            ? Map<String, dynamic>.from(j['body'] as Map)
+            : null,
+        description: (j['description'] as String?) ?? '',
+        queuedAt: DateTime.parse(j['queuedAt'] as String),
+        attempts: (j['attempts'] as num?)?.toInt() ?? 0,
+      );
 
   PendingMutation copyWith({int? attempts}) => PendingMutation(
-    id: id, method: method, path: path, body: body,
-    description: description, queuedAt: queuedAt,
-    attempts: attempts ?? this.attempts,
-  );
+        id: id,
+        method: method,
+        path: path,
+        body: body,
+        description: description,
+        queuedAt: queuedAt,
+        attempts: attempts ?? this.attempts,
+      );
 }
 
 Future<List<PendingMutation>> _loadMutationsRaw() async {
   final prefs = await SharedPreferences.getInstance();
-  final raw   = prefs.getString(_kMutationQueueKey);
+  final raw = prefs.getString(_kMutationQueueKey);
   if (raw == null || raw.isEmpty) return [];
   try {
     final list = jsonDecode(raw) as List;
-    return list.map((e) => PendingMutation.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => PendingMutation.fromJson(e as Map<String, dynamic>))
+        .toList();
   } catch (_) {
     return [];
   }
@@ -184,13 +212,26 @@ Future<void> _saveMutationsRaw(List<PendingMutation> queue) async {
       _kMutationQueueKey, jsonEncode(queue.map((e) => e.toJson()).toList()));
 }
 
-class OfflineMutationQueueNotifier extends StateNotifier<List<PendingMutation>> {
+class OfflineMutationQueueNotifier
+    extends StateNotifier<List<PendingMutation>> {
+  Completer<void>? _initCompleter;
+
   OfflineMutationQueueNotifier() : super([]) {
+    _initCompleter = Completer<void>();
     _reload();
   }
 
   Future<void> _reload() async {
-    state = await _loadMutationsRaw();
+    final loaded = await _loadMutationsRaw();
+    state = loaded;
+    _initCompleter?.complete();
+  }
+
+  /// Wait until the initial load from disk is complete.
+  Future<void> ensureLoaded() async {
+    if (_initCompleter?.isCompleted == false) {
+      await _initCompleter!.future;
+    }
   }
 
   Future<PendingMutation> enqueue(
@@ -199,13 +240,14 @@ class OfflineMutationQueueNotifier extends StateNotifier<List<PendingMutation>> 
     Map<String, dynamic>? body,
     String description = '',
   }) async {
+    await ensureLoaded();
     final entry = PendingMutation(
-      id:          DateTime.now().microsecondsSinceEpoch.toString(),
-      method:      method,
-      path:        path,
-      body:        body,
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      method: method,
+      path: path,
+      body: body,
       description: description,
-      queuedAt:    DateTime.now(),
+      queuedAt: DateTime.now(),
     );
     final queue = List<PendingMutation>.from(state)..add(entry);
     await _saveMutationsRaw(queue);
@@ -220,7 +262,9 @@ class OfflineMutationQueueNotifier extends StateNotifier<List<PendingMutation>> 
   }
 
   Future<void> markAttempt(String id) async {
-    final queue = state.map((e) => e.id == id ? e.copyWith(attempts: e.attempts + 1) : e).toList();
+    final queue = state
+        .map((e) => e.id == id ? e.copyWith(attempts: e.attempts + 1) : e)
+        .toList();
     await _saveMutationsRaw(queue);
     state = queue;
   }

@@ -1,10 +1,12 @@
-﻿import 'dart:ui';
+﻿import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/pos_api_provider.dart';
 import 'receipt_screen.dart';
 
@@ -20,6 +22,29 @@ final salesListProvider = FutureProvider.autoDispose.family<List<dynamic>, Sales
 
 final saleDetailProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, int>((ref, id) {
   return ref.watch(posApiProvider).fetchSaleDetail(id);
+});
+
+/// Reads all offline receipts from SharedPreferences.
+/// Returns them sorted newest-first. Never deletes — kept for permanent reference.
+final offlineSalesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final keys  = prefs.getKeys().where((k) => k.startsWith('offline_receipt_')).toList();
+  final result = <Map<String, dynamic>>[];
+  for (final key in keys) {
+    final raw = prefs.getString(key);
+    if (raw == null) continue;
+    try {
+      final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      result.add(map);
+    } catch (_) {}
+  }
+  // Sort newest first
+  result.sort((a, b) {
+    final aDate = a['createdAt'] as String? ?? '';
+    final bDate = b['createdAt'] as String? ?? '';
+    return bDate.compareTo(aDate);
+  });
+  return result;
 });
 
 class SalesParams {
@@ -81,11 +106,15 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     return SalesParams(search: _searchQuery.isEmpty ? null : _searchQuery, from: from, to: to);
   }
 
-  Future<void> _refresh() async {
-    ref.invalidate(salesListProvider(_params));
-  }
-
-  void _showSaleDetail(int saleId) {
+  void _showSaleDetail(Map<String, dynamic> sale) {
+    final status = (sale['status'] as String? ?? '').toLowerCase();
+    // Offline records (pending or synced) are shown directly from local data.
+    if (status == 'pending_sync' || status == 'synced') {
+      showReceiptSheet(context, sale);
+      return;
+    }
+    final id = sale['id'];
+    final saleId = id is int ? id : int.tryParse('$id') ?? 0;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -94,9 +123,16 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     );
   }
 
+  Future<void> _refresh() async {
+    ref.invalidate(salesListProvider(_params));
+    ref.invalidate(offlineSalesProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final salesAsync = ref.watch(salesListProvider(_params));
+    final salesAsync   = ref.watch(salesListProvider(_params));
+    final offlineAsync = ref.watch(offlineSalesProvider);
+    final offlineSales = offlineAsync.valueOrNull ?? [];
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -132,7 +168,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
           Expanded(child: RefreshIndicator(
             color: EnhancedTheme.primaryTeal,
             onRefresh: _refresh,
-            child: _salesList(salesAsync),
+            child: _salesList(salesAsync, offlineSales),
           )),
         ])),
       ]),
@@ -266,17 +302,31 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
 
   // ── Sales List ─────────────────────────────────────────────────────────────
 
-  Widget _salesList(AsyncValue<List<dynamic>> salesAsync) {
-    return salesAsync.when(
-      loading: () => ListView.builder(
+  Widget _salesList(AsyncValue<List<dynamic>> salesAsync, List<Map<String, dynamic>> offlineSales) {
+    // Filter offline records to show: pending_sync (always) + synced (always, for reference)
+    // Filter by search query if applicable
+    final filteredOffline = offlineSales.where((s) {
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      final receipt = (s['receiptId'] as String? ?? '').toLowerCase();
+      final customer = (s['customerName'] as String? ?? '').toLowerCase();
+      return receipt.contains(q) || customer.contains(q);
+    }).toList();
+
+    if (salesAsync.isLoading && filteredOffline.isEmpty) {
+      return ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         itemCount: 6,
         itemBuilder: (_, __) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: EnhancedTheme.loadingShimmer(height: 90, radius: 18),
         ),
-      ),
-      error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      );
+    }
+
+    if (salesAsync.hasError && filteredOffline.isEmpty) {
+      final e = salesAsync.error;
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -301,36 +351,43 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
-      ])),
-      data: (sales) {
-        if (sales.isEmpty) {
-          return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [
-                  EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
-                  EnhancedTheme.accentCyan.withValues(alpha: 0.05),
-                ]),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.receipt_long_rounded, color: EnhancedTheme.primaryTeal, size: 48),
-            ),
-            const SizedBox(height: 16),
-            Text('No sales found',
-                style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            Text('Try adjusting your date filter or search',
-                style: TextStyle(color: context.subLabelColor, fontSize: 13)),
-          ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95)));
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: sales.length,
-          itemBuilder: (_, i) => _saleCard(sales[i] as Map<String, dynamic>, i),
-        );
-      },
+      ]));
+    }
+
+    final serverSales = salesAsync.valueOrNull ?? [];
+    // Merge: offline records first (newest first), then server records
+    final allSales = <Map<String, dynamic>>[
+      ...filteredOffline,
+      ...serverSales.map((s) => s as Map<String, dynamic>),
+    ];
+
+    if (allSales.isEmpty) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [
+              EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+              EnhancedTheme.accentCyan.withValues(alpha: 0.05),
+            ]),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.receipt_long_rounded, color: EnhancedTheme.primaryTeal, size: 48),
+        ),
+        const SizedBox(height: 16),
+        Text('No sales found',
+            style: TextStyle(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        Text('Try adjusting your date filter or search',
+            style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+      ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95)));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: allSales.length,
+      itemBuilder: (_, i) => _saleCard(allSales[i], i),
     );
   }
 
@@ -348,6 +405,16 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     String statusLabel;
     IconData statusIcon;
     switch (status) {
+      case 'pending_sync':
+        statusColor = EnhancedTheme.warningAmber;
+        statusLabel = 'Pending Sync';
+        statusIcon = Icons.cloud_upload_rounded;
+        break;
+      case 'synced':
+        statusColor = EnhancedTheme.accentCyan;
+        statusLabel = 'Synced';
+        statusIcon = Icons.cloud_done_rounded;
+        break;
       case 'returned':
         statusColor = EnhancedTheme.errorRed;
         statusLabel = 'Returned';
@@ -368,7 +435,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
-        onTap: () => _showSaleDetail(id is int ? id : int.tryParse('$id') ?? 0),
+        onTap: () => _showSaleDetail(sale),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: BackdropFilter(

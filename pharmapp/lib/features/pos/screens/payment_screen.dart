@@ -1,4 +1,5 @@
-﻿import 'dart:ui';
+﻿import 'dart:convert';
+import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,6 +8,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/sale.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/offline/offline_queue.dart';
+import '../../../shared/models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../providers/pos_api_provider.dart';
 import 'receipt_screen.dart';
@@ -158,10 +162,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     setState(() => _processing = false);
 
     if (result != null && result['offline'] == true) {
-      // No connection — sale queued for sync
+      // No connection — sale queued for sync.
+      // Capture the queue ID of the just-enqueued sale and build a local receipt
+      // so the sale is visible in history immediately (before sync).
+      final queue   = ref.read(offlineQueueProvider);
+      final queueId = queue.isNotEmpty ? queue.last.id : DateTime.now().microsecondsSinceEpoch.toString();
+      final receiptData = _buildOfflineReceipt(cart, selected, queueId);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('offline_receipt_$queueId', jsonEncode(receiptData));
+
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
-      _showOfflineQueuedSheet();
+      _showOfflineQueuedSheet(receiptData);
     } else if (result != null) {
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
@@ -181,6 +193,40 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       }
       _showSnackBar(errMsg, type: _SnackType.error);
     }
+  }
+
+  Map<String, dynamic> _buildOfflineReceipt(
+    List<CartItem> cart,
+    SelectedCustomer? customer,
+    String queueId,
+  ) {
+    final now     = DateTime.now().toIso8601String();
+    final payment = _buildPayment;
+    final suffix  = queueId.length > 6 ? queueId.substring(queueId.length - 6) : queueId;
+    return {
+      'id':              'offline_$queueId',
+      'receiptId':       'OFFLINE-$suffix',
+      'status':          'pending_sync',
+      '_offlineQueueId': queueId,
+      'totalAmount':     _total,
+      'paymentMethod':   _method.apiKey,
+      'paymentCash':     payment.cash,
+      'paymentPos':      payment.pos,
+      'paymentTransfer': payment.bankTransfer,
+      'paymentWallet':   payment.wallet,
+      'customerName':    customer?.name ?? 'Walk-in',
+      'isWholesale':     false,
+      'createdAt':       now,
+      'items': cart.map((c) => {
+        'name':        c.item.name,
+        'brand':       c.item.brand ?? '',
+        'dosageForm':  c.item.dosageForm ?? '',
+        'quantity':    c.quantity,
+        'price':       c.item.price.toDouble(),
+        'discount':    c.discount,
+        'subtotal':    c.total,
+      }).toList(),
+    };
   }
 
   void _showSnackBar(String msg, {required _SnackType type}) {
@@ -235,7 +281,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
-  void _showOfflineQueuedSheet() {
+  void _showOfflineQueuedSheet(Map<String, dynamic> receiptData) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -283,7 +329,39 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.subLabelColor, fontSize: 13, height: 1.5),
               ).animate().fadeIn(delay: 300.ms),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
+              // Receipt ID chip
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.warningAmber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.3)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.receipt_rounded, color: EnhancedTheme.warningAmber, size: 14),
+                  const SizedBox(width: 6),
+                  Text(receiptData['receiptId'] as String? ?? 'OFFLINE',
+                      style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 12, fontWeight: FontWeight.w700)),
+                ]),
+              ).animate().fadeIn(delay: 350.ms),
+              const SizedBox(height: 24),
+              // View Receipt button
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  showReceiptSheet(context, receiptData);
+                },
+                icon: const Icon(Icons.receipt_long_rounded, size: 16),
+                label: const Text('View Receipt'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: EnhancedTheme.primaryTeal,
+                  side: const BorderSide(color: EnhancedTheme.primaryTeal),
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.15, end: 0),
+              const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(colors: [EnhancedTheme.warningAmber, Color(0xFFD97706)]),
@@ -308,7 +386,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                   child: Text('OK, Got It', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black)),
                 )),
-              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
+              ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0),
             ]),
           ),
         ),

@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/offline_queue.dart';
@@ -44,6 +46,43 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
 
   CustomerNotifier(this._api, this._ref) : super(const AsyncValue.data(null));
 
+  // ── SharedPreferences cache helpers ────────────────────────────────────────
+
+  Future<void> _patchListCache(String key, Map<String, dynamic> item) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(key);
+    final list = raw != null ? List<dynamic>.from(jsonDecode(raw) as List) : <dynamic>[];
+    list.add(item);
+    await prefs.setString(key, jsonEncode(list));
+  }
+
+  Future<void> _updateListCache(String key, int id, Map<String, dynamic> updates) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(key);
+    if (raw == null) return;
+    final list = List<dynamic>.from(jsonDecode(raw) as List);
+    for (int i = 0; i < list.length; i++) {
+      final item = list[i] as Map<String, dynamic>;
+      if (item['id'] == id) {
+        list[i] = {...item, ...updates};
+        break;
+      }
+    }
+    await prefs.setString(key, jsonEncode(list));
+  }
+
+  Future<void> _removeFromListCache(String key, int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(key);
+    if (raw == null) return;
+    final list = List<dynamic>.from(jsonDecode(raw) as List)
+        .where((e) => (e as Map<String, dynamic>)['id'] != id)
+        .toList();
+    await prefs.setString(key, jsonEncode(list));
+  }
+
+  // ── CRUD operations ─────────────────────────────────────────────────────────
+
   Future<Customer?> createCustomer(Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
     try {
@@ -58,6 +97,20 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
           body: data,
           description: 'Create customer "${data['name'] ?? ''}"',
         );
+        // Patch the list cache so the new customer is visible offline immediately.
+        final tempId = -DateTime.now().millisecondsSinceEpoch;
+        final tempCustomer = {
+          'id': tempId,
+          'name': data['name'] ?? '',
+          'phone': data['phone'] ?? data['phoneNumber'] ?? '',
+          'email': data['email'] ?? '',
+          'address': data['address'] ?? '',
+          'isWholesale': data['isWholesale'] ?? false,
+          'walletBalance': 0.0,
+          'status': 'pending_sync',
+        };
+        await _patchListCache('cache_customers', tempCustomer);
+        _ref.invalidate(customerListProvider);
         state = const AsyncValue.data(null);
         return null; // null signals "queued offline" to the caller
       }
@@ -84,6 +137,18 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
           body: data,
           description: 'Update customer "${data['name'] ?? id}"',
         );
+        // Patch the list and detail caches so changes are visible offline.
+        await _updateListCache('cache_customers', id, {...data, 'status': 'pending_sync'});
+        final prefs = await SharedPreferences.getInstance();
+        final detailRaw = prefs.getString('cache_customer_$id');
+        if (detailRaw != null) {
+          final detail = Map<String, dynamic>.from(jsonDecode(detailRaw) as Map);
+          detail.addAll(data);
+          detail['status'] = 'pending_sync';
+          await prefs.setString('cache_customer_$id', jsonEncode(detail));
+        }
+        _ref.invalidate(customerListProvider);
+        _ref.invalidate(customerDetailProvider(id));
         state = const AsyncValue.data(null);
         return null;
       }
@@ -108,6 +173,8 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
           'DELETE', '/customers/$id/',
           description: 'Delete customer #$id',
         );
+        // Remove from list cache immediately so the customer disappears offline.
+        await _removeFromListCache('cache_customers', id);
         _ref.invalidate(customerListProvider);
         state = const AsyncValue.data(null);
         return true; // treat as success — will sync later
