@@ -86,6 +86,10 @@ class SubscriptionScreen extends ConsumerWidget {
                       _CurrentPlanCard(sub: sub),
                       const SizedBox(height: 8),
 
+                      // ── Billing shortcut ──────────────────────────────────
+                      _BillingShortcut(),
+                      const SizedBox(height: 8),
+
                       // ── Usage stats ───────────────────────────────────────
                       _UsageCard(sub: sub),
                       const SizedBox(height: 20),
@@ -116,13 +120,14 @@ class SubscriptionScreen extends ConsumerWidget {
                               sub.billingCycle == cycle,
                           cycle:     cycle,
                           ref:       ref,
+                          sub:       sub,
                         ),
                       ),
 
                       const SizedBox(height: 16),
 
                       // ── Feature matrix ────────────────────────────────────
-                      _FeatureMatrix(currentPlan: sub.plan),
+                      _FeatureMatrix(sub: sub),
 
                       const SizedBox(height: 24),
                     ],
@@ -470,12 +475,14 @@ class _PlanCard extends ConsumerStatefulWidget {
   final bool             isCurrent;
   final BillingCycle     cycle;
   final WidgetRef        ref;
+  final Subscription     sub;
 
   const _PlanCard({
     required this.plan,
     required this.isCurrent,
     required this.cycle,
     required this.ref,
+    required this.sub,
   });
 
   @override
@@ -489,7 +496,8 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
   Widget build(BuildContext context) {
     final planColor = _planColor(widget.plan);
     final limits    = UsageLimits.forPlan(widget.plan);
-    final features  = SaasFeature.forPlan(widget.plan);
+    // Use backend-driven features if available, else fall back to hardcoded
+    final features  = widget.sub.featuresForPlan(widget.plan);
     final isAnnual  = widget.cycle == BillingCycle.annual;
     final savings   = widget.plan.annualSavings;
 
@@ -670,12 +678,16 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
 
                 const SizedBox(height: 10),
 
-                // Feature tags
+                // Feature tags (labels from backend if available)
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
                   children: features
-                      .map((f) => _FeatureChip(feature: f, color: planColor))
+                      .map((f) => _FeatureChip(
+                            feature: f,
+                            label:   widget.sub.featureLabel(f),
+                            color:   planColor,
+                          ))
                       .toList(),
                 ),
               ],
@@ -690,8 +702,6 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
     if (_loading) return;
     setState(() => _loading = true);
 
-    final messenger = ScaffoldMessenger.of(context);
-
     final url = await widget.ref
         .read(subscriptionNotifierProvider.notifier)
         .upgradePlan(
@@ -703,24 +713,12 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
     setState(() => _loading = false);
 
     if (url != null && url.isNotEmpty) {
-      // In a real app, launch the payment URL:
-      // await launchUrl(Uri.parse(url));
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Redirecting to payment: $url'),
-          backgroundColor: EnhancedTheme.successGreen,
-        ),
-      );
+      // Backend returned a payment gateway URL — open it.
+      // In prod: await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      context.push('/billing');
     } else {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Plan upgrade to ${widget.plan.displayName} '
-            '(${widget.cycle.displayName}) initiated. Check your email.',
-          ),
-          backgroundColor: EnhancedTheme.primaryTeal,
-        ),
-      );
+      // No external URL — go to billing page to complete payment setup.
+      context.push('/billing');
     }
   }
 }
@@ -758,8 +756,9 @@ class _LimitChip extends StatelessWidget {
 
 class _FeatureChip extends StatelessWidget {
   final String feature;
+  final String label;
   final Color  color;
-  const _FeatureChip({required this.feature, required this.color});
+  const _FeatureChip({required this.feature, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -776,55 +775,25 @@ class _FeatureChip extends StatelessWidget {
               size: 10, color: color.withValues(alpha: 0.7)),
           const SizedBox(width: 4),
           Text(
-            _featureLabel(feature),
-            style: const TextStyle(
-                color: Colors.black54, fontSize: 10),
+            label,
+            style: const TextStyle(color: Colors.black54, fontSize: 10),
           ),
         ],
       ),
     );
   }
-
-  static String _featureLabel(String f) => switch (f) {
-        SaasFeature.pos             => 'POS',
-        SaasFeature.inventory       => 'Inventory',
-        SaasFeature.customers       => 'Customers',
-        SaasFeature.userManagement  => 'User Mgmt',
-        SaasFeature.basicReports    => 'Basic Reports',
-        SaasFeature.advancedReports => 'Advanced Reports',
-        SaasFeature.wholesale       => 'Wholesale',
-        SaasFeature.exportData      => 'Export Data',
-        SaasFeature.multiBranch     => 'Multi-Branch',
-        SaasFeature.apiAccess       => 'API Access',
-        SaasFeature.prioritySupport => 'Priority Support',
-        SaasFeature.whiteLabel      => 'White Label',
-        _                           => f,
-      };
 }
 
 // ── Feature matrix table ─────────────────────────────────────────────────────
 
 class _FeatureMatrix extends StatelessWidget {
-  final SubscriptionPlan currentPlan;
-  const _FeatureMatrix({required this.currentPlan});
-
-  static const _allFeatures = [
-    (SaasFeature.pos,             'Point of Sale'),
-    (SaasFeature.inventory,       'Inventory Management'),
-    (SaasFeature.customers,       'Customer Management'),
-    (SaasFeature.userManagement,  'User Management'),
-    (SaasFeature.basicReports,    'Basic Reports'),
-    (SaasFeature.advancedReports, 'Advanced Reports'),
-    (SaasFeature.wholesale,       'Wholesale Module'),
-    (SaasFeature.exportData,      'Export Data'),
-    (SaasFeature.multiBranch,     'Multi-Branch'),
-    (SaasFeature.apiAccess,       'API Access'),
-    (SaasFeature.prioritySupport, 'Priority Support'),
-    (SaasFeature.whiteLabel,      'White Label'),
-  ];
+  final Subscription sub;
+  const _FeatureMatrix({required this.sub});
 
   @override
   Widget build(BuildContext context) {
+    final featureKeys = sub.comparisonFeatureOrder;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
@@ -863,11 +832,11 @@ class _FeatureMatrix extends StatelessWidget {
                           child: Text(
                             p.displayName.split(' ').first,
                             style: TextStyle(
-                              color: p == currentPlan
+                              color: p == sub.plan
                                   ? _planColor(p)
                                   : Colors.black45,
                               fontSize: 10,
-                              fontWeight: p == currentPlan
+                              fontWeight: p == sub.plan
                                   ? FontWeight.w700
                                   : FontWeight.w400,
                             ),
@@ -880,9 +849,10 @@ class _FeatureMatrix extends StatelessWidget {
                 ),
               ),
 
-              // Feature rows
-              ...List.generate(_allFeatures.length, (i) {
-                final (key, label) = _allFeatures[i];
+              // Feature rows — driven by backend data
+              ...List.generate(featureKeys.length, (i) {
+                final key   = featureKeys[i];
+                final label = sub.featureLabel(key);
                 return Container(
                   decoration: BoxDecoration(
                     color: i.isEven
@@ -904,7 +874,7 @@ class _FeatureMatrix extends StatelessWidget {
                         (p) => SizedBox(
                           width: 60,
                           child: Center(
-                            child: SaasFeature.forPlan(p).contains(key)
+                            child: sub.featuresForPlan(p).contains(key)
                                 ? Icon(Icons.check_circle_rounded,
                                     color: _planColor(p), size: 16)
                                 : const Icon(Icons.remove_rounded,
@@ -920,6 +890,65 @@ class _FeatureMatrix extends StatelessWidget {
 
               const SizedBox(height: 8),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Billing Shortcut ──────────────────────────────────────────────────────────
+
+class _BillingShortcut extends StatelessWidget {
+  const _BillingShortcut();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: InkWell(
+          onTap: () => context.push('/billing'),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.receipt_long_rounded,
+                      color: EnhancedTheme.accentPurple, size: 16),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Billing & Invoices',
+                          style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                      Text('Payment method, invoice history & more',
+                          style:
+                              TextStyle(color: Colors.black45, fontSize: 11)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded,
+                    color: Colors.black38, size: 18),
+              ],
+            ),
           ),
         ),
       ),

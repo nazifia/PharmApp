@@ -27,6 +27,7 @@ mixin _$User {
   bool get isActive => throw _privateConstructorUsedError;
   String get username => throw _privateConstructorUsedError;
   bool get isWholesaleOperator => throw _privateConstructorUsedError;
+  bool get isSuperuser => throw _privateConstructorUsedError;
   int get organizationId => throw _privateConstructorUsedError;
   String get organizationName => throw _privateConstructorUsedError;
   String get organizationSlug => throw _privateConstructorUsedError;
@@ -52,6 +53,7 @@ abstract class $UserCopyWith<$Res> {
       bool isActive,
       String username,
       bool isWholesaleOperator,
+      bool isSuperuser,
       int organizationId,
       String organizationName,
       String organizationSlug,
@@ -80,6 +82,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? isActive = null,
     Object? username = null,
     Object? isWholesaleOperator = null,
+    Object? isSuperuser = null,
     Object? organizationId = null,
     Object? organizationName = null,
     Object? organizationSlug = null,
@@ -112,6 +115,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
       isWholesaleOperator: null == isWholesaleOperator
           ? _value.isWholesaleOperator
           : isWholesaleOperator // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isSuperuser: null == isSuperuser
+          ? _value.isSuperuser
+          : isSuperuser // ignore: cast_nullable_to_non_nullable
               as bool,
       organizationId: null == organizationId
           ? _value.organizationId
@@ -159,6 +166,7 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       bool isActive,
       String username,
       bool isWholesaleOperator,
+      bool isSuperuser,
       int organizationId,
       String organizationName,
       String organizationSlug,
@@ -184,6 +192,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? isActive = null,
     Object? username = null,
     Object? isWholesaleOperator = null,
+    Object? isSuperuser = null,
     Object? organizationId = null,
     Object? organizationName = null,
     Object? organizationSlug = null,
@@ -216,6 +225,10 @@ class __$$UserImplCopyWithImpl<$Res>
       isWholesaleOperator: null == isWholesaleOperator
           ? _value.isWholesaleOperator
           : isWholesaleOperator // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isSuperuser: null == isSuperuser
+          ? _value.isSuperuser
+          : isSuperuser // ignore: cast_nullable_to_non_nullable
               as bool,
       organizationId: null == organizationId
           ? _value.organizationId
@@ -259,6 +272,7 @@ class _$UserImpl implements _User {
       required this.isActive,
       this.username = '',
       this.isWholesaleOperator = false,
+      this.isSuperuser = false,
       this.organizationId = 0,
       this.organizationName = '',
       this.organizationSlug = '',
@@ -287,6 +301,9 @@ class _$UserImpl implements _User {
   final bool isWholesaleOperator;
   @override
   @JsonKey()
+  final bool isSuperuser;
+  @override
+  @JsonKey()
   final int organizationId;
   @override
   @JsonKey()
@@ -309,7 +326,7 @@ class _$UserImpl implements _User {
 
   @override
   String toString() {
-    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, isWholesaleOperator: $isWholesaleOperator, organizationId: $organizationId, organizationName: $organizationName, organizationSlug: $organizationSlug, organizationAddress: $organizationAddress, organizationPhone: $organizationPhone, organizationLogo: $organizationLogo, permissions: $permissions)';
+    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, isWholesaleOperator: $isWholesaleOperator, isSuperuser: $isSuperuser, organizationId: $organizationId, organizationName: $organizationName, organizationSlug: $organizationSlug, organizationAddress: $organizationAddress, organizationPhone: $organizationPhone, organizationLogo: $organizationLogo, permissions: $permissions)';
   }
 
   @override
@@ -327,6 +344,8 @@ class _$UserImpl implements _User {
                 other.username == username) &&
             (identical(other.isWholesaleOperator, isWholesaleOperator) ||
                 other.isWholesaleOperator == isWholesaleOperator) &&
+            (identical(other.isSuperuser, isSuperuser) ||
+                other.isSuperuser == isSuperuser) &&
             (identical(other.organizationId, organizationId) ||
                 other.organizationId == organizationId) &&
             (identical(other.organizationName, organizationName) ||
@@ -347,7 +366,7 @@ class _$UserImpl implements _User {
   @override
   int get hashCode => Object.hash(
       runtimeType, id, phoneNumber, role, isActive, username, isWholesaleOperator,
-      organizationId, organizationName, organizationSlug,
+      isSuperuser, organizationId, organizationName, organizationSlug,
       organizationAddress, organizationPhone, organizationLogo,
       const DeepCollectionEquality().hash(permissions));
 
@@ -373,6 +392,7 @@ abstract class _User implements User {
       required final bool isActive,
       final String username,
       final bool isWholesaleOperator,
+      final bool isSuperuser,
       final int organizationId,
       final String organizationName,
       final String organizationSlug,
@@ -395,6 +415,8 @@ abstract class _User implements User {
   String get username;
   @override
   bool get isWholesaleOperator;
+  @override
+  bool get isSuperuser;
   @override
   int get organizationId;
   @override

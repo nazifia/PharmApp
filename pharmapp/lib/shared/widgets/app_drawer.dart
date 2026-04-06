@@ -276,6 +276,24 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             route: '/subscription',
                             onTap: navigate,
                           ),
+                          _NavItem(
+                            icon: Icons.receipt_long_rounded,
+                            label: 'Billing & Invoices',
+                            route: '/billing',
+                            onTap: navigate,
+                          ),
+                        ],
+
+                        // ══ PLATFORM ADMIN (superusers only) ══════════════════
+                        if (user?.isSuperuser == true) ...[
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Platform Admin'),
+                          _NavItem(
+                            icon: Icons.admin_panel_settings_rounded,
+                            label: 'Subscription Manager',
+                            route: '/superuser',
+                            onTap: navigate,
+                          ),
                         ],
 
                       ],

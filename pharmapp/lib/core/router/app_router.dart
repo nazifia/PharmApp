@@ -40,6 +40,9 @@ import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/features/auth/screens/user_management_screen.dart';
 import 'package:pharmapp/features/notifications/screens/notifications_screen.dart';
 import 'package:pharmapp/features/subscription/screens/subscription_screen.dart';
+import 'package:pharmapp/features/subscription/screens/billing_screen.dart';
+import 'package:pharmapp/features/superuser/screens/superuser_dashboard_screen.dart';
+import 'package:pharmapp/features/superuser/screens/org_subscription_editor_screen.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:pharmapp/shared/widgets/sync_queue_screen.dart';
 
@@ -126,6 +129,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/dashboard';
       }
 
+      // ── Superuser gate ────────────────────────────────────────────────────
+      if ((loc == '/superuser' || loc.startsWith('/superuser/')) &&
+          !Rbac.isSuperuser(user)) {
+        return '/dashboard';
+      }
+
       // ── Subscription feature gates (redirect to paywall) ──────────────────
 
       // Customers — Starter plan and above
@@ -156,6 +165,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/setup',          name: 'setup',        builder: (_, __) => const SetupScreen()),
       GoRoute(path: '/register-org',   name: 'register_org',  builder: (_, __) => const RegisterOrgScreen()),
       GoRoute(path: '/subscription',   name: 'subscription',  builder: (_, __) => const SubscriptionScreen()),
+      GoRoute(path: '/billing',        name: 'billing',       builder: (_, __) => const BillingScreen()),
+      GoRoute(path: '/superuser',      name: 'superuser',     builder: (_, __) => const SuperuserDashboardScreen()),
+      GoRoute(
+        path: '/superuser/org/:id',
+        name: 'superuser_org',
+        builder: (_, state) => OrgSubscriptionEditorScreen(
+          orgId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
 
       // ── Authenticated shell (persistent bottom nav bar) ────────────────────
       ShellRoute(

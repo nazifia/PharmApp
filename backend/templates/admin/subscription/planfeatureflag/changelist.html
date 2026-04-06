@@ -1,0 +1,149 @@
+{% extends "admin/base_site.html" %}
+{% load subscription_tags %}
+{% block title %}Plan Feature Matrix{% endblock %}
+
+{% block content %}
+<style>
+  .matrix-wrap { overflow-x: auto; }
+  .matrix-table { border-collapse: collapse; width: 100%; min-width: 700px; }
+  .matrix-table th, .matrix-table td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  .matrix-table th { background: #f8fafc; font-weight: 600; text-align: center; }
+  .matrix-table th.feat-col { text-align: left; }
+  .matrix-table tr:hover td { background: #f1f5f9; }
+  .plan-header { padding: 4px 14px; border-radius: 14px; color: #fff; font-size: 12px; font-weight: 700; display: inline-block; }
+  .toggle-cell { text-align: center; }
+  .toggle-cell input[type=checkbox] { width: 18px; height: 18px; accent-color: #0D9488; cursor: pointer; }
+  .label-input { border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 12px; width: 180px; }
+  .label-input:focus { outline: none; border-color: #0D9488; }
+  .section-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .action-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .btn { padding: 8px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #0D9488; color: #fff; }
+  .btn-danger  { background: #EF4444; color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #475569; }
+  .btn:hover   { opacity: 0.85; }
+  .add-row { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .add-row input { border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
+  .add-row input:focus { outline: none; border-color: #0D9488; }
+  .hint { font-size: 11px; color: #94a3b8; }
+  h2 { font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 4px 0; }
+  .sub { font-size: 12px; color: #64748b; margin-bottom: 14px; }
+</style>
+
+<h1>Plan Feature Matrix</h1>
+<p style="color:#64748b;font-size:13px">
+  Toggle checkboxes to add/remove features per plan. Edit labels to change how they appear in the Flutter app.
+  Click <strong>Save Matrix</strong> when done. Changes are live immediately.
+</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <div style="padding:10px 16px;border-radius:8px;margin-bottom:12px;font-size:13px;
+      background:{% if message.tags == 'success' %}#d1fae5;color:#065f46{% elif message.tags == 'error' %}#fee2e2;color:#991b1b{% else %}#fef3c7;color:#92400e{% endif %}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+{# ── Matrix Form ─────────────────────────────────────────────────────────── #}
+<div class="section-card">
+  <h2>Feature × Plan Matrix</h2>
+  <p class="sub">Each row is a feature. Each column is a plan. Check to enable.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="action-bar">
+      <button type="submit" name="_matrix_save" class="btn btn-primary">Save Matrix</button>
+      <button type="submit" name="_matrix_reset" class="btn btn-danger"
+        onclick="return confirm('Reset all features to system defaults? This cannot be undone.')">
+        Reset to Defaults
+      </button>
+      <a href="{% url 'admin:subscription_planfeatureflag_add' %}" class="btn btn-outline">+ Add Single Row</a>
+    </div>
+
+    <div class="matrix-wrap">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th class="feat-col">Feature Label</th>
+            <th class="feat-col" style="min-width:90px">Key</th>
+            {% for plan in plan_list %}
+            <th>
+              <span class="plan-header" style="background:{{ plan_colors|get_item:plan }}">
+                {{ plan_labels|get_item:plan }}
+              </span>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>
+              <input type="text" name="label_{{ row.key }}" value="{{ row.label }}"
+                class="label-input" placeholder="Feature label…">
+            </td>
+            <td>
+              <code style="font-size:11px;color:#64748b">{{ row.key }}</code>
+            </td>
+            {% for plan in plan_list %}
+            <td class="toggle-cell">
+              <input type="checkbox" name="feat_{{ plan }}_{{ row.key }}"
+                {% if row.cells|get_item:plan %}checked{% endif %}>
+            </td>
+            {% endfor %}
+          </tr>
+          {% empty %}
+          <tr><td colspan="{{ plan_list|length|add:2 }}" style="text-align:center;color:#94a3b8;padding:20px">
+            No features found. Click "Reset to Defaults" to seed defaults.
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="action-bar" style="margin-top:14px">
+      <button type="submit" name="_matrix_save" class="btn btn-primary">Save Matrix</button>
+    </div>
+  </form>
+</div>
+
+{# ── Add New Feature ─────────────────────────────────────────────────────── #}
+<div class="section-card">
+  <h2>Add New Feature</h2>
+  <p class="sub">
+    Add a custom feature that isn't in the default list.
+    It will be added as <em>disabled</em> for all plans — toggle it on in the matrix above.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="add-row">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:3px">Feature Key</label>
+        <input type="text" name="new_key" placeholder="e.g. sms_alerts" style="width:180px">
+        <div class="hint">Lowercase, underscores only. Must match Flutter app key.</div>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:3px">Display Label</label>
+        <input type="text" name="new_label" placeholder="e.g. SMS Alerts" style="width:200px">
+        <div class="hint">Shown in the in-app subscription screen.</div>
+      </div>
+      <div style="align-self:flex-end">
+        <button type="submit" name="_add_feature" class="btn btn-primary">Add Feature</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+{# ── Quick-view: standard changelist link ────────────────────────────────── #}
+<p style="font-size:12px;color:#94a3b8;margin-top:8px">
+  Need to edit sort order or individual rows?
+  <a href="?o=3.2" style="color:#0D9488">Use the standard list view</a>.
+</p>
+
+{# ── Template filter shim (get_item) ─────────────────────────────────────── #}
+{# Django doesn't have dict[key] in templates — we use a workaround below. #}
+<script>
+  // No JS needed — pure Django template with a custom filter below.
+</script>
+{% endblock %}

@@ -178,6 +178,113 @@ class SaasFeature {
   }
 }
 
+// ── Invoice ───────────────────────────────────────────────────────────────────
+
+enum InvoiceStatus {
+  paid,
+  pending,
+  failed;
+
+  static InvoiceStatus fromString(String? v) => switch (v) {
+        'paid'    => InvoiceStatus.paid,
+        'pending' => InvoiceStatus.pending,
+        'failed'  => InvoiceStatus.failed,
+        _         => InvoiceStatus.pending,
+      };
+
+  String get displayName => switch (this) {
+        paid    => 'Paid',
+        pending => 'Pending',
+        failed  => 'Failed',
+      };
+}
+
+class Invoice {
+  final String        id;
+  final DateTime      date;
+  final double        amount;
+  final InvoiceStatus status;
+  final String?       downloadUrl;
+  final String?       description;
+
+  const Invoice({
+    required this.id,
+    required this.date,
+    required this.amount,
+    required this.status,
+    this.downloadUrl,
+    this.description,
+  });
+
+  factory Invoice.fromJson(Map<String, dynamic> json) => Invoice(
+        id:          json['id'] as String? ?? '',
+        date:        DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
+        amount:      (json['amount'] as num?)?.toDouble() ?? 0,
+        status:      InvoiceStatus.fromString(json['status'] as String?),
+        downloadUrl: json['download_url'] as String?,
+        description: json['description'] as String?,
+      );
+}
+
+// ── Payment Method ────────────────────────────────────────────────────────────
+
+class PaymentMethod {
+  final String brand;   // e.g. 'Visa', 'Mastercard'
+  final String last4;
+  final int    expMonth;
+  final int    expYear;
+
+  const PaymentMethod({
+    required this.brand,
+    required this.last4,
+    required this.expMonth,
+    required this.expYear,
+  });
+
+  String get maskedNumber => '**** **** **** $last4';
+  String get expiry       => '${expMonth.toString().padLeft(2, '0')}/$expYear';
+
+  factory PaymentMethod.fromJson(Map<String, dynamic> json) => PaymentMethod(
+        brand:    json['brand'] as String? ?? 'Card',
+        last4:    json['last4'] as String? ?? '****',
+        expMonth: (json['exp_month'] as num?)?.toInt() ?? 1,
+        expYear:  (json['exp_year']  as num?)?.toInt() ?? 2099,
+      );
+}
+
+// ── Billing Info ──────────────────────────────────────────────────────────────
+
+class BillingInfo {
+  final DateTime?     nextPaymentDate;
+  final double?       nextPaymentAmount;
+  final PaymentMethod? paymentMethod;
+  final List<Invoice> invoices;
+
+  const BillingInfo({
+    this.nextPaymentDate,
+    this.nextPaymentAmount,
+    this.paymentMethod,
+    this.invoices = const [],
+  });
+
+  factory BillingInfo.fromJson(Map<String, dynamic> json) => BillingInfo(
+        nextPaymentDate:   json['next_payment_date'] != null
+            ? DateTime.tryParse(json['next_payment_date'] as String)
+            : null,
+        nextPaymentAmount: (json['next_payment_amount'] as num?)?.toDouble(),
+        paymentMethod: json['payment_method'] != null
+            ? PaymentMethod.fromJson(json['payment_method'] as Map<String, dynamic>)
+            : null,
+        invoices: (json['invoices'] as List<dynamic>?)
+                ?.map((e) => Invoice.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+      );
+
+  /// Placeholder used while loading or when the backend has no data.
+  factory BillingInfo.empty() => const BillingInfo();
+}
+
 // ── Current Usage ─────────────────────────────────────────────────────────────
 
 class CurrentUsage {
@@ -212,6 +319,17 @@ class Subscription {
   final UsageLimits        limits;
   final Set<String>        features;
   final CurrentUsage       usage;
+  /// Features added by a superuser beyond what the plan includes.
+  final Set<String>        extraFeatures;
+  /// Features removed by a superuser from what the plan normally includes.
+  final Set<String>        removedFeatures;
+  /// Dynamic feature matrix from backend: plan_name → set of feature keys.
+  /// Null when the backend doesn't yet support the endpoint (falls back to hardcoded).
+  final Map<String, Set<String>>? planFeatures;
+  /// Human-readable labels for feature keys, editable by superusers in Django admin.
+  final Map<String, String>?      featureLabels;
+  /// Ordered list of feature keys for the comparison table.
+  final List<String>?             featureOrder;
 
   Subscription({
     required this.plan,
@@ -222,7 +340,57 @@ class Subscription {
     required this.limits,
     required this.features,
     required this.usage,
+    this.extraFeatures   = const {},
+    this.removedFeatures = const {},
+    this.planFeatures,
+    this.featureLabels,
+    this.featureOrder,
   });
+
+  // ── Dynamic feature helpers ───────────────────────────────────────────────
+
+  /// Feature set for [plan] using backend data if available, else hardcoded defaults.
+  Set<String> featuresForPlan(SubscriptionPlan p) =>
+      planFeatures?[p.name] ?? SaasFeature.forPlan(p);
+
+  /// Display label for a feature key — backend label wins over hardcoded.
+  String featureLabel(String key) =>
+      featureLabels?[key] ?? _defaultFeatureLabel(key);
+
+  /// Ordered feature keys for the comparison matrix.
+  List<String> get comparisonFeatureOrder =>
+      featureOrder ?? _defaultFeatureOrder;
+
+  static String _defaultFeatureLabel(String f) => switch (f) {
+        SaasFeature.pos             => 'Point of Sale',
+        SaasFeature.inventory       => 'Inventory Management',
+        SaasFeature.customers       => 'Customer Management',
+        SaasFeature.userManagement  => 'User Management',
+        SaasFeature.basicReports    => 'Basic Reports',
+        SaasFeature.advancedReports => 'Advanced Reports',
+        SaasFeature.wholesale       => 'Wholesale Module',
+        SaasFeature.exportData      => 'Export Data',
+        SaasFeature.multiBranch     => 'Multi-Branch',
+        SaasFeature.apiAccess       => 'API Access',
+        SaasFeature.prioritySupport => 'Priority Support',
+        SaasFeature.whiteLabel      => 'White Label',
+        _                           => f,
+      };
+
+  static const _defaultFeatureOrder = [
+    SaasFeature.pos,
+    SaasFeature.inventory,
+    SaasFeature.customers,
+    SaasFeature.userManagement,
+    SaasFeature.basicReports,
+    SaasFeature.advancedReports,
+    SaasFeature.wholesale,
+    SaasFeature.exportData,
+    SaasFeature.multiBranch,
+    SaasFeature.apiAccess,
+    SaasFeature.prioritySupport,
+    SaasFeature.whiteLabel,
+  ];
 
   // ── Derived helpers ──────────────────────────────────────────────────────────
 
@@ -250,6 +418,70 @@ class Subscription {
     final plan         = SubscriptionPlan.fromString(json['plan'] as String?);
     final status       = SubscriptionStatus.fromString(json['status'] as String?);
     final billingCycle = BillingCycle.fromString(json['billing_cycle'] as String?);
+
+    final extraFeatures = (json['extra_features'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toSet() ??
+        <String>{};
+    final removedFeatures = (json['removed_features'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toSet() ??
+        <String>{};
+
+    // Effective features = plan defaults + extras − removed
+    final effectiveFeatures = SaasFeature.forPlan(plan)
+      ..addAll(extraFeatures)
+      ..removeAll(removedFeatures);
+
+    // Custom limits override plan defaults if provided
+    final customLimitsJson = json['custom_limits'] as Map<String, dynamic>?;
+    final limits = customLimitsJson != null
+        ? UsageLimits(
+            maxUsers: (customLimitsJson['max_users'] as num?)?.toInt() ??
+                UsageLimits.forPlan(plan).maxUsers,
+            maxItems: (customLimitsJson['max_items'] as num?)?.toInt() ??
+                UsageLimits.forPlan(plan).maxItems,
+            maxTransactionsPerMonth:
+                (customLimitsJson['max_transactions_per_month'] as num?)
+                        ?.toInt() ??
+                    UsageLimits.forPlan(plan).maxTransactionsPerMonth,
+            maxBranches: (customLimitsJson['max_branches'] as num?)?.toInt() ??
+                UsageLimits.forPlan(plan).maxBranches,
+          )
+        : UsageLimits.forPlan(plan);
+
+    // Dynamic plan feature matrix from backend
+    Map<String, Set<String>>? planFeatures;
+    if (json['plan_features'] is Map) {
+      planFeatures = (json['plan_features'] as Map<String, dynamic>).map(
+        (k, v) => MapEntry(k, (v as List<dynamic>).map((e) => e as String).toSet()),
+      );
+    }
+
+    Map<String, String>? featureLabels;
+    if (json['feature_labels'] is Map) {
+      featureLabels = (json['feature_labels'] as Map<String, dynamic>).map(
+        (k, v) => MapEntry(k, v as String),
+      );
+    }
+
+    List<String>? featureOrder;
+    if (json['feature_order'] is List) {
+      featureOrder = (json['feature_order'] as List<dynamic>).cast<String>();
+    }
+
+    // If the backend sent plan_features, recompute effective features using
+    // the backend-defined baseline for THIS plan (instead of the hardcoded one)
+    if (planFeatures != null) {
+      final backendBase = planFeatures[plan.name] ?? <String>{};
+      final recomputed  = Set<String>.from(backendBase)
+        ..addAll(extraFeatures)
+        ..removeAll(removedFeatures);
+      effectiveFeatures
+        ..clear()
+        ..addAll(recomputed);
+    }
+
     return Subscription(
       plan:             plan,
       status:           status,
@@ -260,8 +492,13 @@ class Subscription {
       currentPeriodEnd: json['current_period_end'] != null
           ? DateTime.tryParse(json['current_period_end'] as String)
           : null,
-      limits:   UsageLimits.forPlan(plan),
-      features: SaasFeature.forPlan(plan),
+      limits:          limits,
+      features:        effectiveFeatures,
+      extraFeatures:   extraFeatures,
+      removedFeatures: removedFeatures,
+      planFeatures:    planFeatures,
+      featureLabels:   featureLabels,
+      featureOrder:    featureOrder,
       usage:    json['usage'] != null
           ? CurrentUsage.fromJson(json['usage'] as Map<String, dynamic>)
           : const CurrentUsage(),

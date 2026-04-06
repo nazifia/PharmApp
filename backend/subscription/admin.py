@@ -30,8 +30,9 @@ from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
 
 from .models import (
-    PLAN_CHOICES, PLAN_FEATURES, PLAN_LIMITS, PLAN_PRICES, SUPPORTED_CURRENCIES,
-    PlanPricing, Subscription, SubscriptionEvent,
+    FEATURE_KEY_CHOICES, PLAN_CHOICES, PLAN_FEATURES, PLAN_FEATURES_DEFAULT,
+    PLAN_LIMITS, PLAN_PRICES, SUPPORTED_CURRENCIES,
+    PlanFeatureFlag, PlanPricing, Subscription, SubscriptionEvent,
 )
 
 # ── Colour helpers ─────────────────────────────────────────────────────────────
@@ -257,7 +258,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     readonly_fields = (
         'created_at', 'updated_at',
         'live_usage_panel', 'plan_features_panel',
-        'subscription_summary',
+        'subscription_summary', 'feature_override_panel',
     )
 
     fieldsets = (
@@ -281,8 +282,39 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 'Annual = charged once per year at the discounted annual price.'
             ),
         }),
+        # Tab: feature-overrides-tab
+        ('Feature Overrides', {
+            'fields': (
+                'feature_override_panel',
+                'extra_features',
+                'removed_features',
+            ),
+            'description': (
+                'Override which features this org has access to, independent of their plan. '
+                '<br><strong>Extra features</strong>: JSON list of feature keys to enable beyond '
+                'the plan (e.g. <code>["wholesale", "advanced_reports"]</code>). '
+                '<br><strong>Removed features</strong>: JSON list of feature keys to disable '
+                '(e.g. <code>["export_data"]</code>). '
+                '<br>Valid keys: pos, inventory, customers, user_management, basic_reports, '
+                'advanced_reports, wholesale, export_data, multi_branch, api_access, '
+                'priority_support, white_label'
+            ),
+        }),
+        # Tab: custom-limits-tab
+        ('Usage Limit Overrides', {
+            'fields': (
+                'custom_max_users',
+                'custom_max_items',
+                'custom_max_transactions',
+                'custom_max_branches',
+            ),
+            'description': (
+                'Override usage limits for this org. Leave blank to use the plan default. '
+                'Enter <strong>-1</strong> for unlimited.'
+            ),
+        }),
         # Tab: plan-features-tab
-        ('Plan Features', {
+        ('Plan Features (read-only)', {
             'fields': ('plan_features_panel',),
         }),
         # Tab: live-usage-tab
@@ -554,6 +586,21 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 performed_by=request.user.phone_number,
                 note='Changed via admin form',
             )
+        elif change and any(
+            f in form.changed_data
+            for f in ('extra_features', 'removed_features',
+                      'custom_max_users', 'custom_max_items',
+                      'custom_max_transactions', 'custom_max_branches')
+        ):
+            super().save_model(request, obj, form, change)
+            SubscriptionEvent.objects.create(
+                subscription=obj,
+                event_type='note',
+                old_value='',
+                new_value='feature/limit override updated',
+                performed_by=request.user.phone_number,
+                note='Feature overrides or custom limits changed via admin form',
+            )
         else:
             super().save_model(request, obj, form, change)
 
@@ -746,6 +793,109 @@ class SubscriptionAdmin(admin.ModelAdmin):
         except Exception as exc:
             return format_html('<span style="color:#EF4444">Error: {}</span>', str(exc))
 
+    @admin.display(description='Effective Feature Set (preview)')
+    def feature_override_panel(self, obj):
+        """
+        Read-only panel showing which features are effectively active for this org
+        after applying extra_features and removed_features overrides.
+        """
+        try:
+            # All known feature keys → display label
+            all_features = [
+                ('pos',              'Point of Sale'),
+                ('inventory',        'Inventory Management'),
+                ('customers',        'Customer Management'),
+                ('user_management',  'User Management'),
+                ('basic_reports',    'Basic Reports'),
+                ('advanced_reports', 'Advanced Reports'),
+                ('wholesale',        'Wholesale Module'),
+                ('export_data',      'Export Data'),
+                ('multi_branch',     'Multi-Branch'),
+                ('api_access',       'API Access'),
+                ('priority_support', 'Priority Support'),
+                ('white_label',      'White Label'),
+            ]
+
+            # Plan baseline features (mirrors Flutter SaasFeature.forPlan)
+            plan_features = {
+                'trial':        {'pos', 'inventory'},
+                'starter':      {'pos', 'inventory', 'customers', 'user_management', 'basic_reports'},
+                'professional': {'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
+                                 'advanced_reports', 'wholesale', 'export_data'},
+                'enterprise':   {'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
+                                 'advanced_reports', 'wholesale', 'export_data',
+                                 'multi_branch', 'api_access', 'priority_support', 'white_label'},
+            }
+
+            base     = set(plan_features.get(obj.plan, set()))
+            extra    = set(obj.extra_features or [])
+            removed  = set(obj.removed_features or [])
+            effective = (base | extra) - removed
+
+            rows = []
+            for key, label in all_features:
+                in_plan   = key in base
+                is_extra  = key in extra
+                is_removed = key in removed
+                enabled   = key in effective
+
+                if is_extra:
+                    icon    = '✅'
+                    suffix  = ' <span style="background:#0D9488;color:#fff;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700">+added</span>'
+                    color   = '#e2e8f0'
+                elif is_removed:
+                    icon    = '🚫'
+                    suffix  = ' <span style="background:#EF4444;color:#fff;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700">−removed</span>'
+                    color   = '#64748b'
+                elif in_plan:
+                    icon    = '✅'
+                    suffix  = ' <span style="color:#475569;font-size:10px">plan default</span>'
+                    color   = '#e2e8f0'
+                else:
+                    icon    = '⬜'
+                    suffix  = ''
+                    color   = '#334155'
+
+                rows.append(
+                    f'<div style="padding:3px 0;font-size:13px;color:{color}">'
+                    f'{icon}&nbsp; {label}{suffix}</div>'
+                )
+
+            custom_limits_html = ''
+            overrides = [
+                ('Max users',         obj.custom_max_users),
+                ('Max items',         obj.custom_max_items),
+                ('Max transactions',  obj.custom_max_transactions),
+                ('Max branches',      obj.custom_max_branches),
+            ]
+            has_custom = any(v is not None for _, v in overrides)
+            if has_custom:
+                limit_rows = ''.join(
+                    f'<span style="background:rgba(255,255,255,0.07);padding:5px 12px;'
+                    f'border-radius:8px;font-size:12px;margin:3px">'
+                    f'<span style="color:#94a3b8">{label}&nbsp;</span>'
+                    f'<strong style="color:#0D9488">{"∞" if v == -1 else v}</strong></span>'
+                    for label, v in overrides if v is not None
+                )
+                custom_limits_html = (
+                    f'<div style="margin-top:12px;padding-top:10px;'
+                    f'border-top:1px solid rgba(255,255,255,0.08)">'
+                    f'<div style="font-size:11px;color:#64748b;margin-bottom:6px;font-weight:600">'
+                    f'CUSTOM LIMIT OVERRIDES</div>'
+                    f'<div style="display:flex;flex-wrap:wrap;gap:4px">{limit_rows}</div>'
+                    f'</div>'
+                )
+
+            html = (
+                f'<div style="border-left:3px solid #0D9488;padding-left:14px">'
+                f'{"".join(rows)}'
+                f'{custom_limits_html}'
+                f'</div>'
+            )
+            return mark_safe(html)
+        except Exception as exc:
+            return format_html('<span style="color:#EF4444">Error: {}</span>', str(exc))
+
     @admin.display(description='Live Usage')
     def live_usage_panel(self, obj):
         try:
@@ -921,4 +1071,258 @@ class PlanPricingAdmin(admin.ModelAdmin):
         )
         return HttpResponseRedirect(
             reverse('admin:subscription_planpricing_changelist')
+        )
+
+
+# ── Plan Feature Flags Admin ──────────────────────────────────────────────────
+
+@admin.register(PlanFeatureFlag)
+class PlanFeatureFlagAdmin(admin.ModelAdmin):
+    """
+    Matrix editor for plan features.
+    Superusers can add, remove, rename, reorder, and toggle features per plan.
+    Changes take effect immediately — Flutter reads the feature matrix from the
+    subscription API on every app launch.
+
+    Matrix view (changelist): rows = features, columns = plans, cells = on/off.
+    Standard change form: edit a single (plan, feature_key) row in detail.
+    """
+
+    changelist_template = 'admin/subscription/planfeatureflag/changelist.html'
+
+    list_display  = ('feature_label', 'feature_key', 'plan_badge', 'enabled_badge', 'sort_order')
+    list_filter   = ('plan', 'is_enabled')
+    search_fields = ('feature_key', 'feature_label')
+    list_editable = ('sort_order',)
+    ordering      = ('sort_order', 'plan', 'feature_key')
+
+    fieldsets = (
+        (None, {
+            'fields': (('plan', 'feature_key'), 'feature_label', 'is_enabled', 'sort_order'),
+            'description': (
+                'Each row controls whether a feature is included in a plan. '
+                'The <strong>feature_key</strong> must match the key used in the '
+                'Flutter app (e.g. <code>wholesale</code>, <code>advanced_reports</code>). '
+                'The <strong>feature_label</strong> is the human-readable name shown in '
+                'the in-app subscription screen. '
+                'Changes are live immediately after saving.'
+            ),
+        }),
+    )
+
+    # ── Permissions ───────────────────────────────────────────────────────────
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    # ── List columns ──────────────────────────────────────────────────────────
+
+    @admin.display(description='Plan', ordering='plan')
+    def plan_badge(self, obj):
+        return _badge(obj.get_plan_display(), PLAN_COLORS.get(obj.plan, '#6B7280'))
+
+    @admin.display(description='Enabled', ordering='is_enabled', boolean=False)
+    def enabled_badge(self, obj):
+        if obj.is_enabled:
+            return format_html(
+                '<span style="background:#10B981;color:#fff;padding:2px 10px;'
+                'border-radius:10px;font-size:11px;font-weight:600">Enabled</span>'
+            )
+        return format_html(
+            '<span style="background:#EF4444;color:#fff;padding:2px 10px;'
+            'border-radius:10px;font-size:11px;font-weight:600">Disabled</span>'
+        )
+
+    # ── Custom changelist (matrix view) ──────────────────────────────────────
+
+    def changelist_view(self, request, extra_context=None):
+        if not request.user.is_superuser:
+            raise PermissionDenied
+
+        # Handle POST: save matrix toggles
+        if request.method == 'POST' and '_matrix_save' in request.POST:
+            return self._save_matrix(request)
+
+        # Handle POST: reset to defaults
+        if request.method == 'POST' and '_matrix_reset' in request.POST:
+            return self._reset_matrix(request)
+
+        # Handle POST: add new feature row
+        if request.method == 'POST' and '_add_feature' in request.POST:
+            return self._add_feature_row(request)
+
+        # Seed if empty
+        PlanFeatureFlag.ensure_defaults()
+
+        # Build matrix data: rows = all known feature keys, columns = plans
+        all_keys     = [k for k, _ in FEATURE_KEY_CHOICES]
+        label_map    = dict(FEATURE_KEY_CHOICES)
+        plan_list    = [p for p, _ in PLAN_CHOICES]
+        plan_labels  = dict(PLAN_CHOICES)
+
+        # Fetch all flags
+        flag_map = {}
+        for flag in PlanFeatureFlag.objects.all():
+            flag_map[(flag.plan, flag.feature_key)] = flag
+
+        # Build row objects
+        rows = []
+        seen_keys = set(all_keys)
+        for key, default_label in FEATURE_KEY_CHOICES:
+            row = {
+                'key':    key,
+                'label':  label_map.get(key, key),
+                'sort':   min(
+                    (flag_map.get((p, key)).sort_order for p in plan_list
+                     if (p, key) in flag_map),
+                    default=FEATURE_KEY_CHOICES.index((key, default_label))
+                    if (key, default_label) in FEATURE_KEY_CHOICES else 99,
+                ),
+                'cells':  {},
+            }
+            for plan in plan_list:
+                flag = flag_map.get((plan, key))
+                row['cells'][plan] = flag.is_enabled if flag else False
+            rows.append(row)
+
+        # Include any DB-only (custom) feature keys not in FEATURE_KEY_CHOICES
+        custom_keys = (
+            PlanFeatureFlag.objects
+            .exclude(feature_key__in=all_keys)
+            .values_list('feature_key', 'feature_label')
+            .distinct()
+        )
+        for key, label in custom_keys:
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            row = {'key': key, 'label': label, 'sort': 99, 'cells': {}}
+            for plan in plan_list:
+                flag = flag_map.get((plan, key))
+                row['cells'][plan] = flag.is_enabled if flag else False
+            rows.append(row)
+
+        rows.sort(key=lambda r: r['sort'])
+
+        extra_context = extra_context or {}
+        extra_context.update({
+            'title':        'Plan Feature Matrix',
+            'plan_list':    plan_list,
+            'plan_labels':  plan_labels,
+            'plan_colors':  PLAN_COLORS,
+            'rows':         rows,
+            'all_feature_key_choices': FEATURE_KEY_CHOICES,
+        })
+        return super().changelist_view(request, extra_context)
+
+    # ── POST handlers ─────────────────────────────────────────────────────────
+
+    def _save_matrix(self, request):
+        """Save checkbox toggles + label edits from the matrix form."""
+        saved = 0
+        label_map = dict(FEATURE_KEY_CHOICES)
+
+        # Collect all feature keys currently tracked
+        all_keys = set(PlanFeatureFlag.objects.values_list('feature_key', flat=True))
+        all_keys.update(k for k, _ in FEATURE_KEY_CHOICES)
+
+        for key in all_keys:
+            custom_label = request.POST.get(f'label_{key}', '').strip()
+            for plan, _ in PLAN_CHOICES:
+                field_name = f'feat_{plan}_{key}'
+                is_checked = field_name in request.POST
+                obj, created = PlanFeatureFlag.objects.get_or_create(
+                    plan=plan,
+                    feature_key=key,
+                    defaults={
+                        'feature_label': custom_label or label_map.get(key, key),
+                        'is_enabled':    is_checked,
+                        'sort_order':    0,
+                    },
+                )
+                if not created:
+                    changed = False
+                    if obj.is_enabled != is_checked:
+                        obj.is_enabled = is_checked
+                        changed = True
+                    if custom_label and obj.feature_label != custom_label:
+                        obj.feature_label = custom_label
+                        changed = True
+                    if changed:
+                        obj.save()
+                        saved += 1
+                else:
+                    saved += 1
+
+        self.message_user(
+            request,
+            f'Feature matrix saved ({saved} flag(s) updated). '
+            f'The Flutter app will pick up changes on next subscription load.',
+            messages.SUCCESS,
+        )
+        return HttpResponseRedirect(
+            reverse('admin:subscription_planfeatureflag_changelist')
+        )
+
+    def _add_feature_row(self, request):
+        """Add a new custom feature key to the matrix."""
+        key   = request.POST.get('new_key',   '').strip().lower().replace(' ', '_')
+        label = request.POST.get('new_label', '').strip()
+
+        if not key or not label:
+            self.message_user(request, 'Key and label are required.', messages.ERROR)
+            return HttpResponseRedirect(
+                reverse('admin:subscription_planfeatureflag_changelist')
+            )
+
+        if PlanFeatureFlag.objects.filter(feature_key=key).exists():
+            self.message_user(
+                request,
+                f'Feature key "{key}" already exists — edit it in the matrix below.',
+                messages.WARNING,
+            )
+            return HttpResponseRedirect(
+                reverse('admin:subscription_planfeatureflag_changelist')
+            )
+
+        # Add as disabled for all plans by default; admin can toggle on
+        for plan, _ in PLAN_CHOICES:
+            PlanFeatureFlag.objects.create(
+                plan=plan,
+                feature_key=key,
+                feature_label=label,
+                is_enabled=False,
+                sort_order=99,
+            )
+
+        self.message_user(
+            request,
+            f'Feature "{label}" ({key}) added to all plans as disabled. '
+            f'Toggle it on for the plans you want.',
+            messages.SUCCESS,
+        )
+        return HttpResponseRedirect(
+            reverse('admin:subscription_planfeatureflag_changelist')
+        )
+
+    def _reset_matrix(self, request):
+        """Delete all flags and re-seed from PLAN_FEATURES_DEFAULT."""
+        PlanFeatureFlag.objects.all().delete()
+        PlanFeatureFlag.ensure_defaults()
+        self.message_user(
+            request,
+            'Feature matrix reset to system defaults.',
+            messages.SUCCESS,
+        )
+        return HttpResponseRedirect(
+            reverse('admin:subscription_planfeatureflag_changelist')
         )

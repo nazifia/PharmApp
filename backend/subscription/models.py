@@ -174,6 +174,135 @@ BILLING_CYCLE_CHOICES = [
     ('annual',  'Annual'),
 ]
 
+# ── All known feature keys (canonical order) ──────────────────────────────────
+
+FEATURE_KEY_CHOICES = [
+    ('pos',              'Point of Sale'),
+    ('inventory',        'Inventory Management'),
+    ('customers',        'Customer Management'),
+    ('user_management',  'User Management'),
+    ('basic_reports',    'Basic Reports'),
+    ('advanced_reports', 'Advanced Reports'),
+    ('wholesale',        'Wholesale Module'),
+    ('export_data',      'Export Data'),
+    ('multi_branch',     'Multi-Branch'),
+    ('api_access',       'API Access'),
+    ('priority_support', 'Priority Support'),
+    ('white_label',      'White Label'),
+]
+
+# Default features per plan — used as fallback if no DB rows exist.
+PLAN_FEATURES_DEFAULT = {
+    'trial':        {'pos', 'inventory'},
+    'starter':      {'pos', 'inventory', 'customers', 'user_management', 'basic_reports'},
+    'professional': {'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
+                     'advanced_reports', 'wholesale', 'export_data'},
+    'enterprise':   {'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
+                     'advanced_reports', 'wholesale', 'export_data',
+                     'multi_branch', 'api_access', 'priority_support', 'white_label'},
+}
+
+
+class PlanFeatureFlag(models.Model):
+    """
+    Controls which features are included in each subscription plan.
+    Superusers edit this via the Django admin matrix to add, remove, or rename
+    features per plan. The Flutter app reads these flags from the subscription
+    API and uses them to render the feature comparison table dynamically.
+    """
+    plan          = models.CharField(max_length=20, choices=PLAN_CHOICES, db_index=True)
+    feature_key   = models.CharField(
+        max_length=50, choices=FEATURE_KEY_CHOICES,
+        help_text='Internal key used by the Flutter app to gate feature access.',
+    )
+    feature_label = models.CharField(
+        max_length=100,
+        help_text='Display name shown in the subscription screen feature table.',
+    )
+    is_enabled    = models.BooleanField(
+        default=True,
+        help_text='Uncheck to remove this feature from the plan.',
+    )
+    sort_order    = models.PositiveSmallIntegerField(
+        default=0,
+        help_text='Controls the row order in the feature comparison table.',
+    )
+
+    class Meta:
+        unique_together     = ('plan', 'feature_key')
+        ordering            = ['sort_order', 'plan', 'feature_key']
+        verbose_name        = 'Plan Feature Flag'
+        verbose_name_plural = 'Plan Feature Flags'
+
+    def __str__(self):
+        state = '✅' if self.is_enabled else '❌'
+        return f"{state} {self.get_plan_display()} → {self.feature_label}"
+
+    # ── Class-level helpers ───────────────────────────────────────────────────
+
+    @classmethod
+    def get_features_for_plan(cls, plan):
+        """
+        Returns a set of enabled feature keys for the given plan.
+        Falls back to PLAN_FEATURES_DEFAULT if no DB rows exist for this plan.
+        """
+        qs = cls.objects.filter(plan=plan, is_enabled=True).values_list('feature_key', flat=True)
+        if qs.exists():
+            return set(qs)
+        return set(PLAN_FEATURES_DEFAULT.get(plan, set()))
+
+    @classmethod
+    def get_all_features_matrix(cls):
+        """
+        Returns a dict: {plan: list[feature_key]} for all plans,
+        and a feature label dict: {feature_key: label}.
+        Used by the subscription API so Flutter can render the comparison table.
+        """
+        plan_features = {}
+        for plan, _ in PLAN_CHOICES:
+            plan_features[plan] = sorted(cls.get_features_for_plan(plan))
+
+        # Build label map from DB rows first, then fill gaps from FEATURE_KEY_CHOICES
+        label_map = {key: label for key, label in FEATURE_KEY_CHOICES}
+        for row in cls.objects.values('feature_key', 'feature_label'):
+            label_map[row['feature_key']] = row['feature_label']
+
+        # All feature keys that appear in at least one plan, in canonical sort order
+        all_keys_in_use = {k for keys in plan_features.values() for k in keys}
+        canonical_order = [k for k, _ in FEATURE_KEY_CHOICES if k in all_keys_in_use]
+        # Append any DB-only keys not in the canonical list
+        for row in cls.objects.values_list('feature_key', flat=True).distinct():
+            if row not in canonical_order:
+                canonical_order.append(row)
+
+        return {
+            'plan_features':  plan_features,
+            'feature_labels': {k: label_map.get(k, k) for k in canonical_order},
+            'feature_order':  canonical_order,
+        }
+
+    @classmethod
+    def ensure_defaults(cls):
+        """
+        Seeds the table from PLAN_FEATURES_DEFAULT if it is empty.
+        Safe to call repeatedly (idempotent).
+        """
+        if cls.objects.exists():
+            return
+        label_map = dict(FEATURE_KEY_CHOICES)
+        sort_order = {k: i for i, (k, _) in enumerate(FEATURE_KEY_CHOICES)}
+        for plan, feature_set in PLAN_FEATURES_DEFAULT.items():
+            for key in feature_set:
+                cls.objects.get_or_create(
+                    plan=plan,
+                    feature_key=key,
+                    defaults={
+                        'feature_label': label_map.get(key, key),
+                        'is_enabled':    True,
+                        'sort_order':    sort_order.get(key, 99),
+                    },
+                )
+
 
 class Subscription(models.Model):
     """
@@ -200,6 +329,41 @@ class Subscription(models.Model):
 
     # Optional reference to an external payment provider (Stripe, Flutterwave, etc.)
     external_subscription_id = models.CharField(max_length=200, blank=True, default='')
+
+    # ── Superuser feature overrides ──────────────────────────────────────────────
+    # Features added beyond what the plan normally includes (list of feature keys).
+    extra_features   = models.JSONField(
+        default=list, blank=True,
+        help_text=(
+            'Feature keys enabled for this org beyond the plan default. '
+            'Valid keys: pos, inventory, customers, user_management, basic_reports, '
+            'advanced_reports, wholesale, export_data, multi_branch, api_access, '
+            'priority_support, white_label'
+        ),
+    )
+    # Features removed from what the plan normally includes.
+    removed_features = models.JSONField(
+        default=list, blank=True,
+        help_text='Feature keys explicitly disabled for this org (overrides plan default).',
+    )
+
+    # ── Custom usage limits (null = use plan default) ─────────────────────────────
+    custom_max_users         = models.IntegerField(
+        null=True, blank=True,
+        help_text='Override max staff users. -1 = unlimited. Leave blank for plan default.',
+    )
+    custom_max_items         = models.IntegerField(
+        null=True, blank=True,
+        help_text='Override max inventory items. -1 = unlimited. Leave blank for plan default.',
+    )
+    custom_max_transactions  = models.IntegerField(
+        null=True, blank=True,
+        help_text='Override max transactions/month. -1 = unlimited. Leave blank for plan default.',
+    )
+    custom_max_branches      = models.IntegerField(
+        null=True, blank=True,
+        help_text='Override max branches. -1 = unlimited. Leave blank for plan default.',
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -266,6 +430,8 @@ class Subscription(models.Model):
 
     def to_api_dict(self):
         self.refresh_status()
+        # Seed feature flags on first call if table is empty
+        PlanFeatureFlag.ensure_defaults()
         # Inline plan pricing so Flutter always shows current prices
         pricing = {}
         for pp in PlanPricing.objects.all():
@@ -286,6 +452,35 @@ class Subscription(models.Model):
                     'is_active':     True,
                     'savings_pct':   0,
                 }
+        # Build custom_limits dict only if at least one limit is overridden
+        plan_limits = PLAN_LIMITS.get(self.plan, {})
+        custom_limits = None
+        if any(v is not None for v in [
+            self.custom_max_users, self.custom_max_items,
+            self.custom_max_transactions, self.custom_max_branches,
+        ]):
+            custom_limits = {
+                'max_users':
+                    self.custom_max_users
+                    if self.custom_max_users is not None
+                    else plan_limits.get('users', -1),
+                'max_items':
+                    self.custom_max_items
+                    if self.custom_max_items is not None
+                    else plan_limits.get('items', -1),
+                'max_transactions_per_month':
+                    self.custom_max_transactions
+                    if self.custom_max_transactions is not None
+                    else plan_limits.get('transactions', -1),
+                'max_branches':
+                    self.custom_max_branches
+                    if self.custom_max_branches is not None
+                    else 1,
+            }
+
+        # Dynamic feature matrix — controls the comparison table in Flutter
+        feature_matrix = PlanFeatureFlag.get_all_features_matrix()
+
         return {
             'plan':               self.plan,
             'status':             self.status,
@@ -294,6 +489,13 @@ class Subscription(models.Model):
             'current_period_end': self.current_period_end.isoformat() if self.current_period_end else None,
             'usage':              self._usage(),
             'plan_pricing':       pricing,
+            'extra_features':     list(self.extra_features or []),
+            'removed_features':   list(self.removed_features or []),
+            'custom_limits':      custom_limits,
+            # Feature comparison table data (editable in Django admin)
+            'plan_features':      feature_matrix['plan_features'],
+            'feature_labels':     feature_matrix['feature_labels'],
+            'feature_order':      feature_matrix['feature_order'],
         }
 
     def __str__(self):

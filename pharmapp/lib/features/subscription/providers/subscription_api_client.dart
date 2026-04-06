@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
+// BillingInfo is defined in subscription.dart
 
 class SubscriptionApiClient {
   final Dio _dio;
@@ -37,6 +38,27 @@ class SubscriptionApiClient {
   /// POST /subscription/cancel/ — cancel current subscription.
   Future<void> cancelSubscription() async {
     await _dio.post('/subscription/cancel/');
+  }
+
+  /// GET /subscription/billing/ — invoice history + payment method + next payment.
+  Future<BillingInfo> getBillingInfo() async {
+    try {
+      final res = await _dio.get('/subscription/billing/');
+      return BillingInfo.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return BillingInfo.empty();
+      rethrow;
+    }
+  }
+
+  /// GET /subscription/billing/portal/ — returns a Stripe/payment portal URL.
+  Future<String?> getBillingPortalUrl() async {
+    try {
+      final res = await _dio.get('/subscription/billing/portal/');
+      return (res.data as Map<String, dynamic>)['portal_url'] as String?;
+    } catch (_) {
+      return null;
+    }
   }
 }
 

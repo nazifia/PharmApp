@@ -12,6 +12,7 @@ class User with _$User {
     required bool isActive,
     @Default('') String username,
     @Default(false) bool isWholesaleOperator,
+    @Default(false) bool isSuperuser,
     @Default(0) int organizationId,
     @Default('') String organizationName,
     @Default('') String organizationSlug,

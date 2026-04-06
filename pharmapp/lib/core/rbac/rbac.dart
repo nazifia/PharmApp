@@ -9,6 +9,9 @@ import 'package:pharmapp/shared/models/user.dart';
 // ── Permission constants ──────────────────────────────────────────────────────
 
 abstract class AppPermission {
+  // Platform superuser
+  static const String platformAdmin    = 'platformAdmin';
+
   // Reports & Analytics
   static const String viewReports      = 'viewReports';
 
@@ -71,6 +74,7 @@ const _transfersRoles = {'Admin', 'Manager', 'Wholesale Manager', 'Wholesale Ope
 
 // ── Permission → allowed role set mapping ────────────────────────────────────
 
+// Superuser is handled separately via User.isSuperuser — not a role.
 const Map<String, Set<String>> _matrix = {
   AppPermission.viewReports:       _seniorRoles,
   AppPermission.manageUsers:       _seniorRoles,
@@ -118,4 +122,8 @@ class Rbac {
 
   /// Convenience: true when user has access to any wholesale feature.
   static bool hasWholesaleAccess(User? user) => can(user, AppPermission.viewWholesale);
+
+  /// True for platform-level superusers (cross-org subscription management).
+  /// Bypasses all role-based checks — only set by the backend via isSuperuser.
+  static bool isSuperuser(User? user) => user?.isSuperuser == true;
 }
