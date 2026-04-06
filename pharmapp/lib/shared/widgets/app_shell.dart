@@ -102,9 +102,12 @@ class _AppShellState extends ConsumerState<AppShell>
     final isOnline = ref.read(isOnlineProvider);
     if (!isOnline) return;
 
-    final hasPending = ref.read(offlineQueueProvider).isNotEmpty ||
-        ref.read(offlineMutationQueueProvider).isNotEmpty;
-    if (!hasPending) return;
+    // NOTE: intentionally do NOT short-circuit on empty queue here.
+    // On startup, OfflineQueueNotifier._reload() is async — the queue state
+    // may still be [] even though SharedPreferences has items. syncAll() reads
+    // the queue at call time and fast-exits when empty (no network calls made).
+    // Checking hasPending here would cause a race-condition false-negative that
+    // silently skips the sync until the 30-second timer fires.
 
     final result = await ref.read(syncServiceProvider).syncAll();
     if (!mounted) return;
@@ -118,6 +121,27 @@ class _AppShellState extends ConsumerState<AppShell>
       ref.invalidate(inventoryListProvider);
       ref.invalidate(retailInventoryProvider);
       ref.invalidate(customerListProvider);
+    }
+
+    if (result.authExpired) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 6),
+        content: const Row(children: [
+          Icon(Icons.lock_reset_rounded, color: Colors.white, size: 20),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Session expired — please log in again to sync offline data.',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ]),
+      ));
+      return;
     }
 
     if (result.hasWork) {
@@ -183,6 +207,22 @@ class _AppShellState extends ConsumerState<AppShell>
       if (!nowOnline || wasOnline == true) return;
       // Wait 1.5 s for the connection to stabilise before attempting sync.
       _syncIfNeeded(delayMs: 1500);
+    });
+
+    // Trigger sync when the offline queues finish loading from SharedPreferences
+    // on startup (OfflineQueueNotifier._reload() is async — it completes AFTER
+    // the first frame, so the initState post-frame callback may see an empty
+    // queue even though items are stored on disk). These listeners fire the
+    // moment items appear in state, covering the startup race condition.
+    ref.listen<List<PendingSale>>(offlineQueueProvider, (previous, next) {
+      if ((previous == null || previous.isEmpty) && next.isNotEmpty) {
+        _syncIfNeeded();
+      }
+    });
+    ref.listen<List<PendingMutation>>(offlineMutationQueueProvider, (previous, next) {
+      if ((previous == null || previous.isEmpty) && next.isNotEmpty) {
+        _syncIfNeeded();
+      }
     });
 
     final homeRoute = isAdmin
