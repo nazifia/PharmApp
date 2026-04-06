@@ -18,111 +18,14 @@ import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
 
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   final Widget child;
   const AppShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Eagerly preload inventory, customers and payment requests so screens
-    // are ready instantly when navigated to, and offline reads succeed.
-    ref.watch(inventoryListProvider);
-    ref.watch(retailInventoryProvider);
-    ref.watch(customerListProvider);
-    ref.watch(paymentRequestsPreloadProvider);
-
-    final user        = ref.watch(currentUserProvider);
-    final role        = user?.role ?? '';
-    final isAdmin     = role == 'Admin' || role == 'Manager';
-    final isWholesale = role.contains('Wholesale') || (user?.isWholesaleOperator ?? false);
-    final canInventory = Rbac.can(user, AppPermission.readInventory);
-    final canCustomers = Rbac.can(user, AppPermission.readCustomers);
-    final isDark      = Theme.of(context).brightness == Brightness.dark;
-    final location    = GoRouterState.of(context).matchedLocation;
-    final isOnline      = ref.watch(isOnlineProvider);
-    final pendingSales  = ref.watch(offlineQueueProvider);
-    final pendingMuts   = ref.watch(offlineMutationQueueProvider);
-    final pending       = pendingSales.length + pendingMuts.length;
-
-    // Auto-sync when coming back online (or on startup if already online with pending items)
-    ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) async {
-      if (!nowOnline || wasOnline == true) return;
-      final hasPending = ref.read(offlineQueueProvider).isNotEmpty ||
-                         ref.read(offlineMutationQueueProvider).isNotEmpty;
-      if (!hasPending) return;
-      final result = await ref.read(syncServiceProvider).syncAll();
-
-      // Invalidate all data providers so open screens reload fresh data
-      // from the server instead of showing stale offline-cached values.
-      if (result.synced > 0) {
-        ref.invalidate(salesListProvider);
-        ref.invalidate(salesReportProvider);
-        ref.invalidate(profitReportProvider);
-        ref.invalidate(inventoryReportProvider);
-        ref.invalidate(customerReportProvider);
-        ref.invalidate(inventoryListProvider);
-        ref.invalidate(retailInventoryProvider);
-        ref.invalidate(customerListProvider);
-      }
-
-      if (result.hasWork && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: (result.failed == 0 ? EnhancedTheme.successGreen : EnhancedTheme.warningAmber).withValues(alpha: 0.92),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 4),
-          content: Row(children: [
-            Icon(
-              result.failed == 0 ? Icons.cloud_done_rounded : Icons.cloud_sync_rounded,
-              color: Colors.black, size: 20),
-            const SizedBox(width: 10),
-            Expanded(child: Text(result.failed == 0
-                ? '${result.synced} offline operation${result.synced == 1 ? '' : 's'} synced successfully'
-                : '${result.synced} synced, ${result.failed} still pending',
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-          ]),
-        ));
-      }
-    });
-
-    final homeRoute = isAdmin
-        ? '/admin-dashboard'
-        : isWholesale
-            ? '/wholesale-dashboard'
-            : '/dashboard';
-
-    final posRoute = isWholesale
-        ? '/dashboard/wholesale-pos'
-        : '/dashboard/pos';
-
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      // Drawer is accessible from ALL authenticated screens via left-edge swipe.
-      // Screens that have their own Scaffold+drawer (dashboard, inventory, etc.)
-      // will use their inner drawer; screens without one fall back to this outer drawer.
-      drawer: const AppDrawer(),
-      body: Column(children: [
-        // ── Offline / Sync banner ─────────────────────────────────────────────
-        if (!isOnline || pending > 0)
-          const _OfflineBanner(),
-        Expanded(child: child),
-      ]),
-      bottomNavigationBar: _AppBottomNav(
-        isDark: isDark,
-        homeRoute: homeRoute,
-        posRoute: posRoute,
-        location: location,
-        canInventory: canInventory,
-        canCustomers: canCustomers,
-        pendingCount: pending,
-        onMoreTap: () => _showMoreSheet(context, ref, isAdmin, isWholesale),
-      ),
-    );
-  }
+  ConsumerState<AppShell> createState() => _AppShellState();
 
   /// Returns the correct home route for the current user's role.
-  /// Use this as the fallback when [context.canPop()] is false.
   static String roleFallback(WidgetRef ref) {
     final user = ref.read(currentUserProvider);
     final role = user?.role ?? '';
@@ -141,6 +44,159 @@ class AppShell extends ConsumerWidget {
       isScrollControlled: true,
       builder: (_) =>
           _MoreSheet(isAdmin: isAdmin, isWholesale: isWholesale, ref: ref),
+    );
+  }
+}
+
+class _AppShellState extends ConsumerState<AppShell>
+    with WidgetsBindingObserver {
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Sync on startup: runs after the first frame so providers are ready.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncIfNeeded());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Triggered when the app returns to the foreground from the background.
+  /// Handles the case where connectivity was restored while the app was
+  /// backgrounded and no stream event will fire on resume.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncIfNeeded();
+    }
+  }
+
+  /// Sync pending offline items if the device is online.
+  /// [delayMs] adds a stabilisation pause so the connection is ready.
+  Future<void> _syncIfNeeded({int delayMs = 0}) async {
+    if (delayMs > 0) {
+      await Future.delayed(Duration(milliseconds: delayMs));
+    }
+    if (!mounted) return;
+
+    final isOnline = ref.read(isOnlineProvider);
+    if (!isOnline) return;
+
+    final hasPending = ref.read(offlineQueueProvider).isNotEmpty ||
+        ref.read(offlineMutationQueueProvider).isNotEmpty;
+    if (!hasPending) return;
+
+    final result = await ref.read(syncServiceProvider).syncAll();
+    if (!mounted) return;
+
+    if (result.synced > 0) {
+      ref.invalidate(salesListProvider);
+      ref.invalidate(salesReportProvider);
+      ref.invalidate(profitReportProvider);
+      ref.invalidate(inventoryReportProvider);
+      ref.invalidate(customerReportProvider);
+      ref.invalidate(inventoryListProvider);
+      ref.invalidate(retailInventoryProvider);
+      ref.invalidate(customerListProvider);
+    }
+
+    if (result.hasWork) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(SnackBar(
+        backgroundColor: (result.failed == 0
+                ? EnhancedTheme.successGreen
+                : EnhancedTheme.warningAmber)
+            .withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        content: Row(children: [
+          Icon(
+            result.failed == 0
+                ? Icons.cloud_done_rounded
+                : Icons.cloud_sync_rounded,
+            color: Colors.black,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              result.failed == 0
+                  ? '${result.synced} offline operation${result.synced == 1 ? '' : 's'} synced successfully'
+                  : '${result.synced} synced, ${result.failed} still pending',
+              style: const TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ]),
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Eagerly preload inventory, customers and payment requests so screens
+    // are ready instantly when navigated to, and offline reads succeed.
+    ref.watch(inventoryListProvider);
+    ref.watch(retailInventoryProvider);
+    ref.watch(customerListProvider);
+    ref.watch(paymentRequestsPreloadProvider);
+
+    final user         = ref.watch(currentUserProvider);
+    final role         = user?.role ?? '';
+    final isAdmin      = role == 'Admin' || role == 'Manager';
+    final isWholesale  = role.contains('Wholesale') || (user?.isWholesaleOperator ?? false);
+    final canInventory = Rbac.can(user, AppPermission.readInventory);
+    final canCustomers = Rbac.can(user, AppPermission.readCustomers);
+    final isDark       = Theme.of(context).brightness == Brightness.dark;
+    final location     = GoRouterState.of(context).matchedLocation;
+    final isOnline     = ref.watch(isOnlineProvider);
+    final pendingSales = ref.watch(offlineQueueProvider);
+    final pendingMuts  = ref.watch(offlineMutationQueueProvider);
+    final pending      = pendingSales.length + pendingMuts.length;
+
+    // Auto-sync on offline→online transition at runtime.
+    // Startup and resume cases are handled by _syncIfNeeded() via the
+    // lifecycle observer and initState post-frame callback above.
+    ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) {
+      if (!nowOnline || wasOnline == true) return;
+      // Wait 1.5 s for the connection to stabilise before attempting sync.
+      _syncIfNeeded(delayMs: 1500);
+    });
+
+    final homeRoute = isAdmin
+        ? '/admin-dashboard'
+        : isWholesale
+            ? '/wholesale-dashboard'
+            : '/dashboard';
+
+    final posRoute = isWholesale
+        ? '/dashboard/wholesale-pos'
+        : '/dashboard/pos';
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      drawer: const AppDrawer(),
+      body: Column(children: [
+        if (!isOnline || pending > 0) const _OfflineBanner(),
+        Expanded(child: widget.child),
+      ]),
+      bottomNavigationBar: _AppBottomNav(
+        isDark: isDark,
+        homeRoute: homeRoute,
+        posRoute: posRoute,
+        location: location,
+        canInventory: canInventory,
+        canCustomers: canCustomers,
+        pendingCount: pending,
+        onMoreTap: () =>
+            AppShell._showMoreSheet(context, ref, isAdmin, isWholesale),
+      ),
     );
   }
 }
@@ -326,9 +382,9 @@ class _AppBottomNav extends StatelessWidget {
       _NavItem(Icons.home_outlined,          Icons.home_rounded,          'Home',      homeRoute),
       _NavItem(Icons.point_of_sale_outlined, Icons.point_of_sale_rounded, 'POS',       posRoute),
       if (canInventory)
-        _NavItem(Icons.inventory_2_outlined, Icons.inventory_2_rounded,   'Stock',     '/dashboard/inventory'),
+        const _NavItem(Icons.inventory_2_outlined, Icons.inventory_2_rounded,   'Stock',     '/dashboard/inventory'),
       if (canCustomers)
-        _NavItem(Icons.people_outline,       Icons.people_rounded,        'Customers', '/dashboard/customers'),
+        const _NavItem(Icons.people_outline,       Icons.people_rounded,        'Customers', '/dashboard/customers'),
     ];
     final selectedIndex = _selectedIndex(items);
 
