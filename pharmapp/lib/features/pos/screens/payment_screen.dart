@@ -71,10 +71,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   bool       _processing = false;
 
   // Split payment controllers
-  final _cashCtrl     = TextEditingController();
-  final _cardCtrl     = TextEditingController();
-  final _bankCtrl     = TextEditingController();
-  final _walletCtrl   = TextEditingController();
+  final _cashCtrl      = TextEditingController();
+  final _cardCtrl      = TextEditingController();
+  final _bankCtrl      = TextEditingController();
+  final _walletCtrl    = TextEditingController();
+  final _buyerNameCtrl = TextEditingController();
 
   @override
   void dispose() {
@@ -82,6 +83,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     _cardCtrl.dispose();
     _bankCtrl.dispose();
     _walletCtrl.dispose();
+    _buyerNameCtrl.dispose();
     super.dispose();
   }
 
@@ -141,6 +143,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final cart     = ref.read(cartProvider);
     final selected = ref.read(selectedCustomerProvider);
 
+    final buyerName = _buyerNameCtrl.text.trim();
     final payload = CheckoutPayload(
       items: cart.map((c) => SaleItemPayload(
         barcode:  c.item.barcode,
@@ -154,6 +157,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       customerId:    selected?.id,
       isWholesale:   false,
       paymentMethod: _method.apiKey,
+      patientName:   buyerName.isEmpty ? null : buyerName,
     );
 
     final result = await ref.read(checkoutProvider.notifier).processCheckout(payload);
@@ -173,10 +177,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
+      _buyerNameCtrl.clear();
       _showOfflineQueuedSheet(receiptData);
     } else if (result != null) {
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
+      _buyerNameCtrl.clear();
       _showSuccessSheet(result);
     } else {
       final err = ref.read(checkoutProvider).error;
@@ -214,13 +220,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       'paymentPos':      payment.pos,
       'paymentTransfer': payment.bankTransfer,
       'paymentWallet':   payment.wallet,
-      'customerName':    customer?.name ?? 'Walk-in',
+      'customerName':    _buyerNameCtrl.text.trim().isNotEmpty
+                             ? _buyerNameCtrl.text.trim()
+                             : (customer?.name ?? 'Walk-in'),
       'isWholesale':     false,
       'createdAt':       now,
       'items': cart.map((c) => {
         'name':        c.item.name,
-        'brand':       c.item.brand ?? '',
-        'dosageForm':  c.item.dosageForm ?? '',
+        'brand':       c.item.brand,
+        'dosageForm':  c.item.dosageForm,
         'quantity':    c.quantity,
         'price':       c.item.price.toDouble(),
         'discount':    c.discount,
@@ -563,6 +571,45 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 ).animate().fadeIn(delay: 100.ms),
                 const SizedBox(height: 20),
               ],
+
+              // ── Buyer Name ──────────────────────────────────────────────────
+              Text('Buyer Name (optional)',
+                  style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: TextField(
+                    controller: _buyerNameCtrl,
+                    style: TextStyle(color: context.labelColor, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. John Doe',
+                      hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+                      prefixIcon: Icon(Icons.person_outline_rounded,
+                          color: context.hintColor, size: 18),
+                      filled: true,
+                      fillColor: context.cardColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: context.borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: context.borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                            color: EnhancedTheme.primaryTeal, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 13),
+                    ),
+                  ),
+                ),
+              ).animate().fadeIn(delay: 80.ms),
+              const SizedBox(height: 20),
 
               // ── Payment Method ───────────────────────────────────────────────
               Text('Payment Method',

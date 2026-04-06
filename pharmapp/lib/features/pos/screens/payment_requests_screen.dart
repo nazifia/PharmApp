@@ -378,7 +378,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
     final id = (req['id'] as num?)?.toInt() ?? 0;
     final status = (req['status'] as String?) ?? 'unknown';
     final dispenser = (req['dispenserName'] as String?) ?? (req['dispenser'] as String?) ?? 'Unknown';
-    final customer = (req['customerName'] as String?) ?? (req['customer'] as String?) ?? 'Walk-in';
+    final customer = (req['customerName'] as String?) ?? (req['patientName'] as String?) ?? (req['patient_name'] as String?) ?? (req['customer'] as String?) ?? 'Walk-in';
     final totalAmount = (req['totalAmount'] as num?)?.toDouble() ?? 0;
     final date = (req['createdAt'] as String?) ?? '';
     final color = _statusColor(status);
@@ -821,7 +821,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
     final id = (req['id'] as num?)?.toInt() ?? 0;
     final status = (req['status'] as String?) ?? 'unknown';
     final dispenser = (req['dispenserName'] as String?) ?? (req['dispenser'] as String?) ?? 'Unknown';
-    final customer = (req['customerName'] as String?) ?? (req['customer'] as String?) ?? 'Walk-in';
+    final customer = (req['customerName'] as String?) ?? (req['patientName'] as String?) ?? (req['patient_name'] as String?) ?? (req['customer'] as String?) ?? 'Walk-in';
     final totalAmount = (req['totalAmount'] as num?)?.toDouble() ?? 0;
     final date = (req['createdAt'] as String?) ?? '';
     final color = _statusColor(status);

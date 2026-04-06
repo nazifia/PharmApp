@@ -178,7 +178,12 @@ class _ReceiptCard extends StatelessWidget {
   String get orgPhone   => saleData['organizationPhone']   as String? ?? '';
   String get orgLogo    => saleData['organizationLogo']    as String? ?? '';
   String get customerName =>
-      saleData['customerName'] as String? ?? saleData['buyerName'] as String? ?? 'Walk-in';
+      saleData['customerName'] as String? ??
+      saleData['customer_name'] as String? ??
+      saleData['patientName'] as String? ??
+      saleData['patient_name'] as String? ??
+      saleData['buyerName'] as String? ??
+      'Walk-in';
   String get cashierName   => saleData['cashierName']  as String? ?? '';
   String get dispenserName => saleData['dispenserName'] as String? ?? '';
   String get paymentMethod => saleData['paymentMethod'] as String? ?? 'cash';
@@ -725,7 +730,11 @@ Future<Uint8List> _buildPdf(
   final orgAddress = data['organizationAddress'] as String? ?? '';
   final orgPhone   = data['organizationPhone']   as String? ?? '';
   final customerName = data['customerName'] as String? ??
-      data['buyerName'] as String? ?? 'Walk-in';
+      data['customer_name'] as String? ??
+      data['patientName'] as String? ??
+      data['patient_name'] as String? ??
+      data['buyerName'] as String? ??
+      'Walk-in';
   final cashierName    = data['cashierName']  as String? ?? '';
   final dispenserName  = data['dispenserName'] as String? ?? '';
   final isWholesale   = data['isWholesale'] as bool? ?? false;

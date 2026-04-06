@@ -37,6 +37,7 @@ class CheckoutPayload with _$CheckoutPayload {
     bool? isWholesale,
     String? paymentMethod,
     required double totalAmount,
+    String? patientName,
   }) = _CheckoutPayload;
 
   factory CheckoutPayload.fromJson(Map<String, dynamic> json) => _$CheckoutPayloadFromJson(json);

@@ -55,6 +55,7 @@ _$CheckoutPayloadImpl _$$CheckoutPayloadImplFromJson(
       isWholesale: json['isWholesale'] as bool?,
       paymentMethod: json['paymentMethod'] as String?,
       totalAmount: (json['totalAmount'] as num).toDouble(),
+      patientName: json['patientName'] as String?,
     );
 
 Map<String, dynamic> _$$CheckoutPayloadImplToJson(
@@ -66,4 +67,5 @@ Map<String, dynamic> _$$CheckoutPayloadImplToJson(
       'isWholesale': instance.isWholesale,
       'paymentMethod': instance.paymentMethod,
       'totalAmount': instance.totalAmount,
+      'patientName': instance.patientName,
     };
