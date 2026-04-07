@@ -43,6 +43,7 @@ import 'package:pharmapp/features/subscription/screens/subscription_screen.dart'
 import 'package:pharmapp/features/subscription/screens/billing_screen.dart';
 import 'package:pharmapp/features/superuser/screens/superuser_dashboard_screen.dart';
 import 'package:pharmapp/features/superuser/screens/org_subscription_editor_screen.dart';
+import 'package:pharmapp/features/superuser/screens/plan_feature_editor_screen.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:pharmapp/shared/widgets/sync_queue_screen.dart';
 
@@ -166,7 +167,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register-org',   name: 'register_org',  builder: (_, __) => const RegisterOrgScreen()),
       GoRoute(path: '/subscription',   name: 'subscription',  builder: (_, __) => const SubscriptionScreen()),
       GoRoute(path: '/billing',        name: 'billing',       builder: (_, __) => const BillingScreen()),
-      GoRoute(path: '/superuser',      name: 'superuser',     builder: (_, __) => const SuperuserDashboardScreen()),
+      GoRoute(path: '/superuser',        name: 'superuser',       builder: (_, __) => const SuperuserDashboardScreen()),
+      GoRoute(path: '/superuser/plans',  name: 'superuser_plans', builder: (_, __) => const PlanFeatureEditorScreen()),
       GoRoute(
         path: '/superuser/org/:id',
         name: 'superuser_org',

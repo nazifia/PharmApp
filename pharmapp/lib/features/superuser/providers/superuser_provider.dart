@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pharmapp/features/superuser/providers/superuser_api_client.dart';
 import 'package:pharmapp/shared/models/org_subscription_summary.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
+import 'package:pharmapp/shared/models/plan_feature_matrix.dart';
+
+export 'package:pharmapp/shared/models/plan_feature_matrix.dart';
 
 // ── Org list ──────────────────────────────────────────────────────────────────
 
@@ -159,4 +162,101 @@ class OrgEditorNotifier extends StateNotifier<AsyncValue<OrgSubscriptionSummary?
 final orgEditorProvider = StateNotifierProvider.family<OrgEditorNotifier,
     AsyncValue<OrgSubscriptionSummary?>, int>(
   (ref, orgId) => OrgEditorNotifier(ref, orgId),
+);
+
+// ── Plan Feature Matrix notifier ──────────────────────────────────────────────
+
+/// Manages the global plan → feature matrix.
+/// All mutations are local-only until [save] is called.
+class PlanFeatureMatrixNotifier
+    extends StateNotifier<AsyncValue<PlanFeatureMatrix>> {
+  final Ref _ref;
+
+  PlanFeatureMatrixNotifier(this._ref) : super(const AsyncValue.loading()) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    state = const AsyncValue.loading();
+    try {
+      final matrix =
+          await _ref.read(superuserApiClientProvider).getPlanFeatureMatrix();
+      state = AsyncValue.data(matrix);
+    } catch (e, st) {
+      // Fall back to hardcoded defaults so the screen remains usable
+      state = AsyncValue.data(PlanFeatureMatrix.fromDefaults());
+      // ignore: avoid_print
+      print('PlanFeatureMatrixNotifier: backend unreachable — $e\n$st');
+    }
+  }
+
+  /// Reload from backend (discards unsaved local changes).
+  Future<void> reload() => _load();
+
+  // ── Local (staged) mutations ───────────────────────────────────────────────
+
+  void _update(PlanFeatureMatrix Function(PlanFeatureMatrix) fn) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncValue.data(fn(current));
+  }
+
+  /// Toggle [feature] inclusion in [planName].
+  void toggleFeatureInPlan(String planName, String feature) =>
+      _update((m) => m.withToggledFeatureInPlan(planName, feature));
+
+  /// Add [feature] to [planName]'s set.
+  void addFeatureToPlan(String planName, String feature) =>
+      _update((m) => m.withFeatureInPlan(planName, feature));
+
+  /// Remove [feature] from [planName]'s set.
+  void removeFeatureFromPlan(String planName, String feature) =>
+      _update((m) => m.withoutFeatureInPlan(planName, feature));
+
+  /// Add a brand-new feature key [key] with display label [label].
+  /// The feature starts unassigned to any plan; add it to plans with [addFeatureToPlan].
+  void addFeature(String key, String label) =>
+      _update((m) => m.withNewFeature(key, label));
+
+  /// Remove feature [key] from the system (all plans + feature list).
+  void removeFeature(String key) =>
+      _update((m) => m.withoutFeature(key));
+
+  /// Change the display label of [key] to [newLabel].
+  void renameFeature(String key, String newLabel) =>
+      _update((m) => m.withRenamedFeature(key, newLabel));
+
+  /// Reorder the feature list (drag-and-drop support).
+  void reorderFeatures(int oldIndex, int newIndex) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final order = List<String>.from(current.featureOrder);
+    if (newIndex > oldIndex) newIndex -= 1;
+    final item = order.removeAt(oldIndex);
+    order.insert(newIndex, item);
+    state = AsyncValue.data(current.withReorderedFeatures(order));
+  }
+
+  // ── Persist to backend ─────────────────────────────────────────────────────
+
+  /// Save current in-memory matrix to backend.
+  /// Returns null on success, error message on failure.
+  Future<String?> save() async {
+    final current = state.valueOrNull;
+    if (current == null) return 'Nothing to save.';
+    try {
+      final updated = await _ref
+          .read(superuserApiClientProvider)
+          .updatePlanFeatureMatrix(current);
+      state = AsyncValue.data(updated);
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+}
+
+final planFeatureMatrixProvider = StateNotifierProvider<
+    PlanFeatureMatrixNotifier, AsyncValue<PlanFeatureMatrix>>(
+  (ref) => PlanFeatureMatrixNotifier(ref),
 );

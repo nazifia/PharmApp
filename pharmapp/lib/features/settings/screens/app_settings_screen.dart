@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/rbac/rbac_provider.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
@@ -24,19 +23,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   String _language           = 'English';
   bool _logoUploading        = false;
 
-  late final TextEditingController _apiUrlCtrl;
-
   @override
   void initState() {
     super.initState();
-    final currentUrl = ref.read(baseUrlProvider);
-    _apiUrlCtrl = TextEditingController(text: currentUrl);
-  }
-
-  @override
-  void dispose() {
-    _apiUrlCtrl.dispose();
-    super.dispose();
   }
 
   @override
@@ -103,8 +92,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                             ]),
                           )),
                         ),
-                        _divider(),
-                        _inputTile(Icons.cloud_outlined, 'API Server URL', _apiUrlCtrl),
                         _divider(),
                         _tapTile(
                           Icons.info_outline, 'About PharmApp',
@@ -413,34 +400,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
     );
   }
 
-  Widget _inputTile(IconData icon, String title, TextEditingController ctrl) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          _tileIcon(icon, EnhancedTheme.infoBlue),
-          const SizedBox(width: 14),
-          Text(title, style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
-        ]),
-        const SizedBox(height: 10),
-        TextField(
-          controller: ctrl,
-          style: TextStyle(color: context.labelColor, fontSize: 13),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: context.cardColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: context.borderColor)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: context.borderColor)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          ),
-        ),
-      ]),
-    );
-  }
 
   Widget _tapTile(IconData icon, String title, String sub, VoidCallback onTap,
       {Color? iconColor, Color? textColor, Widget? trailing}) {

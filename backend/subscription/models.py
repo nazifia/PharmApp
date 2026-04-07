@@ -285,23 +285,47 @@ class PlanFeatureFlag(models.Model):
     def ensure_defaults(cls):
         """
         Seeds the table from PLAN_FEATURES_DEFAULT if it is empty.
-        Safe to call repeatedly (idempotent).
+        Fast path — skips entirely when the table already has rows.
+        For an additive sync that fills gaps in an existing table use sync_defaults().
         """
         if cls.objects.exists():
             return
-        label_map = dict(FEATURE_KEY_CHOICES)
-        sort_order = {k: i for i, (k, _) in enumerate(FEATURE_KEY_CHOICES)}
+        cls.sync_defaults()
+
+    @classmethod
+    def sync_defaults(cls):
+        """
+        Additive sync: for every (plan, feature_key) pair in PLAN_FEATURES_DEFAULT,
+        create the row if it does not exist.  Existing rows are NEVER modified or
+        deleted — this only adds what is missing.
+
+        Covers all plans (trial / starter / professional / enterprise) and all
+        features in PLAN_FEATURES_DEFAULT.  Safe to call repeatedly (idempotent).
+
+        Returns a dict  { 'added': N, 'already_present': M }  for reporting.
+        """
+        label_map  = dict(FEATURE_KEY_CHOICES)
+        sort_map   = {k: i for i, (k, _) in enumerate(FEATURE_KEY_CHOICES)}
+        added      = 0
+        already    = 0
+
         for plan, feature_set in PLAN_FEATURES_DEFAULT.items():
             for key in feature_set:
-                cls.objects.get_or_create(
+                _, created = cls.objects.get_or_create(
                     plan=plan,
                     feature_key=key,
                     defaults={
                         'feature_label': label_map.get(key, key),
                         'is_enabled':    True,
-                        'sort_order':    sort_order.get(key, 99),
+                        'sort_order':    sort_map.get(key, 99),
                     },
                 )
+                if created:
+                    added += 1
+                else:
+                    already += 1
+
+        return {'added': added, 'already_present': already}
 
 
 class Subscription(models.Model):

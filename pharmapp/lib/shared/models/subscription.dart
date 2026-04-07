@@ -161,6 +161,23 @@ class SaasFeature {
   static const String prioritySupport  = 'priority_support';
   static const String whiteLabel       = 'white_label';
 
+  /// Public display label for a feature key.
+  static String labelFor(String key) => switch (key) {
+        pos             => 'Point of Sale',
+        inventory       => 'Inventory Management',
+        customers       => 'Customer Management',
+        userManagement  => 'User Management',
+        basicReports    => 'Basic Reports',
+        advancedReports => 'Advanced Reports',
+        wholesale       => 'Wholesale Module',
+        exportData      => 'Export Data',
+        multiBranch     => 'Multi-Branch',
+        apiAccess       => 'API Access',
+        prioritySupport => 'Priority Support',
+        whiteLabel      => 'White Label',
+        _               => key,
+      };
+
   static Set<String> forPlan(SubscriptionPlan plan) {
     final base = {pos, inventory};
 

@@ -800,34 +800,15 @@ class SubscriptionAdmin(admin.ModelAdmin):
         after applying extra_features and removed_features overrides.
         """
         try:
-            # All known feature keys → display label
-            all_features = [
-                ('pos',              'Point of Sale'),
-                ('inventory',        'Inventory Management'),
-                ('customers',        'Customer Management'),
-                ('user_management',  'User Management'),
-                ('basic_reports',    'Basic Reports'),
-                ('advanced_reports', 'Advanced Reports'),
-                ('wholesale',        'Wholesale Module'),
-                ('export_data',      'Export Data'),
-                ('multi_branch',     'Multi-Branch'),
-                ('api_access',       'API Access'),
-                ('priority_support', 'Priority Support'),
-                ('white_label',      'White Label'),
-            ]
+            # All feature keys + labels — read from DB (canonical order), fallback to hardcoded
+            matrix = PlanFeatureFlag.get_all_features_matrix()
+            label_map = matrix['feature_labels']
+            all_features = [(k, label_map.get(k, k)) for k in matrix['feature_order']]
+            if not all_features:
+                all_features = list(FEATURE_KEY_CHOICES)
 
-            # Plan baseline features (mirrors Flutter SaasFeature.forPlan)
-            plan_features = {
-                'trial':        {'pos', 'inventory'},
-                'starter':      {'pos', 'inventory', 'customers', 'user_management', 'basic_reports'},
-                'professional': {'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
-                                 'advanced_reports', 'wholesale', 'export_data'},
-                'enterprise':   {'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
-                                 'advanced_reports', 'wholesale', 'export_data',
-                                 'multi_branch', 'api_access', 'priority_support', 'white_label'},
-            }
-
-            base     = set(plan_features.get(obj.plan, set()))
+            # Plan baseline features — read from DB (falls back to hardcoded if empty)
+            base     = PlanFeatureFlag.get_features_for_plan(obj.plan)
             extra    = set(obj.extra_features or [])
             removed  = set(obj.removed_features or [])
             effective = (base | extra) - removed
@@ -1160,6 +1141,14 @@ class PlanFeatureFlagAdmin(admin.ModelAdmin):
         if request.method == 'POST' and '_add_feature' in request.POST:
             return self._add_feature_row(request)
 
+        # Handle POST: delete all flags for one feature key
+        if request.method == 'POST' and '_delete_feature' in request.POST:
+            return self._delete_feature_row(request)
+
+        # Handle POST: additive sync from PLAN_FEATURES_DEFAULT
+        if request.method == 'POST' and '_sync_defaults' in request.POST:
+            return self._sync_defaults_handler(request)
+
         # Seed if empty
         PlanFeatureFlag.ensure_defaults()
 
@@ -1227,7 +1216,7 @@ class PlanFeatureFlagAdmin(admin.ModelAdmin):
     # ── POST handlers ─────────────────────────────────────────────────────────
 
     def _save_matrix(self, request):
-        """Save checkbox toggles + label edits from the matrix form."""
+        """Save checkbox toggles, label edits, and sort-order changes from the matrix form."""
         saved = 0
         label_map = dict(FEATURE_KEY_CHOICES)
 
@@ -1237,6 +1226,12 @@ class PlanFeatureFlagAdmin(admin.ModelAdmin):
 
         for key in all_keys:
             custom_label = request.POST.get(f'label_{key}', '').strip()
+            sort_str     = request.POST.get(f'sort_{key}', '').strip()
+            try:
+                new_sort = int(sort_str)
+            except (ValueError, TypeError):
+                new_sort = None  # no sort change submitted
+
             for plan, _ in PLAN_CHOICES:
                 field_name = f'feat_{plan}_{key}'
                 is_checked = field_name in request.POST
@@ -1246,7 +1241,7 @@ class PlanFeatureFlagAdmin(admin.ModelAdmin):
                     defaults={
                         'feature_label': custom_label or label_map.get(key, key),
                         'is_enabled':    is_checked,
-                        'sort_order':    0,
+                        'sort_order':    new_sort if new_sort is not None else 0,
                     },
                 )
                 if not created:
@@ -1256,6 +1251,9 @@ class PlanFeatureFlagAdmin(admin.ModelAdmin):
                         changed = True
                     if custom_label and obj.feature_label != custom_label:
                         obj.feature_label = custom_label
+                        changed = True
+                    if new_sort is not None and obj.sort_order != new_sort:
+                        obj.sort_order = new_sort
                         changed = True
                     if changed:
                         obj.save()
@@ -1323,6 +1321,63 @@ class PlanFeatureFlagAdmin(admin.ModelAdmin):
             'Feature matrix reset to system defaults.',
             messages.SUCCESS,
         )
+        return HttpResponseRedirect(
+            reverse('admin:subscription_planfeatureflag_changelist')
+        )
+
+    def _delete_feature_row(self, request):
+        """Remove all PlanFeatureFlag rows for the given feature key from every plan."""
+        key = request.POST.get('delete_key', '').strip()
+        if not key:
+            self.message_user(request, 'No feature key provided.', messages.ERROR)
+            return HttpResponseRedirect(
+                reverse('admin:subscription_planfeatureflag_changelist')
+            )
+
+        count, _ = PlanFeatureFlag.objects.filter(feature_key=key).delete()
+        if count:
+            self.message_user(
+                request,
+                f'Feature "{key}" removed from all plans ({count} flag(s) deleted). '
+                f'The Flutter app will no longer see this feature.',
+                messages.SUCCESS,
+            )
+        else:
+            self.message_user(
+                request,
+                f'Feature key "{key}" was not found in the database.',
+                messages.WARNING,
+            )
+        return HttpResponseRedirect(
+            reverse('admin:subscription_planfeatureflag_changelist')
+        )
+
+    def _sync_defaults_handler(self, request):
+        """
+        Additive sync: adds every (plan, feature_key) pair from PLAN_FEATURES_DEFAULT
+        that is currently missing from the DB.  Existing rows (including any superuser
+        customisations) are left completely untouched — nothing is removed or disabled.
+        Covers all plans and all features.
+        """
+        result  = PlanFeatureFlag.sync_defaults()
+        added   = result['added']
+        already = result['already_present']
+
+        if added:
+            self.message_user(
+                request,
+                f'Sync complete: {added} missing flag(s) added across all plans. '
+                f'{already} flag(s) were already present and left unchanged. '
+                f'Flutter will pick up changes on the next subscription load.',
+                messages.SUCCESS,
+            )
+        else:
+            self.message_user(
+                request,
+                f'Already up to date — all {already} default flag(s) are present. '
+                f'No changes were made.',
+                messages.SUCCESS,
+            )
         return HttpResponseRedirect(
             reverse('admin:subscription_planfeatureflag_changelist')
         )

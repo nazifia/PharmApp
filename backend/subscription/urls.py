@@ -23,4 +23,9 @@ urlpatterns = [
     path('superuser/organizations/<int:org_id>/reset-subscription/',
          views.superuser_reset_subscription,
          name='superuser-reset-subscription'),
+
+    # ── Global plan-feature matrix ─────────────────────────────────────────────
+    path('superuser/plan-features/',
+         views.superuser_plan_features,
+         name='superuser-plan-features'),
 ]

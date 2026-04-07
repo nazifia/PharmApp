@@ -207,11 +207,29 @@ def superuser_org_detail(request, org_id):
 
 VALID_PLANS_ALL = {'trial', 'starter', 'professional', 'enterprise'}
 VALID_STATUSES  = {'trial', 'expiring', 'expired', 'active', 'suspended', 'cancelled'}
-VALID_FEATURES  = {
+
+# Hard-coded baseline — extended at runtime with any custom keys in the DB.
+_BUILTIN_FEATURES = {
     'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
     'advanced_reports', 'wholesale', 'export_data', 'multi_branch',
     'api_access', 'priority_support', 'white_label',
 }
+
+
+def _valid_features():
+    """
+    Returns the full set of valid feature keys: the hard-coded baseline plus
+    any custom keys that a superuser has added to the PlanFeatureFlag table.
+    Falls back to the baseline if the DB query fails (e.g. before migrations).
+    """
+    from .models import PlanFeatureFlag
+    try:
+        db_keys = set(
+            PlanFeatureFlag.objects.values_list('feature_key', flat=True)
+        )
+        return _BUILTIN_FEATURES | db_keys
+    except Exception:
+        return _BUILTIN_FEATURES
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
@@ -279,7 +297,7 @@ def superuser_update_subscription(request, org_id):
         features = data['extra_features']
         if not isinstance(features, list):
             return Response({'detail': 'extra_features must be a list'}, status=400)
-        invalid = [f for f in features if f not in VALID_FEATURES]
+        invalid = [f for f in features if f not in _valid_features()]
         if invalid:
             return Response({'detail': f'Invalid feature keys: {invalid}'}, status=400)
         sub.extra_features = list(set(features))
@@ -289,7 +307,7 @@ def superuser_update_subscription(request, org_id):
         features = data['removed_features']
         if not isinstance(features, list):
             return Response({'detail': 'removed_features must be a list'}, status=400)
-        invalid = [f for f in features if f not in VALID_FEATURES]
+        invalid = [f for f in features if f not in _valid_features()]
         if invalid:
             return Response({'detail': f'Invalid feature keys: {invalid}'}, status=400)
         sub.removed_features = list(set(features))
@@ -397,3 +415,89 @@ def superuser_reset_subscription(request, org_id):
     )
 
     return Response(_org_to_superuser_dict(org))
+
+
+# ── GET|PATCH /api/superuser/plan-features/ ──────────────────────────────────
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def superuser_plan_features(request):
+    """
+    GET  — returns the global plan → feature matrix (same shape as subscription.to_api_dict
+           plan_features / feature_labels / feature_order).
+    PATCH — updates the matrix from Flutter's PlanFeatureMatrix.toJson() payload:
+            { plan_features: {plan: [keys]}, feature_labels: {key: label}, feature_order: [keys] }
+    """
+    from .models import PlanFeatureFlag, PLAN_CHOICES
+
+    err = _require_superuser(request)
+    if err:
+        return err
+
+    if request.method == 'GET':
+        PlanFeatureFlag.ensure_defaults()
+        return Response(PlanFeatureFlag.get_all_features_matrix())
+
+    # ── PATCH ────────────────────────────────────────────────────────────────
+    data           = request.data
+    plan_features  = data.get('plan_features', {})
+    feature_labels = data.get('feature_labels', {})
+    feature_order  = data.get('feature_order', [])
+
+    if not isinstance(plan_features, dict):
+        return Response({'detail': 'plan_features must be an object.'}, status=400)
+    if not isinstance(feature_labels, dict):
+        return Response({'detail': 'feature_labels must be an object.'}, status=400)
+    if not isinstance(feature_order, list):
+        return Response({'detail': 'feature_order must be a list.'}, status=400)
+
+    valid_plans = {p for p, _ in PLAN_CHOICES}
+
+    # All feature keys mentioned anywhere in the payload
+    all_keys = set(feature_labels.keys())
+    for keys in plan_features.values():
+        all_keys.update(keys)
+    all_keys.update(feature_order)
+
+    if not all_keys:
+        return Response({'detail': 'No feature keys provided.'}, status=400)
+
+    updated = 0
+    for key in all_keys:
+        label = feature_labels.get(key, key)
+        try:
+            sort = feature_order.index(key)
+        except ValueError:
+            sort = 999
+
+        for plan in valid_plans:
+            keys_for_plan = set(plan_features.get(plan, []))
+            is_enabled    = key in keys_for_plan
+
+            flag, created = PlanFeatureFlag.objects.get_or_create(
+                plan=plan,
+                feature_key=key,
+                defaults={
+                    'feature_label': label,
+                    'is_enabled':    is_enabled,
+                    'sort_order':    sort,
+                },
+            )
+            if not created:
+                changed = False
+                if flag.feature_label != label:
+                    flag.feature_label = label
+                    changed = True
+                if flag.is_enabled != is_enabled:
+                    flag.is_enabled = is_enabled
+                    changed = True
+                if flag.sort_order != sort:
+                    flag.sort_order = sort
+                    changed = True
+                if changed:
+                    flag.save()
+                    updated += 1
+            else:
+                updated += 1
+
+    return Response(PlanFeatureFlag.get_all_features_matrix())

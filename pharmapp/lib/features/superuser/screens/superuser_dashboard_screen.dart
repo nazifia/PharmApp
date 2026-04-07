@@ -69,6 +69,12 @@ class _SuperuserDashboardScreenState
                         ),
                       ),
                       IconButton(
+                        tooltip: 'Plan Feature Matrix',
+                        icon: const Icon(Icons.tune_rounded,
+                            color: Colors.black54),
+                        onPressed: () => context.push('/superuser/plans'),
+                      ),
+                      IconButton(
                         icon: const Icon(Icons.refresh_rounded,
                             color: Colors.black54),
                         onPressed: () =>

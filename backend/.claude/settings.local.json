@@ -4,7 +4,16 @@
       "Bash(flutter analyze:*)",
       "Bash(python -m py_compile pos/wholesale_views.py pos/urls.py)",
       "Bash(grep -v \"^$\")",
-      "Bash(grep -rn \"to_api_dict\\\\|sale_detail\\\\|/sales/\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\pos\"\" --include=\"*.py \")"
+      "Bash(grep -rn \"to_api_dict\\\\|sale_detail\\\\|/sales/\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\pos\"\" --include=\"*.py \")",
+      "Bash(python manage.py check --deploy)",
+      "Bash(python manage.py runserver)",
+      "Bash(python manage.py runserver --noreload)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8000/admin/)",
+      "Bash(python -c ':*)",
+      "Bash(python manage.py shell -c ':*)",
+      "Bash(python -c \"from pharmapi.storage import RelaxedManifestStaticFilesStorage; print\\('OK:', RelaxedManifestStaticFilesStorage.manifest_strict\\)\")",
+      "Bash(python -c \"from pharmapi.storage import RelaxedManifestStaticFilesStorage; print\\('OK, manifest_strict =', RelaxedManifestStaticFilesStorage.manifest_strict\\)\")",
+      "Bash(python -c \"from pharmapi.storage import CompressedNoManifestStorage; print\\('OK:', CompressedNoManifestStorage.__mro__\\)\")"
     ]
   }
 }

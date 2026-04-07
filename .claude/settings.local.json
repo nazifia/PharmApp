@@ -1,6 +1,5 @@
 {
   
-
   "permissions": {
     "allow": [
       "Bash(flutter pub:*)",
@@ -85,7 +84,9 @@
       "Bash(cp \"C:\\\\Users\\\\Dell\\\\Downloads\\\\Modern pharmacy and health app logo.png\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\assets\\\\icons\\\\app_icon.png\")",
       "Bash(dart run:*)",
       "Bash(pip3 install:*)",
-      "Bash(del \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\core\\\\sync\\\\sync_service.dart\")"
+      "Bash(del \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\core\\\\sync\\\\sync_service.dart\")",
+      "Bash(git checkout:*)",
+      "Bash(git status:*)"
     ]
   }
 }
