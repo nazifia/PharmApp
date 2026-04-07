@@ -171,7 +171,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       // so the sale is visible in history immediately (before sync).
       final queue   = ref.read(offlineQueueProvider);
       final queueId = queue.isNotEmpty ? queue.last.id : DateTime.now().microsecondsSinceEpoch.toString();
-      final receiptData = _buildOfflineReceipt(cart, selected, queueId);
+      // Pass buyerName explicitly — it was captured before the async gap above
+      // so it is guaranteed to be the value the user typed, regardless of
+      // any subsequent widget rebuilds or controller state changes.
+      final receiptData = _buildOfflineReceipt(cart, selected, queueId, buyerName);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('offline_receipt_$queueId', jsonEncode(receiptData));
 
@@ -180,10 +183,23 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       _buyerNameCtrl.clear();
       _showOfflineQueuedSheet(receiptData);
     } else if (result != null) {
+      // Merge the manually-typed buyer name into the backend response so the
+      // receipt shows the correct customer name. The backend may return the
+      // sale without echoing back the patientName field.
+      final enrichedResult = Map<String, dynamic>.from(result);
+      if (buyerName.isNotEmpty) {
+        enrichedResult['customerName'] = buyerName;
+      } else if (selected != null &&
+          enrichedResult['customerName'] == null &&
+          enrichedResult['customer_name'] == null &&
+          enrichedResult['patientName'] == null &&
+          enrichedResult['patient_name'] == null) {
+        enrichedResult['customerName'] = selected.name;
+      }
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
       _buyerNameCtrl.clear();
-      _showSuccessSheet(result);
+      _showSuccessSheet(enrichedResult);
     } else {
       final err = ref.read(checkoutProvider).error;
       String errMsg = 'Checkout failed';
@@ -205,6 +221,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     List<CartItem> cart,
     SelectedCustomer? customer,
     String queueId,
+    String buyerName,
   ) {
     final now     = DateTime.now().toIso8601String();
     final payment = _buildPayment;
@@ -220,8 +237,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       'paymentPos':      payment.pos,
       'paymentTransfer': payment.bankTransfer,
       'paymentWallet':   payment.wallet,
-      'customerName':    _buyerNameCtrl.text.trim().isNotEmpty
-                             ? _buyerNameCtrl.text.trim()
+      'customerName':    buyerName.isNotEmpty
+                             ? buyerName
                              : (customer?.name ?? 'Walk-in'),
       'isWholesale':     false,
       'createdAt':       now,

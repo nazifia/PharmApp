@@ -280,7 +280,10 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
     );
     if (result == null || !mounted) return;
 
-    // Build a CheckoutPayload from the items and chosen payment method
+    // Build a CheckoutPayload from the items and chosen payment method.
+    // Carry patientName from the original payment-request mutation body so the
+    // synced sale receipt shows the correct buyer name.
+    final patientNameFromRequest = body['patientName'] as String?;
     final checkoutPayload = CheckoutPayload(
       items: rawItems.map<SaleItemPayload>((item) => SaleItemPayload(
         barcode:  (item['barcode'] as String?) ?? '',
@@ -299,6 +302,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
       totalAmount:   total,
       isWholesale:   (body['payment_type'] as String?) == 'wholesale',
       paymentMethod: result['paymentMethod'] as String,
+      patientName:   (patientNameFromRequest?.isNotEmpty ?? false) ? patientNameFromRequest : null,
     );
 
     // Replace the pending payment-request mutation with a direct checkout

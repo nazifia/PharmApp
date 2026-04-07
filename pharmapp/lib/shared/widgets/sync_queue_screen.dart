@@ -31,14 +31,27 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
     if (!mounted) return;
     setState(() => _syncing = false);
 
-    final msg = result.synced == 0 && result.failed == 0
-        ? 'Nothing to sync'
-        : result.failed == 0
-            ? '${result.synced} operation${result.synced == 1 ? '' : 's'} synced successfully'
-            : '${result.synced} synced, ${result.failed} still pending';
-    final color = result.failed > 0
-        ? EnhancedTheme.warningAmber
-        : EnhancedTheme.successGreen;
+    final String msg;
+    final Color color;
+    final IconData icon;
+
+    if (result.connectionFailed) {
+      msg   = 'Cannot reach server — items remain queued';
+      color = EnhancedTheme.errorRed;
+      icon  = Icons.cloud_off_rounded;
+    } else if (result.synced == 0 && result.failed == 0) {
+      msg   = 'Nothing to sync';
+      color = EnhancedTheme.successGreen;
+      icon  = Icons.check_circle_rounded;
+    } else if (result.failed == 0) {
+      msg   = '${result.synced} operation${result.synced == 1 ? '' : 's'} synced successfully';
+      color = EnhancedTheme.successGreen;
+      icon  = Icons.cloud_done_rounded;
+    } else {
+      msg   = '${result.synced} synced, ${result.failed} still pending';
+      color = EnhancedTheme.warningAmber;
+      icon  = Icons.cloud_sync_rounded;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       backgroundColor: color.withValues(alpha: 0.92),
@@ -47,19 +60,13 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
       margin: const EdgeInsets.all(16),
       duration: const Duration(seconds: 4),
       content: Row(children: [
-        Icon(
-          result.failed == 0
-              ? Icons.cloud_done_rounded
-              : Icons.cloud_sync_rounded,
-          color: Colors.black,
-          size: 20,
-        ),
+        Icon(icon, color: result.connectionFailed ? Colors.white : Colors.black, size: 20),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             msg,
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: result.connectionFailed ? Colors.white : Colors.black,
               fontWeight: FontWeight.w600,
             ),
           ),

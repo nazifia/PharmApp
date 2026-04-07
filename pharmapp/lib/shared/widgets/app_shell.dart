@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pharmapp/core/offline/connectivity_provider.dart';
+import 'package:pharmapp/core/offline/connectivity_provider.dart' show isOnlineProvider;
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
@@ -106,9 +106,16 @@ class _AppShellState extends ConsumerState<AppShell>
     }
     if (!mounted) return;
 
-    final isOnline = ref.read(isOnlineProvider);
-    if (!isOnline) return;
-
+    // We intentionally do NOT gate on isOnlineProvider here.
+    //
+    // Reason: connectivity_plus streams can miss events on Windows and some web
+    // environments, leaving isOnlineProvider stuck at "offline" even after
+    // connectivity is restored. Rather than relying on the potentially-stale
+    // stream value, we let syncAll() attempt the network calls and handle
+    // connection failures gracefully (DioException with response==null).
+    // syncAll() has been fixed to NOT increment attempt counts for
+    // connection-level failures, so queued items stay clean during offline periods.
+    //
     // NOTE: intentionally do NOT short-circuit on empty queue here.
     // On startup, OfflineQueueNotifier._reload() is async — the queue state
     // may still be [] even though SharedPreferences has items. syncAll() reads
@@ -367,7 +374,25 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
       ref.invalidate(customerListProvider);
     }
 
-    if (result.hasWork) {
+    if (!mounted) return;
+
+    if (result.connectionFailed) {
+      // Server was unreachable — nothing was synced, items remain queued.
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        content: const Row(children: [
+          Icon(Icons.cloud_off_rounded, color: Colors.white, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('Cannot reach server — items remain queued',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          )),
+        ]),
+      ));
+    } else if (result.hasWork) {
       final msg = result.failed == 0
           ? '${result.synced} offline operation${result.synced == 1 ? '' : 's'} synced successfully'
           : '${result.synced} synced, ${result.failed} still pending';
@@ -375,7 +400,6 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
           ? EnhancedTheme.successGreen
           : EnhancedTheme.warningAmber;
 
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: bgColor.withValues(alpha: 0.92),
         behavior: SnackBarBehavior.floating,
@@ -390,15 +414,10 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
             color: Colors.black, size: 20),
           const SizedBox(width: 10),
           Expanded(child: Text(msg,
-            style: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
           )),
         ]),
       ));
-    } else if (!mounted) {
-      return;
     } else if (pendingBefore > 0) {
       // Sync was blocked by an in-flight auto-sync — inform the user it's
       // already running rather than showing the misleading "Nothing to sync".

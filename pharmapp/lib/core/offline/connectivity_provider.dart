@@ -2,6 +2,14 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_config.dart';
 
+/// Performs a fresh connectivity check, bypassing the cached stream.
+/// Use this when the stream may have missed a connectivity-change event
+/// (known issue on Windows and some web environments with connectivity_plus).
+Future<bool> checkConnectivityNow() async {
+  final result = await Connectivity().checkConnectivity();
+  return result.any((r) => r != ConnectivityResult.none);
+}
+
 /// Stream of raw connectivity status.
 /// Emits the current state immediately on subscription (via checkConnectivity),
 /// then continues streaming changes — so `isOnlineProvider` is correct on startup

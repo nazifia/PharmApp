@@ -35,6 +35,10 @@ class SyncResult {
   final int failedMutations;
   final String? error;
   final bool authExpired;
+  /// True when the sync loop was aborted because the server was unreachable
+  /// (DioException with no response). Distinct from [failed], which counts
+  /// items that received a server-level error response.
+  final bool connectionFailed;
 
   const SyncResult({
     this.salesSynced = 0,
@@ -43,6 +47,7 @@ class SyncResult {
     this.failedMutations = 0,
     this.error,
     this.authExpired = false,
+    this.connectionFailed = false,
   });
 
   /// Total successful syncs (sales + mutations).
@@ -73,6 +78,7 @@ class SyncService {
     int failedSales = 0, failedMutations = 0;
     String? error;
     bool authExpired = false;
+    bool connectionFailed = false;
 
     try {
       // ── 1. Sync pending sales ────────────────────────────────────────────
@@ -88,26 +94,43 @@ class SyncService {
           if (e is DioException && e.response?.statusCode == 401) {
             authExpired = true;
           }
+          // Connection-level failures (no internet / server unreachable) must NOT
+          // increment the attempt counter — the sale is not at fault, the network
+          // is just temporarily unavailable. Only server errors (response != null)
+          // count as genuine failures. Also stop the loop immediately so we don't
+          // hammer a dead connection for every queued item.
+          final isConnectionError = e is DioException && e.response == null;
+          if (isConnectionError) {
+            connectionFailed = true;
+            break; // network down — stop here, try again next sync cycle
+          }
           await ref.read(offlineQueueProvider.notifier).markAttempt(sale.id);
           failedSales++;
         }
       }
 
       // ── 2. Sync generic mutations ────────────────────────────────────────
-      final mutationQueue = ref.read(offlineMutationQueueProvider);
-      for (final mut in List<PendingMutation>.from(mutationQueue)) {
-        try {
-          await _syncMutation(mut);
-          await ref.read(offlineMutationQueueProvider.notifier).remove(mut.id);
-          mutationsSynced++;
-        } catch (e) {
-          if (e is DioException && e.response?.statusCode == 401) {
-            authExpired = true;
+      if (!connectionFailed) {
+        final mutationQueue = ref.read(offlineMutationQueueProvider);
+        for (final mut in List<PendingMutation>.from(mutationQueue)) {
+          try {
+            await _syncMutation(mut);
+            await ref.read(offlineMutationQueueProvider.notifier).remove(mut.id);
+            mutationsSynced++;
+          } catch (e) {
+            if (e is DioException && e.response?.statusCode == 401) {
+              authExpired = true;
+            }
+            final isConnectionError = e is DioException && e.response == null;
+            if (isConnectionError) {
+              connectionFailed = true;
+              break; // network down — stop here
+            }
+            await ref
+                .read(offlineMutationQueueProvider.notifier)
+                .markAttempt(mut.id);
+            failedMutations++;
           }
-          await ref
-              .read(offlineMutationQueueProvider.notifier)
-              .markAttempt(mut.id);
-          failedMutations++;
         }
       }
 
@@ -127,6 +150,7 @@ class SyncService {
       failedMutations: failedMutations,
       error: error,
       authExpired: authExpired,
+      connectionFailed: connectionFailed,
     );
   }
 

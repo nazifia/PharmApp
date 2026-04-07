@@ -138,6 +138,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ── Subscription feature gates (redirect to paywall) ──────────────────
 
+      // Catch-all: expired / suspended / cancelled subscriptions lose access
+      // to all protected routes. isAccessible covers active, trial, and expiring.
+      if (!ref.read(subscriptionAccessibleProvider) &&
+          loc != '/subscription' && loc != '/billing') {
+        return '/subscription';
+      }
+
       // Customers — Starter plan and above
       if ((loc.startsWith('/dashboard/customers') || loc.startsWith('/customer/')) &&
           !ref.read(hasFeatureProvider(SaasFeature.customers))) {
@@ -147,6 +154,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Reports — Starter plan and above
       if (loc.startsWith('/dashboard/reports') &&
           !ref.read(hasFeatureProvider(SaasFeature.basicReports))) {
+        return '/subscription';
+      }
+
+      // Advanced reports (profit + monthly) — Professional plan and above
+      if ((loc == '/dashboard/reports/profit' || loc == '/dashboard/reports/monthly') &&
+          !ref.read(hasFeatureProvider(SaasFeature.advancedReports))) {
+        return '/subscription';
+      }
+
+      // User management — Starter plan and above
+      if (loc == '/dashboard/users' &&
+          !ref.read(hasFeatureProvider(SaasFeature.userManagement))) {
         return '/subscription';
       }
 
