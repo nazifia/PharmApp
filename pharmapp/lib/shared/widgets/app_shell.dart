@@ -1,9 +1,10 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pharmapp/core/offline/connectivity_provider.dart' show isOnlineProvider;
+import 'package:pharmapp/core/offline/connectivity_provider.dart'
+    show isOnlineProvider;
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
@@ -51,7 +52,6 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell>
     with WidgetsBindingObserver {
-
   /// Periodic fallback timer — retries sync every 30 s while items are queued.
   /// Handles environments where connectivity_plus cannot detect that the
   /// *server* came back (e.g. local dev with Django stopped/restarted, or
@@ -158,7 +158,8 @@ class _AppShellState extends ConsumerState<AppShell>
           Expanded(
             child: Text(
               'Session expired — please log in again to sync offline data.',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
           ),
         ]),
@@ -209,18 +210,19 @@ class _AppShellState extends ConsumerState<AppShell>
     ref.watch(customerListProvider);
     ref.watch(paymentRequestsPreloadProvider);
 
-    final user         = ref.watch(currentUserProvider);
-    final role         = user?.role ?? '';
-    final isAdmin      = role == 'Admin' || role == 'Manager';
-    final isWholesale  = role.contains('Wholesale') || (user?.isWholesaleOperator ?? false);
+    final user = ref.watch(currentUserProvider);
+    final role = user?.role ?? '';
+    final isAdmin = role == 'Admin' || role == 'Manager';
+    final isWholesale =
+        role.contains('Wholesale') || (user?.isWholesaleOperator ?? false);
     final canInventory = Rbac.can(user, AppPermission.readInventory);
     final canCustomers = Rbac.can(user, AppPermission.readCustomers);
-    final isDark       = Theme.of(context).brightness == Brightness.dark;
-    final location     = GoRouterState.of(context).matchedLocation;
-    final isOnline     = ref.watch(isOnlineProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final location = GoRouterState.of(context).matchedLocation;
+    final isOnline = ref.watch(isOnlineProvider);
     final pendingSales = ref.watch(offlineQueueProvider);
-    final pendingMuts  = ref.watch(offlineMutationQueueProvider);
-    final pending      = pendingSales.length + pendingMuts.length;
+    final pendingMuts = ref.watch(offlineMutationQueueProvider);
+    final pending = pendingSales.length + pendingMuts.length;
 
     // Auto-sync on offline→online transition at runtime.
     // Startup and resume cases are handled by _syncIfNeeded() via the
@@ -239,12 +241,15 @@ class _AppShellState extends ConsumerState<AppShell>
     // writes are retried as soon as connectivity is back, without waiting for
     // the 30-second periodic timer.
     ref.listen<List<PendingSale>>(offlineQueueProvider, (previous, next) {
-      if (next.isNotEmpty && (previous == null || next.length > previous.length)) {
+      if (next.isNotEmpty &&
+          (previous == null || next.length > previous.length)) {
         _syncIfNeeded();
       }
     });
-    ref.listen<List<PendingMutation>>(offlineMutationQueueProvider, (previous, next) {
-      if (next.isNotEmpty && (previous == null || next.length > previous.length)) {
+    ref.listen<List<PendingMutation>>(offlineMutationQueueProvider,
+        (previous, next) {
+      if (next.isNotEmpty &&
+          (previous == null || next.length > previous.length)) {
         _syncIfNeeded();
       }
     });
@@ -255,9 +260,8 @@ class _AppShellState extends ConsumerState<AppShell>
             ? '/wholesale-dashboard'
             : '/dashboard';
 
-    final posRoute = isWholesale
-        ? '/dashboard/wholesale-pos'
-        : '/dashboard/pos';
+    final posRoute =
+        isWholesale ? '/dashboard/wholesale-pos' : '/dashboard/pos';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -295,24 +299,28 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
 
   @override
   Widget build(BuildContext context) {
-    final isOnline  = ref.watch(isOnlineProvider);
-    final pendingSales  = ref.watch(offlineQueueProvider);
-    final pendingMuts   = ref.watch(offlineMutationQueueProvider);
-    final pending   = pendingSales.length + pendingMuts.length;
+    final isOnline = ref.watch(isOnlineProvider);
+    final pendingSales = ref.watch(offlineQueueProvider);
+    final pendingMuts = ref.watch(offlineMutationQueueProvider);
+    final pending = pendingSales.length + pendingMuts.length;
 
     return GestureDetector(
-      onTap: isOnline ? _triggerSync : () => context.go('/dashboard/sync-queue'),
+      onTap:
+          isOnline ? _triggerSync : () => context.go('/dashboard/sync-queue'),
       child: Container(
         width: double.infinity,
-        color: isOnline ? EnhancedTheme.primaryTeal : EnhancedTheme.warningAmber,
+        color:
+            isOnline ? EnhancedTheme.primaryTeal : EnhancedTheme.warningAmber,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Row(children: [
           Icon(
             isOnline ? Icons.cloud_sync_rounded : Icons.cloud_off_rounded,
-            color: Colors.black, size: 15,
+            color: Colors.black,
+            size: 15,
           ),
           const SizedBox(width: 8),
-          Expanded(child: Text(
+          Expanded(
+              child: Text(
             !isOnline
                 ? pending > 0
                     ? 'Offline — $pending operation${pending == 1 ? '' : 's'} queued for sync'
@@ -320,22 +328,25 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
                 : _syncing
                     ? 'Syncing $pending operation${pending == 1 ? '' : 's'}...'
                     : '$pending operation${pending == 1 ? '' : 's'} pending — tap to sync now',
-            style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                color: Colors.black, fontSize: 12, fontWeight: FontWeight.w600),
           )),
           if (_syncing)
             const SizedBox(
-              width: 14, height: 14,
+              width: 14,
+              height: 14,
               child: CircularProgressIndicator(
-                strokeWidth: 2, color: Colors.black,
+                strokeWidth: 2,
+                color: Colors.black,
               ),
             )
           else if (isOnline && pending > 0) ...[
             const SizedBox(width: 6),
             const Icon(Icons.sync_rounded, color: Colors.black, size: 16),
-          ]
-          else if (!isOnline && pending > 0) ...[
+          ] else if (!isOnline && pending > 0) ...[
             const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded, color: Colors.black, size: 16),
+            const Icon(Icons.chevron_right_rounded,
+                color: Colors.black, size: 16),
           ],
         ]),
       ),
@@ -350,7 +361,7 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
     // (SyncService._running guard). Show a "sync in progress" message instead
     // of the misleading "Nothing to sync".
     final pendingSales = ref.read(offlineQueueProvider);
-    final pendingMuts  = ref.read(offlineMutationQueueProvider);
+    final pendingMuts = ref.read(offlineMutationQueueProvider);
     final pendingBefore = pendingSales.length + pendingMuts.length;
 
     setState(() => _syncing = true);
@@ -387,7 +398,9 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
         content: const Row(children: [
           Icon(Icons.cloud_off_rounded, color: Colors.white, size: 20),
           SizedBox(width: 10),
-          Expanded(child: Text('Cannot reach server — items remain queued',
+          Expanded(
+              child: Text(
+            'Cannot reach server — items remain queued',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
           )),
         ]),
@@ -408,13 +421,17 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
         duration: const Duration(seconds: 4),
         content: Row(children: [
           Icon(
-            result.failed == 0
-                ? Icons.cloud_done_rounded
-                : Icons.cloud_sync_rounded,
-            color: Colors.black, size: 20),
+              result.failed == 0
+                  ? Icons.cloud_done_rounded
+                  : Icons.cloud_sync_rounded,
+              color: Colors.black,
+              size: 20),
           const SizedBox(width: 10),
-          Expanded(child: Text(msg,
-            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          Expanded(
+              child: Text(
+            msg,
+            style: const TextStyle(
+                color: Colors.black, fontWeight: FontWeight.w600),
           )),
         ]),
       ));
@@ -429,11 +446,15 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
         duration: const Duration(seconds: 3),
         content: const Row(children: [
           SizedBox(
-            width: 16, height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+            width: 16,
+            height: 16,
+            child:
+                CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
           ),
           SizedBox(width: 10),
-          Expanded(child: Text('Sync already in progress…',
+          Expanded(
+              child: Text(
+            'Sync already in progress…',
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
           )),
         ]),
@@ -448,7 +469,9 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
         content: const Row(children: [
           Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
           SizedBox(width: 10),
-          Expanded(child: Text('Nothing to sync',
+          Expanded(
+              child: Text(
+            'Nothing to sync',
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
           )),
         ]),
@@ -485,13 +508,17 @@ class _AppBottomNav extends StatelessWidget {
     if (location == homeRoute ||
         location == '/dashboard' ||
         location == '/admin-dashboard' ||
-        location == '/wholesale-dashboard') { return 0; }
+        location == '/wholesale-dashboard') {
+      return 0;
+    }
     for (int i = 1; i < items.length; i++) {
       final r = items[i].route;
       if (location == r ||
           location.startsWith('$r/') ||
           (r.contains('/pos') && location.contains('/pos')) ||
-          (r.contains('/inventory') && (location.contains('/inventory') || location.contains('/stock'))) ||
+          (r.contains('/inventory') &&
+              (location.contains('/inventory') ||
+                  location.contains('/stock'))) ||
           (r.contains('/customer') && location.contains('/customer'))) {
         return i;
       }
@@ -502,12 +529,15 @@ class _AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      _NavItem(Icons.home_outlined,          Icons.home_rounded,          'Home',      homeRoute),
-      _NavItem(Icons.point_of_sale_outlined, Icons.point_of_sale_rounded, 'POS',       posRoute),
+      _NavItem(Icons.home_outlined, Icons.home_rounded, 'Home', homeRoute),
+      _NavItem(Icons.point_of_sale_outlined, Icons.point_of_sale_rounded, 'POS',
+          posRoute),
       if (canInventory)
-        const _NavItem(Icons.inventory_2_outlined, Icons.inventory_2_rounded,   'Stock',     '/dashboard/inventory'),
+        const _NavItem(Icons.inventory_2_outlined, Icons.inventory_2_rounded,
+            'Stock', '/dashboard/inventory'),
       if (canCustomers)
-        const _NavItem(Icons.people_outline,       Icons.people_rounded,        'Customers', '/dashboard/customers'),
+        const _NavItem(Icons.people_outline, Icons.people_rounded, 'Customers',
+            '/dashboard/customers'),
     ];
     final selectedIndex = _selectedIndex(items);
 
@@ -534,27 +564,28 @@ class _AppBottomNav extends StatelessWidget {
               child: Row(
                 children: [
                   ...items.asMap().entries.map((e) {
-                    final idx  = e.key;
+                    final idx = e.key;
                     final item = e.value;
-                    final sel  = selectedIndex == idx;
+                    final sel = selectedIndex == idx;
                     // POS is index 1 — show pending badge there
-                    final badge = (idx == 1 && pendingCount > 0) ? pendingCount : 0;
+                    final badge =
+                        (idx == 1 && pendingCount > 0) ? pendingCount : 0;
                     return Expanded(
                       child: _NavBtn(
-                        icon:       sel ? item.activeIcon : item.icon,
-                        label:      item.label,
+                        icon: sel ? item.activeIcon : item.icon,
+                        label: item.label,
                         isSelected: sel,
                         badgeCount: badge,
-                        onTap:      () => context.go(item.route),
+                        onTap: () => context.go(item.route),
                       ),
                     );
                   }),
                   Expanded(
                     child: _NavBtn(
-                      icon:       Icons.grid_view_rounded,
-                      label:      'More',
+                      icon: Icons.grid_view_rounded,
+                      label: 'More',
                       isSelected: false,
-                      onTap:      onMoreTap,
+                      onTap: onMoreTap,
                     ),
                   ),
                 ],
@@ -572,8 +603,8 @@ class _AppBottomNav extends StatelessWidget {
 class _NavItem {
   final IconData icon;
   final IconData activeIcon;
-  final String   label;
-  final String   route;
+  final String label;
+  final String route;
   const _NavItem(this.icon, this.activeIcon, this.label, this.route);
 }
 
@@ -581,9 +612,9 @@ class _NavItem {
 
 class _NavBtn extends StatelessWidget {
   final IconData icon;
-  final String   label;
-  final bool     isSelected;
-  final int      badgeCount;
+  final String label;
+  final bool isSelected;
+  final int badgeCount;
   final VoidCallback onTap;
 
   const _NavBtn({
@@ -597,7 +628,7 @@ class _NavBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color  = isSelected
+    final color = isSelected
         ? EnhancedTheme.primaryTeal
         : (isDark ? Colors.white54 : Colors.black45);
 
@@ -615,7 +646,8 @@ class _NavBtn extends StatelessWidget {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOut,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? EnhancedTheme.primaryTeal.withValues(alpha: 0.15)
@@ -628,21 +660,27 @@ class _NavBtn extends StatelessWidget {
                   children: [
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
-                      child: Icon(icon, key: ValueKey(icon), color: color, size: 22),
+                      child: Icon(icon,
+                          key: ValueKey(icon), color: color, size: 22),
                     ),
                     if (badgeCount > 0)
                       Positioned(
-                        top: -5, right: -8,
+                        top: -5,
+                        right: -8,
                         child: Container(
                           padding: const EdgeInsets.all(3),
                           decoration: const BoxDecoration(
                             color: EnhancedTheme.warningAmber,
                             shape: BoxShape.circle,
                           ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          constraints:
+                              const BoxConstraints(minWidth: 16, minHeight: 16),
                           child: Text(
                             badgeCount > 9 ? '9+' : '$badgeCount',
-                            style: const TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.w800),
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w800),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -654,8 +692,8 @@ class _NavBtn extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color:      color,
-                  fontSize:   10,
+                  color: color,
+                  fontSize: 10,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                 ),
               ),
@@ -670,9 +708,9 @@ class _NavBtn extends StatelessWidget {
 // ── More Bottom Sheet ─────────────────────────────────────────────────────────
 
 class _MoreSheet extends StatelessWidget {
-  final bool       isAdmin;
-  final bool       isWholesale;
-  final WidgetRef  ref;
+  final bool isAdmin;
+  final bool isWholesale;
+  final WidgetRef ref;
 
   const _MoreSheet({
     required this.isAdmin,
@@ -695,43 +733,58 @@ class _MoreSheet extends StatelessWidget {
       context.go('/login');
     }
 
-    final user        = ref.read(currentUserProvider);
-    final canReports  = Rbac.can(user, AppPermission.viewReports);
+    final user = ref.read(currentUserProvider);
+    final canReports = Rbac.can(user, AppPermission.viewReports);
     final canExpenses = Rbac.can(user, AppPermission.manageExpenses);
     final canSuppliers = Rbac.can(user, AppPermission.manageSuppliers);
     final canPayments = Rbac.can(user, AppPermission.processPayments);
     final canTransfers = Rbac.can(user, AppPermission.manageTransfers);
     final canInventory = Rbac.can(user, AppPermission.readInventory);
-    final canPOS      = Rbac.can(user, AppPermission.retailPOS);
+    final canPOS = Rbac.can(user, AppPermission.retailPOS);
     final pendingSales = ref.read(offlineQueueProvider);
-    final pendingMuts  = ref.read(offlineMutationQueueProvider);
+    final pendingMuts = ref.read(offlineMutationQueueProvider);
     final pendingTotal = pendingSales.length + pendingMuts.length;
 
     final tiles = [
       if (canReports)
-        _MoreTile(Icons.analytics_rounded,              'Reports',     EnhancedTheme.accentPurple,  () => nav('/dashboard/reports')),
+        _MoreTile(Icons.analytics_rounded, 'Reports',
+            EnhancedTheme.accentPurple, () => nav('/dashboard/reports')),
       if (canPOS || isWholesale)
-        _MoreTile(Icons.receipt_long_rounded,           'Sales',       EnhancedTheme.primaryTeal,   () => nav('/dashboard/sales')),
+        _MoreTile(Icons.receipt_long_rounded, 'Sales',
+            EnhancedTheme.primaryTeal, () => nav('/dashboard/sales')),
       if (canExpenses)
-        _MoreTile(Icons.account_balance_wallet_rounded, 'Expenses',    EnhancedTheme.accentOrange,  () => nav('/dashboard/expenses')),
+        _MoreTile(Icons.account_balance_wallet_rounded, 'Expenses',
+            EnhancedTheme.accentOrange, () => nav('/dashboard/expenses')),
       if (canPayments)
-        _MoreTile(Icons.request_page_rounded,           'Payments',    EnhancedTheme.infoBlue,      () => nav('/dashboard/payment-requests')),
+        _MoreTile(Icons.request_page_rounded, 'Payments',
+            EnhancedTheme.infoBlue, () => nav('/dashboard/payment-requests')),
       if (canSuppliers)
-        _MoreTile(Icons.storefront_rounded,             'Suppliers',   EnhancedTheme.successGreen,  () => nav('/dashboard/suppliers')),
+        _MoreTile(Icons.storefront_rounded, 'Suppliers',
+            EnhancedTheme.successGreen, () => nav('/dashboard/suppliers')),
       if (canInventory)
-        _MoreTile(Icons.fact_check_rounded,             'Stock Check', EnhancedTheme.warningAmber,  () => nav('/dashboard/stock-check')),
+        _MoreTile(Icons.fact_check_rounded, 'Stock Check',
+            EnhancedTheme.warningAmber, () => nav('/dashboard/stock-check')),
       if (isWholesale) ...[
-        _MoreTile(Icons.store_rounded,                  'WS Sales',    EnhancedTheme.accentCyan,    () => nav('/dashboard/wholesale-sales')),
+        _MoreTile(Icons.store_rounded, 'WS Sales', EnhancedTheme.accentCyan,
+            () => nav('/dashboard/wholesale-sales')),
         if (canTransfers)
-          _MoreTile(Icons.swap_horiz_rounded,           'Transfers',   EnhancedTheme.accentPurple,  () => nav('/dashboard/transfers')),
+          _MoreTile(Icons.swap_horiz_rounded, 'Transfers',
+              EnhancedTheme.accentPurple, () => nav('/dashboard/transfers')),
       ],
       if (isAdmin) ...[
-        _MoreTile(Icons.people_alt_rounded,             'Users',       EnhancedTheme.primaryTeal,   () => nav('/dashboard/users')),
-        _MoreTile(Icons.notifications_rounded,          'Alerts',      EnhancedTheme.errorRed,      () => nav('/dashboard/notifications')),
-        _MoreTile(Icons.settings_rounded,               'Settings',    isDark ? Colors.white54 : Colors.black54, () => nav('/dashboard/settings')),
+        _MoreTile(Icons.people_alt_rounded, 'Users', EnhancedTheme.primaryTeal,
+            () => nav('/dashboard/users')),
+        _MoreTile(Icons.notifications_rounded, 'Alerts', EnhancedTheme.errorRed,
+            () => nav('/dashboard/notifications')),
+        _MoreTile(
+            Icons.settings_rounded,
+            'Settings',
+            isDark ? Colors.white54 : Colors.black54,
+            () => nav('/dashboard/settings')),
       ],
       if (pendingTotal > 0)
-        _MoreTile(Icons.cloud_sync_rounded,             'Sync ($pendingTotal)', EnhancedTheme.warningAmber, () => nav('/dashboard/sync-queue')),
+        _MoreTile(Icons.cloud_sync_rounded, 'Sync ($pendingTotal)',
+            EnhancedTheme.warningAmber, () => nav('/dashboard/sync-queue')),
     ];
 
     return Container(
@@ -747,60 +800,74 @@ class _MoreSheet extends StatelessWidget {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.black26,
-                  borderRadius: BorderRadius.circular(2),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black26,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // Tile grid
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: tiles.map((t) => _MoreTileWidget(tile: t, isDark: isDark)).toList(),
-              ),
+                // Tile grid
+                LayoutBuilder(
+                  builder: (_, cs) {
+                    final tileW = (cs.maxWidth - 10 * 3) / 4;
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: tiles
+                          .map((t) => _MoreTileWidget(
+                              tile: t, isDark: isDark, width: tileW))
+                          .toList(),
+                    );
+                  },
+                ),
 
-              const SizedBox(height: 16),
-              Divider(color: isDark ? Colors.white12 : Colors.black12),
-              const SizedBox(height: 8),
+                const SizedBox(height: 16),
+                Divider(color: isDark ? Colors.white12 : Colors.black12),
+                const SizedBox(height: 8),
 
-              // Logout
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: logout,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: EnhancedTheme.errorRed.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.25)),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.logout_rounded, color: EnhancedTheme.errorRed, size: 18),
-                        SizedBox(width: 8),
-                        Text('Sign Out',
-                            style: TextStyle(
-                                color: EnhancedTheme.errorRed,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14)),
-                      ],
+                // Logout
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: logout,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.errorRed.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color:
+                                EnhancedTheme.errorRed.withValues(alpha: 0.25)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.logout_rounded,
+                              color: EnhancedTheme.errorRed, size: 18),
+                          SizedBox(width: 8),
+                          Text('Sign Out',
+                              style: TextStyle(
+                                  color: EnhancedTheme.errorRed,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -810,22 +877,23 @@ class _MoreSheet extends StatelessWidget {
 
 class _MoreTile {
   final IconData icon;
-  final String   label;
-  final Color    color;
+  final String label;
+  final Color color;
   final VoidCallback onTap;
   const _MoreTile(this.icon, this.label, this.color, this.onTap);
 }
 
 class _MoreTileWidget extends StatelessWidget {
   final _MoreTile tile;
-  final bool      isDark;
-  const _MoreTileWidget({required this.tile, required this.isDark});
+  final bool isDark;
+  final double width;
+  const _MoreTileWidget(
+      {required this.tile, required this.isDark, required this.width});
 
   @override
   Widget build(BuildContext context) {
-    final w = (MediaQuery.of(context).size.width - 40 - 10 * 3) / 4;
     return SizedBox(
-      width: w,
+      width: width,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -845,13 +913,13 @@ class _MoreTileWidget extends StatelessWidget {
                 Text(
                   tile.label,
                   style: TextStyle(
-                    color:      isDark ? Colors.white70 : Colors.black87,
-                    fontSize:   11,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
-                  textAlign:  TextAlign.center,
-                  maxLines:   2,
-                  overflow:   TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
