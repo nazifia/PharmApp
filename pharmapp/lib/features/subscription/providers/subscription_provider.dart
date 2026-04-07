@@ -50,20 +50,25 @@ class SubscriptionNotifier extends StateNotifier<AsyncValue<Subscription>> {
   /// Refresh from backend (call after upgrade / on resume).
   Future<void> refresh() => _load();
 
-  /// Optimistically upgrades the in-memory plan while the network call runs.
-  /// [billingCycle] is 'monthly' or 'annual'.
+  /// Requests a plan upgrade via the backend.
+  /// Returns the payment gateway checkout URL if the backend requires online
+  /// payment (e.g. Paystack/Flutterwave), or null if the switch was immediate.
+  ///
+  /// IMPORTANT: callers MUST open the returned URL so the subscriber completes
+  /// payment before the plan is considered active. Silently dropping the URL
+  /// would grant plan access without payment (fraud vector).
+  ///
+  /// Throws on backend error so the caller can surface it to the user.
   Future<String?> upgradePlan(String planId,
       {String billingCycle = 'monthly'}) async {
-    try {
-      final result = await _ref
-          .read(subscriptionApiClientProvider)
-          .upgradePlan(planId, billingCycle);
+    final result = await _ref
+        .read(subscriptionApiClientProvider)
+        .upgradePlan(planId, billingCycle);
 
-      await _load(); // refresh from backend
-      return result['checkout_url'] as String?; // may return a payment URL
-    } catch (e) {
-      return null;
-    }
+    await _load(); // refresh from backend after the request
+
+    // Return checkout_url to the UI layer; may be null for direct switches.
+    return result['checkout_url'] as String?;
   }
 
   Future<void> cancelSubscription() async {

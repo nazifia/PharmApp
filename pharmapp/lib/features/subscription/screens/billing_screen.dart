@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_api_client.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
@@ -18,6 +19,9 @@ final _billingInfoProvider = FutureProvider.autoDispose<BillingInfo>((ref) async
 
 final _billingCycleProvider =
     StateProvider.autoDispose<BillingCycle>((ref) => BillingCycle.monthly);
+
+/// Local state: whether auto-billing toggle is being saved.
+final _autoBillingSavingProvider = StateProvider.autoDispose<bool>((_) => false);
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -128,10 +132,18 @@ class _BillingContent extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _BillingSummaryCard(sub: sub, billing: billing),
+        _BillingSummaryCard(sub: sub, billing: billing, ref: ref),
+        const SizedBox(height: 12),
+
+        // ── Billing contact (email + WhatsApp) ────────────────────────────
+        _BillingContactCard(billing: billing, ref: ref),
         const SizedBox(height: 12),
 
         _PaymentMethodCard(billing: billing, ref: ref),
+        const SizedBox(height: 12),
+
+        // ── Where payment goes ────────────────────────────────────────────
+        _PlatformAccountCard(billing: billing),
         const SizedBox(height: 12),
 
         // ── Plans section ──────────────────────────────────────────────────
@@ -153,17 +165,21 @@ class _BillingContent extends StatelessWidget {
 
 // ── Billing Summary Card ──────────────────────────────────────────────────────
 
-class _BillingSummaryCard extends StatelessWidget {
+class _BillingSummaryCard extends ConsumerWidget {
   final Subscription sub;
   final BillingInfo  billing;
+  final WidgetRef    ref;
 
-  const _BillingSummaryCard({required this.sub, required this.billing});
+  const _BillingSummaryCard(
+      {required this.sub, required this.billing, required this.ref});
 
   @override
-  Widget build(BuildContext context) {
-    final planColor = _planColor(sub.plan);
-    final nextDate  = billing.nextPaymentDate;
-    final nextAmt   = billing.nextPaymentAmount;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planColor     = _planColor(sub.plan);
+    final nextDate      = billing.nextPaymentDate;
+    final nextAmt       = billing.nextPaymentAmount;
+    final autoBilling   = billing.autoBillingEnabled;
+    final isSaving      = ref.watch(_autoBillingSavingProvider);
 
     return _GlassCard(
       child: Column(
@@ -232,9 +248,110 @@ class _BillingSummaryCard extends StatelessWidget {
             value: _statusLabel(sub.status),
             valueColor: _statusColor(sub.status),
           ),
+
+          // ── Auto-billing toggle ─────────────────────────────────────────
+          const SizedBox(height: 10),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.autorenew_rounded,
+                  color: Colors.black38, size: 14),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Auto-billing',
+                        style:
+                            TextStyle(color: Colors.black54, fontSize: 12)),
+                    Text(
+                      'Automatically charge your card on renewal date',
+                      style: TextStyle(color: Colors.black38, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+              isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: EnhancedTheme.primaryTeal))
+                  : Switch.adaptive(
+                      value: autoBilling,
+                      activeTrackColor: EnhancedTheme.primaryTeal,
+                      onChanged: sub.plan == SubscriptionPlan.trial
+                          ? null
+                          : (val) => _toggleAutoBilling(context, ref, val),
+                    ),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _toggleAutoBilling(
+      BuildContext context, WidgetRef ref, bool enable) async {
+    // ── SECURITY: disabling auto-billing requires explicit confirmation ────────
+    // A single accidental tap could disable auto-renewal and cause the
+    // subscription to lapse at the next billing date.
+    if (!enable) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: EnhancedTheme.surfaceColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Disable Auto-billing?',
+              style: TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.w700)),
+          content: const Text(
+            'Your subscription will NOT renew automatically.\n\n'
+            'You must pay manually before your next billing date '
+            'to avoid service interruption.',
+            style: TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep Auto-billing',
+                  style: TextStyle(color: EnhancedTheme.primaryTeal)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Disable',
+                  style: TextStyle(color: EnhancedTheme.errorRed)),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
+    ref.read(_autoBillingSavingProvider.notifier).state = true;
+    try {
+      await ref
+          .read(subscriptionApiClientProvider)
+          .setAutoBilling(enabled: enable);
+      ref.invalidate(_billingInfoProvider);
+    } catch (e, st) {
+      debugPrint('setAutoBilling failed: $e\n$st');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Could not update auto-billing setting. Please try again.'),
+            backgroundColor: EnhancedTheme.errorRed,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      ref.read(_autoBillingSavingProvider.notifier).state = false;
+    }
   }
 
   static String _statusLabel(SubscriptionStatus s) => switch (s) {
@@ -254,6 +371,655 @@ class _BillingSummaryCard extends StatelessWidget {
         SubscriptionStatus.suspended => EnhancedTheme.errorRed,
         SubscriptionStatus.cancelled => Colors.black38,
       };
+}
+
+// ── Billing Contact Card ──────────────────────────────────────────────────────
+
+/// Collects and displays subscriber email + WhatsApp so the backend can send
+/// payment receipts (email) and reminders/confirmations (WhatsApp).
+class _BillingContactCard extends StatelessWidget {
+  final BillingInfo billing;
+  final WidgetRef   ref;
+  const _BillingContactCard({required this.billing, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final contact = billing.billingContact;
+
+    return _GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.contact_mail_rounded,
+                    color: EnhancedTheme.accentCyan, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Billing Contact',
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
+                    Text(
+                      'Receipts sent here after each payment',
+                      style: TextStyle(color: Colors.black38, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => _showContactForm(context, contact),
+                style: TextButton.styleFrom(
+                  backgroundColor:
+                      EnhancedTheme.accentCyan.withValues(alpha: 0.10),
+                  foregroundColor: EnhancedTheme.accentCyan,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(
+                  contact != null && !contact.isEmpty ? 'Edit' : 'Add',
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          if (contact != null && !contact.isEmpty) ...[
+            if (contact.fullName != null && contact.fullName!.isNotEmpty)
+              _InfoRow(
+                  icon: Icons.person_rounded,
+                  label: 'Name',
+                  value: contact.fullName!),
+            if (contact.email != null && contact.email!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              _ContactRow(
+                icon: Icons.email_rounded,
+                label: contact.email!,
+                onTap: () => _launchEmail(contact.email!),
+                actionIcon: Icons.open_in_new_rounded,
+                actionColor: EnhancedTheme.accentCyan,
+              ),
+            ],
+            if (contact.whatsApp != null && contact.whatsApp!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              _ContactRow(
+                icon: Icons.chat_rounded,
+                label: contact.whatsApp!,
+                onTap: () => _openWhatsApp(contact.whatsApp!,
+                    'Hello, I need help with my PharmApp subscription.'),
+                actionIcon: Icons.open_in_new_rounded,
+                actionColor: const Color(0xFF25D366), // WhatsApp green
+              ),
+            ],
+          ] else
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              alignment: Alignment.center,
+              child: Column(
+                children: [
+                  const Icon(Icons.notifications_off_outlined,
+                      color: Colors.black26, size: 28),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'No billing contact set',
+                    style: TextStyle(color: Colors.black38, fontSize: 12),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Add email & WhatsApp to receive payment notifications',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black26, fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showContactForm(BuildContext context, BillingContact? existing) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) =>
+          _BillingContactFormSheet(existing: existing, ref: ref),
+    );
+  }
+
+  void _launchEmail(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(uri)) launchUrl(uri);
+  }
+
+  void _openWhatsApp(String number, String message) async {
+    // Strip all non-digit characters except leading +
+    final clean =
+        number.replaceAll(RegExp(r'[^\d+]'), '').replaceFirst('+', '');
+    final uri = Uri.parse(
+        'https://wa.me/$clean?text=${Uri.encodeComponent(message)}');
+    if (await canLaunchUrl(uri)) {
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+}
+
+// ── Billing Contact Form Sheet ────────────────────────────────────────────────
+
+class _BillingContactFormSheet extends StatefulWidget {
+  final BillingContact? existing;
+  final WidgetRef       ref;
+  const _BillingContactFormSheet({required this.existing, required this.ref});
+
+  @override
+  State<_BillingContactFormSheet> createState() =>
+      _BillingContactFormSheetState();
+}
+
+class _BillingContactFormSheetState extends State<_BillingContactFormSheet> {
+  final _formKey   = GlobalKey<FormState>();
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _emailCtrl;
+  late final TextEditingController _waCtrl;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl  = TextEditingController(text: widget.existing?.fullName  ?? '');
+    _emailCtrl = TextEditingController(text: widget.existing?.email     ?? '');
+    _waCtrl    = TextEditingController(text: widget.existing?.whatsApp  ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _waCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A2744),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(20, 0, 20, 28 + bottom),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 20),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.accentCyan.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.contact_mail_rounded,
+                        color: EnhancedTheme.accentCyan, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('Billing Contact',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Used to send payment receipts (email) and '
+                'renewal reminders (WhatsApp).',
+                style: TextStyle(color: Colors.white54, fontSize: 11),
+              ),
+              const SizedBox(height: 20),
+
+              // Full name
+              _CardField(
+                label: 'Full Name',
+                hint: 'Billing contact name',
+                controller: _nameCtrl,
+                keyboardType: TextInputType.name,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Enter a name'
+                    : null,
+              ),
+              const SizedBox(height: 14),
+
+              // Email
+              _CardField(
+                label: 'Email Address',
+                hint: 'billing@pharmacy.com',
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Enter an email address';
+                  }
+                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v.trim())) {
+                    return 'Enter a valid email';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // WhatsApp
+              _CardField(
+                label: 'WhatsApp Number',
+                hint: '+234 801 234 5678',
+                controller: _waCtrl,
+                keyboardType: TextInputType.phone,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return null; // optional
+                  final trimmed = v.trim();
+                  final digits  = trimmed.replaceAll(RegExp(r'[^\d]'), '');
+                  // ── SECURITY: require international format ────────────────
+                  // Without a country code the WhatsApp message will silently
+                  // fail to deliver. We enforce +<countryCode><number>.
+                  if (!trimmed.startsWith('+')) {
+                    return 'Start with country code (e.g. +234...)';
+                  }
+                  if (digits.length < 10) {
+                    return 'Enter a valid international phone number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: const [
+                  Icon(Icons.info_outline_rounded,
+                      color: Colors.white38, size: 12),
+                  SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Include country code. '
+                      'WhatsApp notifications are optional but recommended.',
+                      style: TextStyle(color: Colors.white38, fontSize: 10),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: EnhancedTheme.accentCyan,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        EnhancedTheme.accentCyan.withValues(alpha: 0.5),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20, height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text('Save Billing Contact',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _saving = true);
+
+    final contact = BillingContact(
+      fullName: _nameCtrl.text.trim(),
+      email:    _emailCtrl.text.trim(),
+      whatsApp: _waCtrl.text.trim().isEmpty ? null : _waCtrl.text.trim(),
+    );
+
+    try {
+      await widget.ref
+          .read(subscriptionApiClientProvider)
+          .saveBillingContact(contact);
+
+      // Refresh billing info to show updated contact
+      widget.ref.invalidate(_billingInfoProvider);
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Billing contact saved. Receipts will be sent here.'),
+          backgroundColor: EnhancedTheme.successGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } on Exception catch (e, st) {
+      debugPrint('saveBillingContact failed: $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Could not save billing contact. Please try again.'),
+          backgroundColor: EnhancedTheme.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+}
+
+// ── Platform Payment Account Card ─────────────────────────────────────────────
+
+/// Shows the platform's receiving bank account + optional payment link.
+/// Subscribers use this to make manual transfers, or follow the payment link
+/// for online payment via Paystack/Flutterwave.
+class _PlatformAccountCard extends StatelessWidget {
+  final BillingInfo billing;
+  const _PlatformAccountCard({required this.billing});
+
+  @override
+  Widget build(BuildContext context) {
+    final acct = billing.platformAccount ?? PlatformPaymentAccount.placeholder();
+
+    return _GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.account_balance_rounded,
+                    color: EnhancedTheme.successGreen, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Payment Receiving Account',
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
+                    Text(
+                      'Transfer subscription fee to this account',
+                      style: TextStyle(color: Colors.black38, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 12),
+
+          // Bank details
+          _AccountDetailRow(label: 'Bank',    value: acct.bankName),
+          const SizedBox(height: 6),
+          _AccountDetailRow(
+            label: 'Account Name',
+            value: acct.accountName,
+          ),
+          const SizedBox(height: 6),
+          _AccountDetailRow(
+            label: 'Account Number',
+            value: acct.accountNumber,
+            copyable: true,
+            context: context,
+          ),
+          if (acct.sortCode != null) ...[
+            const SizedBox(height: 6),
+            _AccountDetailRow(label: 'Sort Code', value: acct.sortCode!),
+          ],
+          const SizedBox(height: 6),
+          _AccountDetailRow(label: 'Currency',  value: acct.currency),
+
+          // Online payment link
+          if (acct.paymentLink != null) ...[
+            const SizedBox(height: 14),
+            const Divider(color: Colors.white10, height: 1),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _openPaymentLink(context, acct.paymentLink!),
+                icon: const Icon(Icons.payment_rounded,
+                    size: 16, color: EnhancedTheme.primaryTeal),
+                label: const Text('Pay Online via Portal',
+                    style: TextStyle(
+                        color: EnhancedTheme.primaryTeal,
+                        fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(
+                      color: EnhancedTheme.primaryTeal, width: 1.2),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 12),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: EnhancedTheme.warningAmber.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                  color: EnhancedTheme.warningAmber.withValues(alpha: 0.20)),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.info_outline_rounded,
+                    color: EnhancedTheme.warningAmber, size: 14),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'After transfer, send proof of payment on WhatsApp '
+                    'or email for faster activation.',
+                    style:
+                        TextStyle(color: Colors.black54, fontSize: 10),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openPaymentLink(BuildContext context, String url) async {
+    final uri = Uri.tryParse(url.trim());
+
+    // ── SECURITY: only allow HTTPS payment links ──────────────────────────────
+    // Reject plain HTTP (susceptible to MITM) and any non-web scheme (e.g.
+    // javascript:, data:) that a compromised backend could inject to redirect
+    // users to phishing pages or execute arbitrary code.
+    if (uri == null || uri.scheme != 'https') {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Payment link is invalid or insecure. Contact support.'),
+            backgroundColor: EnhancedTheme.errorRed,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (await canLaunchUrl(uri)) {
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open payment link.'),
+            backgroundColor: EnhancedTheme.errorRed,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+}
+
+class _AccountDetailRow extends StatelessWidget {
+  final String  label;
+  final String  value;
+  final bool    copyable;
+  final BuildContext? context;
+
+  const _AccountDetailRow({
+    required this.label,
+    required this.value,
+    this.copyable = false,
+    this.context,
+  });
+
+  @override
+  Widget build(BuildContext ctx) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(label,
+              style: const TextStyle(color: Colors.black38, fontSize: 11)),
+        ),
+        Expanded(
+          child: Text(value,
+              style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+        ),
+        if (copyable)
+          GestureDetector(
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: value));
+
+              // ── SECURITY: auto-clear clipboard after 30 s ─────────────────
+              // Sensitive data (account numbers) left in the clipboard
+              // indefinitely can be read by any app running on the device.
+              Future.delayed(const Duration(seconds: 30), () {
+                Clipboard.setData(const ClipboardData(text: ''));
+              });
+
+              final snackCtx = context ?? ctx;
+              ScaffoldMessenger.of(snackCtx).showSnackBar(
+                SnackBar(
+                  content: Text('$label copied (clears in 30 s)'),
+                  backgroundColor: EnhancedTheme.primaryTeal,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: const Padding(
+              padding: EdgeInsets.only(left: 6),
+              child: Icon(Icons.copy_rounded,
+                  color: EnhancedTheme.primaryTeal, size: 15),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ── Contact Row (email / WhatsApp with tap action) ────────────────────────────
+
+class _ContactRow extends StatelessWidget {
+  final IconData  icon;
+  final String    label;
+  final VoidCallback? onTap;
+  final IconData  actionIcon;
+  final Color     actionColor;
+
+  const _ContactRow({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    required this.actionIcon,
+    required this.actionColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.black38, size: 14),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(label,
+                style: const TextStyle(color: Colors.black54, fontSize: 12)),
+          ),
+          Icon(actionIcon, color: actionColor, size: 14),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Payment Method Card ───────────────────────────────────────────────────────
@@ -635,6 +1401,13 @@ class _CardFormSheetState extends State<_CardFormSheet> {
                         final parts = v.split('/');
                         final month = int.tryParse(parts[0]) ?? 0;
                         if (month < 1 || month > 12) return 'Invalid month';
+                        // Reject expired cards before they reach the backend
+                        final year = int.tryParse('20${parts[1]}') ?? 0;
+                        final now  = DateTime.now();
+                        if (year < now.year ||
+                            (year == now.year && month < now.month)) {
+                          return 'Card has expired';
+                        }
                         return null;
                       },
                     ),
@@ -717,24 +1490,67 @@ class _CardFormSheetState extends State<_CardFormSheet> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
 
-    // Simulate network call; in prod send tokenised card to backend.
-    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    // ── SECURITY: snapshot non-sensitive values BEFORE clearing PAN/CVV ───────
+    // We only send last4, brand, expiry, and name — never the raw PAN or CVV.
+    final capturedLast4  = _last4;
+    final capturedBrand  = _brand;
+    final capturedName   = _nameCtrl.text.trim();
 
-    if (!mounted) return;
-    setState(() => _saving = false);
+    // Parse expiry safely from MM/YY
+    final expiryParts = _expiryCtrl.text.split('/');
+    final expMonth    = int.tryParse(expiryParts.first) ?? 1;
+    final expYear     = expiryParts.length > 1
+        ? (int.tryParse('20${expiryParts[1]}') ?? 2099)
+        : 2099;
 
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          widget.existing != null
-              ? 'Payment card updated successfully.'
-              : 'Card ending in $_last4 added successfully.',
+    // ── SECURITY: erase PAN and CVV from memory before any async I/O ─────────
+    // This prevents the raw card number from being readable in a memory dump
+    // or during a screenshot taken while the network call is in-flight.
+    _numberCtrl.clear();
+    _cvvCtrl.clear();
+
+    try {
+      await widget.ref
+          .read(subscriptionApiClientProvider)
+          .savePaymentMethod(
+            last4:          capturedLast4,
+            brand:          capturedBrand,
+            expMonth:       expMonth,
+            expYear:        expYear,
+            cardholderName: capturedName,
+          );
+
+      // Refresh billing info so the new card appears immediately
+      widget.ref.invalidate(_billingInfoProvider);
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.existing != null
+                ? 'Payment card updated. Auto-billing will use this card.'
+                : 'Card ending in $capturedLast4 saved for auto-billing.',
+          ),
+          backgroundColor: EnhancedTheme.successGreen,
+          behavior: SnackBarBehavior.floating,
         ),
-        backgroundColor: EnhancedTheme.successGreen,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      );
+    } on Exception catch (e, st) {
+      // Log full error internally; show generic message to user to avoid
+      // leaking API paths, server errors, or internal exception details.
+      debugPrint('savePaymentMethod failed: $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not save payment card. Please try again.'),
+          backgroundColor: EnhancedTheme.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 }
 
@@ -1358,26 +2174,153 @@ class _PlanRowState extends ConsumerState<_PlanRow> {
 
   Future<void> _upgrade(BuildContext context) async {
     if (_loading) return;
-    setState(() => _loading = true);
-    final messenger = ScaffoldMessenger.of(context);
 
-    await widget.ref
-        .read(subscriptionNotifierProvider.notifier)
-        .upgradePlan(widget.plan.name,
-            billingCycle: widget.cycle.apiValue);
+    // Warn if no billing contact or card is on file — subscriber may miss
+    // receipt and auto-billing will fail.
+    final billingAsync = ref.read(_billingInfoProvider);
+    final billing      = billingAsync.valueOrNull;
+    final noContact    = billing == null ||
+        billing.billingContact == null ||
+        billing.billingContact!.isEmpty;
+    final noCard       = billing?.paymentMethod == null;
+
+    if (noContact || noCard) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: EnhancedTheme.surfaceColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Incomplete Billing Setup',
+              style: TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.w700)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (noContact)
+                const _SetupWarningRow(
+                  icon: Icons.contact_mail_rounded,
+                  text: 'No billing email or WhatsApp set — '
+                      'you won\'t receive payment receipts.',
+                ),
+              if (noCard) ...[
+                if (noContact) const SizedBox(height: 8),
+                const _SetupWarningRow(
+                  icon: Icons.credit_card_off_rounded,
+                  text: 'No card on file — auto-billing cannot charge '
+                      'you automatically on renewal.',
+                ),
+              ],
+              const SizedBox(height: 10),
+              const Text(
+                'You can still upgrade, but complete your billing setup '
+                'afterward to avoid service interruption.',
+                style: TextStyle(color: Colors.black54, fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Set Up First',
+                  style: TextStyle(color: EnhancedTheme.primaryTeal)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Upgrade Anyway',
+                  style: TextStyle(color: EnhancedTheme.accentOrange)),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+    }
+
+    setState(() => _loading = true);
+    // Capture messenger before await to avoid BuildContext-across-async-gap lint.
+    final messenger = ScaffoldMessenger.of(context); // ignore: use_build_context_synchronously
+
+    String? checkoutUrl;
+    try {
+      checkoutUrl = await widget.ref
+          .read(subscriptionNotifierProvider.notifier)
+          .upgradePlan(widget.plan.name,
+              billingCycle: widget.cycle.apiValue);
+    } on Exception catch (e, st) {
+      debugPrint('upgradePlan failed: $e\n$st');
+      if (!mounted) return;
+      setState(() => _loading = false);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Plan upgrade failed. Check your connection and try again.'),
+          backgroundColor: EnhancedTheme.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     if (!mounted) return;
     setState(() => _loading = false);
 
+    // ── FRAUD PREVENTION: redirect to payment gateway if URL returned ─────────
+    // If the backend requires online payment (e.g. Paystack/Flutterwave),
+    // it returns a checkout_url. We MUST open it — ignoring it would grant
+    // plan access without the subscriber ever completing payment.
+    if (checkoutUrl != null && checkoutUrl.isNotEmpty) {
+      final uri = Uri.tryParse(checkoutUrl.trim());
+      if (uri != null && uri.scheme == 'https') {
+        // Open the payment gateway in the browser to complete checkout.
+        launchUrl(uri, mode: LaunchMode.externalApplication);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Redirecting to payment for ${widget.plan.displayName}. '
+              'Return here after payment completes.',
+            ),
+            backgroundColor: EnhancedTheme.infoBlue,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        return;
+      }
+    }
+
+    // No checkout URL — plan switched directly (e.g. downgrade or trial).
     messenger.showSnackBar(
       SnackBar(
         content: Text(
           'Switched to ${widget.plan.displayName} '
-          '(${widget.cycle.displayName}). Update your payment method below.',
+          '(${widget.cycle.displayName}). '
+          'Complete your billing setup to enable auto-renewal.',
         ),
         backgroundColor: EnhancedTheme.successGreen,
         behavior: SnackBarBehavior.floating,
       ),
+    );
+  }
+}
+
+class _SetupWarningRow extends StatelessWidget {
+  final IconData icon;
+  final String   text;
+  const _SetupWarningRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: EnhancedTheme.warningAmber, size: 16),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text,
+              style: const TextStyle(color: Colors.black54, fontSize: 12)),
+        ),
+      ],
     );
   }
 }

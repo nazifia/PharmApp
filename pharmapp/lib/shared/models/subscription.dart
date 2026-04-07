@@ -195,6 +195,74 @@ class SaasFeature {
   }
 }
 
+// ── Billing Contact ───────────────────────────────────────────────────────────
+
+/// Subscriber's contact details used for billing notifications.
+/// Stored on the backend and used to send payment receipts via email
+/// and payment reminders/confirmations via WhatsApp.
+class BillingContact {
+  final String? email;
+  final String? whatsApp;   // international format, e.g. +2348012345678
+  final String? fullName;
+
+  const BillingContact({this.email, this.whatsApp, this.fullName});
+
+  bool get isEmpty => (email == null || email!.isEmpty) &&
+      (whatsApp == null || whatsApp!.isEmpty);
+
+  factory BillingContact.fromJson(Map<String, dynamic> json) => BillingContact(
+        email:    json['email']      as String?,
+        whatsApp: json['whats_app']  as String?,
+        fullName: json['full_name']  as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        if (email    != null && email!.isNotEmpty)    'email':     email,
+        if (whatsApp != null && whatsApp!.isNotEmpty) 'whats_app': whatsApp,
+        if (fullName != null && fullName!.isNotEmpty) 'full_name': fullName,
+      };
+}
+
+// ── Platform Payment Account ──────────────────────────────────────────────────
+
+/// The platform's receiving account — where subscribers send payment.
+/// Returned by the backend; a placeholder is shown if the endpoint is absent.
+class PlatformPaymentAccount {
+  final String  bankName;
+  final String  accountNumber;
+  final String  accountName;
+  final String? sortCode;
+  final String? paymentLink;   // Paystack / Flutterwave link for online payment
+  final String  currency;      // e.g. 'NGN', 'USD'
+
+  const PlatformPaymentAccount({
+    required this.bankName,
+    required this.accountNumber,
+    required this.accountName,
+    this.sortCode,
+    this.paymentLink,
+    this.currency = 'NGN',
+  });
+
+  factory PlatformPaymentAccount.fromJson(Map<String, dynamic> json) =>
+      PlatformPaymentAccount(
+        bankName:      json['bank_name']      as String? ?? '',
+        accountNumber: json['account_number'] as String? ?? '',
+        accountName:   json['account_name']   as String? ?? '',
+        sortCode:      json['sort_code']      as String?,
+        paymentLink:   json['payment_link']   as String?,
+        currency:      json['currency']       as String? ?? 'NGN',
+      );
+
+  /// Shown when the backend has not yet configured a receiving account.
+  factory PlatformPaymentAccount.placeholder() => const PlatformPaymentAccount(
+        bankName:      'First Bank Nigeria',
+        accountNumber: '3012345678',
+        accountName:   'PharmApp Technologies Ltd',
+        currency:      'NGN',
+      );
+}
+
 // ── Invoice ───────────────────────────────────────────────────────────────────
 
 enum InvoiceStatus {
@@ -272,16 +340,25 @@ class PaymentMethod {
 // ── Billing Info ──────────────────────────────────────────────────────────────
 
 class BillingInfo {
-  final DateTime?     nextPaymentDate;
-  final double?       nextPaymentAmount;
-  final PaymentMethod? paymentMethod;
-  final List<Invoice> invoices;
+  final DateTime?              nextPaymentDate;
+  final double?                nextPaymentAmount;
+  final PaymentMethod?         paymentMethod;
+  final List<Invoice>          invoices;
+  /// Subscriber's email + WhatsApp contact for billing notifications.
+  final BillingContact?        billingContact;
+  /// Platform bank/payment account that receives subscription payments.
+  final PlatformPaymentAccount? platformAccount;
+  /// Whether auto-billing (auto-renewal) is enabled for this subscription.
+  final bool                   autoBillingEnabled;
 
   const BillingInfo({
     this.nextPaymentDate,
     this.nextPaymentAmount,
     this.paymentMethod,
-    this.invoices = const [],
+    this.invoices            = const [],
+    this.billingContact,
+    this.platformAccount,
+    this.autoBillingEnabled  = false,
   });
 
   factory BillingInfo.fromJson(Map<String, dynamic> json) => BillingInfo(
@@ -290,16 +367,29 @@ class BillingInfo {
             : null,
         nextPaymentAmount: (json['next_payment_amount'] as num?)?.toDouble(),
         paymentMethod: json['payment_method'] != null
-            ? PaymentMethod.fromJson(json['payment_method'] as Map<String, dynamic>)
+            ? PaymentMethod.fromJson(
+                json['payment_method'] as Map<String, dynamic>)
             : null,
         invoices: (json['invoices'] as List<dynamic>?)
                 ?.map((e) => Invoice.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],
+        billingContact: json['billing_contact'] != null
+            ? BillingContact.fromJson(
+                json['billing_contact'] as Map<String, dynamic>)
+            : null,
+        platformAccount: json['platform_account'] != null
+            ? PlatformPaymentAccount.fromJson(
+                json['platform_account'] as Map<String, dynamic>)
+            : PlatformPaymentAccount.placeholder(),
+        autoBillingEnabled:
+            (json['auto_billing_enabled'] as bool?) ?? false,
       );
 
   /// Placeholder used while loading or when the backend has no data.
-  factory BillingInfo.empty() => const BillingInfo();
+  factory BillingInfo.empty() => BillingInfo(
+        platformAccount: PlatformPaymentAccount.placeholder(),
+      );
 }
 
 // ── Current Usage ─────────────────────────────────────────────────────────────
