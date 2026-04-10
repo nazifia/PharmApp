@@ -412,6 +412,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         totalAmount: _cartTotal,
         isWholesale: true,
         paymentMethod: method,
+        patientName: _selectedCustomerName,
       );
       final result = await ref.read(checkoutProvider.notifier).processCheckout(payload);
       if (!mounted) return;

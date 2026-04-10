@@ -139,8 +139,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
   // ── Stats Cards ────────────────────────────────────────────────────────────
 
   int _crossAxisCount(double width) {
-    if (width >= 1200) return 5;
-    if (width >= 900) return 4;
+    if (width >= 900) return 5;
     if (width >= 600) return 3;
     return 2;
   }

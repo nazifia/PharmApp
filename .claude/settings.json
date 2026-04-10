@@ -1,9 +1,10 @@
 
 {
-  // "env": {
-  //   "ANTHROPIC_BASE_URL": "https://api.us-west-2.modal.direct/v1",
-  //   "ANTHROPIC_AUTH_TOKEN": "modalresearch_KHjZWdCUVZjThb66JXireyw8iDFDWWMW6_ve1DYS04E",
-  //   "CLAUDE_CODE_API_TIMEOUT_MS": "300000",
-  //   "ANTHROPIC_MODEL": "zai-org/GLM-5.1-FP8"
-  // }
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+    "ANTHROPIC_AUTH_TOKEN": "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",
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_MODEL": "nvidia/nemotron-3-super-120b-a12b:free",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "nvidia/nemotron-3-super-120b-a12b:free"
+  }
 }

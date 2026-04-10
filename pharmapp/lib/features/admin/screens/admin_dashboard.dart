@@ -259,104 +259,107 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                     _sectionHeader(context, 'Key Metrics',
                         Icons.analytics_rounded, EnhancedTheme.primaryTeal),
                     const SizedBox(height: 12),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:
-                              MediaQuery.of(context).size.width > 960
-                                  ? 4
-                                  : MediaQuery.of(context).size.width > 600
-                                      ? 3
-                                      : 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio:
-                              MediaQuery.of(context).size.width > 960
-                                  ? 1.6
-                                  : MediaQuery.of(context).size.width > 600
-                                      ? 1.4
-                                      : 1.0),
-                      itemCount: kpis.length,
-                      itemBuilder: (_, i) {
-                        final k = kpis[i];
-                        final color = k['color'] as Color;
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                            child: Container(
-                              padding: EdgeInsets.all(
-                                  MediaQuery.of(context).size.width > 600 ? 16 : 10),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    color.withValues(alpha: 0.15),
-                                    color.withValues(alpha: 0.04),
+                    LayoutBuilder(builder: (context, constraints) {
+                      final isWide = constraints.maxWidth > 960;
+                      final isMid = constraints.maxWidth > 600;
+                      final cols = isWide ? 6 : isMid ? 3 : 2;
+                      final cardPad = isWide ? 10.0 : isMid ? 16.0 : 10.0;
+                      final iconSize = isWide ? 15.0 : 18.0;
+                      final iconPad = isWide ? 5.0 : 7.0;
+                      final valueSize = isWide ? 16.0 : isMid ? 20.0 : 16.0;
+                      final labelSize = isWide ? 10.0 : 11.0;
+                      final subSize = isWide ? 8.0 : 9.0;
+                      final radius = isWide ? 14.0 : 20.0;
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: cols,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: isWide ? 1.3 : isMid ? 1.4 : 1.0),
+                        itemCount: kpis.length,
+                        itemBuilder: (_, i) {
+                          final k = kpis[i];
+                          final color = k['color'] as Color;
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(radius),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                              child: Container(
+                                padding: EdgeInsets.all(cardPad),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      color.withValues(alpha: 0.15),
+                                      color.withValues(alpha: 0.04),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(radius),
+                                  border: Border.all(
+                                      color: color.withValues(alpha: 0.3)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: color.withValues(alpha: 0.08),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4)),
                                   ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
                                 ),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                    color: color.withValues(alpha: 0.3)),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: color.withValues(alpha: 0.08),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4)),
-                                ],
-                              ),
-                              child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(7),
-                                      decoration: BoxDecoration(
-                                        color: color.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(10),
+                                child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(iconPad),
+                                        decoration: BoxDecoration(
+                                          color: color.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Icon(k['icon'] as IconData,
+                                            color: color, size: iconSize),
                                       ),
-                                      child: Icon(k['icon'] as IconData,
-                                          color: color, size: 18),
-                                    ),
-                                    const Spacer(),
-                                    isLoading
-                                        ? SizedBox(
-                                            height: 6,
-                                            child: LinearProgressIndicator(
-                                                color: color,
-                                                backgroundColor: color
-                                                    .withValues(alpha: 0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(3)))
-                                        : Text(k['value'] as String,
-                                            style: GoogleFonts.outfit(
-                                                color: color,
-                                                fontSize: MediaQuery.of(context).size.width > 600 ? 20 : 16,
-                                                fontWeight: FontWeight.w800)),
-                                    const SizedBox(height: 3),
-                                    Text(k['label'] as String,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            color: context.labelColor,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600)),
-                                    Text(k['sub'] as String,
-                                        style: TextStyle(
-                                            color: context.hintColor,
-                                            fontSize: 9),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis),
-                                  ]),
+                                      const Spacer(),
+                                      isLoading
+                                          ? SizedBox(
+                                              height: 6,
+                                              child: LinearProgressIndicator(
+                                                  color: color,
+                                                  backgroundColor: color
+                                                      .withValues(alpha: 0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(3)))
+                                          : Text(k['value'] as String,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.outfit(
+                                                  color: color,
+                                                  fontSize: valueSize,
+                                                  fontWeight: FontWeight.w800)),
+                                      const SizedBox(height: 2),
+                                      Text(k['label'] as String,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              color: context.labelColor,
+                                              fontSize: labelSize,
+                                              fontWeight: FontWeight.w600)),
+                                      Text(k['sub'] as String,
+                                          style: TextStyle(
+                                              color: context.hintColor,
+                                              fontSize: subSize),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis),
+                                    ]),
+                              ),
                             ),
-                          ),
-                        )
-                            .animate(delay: (i * 50).ms)
-                            .fadeIn(duration: 350.ms)
-                            .scale(begin: const Offset(0.92, 0.92));
-                      },
-                    ),
+                          )
+                              .animate(delay: (i * 50).ms)
+                              .fadeIn(duration: 350.ms)
+                              .scale(begin: const Offset(0.92, 0.92));
+                        },
+                      );
+                    }),
                     const SizedBox(height: 24),
 
                     // ── Quick actions ─────────────────────────────────────────────

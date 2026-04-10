@@ -28,13 +28,21 @@ class LocalDb {
   Future<Database> _open() async {
     final dir = await getDatabasesPath();
     return openDatabase(p.join(dir, 'pharmapp.db'),
-        version: 2, onCreate: _create, onUpgrade: _upgrade);
+        version: 4, onCreate: _create, onUpgrade: _upgrade);
   }
 
   Future<void> _upgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute(
           "ALTER TABLE users ADD COLUMN username TEXT NOT NULL DEFAULT ''");
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+          "ALTER TABLE sales ADD COLUMN patient_name TEXT NOT NULL DEFAULT ''");
+    }
+    if (oldVersion < 4) {
+      await db.execute(
+          "ALTER TABLE payment_requests ADD COLUMN patient_name TEXT NOT NULL DEFAULT ''");
     }
   }
 
@@ -95,7 +103,8 @@ class LocalDb {
       payment_method TEXT NOT NULL DEFAULT 'cash',
       status TEXT NOT NULL DEFAULT 'completed',
       created_at TEXT NOT NULL,
-      served_by INTEGER)''');
+      served_by INTEGER,
+      patient_name TEXT NOT NULL DEFAULT '')''');
 
     await db.execute('''CREATE TABLE sale_items(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -176,6 +185,7 @@ class LocalDb {
       customer_id INTEGER,
       cashier_id INTEGER,
       payment_type TEXT NOT NULL DEFAULT 'retail',
+      patient_name TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'pending',
       created_at TEXT NOT NULL)''');
 
@@ -525,6 +535,8 @@ class LocalDb {
     final totalAmount = ((payload['totalAmount'] ?? 0) as num).toDouble();
     final paymentMethod = payload['paymentMethod'] as String? ?? 'cash';
 
+    final patientName = payload['patientName'] as String? ?? '';
+
     final saleId = await d.insert('sales', {
       'customer_id': customerId,
       'is_wholesale': isWholesale ? 1 : 0,
@@ -537,6 +549,7 @@ class LocalDb {
       'status': 'completed',
       'created_at': now,
       'served_by': userId,
+      'patient_name': patientName,
     });
 
     for (final item in items) {
@@ -603,7 +616,8 @@ class LocalDb {
             (i['item_name'] as String).toLowerCase().contains(search.toLowerCase()));
         if (!match) continue;
       }
-      result.add(_saleJson(row, saleItems));
+      final resolvedName = await _resolveCustomerName(row);
+      result.add(_saleJson(row, saleItems, resolvedCustomerName: resolvedName));
     }
     return result;
   }
@@ -613,12 +627,29 @@ class LocalDb {
     final rows = await d.query('sales', where: 'id = ?', whereArgs: [id]);
     if (rows.isEmpty) return null;
     final items = await d.query('sale_items', where: 'sale_id = ?', whereArgs: [id]);
-    return _saleJson(rows.first, items);
+    final resolvedName = await _resolveCustomerName(rows.first);
+    return _saleJson(rows.first, items, resolvedCustomerName: resolvedName);
   }
 
-  Map<String, dynamic> _saleJson(Map<String, dynamic> r, List<Map<String, dynamic>> items) => {
+  /// Resolves the customer name from the customers table for a given sale row.
+  /// Returns null if no customer is linked (so the caller can default to 'Walk-in').
+  Future<String?> _resolveCustomerName(Map<String, dynamic> saleRow) async {
+    final customerId = saleRow['customer_id'] as int?;
+    if (customerId == null) return null;
+    final customer = await getCustomerById(customerId);
+    return customer?['name'] as String?;
+  }
+
+  Map<String, dynamic> _saleJson(Map<String, dynamic> r, List<Map<String, dynamic>> items, {String? resolvedCustomerName}) {
+    final patientName = (r['patient_name'] as String?) ?? '';
+    final customerId = r['customer_id'] as int?;
+    // Priority: patient_name > resolved customer lookup > Walk-in
+    String customerName = patientName.isNotEmpty
+        ? patientName
+        : (resolvedCustomerName ?? 'Walk-in');
+    return {
         'id': r['id'],
-        'customerId': r['customer_id'],
+        'customerId': customerId,
         'isWholesale': r['is_wholesale'] == 1,
         'payment': {
           'cash': r['payment_cash'], 'pos': r['payment_pos'],
@@ -629,6 +660,8 @@ class LocalDb {
         'paymentMethod': r['payment_method'],
         'status': r['status'],
         'createdAt': r['created_at'],
+        'patientName': patientName,
+        'customerName': customerName,
         'items': items.map((i) => {
               'id': i['id'], 'itemId': i['item_id'],
               'itemName': i['item_name'], 'name': i['item_name'],
@@ -638,6 +671,7 @@ class LocalDb {
               'subtotal': ((i['price'] as num) * (i['quantity'] as num) - (i['discount'] as num)).toDouble(),
             }).toList(),
       };
+  }
 
   Future<Map<String, dynamic>> returnSaleItem(int saleId,
       {required int saleItemId, required int quantity,
@@ -986,13 +1020,14 @@ class LocalDb {
           'totalAmount': (r['total_amount'] as num).toDouble(),
           'customerId': r['customer_id'], 'cashierId': r['cashier_id'],
           'paymentType': r['payment_type'], 'status': r['status'],
+          'patientName': r['patient_name'] ?? '',
           'createdAt': r['created_at'],
         }).toList();
   }
 
   Future<Map<String, dynamic>> createPaymentRequest(
       List<Map<String, dynamic>> items,
-      {int? customerId, int? cashierId, String paymentType = 'retail'}) async {
+      {int? customerId, int? cashierId, String paymentType = 'retail', String? patientName}) async {
     final total = items.fold<double>(
         0,
         (s, i) =>
@@ -1002,9 +1037,11 @@ class LocalDb {
     final id = await (await db).insert('payment_requests', {
       'items_json': jsonEncode(items), 'total_amount': total,
       'customer_id': customerId, 'cashier_id': cashierId,
-      'payment_type': paymentType, 'status': 'pending', 'created_at': _now(),
+      'payment_type': paymentType, 'patient_name': patientName ?? '',
+      'status': 'pending', 'created_at': _now(),
     });
-    return {'id': id, 'totalAmount': total, 'status': 'pending'};
+    return {'id': id, 'totalAmount': total, 'status': 'pending',
+            'patientName': patientName ?? ''};
   }
 
   Future<Map<String, dynamic>> updatePaymentRequestStatus(int id, String status) async {

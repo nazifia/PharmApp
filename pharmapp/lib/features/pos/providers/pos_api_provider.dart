@@ -48,6 +48,7 @@ class PosApiClient {
         'isWholesale': payload.isWholesale,
         'paymentMethod': payload.paymentMethod,
         'totalAmount': payload.totalAmount,
+        'patientName': payload.patientName,
       });
     }
     try {
@@ -191,7 +192,8 @@ class PosApiClient {
       return LocalDb.instance.createPaymentRequest(items,
           customerId: customerId,
           cashierId: cashierId,
-          paymentType: paymentType);
+          paymentType: paymentType,
+          patientName: patientName);
     }
     try {
       final res = await _dio!.post('/pos/payment-requests/', data: {
