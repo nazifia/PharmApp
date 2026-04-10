@@ -138,69 +138,82 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
 
   // ── Stats Cards ────────────────────────────────────────────────────────────
 
+  int _crossAxisCount(double width) {
+    if (width >= 1200) return 5;
+    if (width >= 900) return 4;
+    if (width >= 600) return 3;
+    return 2;
+  }
+
   Widget _statsCards(AsyncValue<Map<String, dynamic>> async) {
-    return async.when(
-      loading: () => GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.5,
-        ),
-        itemCount: 5,
-        itemBuilder: (_, __) => EnhancedTheme.loadingShimmer(height: 100, radius: 16),
-      ),
-      error: (e, _) => _errorCard('Failed to load dashboard stats'),
-      data: (data) {
-        final revenue = (data['todayRevenue'] as num?)?.toDouble() ?? 0;
-        final salesCount = data['salesToday'] ?? 0;
-        final unitsSold = data['unitsSold'] ?? 0;
-        final customers = data['wholesaleCustomers'] ?? 0;
-        final debt = (data['outstandingDebt'] as num?)?.toDouble() ?? 0;
-
-        final stats = [
-          {'label': "Today's Revenue", 'value': _fmtNaira(revenue), 'icon': Icons.trending_up_rounded, 'color': EnhancedTheme.successGreen},
-          {'label': 'Sales Today', 'value': '$salesCount', 'icon': Icons.receipt_long_rounded, 'color': EnhancedTheme.primaryTeal},
-          {'label': 'Units Sold', 'value': '$unitsSold', 'icon': Icons.shopping_cart_rounded, 'color': EnhancedTheme.accentCyan},
-          {'label': 'WS Customers', 'value': '$customers', 'icon': Icons.people_rounded, 'color': EnhancedTheme.accentPurple},
-          {'label': 'Outstanding Debt', 'value': _fmtNaira(debt), 'icon': Icons.money_off_rounded, 'color': EnhancedTheme.warningAmber},
-        ];
-
-        return GridView.builder(
+    return LayoutBuilder(builder: (context, constraints) {
+      final cols = _crossAxisCount(constraints.maxWidth);
+      final isWide = cols >= 4;
+      return async.when(
+        loading: () => GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.5,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols, mainAxisSpacing: 10, crossAxisSpacing: 10,
+            childAspectRatio: isWide ? 1.8 : 1.5,
           ),
-          itemCount: stats.length,
-          itemBuilder: (_, i) {
-            final s = stats[i];
-            final color = s['color'] as Color;
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: color.withValues(alpha: 0.25)),
+          itemCount: 5,
+          itemBuilder: (_, __) => EnhancedTheme.loadingShimmer(height: 80, radius: 14),
+        ),
+        error: (e, _) => _errorCard('Failed to load dashboard stats'),
+        data: (data) {
+          final revenue = (data['todayRevenue'] as num?)?.toDouble() ?? 0;
+          final salesCount = data['salesToday'] ?? 0;
+          final unitsSold = data['unitsSold'] ?? 0;
+          final customers = data['wholesaleCustomers'] ?? 0;
+          final debt = (data['outstandingDebt'] as num?)?.toDouble() ?? 0;
+
+          final stats = [
+            {'label': "Today's Revenue", 'value': _fmtNaira(revenue), 'icon': Icons.trending_up_rounded, 'color': EnhancedTheme.successGreen},
+            {'label': 'Sales Today', 'value': '$salesCount', 'icon': Icons.receipt_long_rounded, 'color': EnhancedTheme.primaryTeal},
+            {'label': 'Units Sold', 'value': '$unitsSold', 'icon': Icons.shopping_cart_rounded, 'color': EnhancedTheme.accentCyan},
+            {'label': 'WS Customers', 'value': '$customers', 'icon': Icons.people_rounded, 'color': EnhancedTheme.accentPurple},
+            {'label': 'Outstanding Debt', 'value': _fmtNaira(debt), 'icon': Icons.money_off_rounded, 'color': EnhancedTheme.warningAmber},
+          ];
+
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: cols, mainAxisSpacing: 10, crossAxisSpacing: 10,
+              childAspectRatio: isWide ? 1.8 : 1.5,
+            ),
+            itemCount: stats.length,
+            itemBuilder: (_, i) {
+              final s = stats[i];
+              final color = s['color'] as Color;
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    padding: EdgeInsets.all(isWide ? 12 : 16),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: color.withValues(alpha: 0.25)),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Icon(s['icon'] as IconData, color: color, size: isWide ? 18 : 22),
+                      const Spacer(),
+                      Text(s['value'] as String,
+                          style: TextStyle(color: color, fontSize: isWide ? 16 : 20, fontWeight: FontWeight.w800)),
+                      Text(s['label'] as String,
+                          style: TextStyle(color: context.subLabelColor, fontSize: isWide ? 10 : 11)),
+                    ]),
                   ),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Icon(s['icon'] as IconData, color: color, size: 22),
-                    const Spacer(),
-                    Text(s['value'] as String,
-                        style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w800)),
-                    Text(s['label'] as String,
-                        style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                  ]),
                 ),
-              ),
-            );
-          },
-        );
-      },
-    );
+              );
+            },
+          );
+        },
+      );
+    });
   }
 
   // ── Quick Access ───────────────────────────────────────────────────────────

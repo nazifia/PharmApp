@@ -42,12 +42,14 @@ def wholesale_dashboard(request):
     total_ws_customers = ws_customers.count()
     ws_debt = float(ws_customers.aggregate(t=Sum("outstanding_debt"))["t"] or 0)
 
-    low_stock = Item.objects.filter(organization=org, stock__lte=F("low_stock_threshold")).order_by(
-        "stock"
-    )[:5]
+    low_stock = Item.objects.filter(
+        organization=org, store="wholesale", stock__lte=F("low_stock_threshold")
+    ).order_by("stock")[:5]
 
     top_products = (
-        SaleItem.objects.filter(sale__in=today_sales, item__isnull=False)
+        SaleItem.objects.filter(
+            sale__in=today_sales, item__isnull=False, item__store="wholesale"
+        )
         .values("item__name")
         .annotate(
             qty=Sum("quantity"),
@@ -67,14 +69,14 @@ def wholesale_dashboard(request):
     return Response(
         {
             "todayRevenue": revenue_today,
-            "revenueToday": revenue_today,       # legacy alias
+            "revenueToday": revenue_today,  # legacy alias
             "totalSales": total_sales,
             "salesToday": today_count,
             "unitsSold": int(units_today),
             "unitsSoldToday": int(units_today),  # legacy alias
             "wholesaleCustomers": total_ws_customers,
             "outstandingDebt": ws_debt,
-            "wholesaleDebt": ws_debt,            # legacy alias
+            "wholesaleDebt": ws_debt,  # legacy alias
             "lowStockItems": [
                 {"name": i.name, "stock": i.stock, "threshold": i.low_stock_threshold}
                 for i in low_stock
@@ -102,7 +104,9 @@ def wholesale_customer_list(request):
     org, err = require_org(request)
     if err:
         return err
-    customers = Customer.objects.filter(organization=org, is_wholesale=True).order_by("name")
+    customers = Customer.objects.filter(organization=org, is_wholesale=True).order_by(
+        "name"
+    )
     search = request.query_params.get("search", "").strip()
     if search:
         customers = customers.filter(
@@ -203,7 +207,9 @@ def transfer_list(request):
         return err
 
     if request.method == "GET":
-        transfers = TransferRequest.objects.filter(organization=org).order_by("-created_at")
+        transfers = TransferRequest.objects.filter(organization=org).order_by(
+            "-created_at"
+        )
         status_filter = request.query_params.get("status", "")
         if status_filter:
             transfers = transfers.filter(status=status_filter)
@@ -251,7 +257,9 @@ def transfer_approve(request, pk):
     approved_qty = int(request.data.get("approvedQty", transfer.requested_quantity))
 
     # Warn if approving more than source stock
-    src_item = Item.objects.filter(organization=org, name__iexact=transfer.item_name, store=src_store).first()
+    src_item = Item.objects.filter(
+        organization=org, name__iexact=transfer.item_name, store=src_store
+    ).first()
     if src_item is None:
         return Response(
             {"detail": f"Item '{transfer.item_name}' not found in {src_store} store."},
@@ -259,7 +267,9 @@ def transfer_approve(request, pk):
         )
     if approved_qty > src_item.stock:
         return Response(
-            {"detail": f"Insufficient stock: only {src_item.stock} available in {src_store}."},
+            {
+                "detail": f"Insufficient stock: only {src_item.stock} available in {src_store}."
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -317,7 +327,9 @@ def transfer_receive(request, pk):
 
         if src_item is None:
             return Response(
-                {"detail": f"Source item '{transfer.item_name}' not found in {src_store} store."},
+                {
+                    "detail": f"Source item '{transfer.item_name}' not found in {src_store} store."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -356,7 +368,9 @@ def wholesale_low_stock(request):
     org, err = require_org(request)
     if err:
         return err
-    items = Item.objects.filter(organization=org, stock__lte=F("low_stock_threshold")).order_by("stock")
+    items = Item.objects.filter(
+        organization=org, store="wholesale", stock__lte=F("low_stock_threshold")
+    ).order_by("stock")
     search = request.query_params.get("search", "").strip()
     if search:
         items = items.filter(Q(name__icontains=search) | Q(brand__icontains=search))
@@ -369,7 +383,9 @@ def wholesale_expiry_alert(request):
     if err:
         return err
     today = timezone.now().date()
-    items = Item.objects.filter(organization=org,
+    items = Item.objects.filter(
+        organization=org,
+        store="wholesale",
         expiry_date__isnull=False,
         expiry_date__lte=today + timezone.timedelta(days=90),
         stock__gt=0,
@@ -394,7 +410,9 @@ def wholesale_sale_detail(request, pk):
         return err
     sale = get_object_or_404(
         Sale.objects.prefetch_related("items", "payments", "returns"),
-        pk=pk, organization=org, is_wholesale=True,
+        pk=pk,
+        organization=org,
+        is_wholesale=True,
     )
     data = sale.to_api_dict()
     data["payments"] = [p.to_api_dict() for p in sale.payments.all()]
@@ -460,6 +478,7 @@ def wholesale_sale_return(request, pk):
 
         if refund_method == "wallet" and sale.customer:
             from customers.models import WalletTransaction
+
             sale.customer.wallet_balance = (
                 Decimal(str(sale.customer.wallet_balance)) + refund_amount
             )
@@ -491,7 +510,7 @@ def wholesale_inventory_value(request):
     org, err = require_org(request)
     if err:
         return err
-    result = Item.objects.filter(organization=org).aggregate(
+    result = Item.objects.filter(organization=org, store="wholesale").aggregate(
         total_purchase_value=Sum(
             ExpressionWrapper(F("cost") * F("stock"), output_field=DecimalField())
         ),

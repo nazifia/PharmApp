@@ -887,7 +887,7 @@ class PosApiClient {
   Future<Map<String, dynamic>> fetchWholesaleDashboard() async {
     if (_isLocal) return LocalDb.instance.getWholesaleDashboard();
     try {
-      final res = await _dio!.get('/wholesale/dashboard/');
+      final res = await _dio!.get('/pos/wholesale/dashboard/');
       final data = res.data as Map<String, dynamic>;
       await _cacheStr('cache_wholesale_dashboard', data);
       return data;
@@ -1233,7 +1233,7 @@ class PosApiClient {
   Future<Map<String, dynamic>> fetchWholesaleInventoryValue() async {
     if (_isLocal) return LocalDb.instance.getWholesaleInventoryValue();
     try {
-      final res = await _dio!.get('/wholesale/inventory-value/');
+      final res = await _dio!.get('/pos/wholesale/inventory-value/');
       final data = res.data as Map<String, dynamic>;
       await _cacheStr('cache_wholesale_inv_value', data);
       return data;

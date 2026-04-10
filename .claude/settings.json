@@ -1,9 +1,9 @@
 
 {
-  "env": {
-    // "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
-    // "ANTHROPIC_AUTH_TOKEN": "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",
-    // "ANTHROPIC_API_KEY": "",
-    // "ANTHROPIC_MODEL": "openrouter/free"
-  }
+  // "env": {
+  //   "ANTHROPIC_BASE_URL": "https://api.us-west-2.modal.direct/v1",
+  //   "ANTHROPIC_AUTH_TOKEN": "modalresearch_KHjZWdCUVZjThb66JXireyw8iDFDWWMW6_ve1DYS04E",
+  //   "CLAUDE_CODE_API_TIMEOUT_MS": "300000",
+  //   "ANTHROPIC_MODEL": "zai-org/GLM-5.1-FP8"
+  // }
 }

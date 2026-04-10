@@ -1222,26 +1222,57 @@ class LocalDb {
     final today = await d.rawQuery('''
       SELECT COALESCE(SUM(total_amount),0) as rev, COUNT(*) as cnt
       FROM sales WHERE is_wholesale=1 AND date(created_at)=date('now') AND status='completed' ''');
+    final unitsToday = await d.rawQuery('''
+      SELECT COALESCE(SUM(si.quantity),0) as units
+      FROM sale_items si JOIN sales s ON si.sale_id=s.id
+      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now') AND s.status='completed' ''');
     final debt = await d.rawQuery(
         "SELECT COALESCE(SUM(outstanding_debt),0) as d FROM customers WHERE is_wholesale=1");
     final custCount = await d.rawQuery(
         "SELECT COUNT(*) as cnt FROM customers WHERE is_wholesale=1");
     final lowStock = await d.rawQuery(
         "SELECT COUNT(*) as cnt FROM items WHERE store='wholesale' AND stock<=low_stock_threshold");
+
+    // Top products today
+    final topProductsRows = await d.rawQuery('''
+      SELECT si.name, SUM(si.quantity) as qty, SUM(si.quantity * si.price) as revenue
+      FROM sale_items si JOIN sales s ON si.sale_id=s.id
+      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now') AND s.status='completed'
+      GROUP BY si.name ORDER BY qty DESC LIMIT 5 ''');
+
     return {
       'todayRevenue': (today.first['rev'] as num? ?? 0).toDouble(),
-      'todaySalesCount': today.first['cnt'] ?? 0,
-      'totalDebt': (debt.first['d'] as num? ?? 0).toDouble(),
-      'totalCustomers': custCount.first['cnt'] ?? 0,
+      'revenueToday': (today.first['rev'] as num? ?? 0).toDouble(), // legacy alias
+      'salesToday': today.first['cnt'] ?? 0,
+      'unitsSold': (unitsToday.first['units'] as num? ?? 0).toInt(),
+      'unitsSoldToday': (unitsToday.first['units'] as num? ?? 0).toInt(), // legacy alias
+      'outstandingDebt': (debt.first['d'] as num? ?? 0).toDouble(),
+      'wholesaleDebt': (debt.first['d'] as num? ?? 0).toDouble(), // legacy alias
+      'wholesaleCustomers': custCount.first['cnt'] ?? 0,
       'lowStockCount': lowStock.first['cnt'] ?? 0,
+      'topProducts': topProductsRows.map((r) => {
+        'name': r['name'] ?? 'Unknown',
+        'qty': (r['qty'] as num? ?? 0).toInt(),
+        'revenue': (r['revenue'] as num? ?? 0).toDouble(),
+      }).toList(),
     };
   }
 
   Future<Map<String, dynamic>> getWholesaleInventoryValue() async {
-    final rows = await (await db).rawQuery(
-        "SELECT COALESCE(SUM(cost_price*stock),0) as val, COUNT(*) as cnt FROM items WHERE store='wholesale'");
+    final d = await db;
+    final rows = await d.rawQuery(
+        "SELECT COALESCE(SUM(cost_price*stock),0) as purchase_val, "
+        "COALESCE(SUM(price*stock),0) as stock_val, COUNT(*) as cnt "
+        "FROM items WHERE store='wholesale'");
+    final purchase = (rows.first['purchase_val'] as num? ?? 0).toDouble();
+    final stockVal = (rows.first['stock_val'] as num? ?? 0).toDouble();
     return {
-      'totalValue': (rows.first['val'] as num? ?? 0).toDouble(),
+      'totalPurchaseValue': purchase,
+      'totalStockValue': stockVal,
+      'potentialProfit': stockVal - purchase,
+      'totalItems': rows.first['cnt'] ?? 0,
+      // legacy aliases
+      'totalValue': stockVal,
       'itemCount': rows.first['cnt'] ?? 0,
     };
   }
