@@ -355,8 +355,8 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
                 ),
                 child: Column(children: users.take(5).toList().asMap().entries.map((e) {
                   final u = e.value as Map<String, dynamic>;
-                  final name = u['userName'] as String? ?? u['user_name'] as String? ?? u['name'] as String? ?? 'Unknown';
-                  final itemsCount = u['itemsCount'] ?? u['items_count'] ?? u['totalItems'] ?? 0;
+                  final name = u['userName'] as String? ?? u['user_name'] as String? ?? u['name'] as String? ?? u['user'] as String? ?? 'Unknown';
+                  final itemsCount = u['itemsCount'] ?? u['items_count'] ?? u['totalItems'] ?? u['total_items'] ?? 0;
                   final total = (u['totalAmount'] as num?)?.toDouble() ?? (u['total_amount'] as num?)?.toDouble() ?? (u['total'] as num?)?.toDouble() ?? 0.0;
 
                   final avatarColors = [EnhancedTheme.accentCyan, EnhancedTheme.accentPurple,
@@ -509,7 +509,10 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
     final totalAmount   = (sale['totalAmount'] as num?)?.toDouble() ?? (sale['total_amount'] as num?)?.toDouble() ?? 0;
     final paymentMethod = sale['paymentMethod'] as String? ?? sale['payment_method'] as String? ?? 'bank_transfer';
     final status        = (sale['status'] as String? ?? 'completed').toLowerCase();
-    final dateStr       = sale['createdAt'] as String? ?? sale['created_at'] as String? ?? '';
+    final dateStr       = sale['createdAt'] as String? ?? sale['created_at'] as String? ?? sale['created'] as String? ?? '';
+    final dispenserName = sale['dispenserName'] as String? ?? sale['dispenser_name'] as String? ?? '';
+    final saleItems     = sale['items'] as List<dynamic>?;
+    final itemsCount    = saleItems?.length ?? 0;
 
     Color statusColor;
     String statusLabel;
@@ -611,6 +614,25 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
                           Text(_formatDateTime(dateStr),
                               style: GoogleFonts.inter(color: context.hintColor, fontSize: 10)),
                       ]),
+                      if (dispenserName.isNotEmpty || itemsCount > 0) ...[
+                        const SizedBox(height: 3),
+                        Row(children: [
+                          if (dispenserName.isNotEmpty) ...[
+                            Icon(Icons.person_rounded, color: context.hintColor, size: 10),
+                            const SizedBox(width: 3),
+                            Text(dispenserName,
+                                style: GoogleFonts.inter(color: context.hintColor, fontSize: 10)),
+                          ],
+                          if (dispenserName.isNotEmpty && itemsCount > 0)
+                            Text(' \u00B7 ', style: GoogleFonts.inter(color: context.hintColor, fontSize: 10)),
+                          if (itemsCount > 0) ...[
+                            Icon(Icons.shopping_cart_rounded, color: context.hintColor, size: 10),
+                            const SizedBox(width: 3),
+                            Text('$itemsCount item${itemsCount > 1 ? "s" : ""}',
+                                style: GoogleFonts.inter(color: context.hintColor, fontSize: 10)),
+                          ],
+                        ]),
+                      ],
                     ])),
                     const SizedBox(width: 8),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [

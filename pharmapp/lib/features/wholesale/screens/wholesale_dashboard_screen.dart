@@ -565,8 +565,8 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
       error: (e, _) => const SizedBox.shrink(),
       data: (data) {
         final totalValue = (data['totalStockValue'] as num?)?.toDouble() ?? (data['total_stock_value'] as num?)?.toDouble() ?? 0;
-        final purchaseValue = (data['purchaseValue'] as num?)?.toDouble() ?? (data['purchase_value'] as num?)?.toDouble() ?? 0;
-        final profit = totalValue - purchaseValue;
+        final purchaseValue = (data['totalPurchaseValue'] as num?)?.toDouble() ?? (data['total_purchase_value'] as num?)?.toDouble() ?? 0;
+        final profit = (data['potentialProfit'] as num?)?.toDouble() ?? (data['potential_profit'] as num?)?.toDouble() ?? (totalValue - purchaseValue);
 
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Inventory Value',

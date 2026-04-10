@@ -617,7 +617,8 @@ class LocalDb {
         if (!match) continue;
       }
       final resolvedName = await _resolveCustomerName(row);
-      result.add(_saleJson(row, saleItems, resolvedCustomerName: resolvedName));
+      final dispenserName = await _resolveDispenserName(row['served_by'] as int?);
+      result.add(_saleJson(row, saleItems, resolvedCustomerName: resolvedName, dispenserName: dispenserName));
     }
     return result;
   }
@@ -628,7 +629,8 @@ class LocalDb {
     if (rows.isEmpty) return null;
     final items = await d.query('sale_items', where: 'sale_id = ?', whereArgs: [id]);
     final resolvedName = await _resolveCustomerName(rows.first);
-    return _saleJson(rows.first, items, resolvedCustomerName: resolvedName);
+    final dispenserName = await _resolveDispenserName(rows.first['served_by'] as int?);
+    return _saleJson(rows.first, items, resolvedCustomerName: resolvedName, dispenserName: dispenserName);
   }
 
   /// Resolves the customer name from the customers table for a given sale row.
@@ -640,7 +642,17 @@ class LocalDb {
     return customer?['name'] as String?;
   }
 
-  Map<String, dynamic> _saleJson(Map<String, dynamic> r, List<Map<String, dynamic>> items, {String? resolvedCustomerName}) {
+  Future<String> _resolveDispenserName(int? servedBy) async {
+    if (servedBy == null) return '';
+    final d = await db;
+    final rows = await d.query('users', where: 'id = ?', whereArgs: [servedBy]);
+    if (rows.isEmpty) return '';
+    final username = (rows.first['username'] as String?) ?? '';
+    final phone = (rows.first['phone_number'] as String?) ?? '';
+    return username.isNotEmpty ? username : phone;
+  }
+
+  Map<String, dynamic> _saleJson(Map<String, dynamic> r, List<Map<String, dynamic>> items, {String? resolvedCustomerName, String? dispenserName}) {
     final patientName = (r['patient_name'] as String?) ?? '';
     final customerId = r['customer_id'] as int?;
     // Priority: patient_name > resolved customer lookup > Walk-in
@@ -662,6 +674,7 @@ class LocalDb {
         'createdAt': r['created_at'],
         'patientName': patientName,
         'customerName': customerName,
+        'dispenserName': dispenserName ?? '',
         'items': items.map((i) => {
               'id': i['id'], 'itemId': i['item_id'],
               'itemName': i['item_name'], 'name': i['item_name'],
@@ -1293,6 +1306,55 @@ class LocalDb {
         'revenue': (r['revenue'] as num? ?? 0).toDouble(),
       }).toList(),
     };
+  }
+
+  Future<List<Map<String, dynamic>>> getWholesaleSalesByUser(
+      {String? from, String? to}) async {
+    final d = await db;
+    final conds = <String>['is_wholesale = 1', "status = 'completed'"];
+    final args = <dynamic>[];
+    if (from != null) { conds.add('created_at >= ?'); args.add(from); }
+    if (to != null) { conds.add('created_at <= ?'); args.add(to); }
+
+    // Aggregate sales by served_by user
+    final rows = await d.rawQuery('''
+      SELECT s.served_by, u.username, u.phone_number,
+             COUNT(*) as sale_count,
+             COALESCE(SUM(s.total_amount), 0) as total_amount
+      FROM sales s
+      LEFT JOIN users u ON u.id = s.served_by
+      WHERE ${conds.join(' AND ')}
+      GROUP BY s.served_by
+      ORDER BY total_amount DESC
+    ''', args);
+
+    // For each user, also get total items sold
+    final result = <Map<String, dynamic>>[];
+    for (final row in rows) {
+      final servedBy = row['served_by'];
+      int totalItems = 0;
+      if (servedBy != null) {
+        final itemRows = await d.rawQuery('''
+          SELECT COALESCE(SUM(si.quantity), 0) as total_items
+          FROM sale_items si
+          JOIN sales s ON s.id = si.sale_id
+          WHERE s.served_by = ? AND s.is_wholesale = 1 AND s.status = 'completed'
+          ${from != null ? "AND s.created_at >= ?" : ""}
+          ${to != null ? "AND s.created_at <= ?" : ""}
+        ''', [servedBy, if (from != null) from, if (to != null) to]);
+        totalItems = (itemRows.first['total_items'] as num?)?.toInt() ?? 0;
+      }
+      final username = (row['username'] as String?) ?? '';
+      final phone = (row['phone_number'] as String?) ?? '';
+      final name = username.isNotEmpty ? username : (phone.isNotEmpty ? phone : 'Unknown');
+      result.add({
+        'userName': name,
+        'totalItems': totalItems,
+        'totalAmount': (row['total_amount'] as num?)?.toDouble() ?? 0.0,
+        'saleCount': row['sale_count'] ?? 0,
+      });
+    }
+    return result;
   }
 
   Future<Map<String, dynamic>> getWholesaleInventoryValue() async {

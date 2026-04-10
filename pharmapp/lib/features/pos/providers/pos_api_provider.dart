@@ -1046,14 +1046,14 @@ class PosApiClient {
       {String? from, String? to}) async {
     if (_isLocal) {
       return LocalDb.instance
-          .getSales(from: from, to: to, isWholesale: true);
+          .getWholesaleSalesByUser(from: from, to: to);
     }
     final isCacheable = from == null && to == null;
     try {
-      final params = <String, dynamic>{'wholesale': 'true'};
+      final params = <String, dynamic>{};
       if (from != null) params['from'] = from;
       if (to != null) params['to'] = to;
-      final res = await _dio!.get('/pos/sales/', queryParameters: params);
+      final res = await _dio!.get('/pos/wholesale/sales/by-user/', queryParameters: params);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
@@ -1064,9 +1064,9 @@ class PosApiClient {
       if (e.response == null && isCacheable) {
         final cached = await _getCache('cache_wholesale_sales_user');
         if (cached != null) return cached as List;
-        throw Exception('Offline — no cached sales available');
+        throw Exception('Offline — no cached sales by user available');
       }
-      throw Exception(e.response?.data?['detail'] ?? 'Failed to load wholesale sales');
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to load sales by user');
     }
   }
 
