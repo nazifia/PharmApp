@@ -8,6 +8,10 @@ urlpatterns = [
     path('upgrade/', views.subscription_upgrade, name='subscription-upgrade'),
     path('cancel/',  views.subscription_cancel,  name='subscription-cancel'),
 
+    # ── Billing endpoints ──────────────────────────────────────────────────────
+    path('billing/',                       views.billing_info,               name='billing-info'),
+    path('billing/receiving-account/',     views.billing_receiving_account,  name='billing-receiving-account'),
+
     # ── Superuser cross-org management ────────────────────────────────────────
     path('superuser/organizations/',
          views.superuser_org_list,

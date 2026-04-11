@@ -515,3 +515,78 @@ def payment_accounts(request):
     """
     accounts = PaymentAccount.objects.filter(is_active=True).order_by('sort_order', 'currency')
     return Response([acc.to_api_dict() for acc in accounts])
+
+
+# ── GET /api/subscription/billing/ ───────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def billing_info(request):
+    """
+    Return billing summary for the authenticated org's subscription.
+    Includes the platform receiving account so Flutter never shows
+    the hardcoded placeholder.
+    """
+    org, err = require_org(request)
+    if err:
+        return err
+
+    # Primary receiving account (first active bank-transfer account, else any active)
+    account = (
+        PaymentAccount.objects
+        .filter(is_active=True)
+        .order_by('sort_order', 'currency')
+        .first()
+    )
+    platform_account = None
+    if account:
+        platform_account = {
+            'bank_name':      account.bank_name,
+            'account_number': account.account_number,
+            'account_name':   account.account_name,
+            'sort_code':      account.routing_info or None,
+            'payment_link':   None,
+            'currency':       account.currency,
+        }
+
+    return Response({
+        'platform_account':    platform_account,
+        'invoices':            [],
+        'auto_billing_enabled': False,
+        'next_payment_date':   None,
+        'next_payment_amount': None,
+        'payment_method':      None,
+        'billing_contact':     None,
+    })
+
+
+# ── GET /api/subscription/billing/receiving-account/ ─────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def billing_receiving_account(request):
+    """
+    Return the primary platform receiving account (first active record).
+    Flutter fetches this separately as a fallback when the billing endpoint
+    does not embed `platform_account`.
+    """
+    account = (
+        PaymentAccount.objects
+        .filter(is_active=True)
+        .order_by('sort_order', 'currency')
+        .first()
+    )
+    if not account:
+        return Response(
+            {'detail': 'No payment account configured.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return Response({
+        'bank_name':      account.bank_name,
+        'account_number': account.account_number,
+        'account_name':   account.account_name,
+        'sort_code':      account.routing_info or None,
+        'payment_link':   None,
+        'currency':       account.currency,
+    })
