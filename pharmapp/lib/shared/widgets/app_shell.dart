@@ -63,6 +63,10 @@ class _AppShellState extends ConsumerState<AppShell>
   /// _OfflineBanner bypass this guard and use their own _syncing flag.
   bool _autoSyncing = false;
 
+  /// Set to true when a reconnect refresh cycle is already in-flight.
+  /// Prevents duplicate refresh+snackbar when connectivity flickers rapidly.
+  bool _refreshing = false;
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +97,7 @@ class _AppShellState extends ConsumerState<AppShell>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _syncIfNeeded();
+      _refreshOnReconnect();
     }
   }
 
@@ -201,6 +206,76 @@ class _AppShellState extends ConsumerState<AppShell>
     }
   }
 
+  /// Called on every offline→online transition. Waits for the connection to
+  /// stabilise, then refreshes any providers that _syncIfNeeded didn't already
+  /// invalidate (payment requests), and shows a single "restored" snackbar only
+  /// when sync had nothing to report.
+  ///
+  /// Guarded by [_refreshing] so rapid connectivity flickers don't stack calls.
+  Future<void> _refreshOnReconnect() async {
+    if (_refreshing) return;
+    _refreshing = true;
+    try {
+      // Wait slightly longer than the sync delay so sync completes first.
+      await Future.delayed(const Duration(milliseconds: 2500));
+      if (!mounted) return;
+
+      // Only invalidate providers that _syncIfNeeded skips (it only invalidates
+      // when result.synced > 0). For no-queue reconnects these are all stale.
+      // For post-sync reconnects, _syncIfNeeded already invalidated the others;
+      // we still need to cover paymentRequests which it never touches.
+      final pendingSales = ref.read(offlineQueueProvider);
+      final pendingMuts = ref.read(offlineMutationQueueProvider);
+      final hadQueue = pendingSales.isNotEmpty || pendingMuts.isNotEmpty;
+
+      if (!hadQueue) {
+        // No offline items were queued — sync showed no snackbar and invalidated
+        // nothing. Do a full refresh so screens don't stay stale after offline.
+        ref.invalidate(inventoryListProvider);
+        ref.invalidate(retailInventoryProvider);
+        ref.invalidate(wholesaleInventoryProvider);
+        ref.invalidate(customerListProvider);
+        ref.invalidate(salesListProvider);
+        ref.invalidate(offlineSalesProvider);
+        ref.invalidate(salesReportProvider);
+        ref.invalidate(profitReportProvider);
+        ref.invalidate(inventoryReportProvider);
+        ref.invalidate(customerReportProvider);
+      }
+
+      // Always refresh payment requests — not covered by _syncIfNeeded.
+      ref.invalidate(paymentRequestsPreloadProvider);
+
+      if (!mounted) return;
+
+      // Only show the "restored" snackbar when sync didn't already show one.
+      // If sync had work, the sync snackbar covers the reconnect notification.
+      if (!hadQueue) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
+          content: const Row(children: [
+            Icon(Icons.wifi_rounded, color: Colors.black, size: 20),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Connection restored — data refreshed',
+                style:
+                    TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ]),
+        ));
+      }
+    } finally {
+      _refreshing = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Eagerly preload inventory, customers and payment requests so screens
@@ -224,13 +299,15 @@ class _AppShellState extends ConsumerState<AppShell>
     final pendingMuts = ref.watch(offlineMutationQueueProvider);
     final pending = pendingSales.length + pendingMuts.length;
 
-    // Auto-sync on offline→online transition at runtime.
+    // Auto-sync and data refresh on offline→online transition at runtime.
     // Startup and resume cases are handled by _syncIfNeeded() via the
     // lifecycle observer and initState post-frame callback above.
     ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) {
       if (!nowOnline || wasOnline == true) return;
       // Wait 1.5 s for the connection to stabilise before attempting sync.
       _syncIfNeeded(delayMs: 1500);
+      // Refresh all data providers so screens show up-to-date server data.
+      _refreshOnReconnect();
     });
 
     // Trigger sync when the offline queues finish loading from SharedPreferences
