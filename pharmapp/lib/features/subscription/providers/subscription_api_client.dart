@@ -41,12 +41,33 @@ class SubscriptionApiClient {
   }
 
   /// GET /subscription/billing/ — invoice history + payment method + next payment.
+  /// Fetches the platform receiving-account in parallel so that the account
+  /// saved in Django admin is always shown instead of the hardcoded placeholder.
   Future<BillingInfo> getBillingInfo() async {
+    // Start both requests in parallel; the account future handles its own errors.
+    final accountFuture = getReceivingAccount();
     try {
-      final res = await _dio.get('/subscription/billing/');
-      return BillingInfo.fromJson(res.data as Map<String, dynamic>);
+      final res  = await _dio.get('/subscription/billing/');
+      final info = BillingInfo.fromJson(res.data as Map<String, dynamic>);
+      // Billing JSON didn't include platform_account → use the dedicated endpoint.
+      if (info.platformAccount == null) {
+        final account = await accountFuture;
+        return BillingInfo(
+          nextPaymentDate:    info.nextPaymentDate,
+          nextPaymentAmount:  info.nextPaymentAmount,
+          paymentMethod:      info.paymentMethod,
+          invoices:           info.invoices,
+          billingContact:     info.billingContact,
+          platformAccount:    account,
+          autoBillingEnabled: info.autoBillingEnabled,
+        );
+      }
+      return info;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return BillingInfo.empty();
+      if (e.response?.statusCode == 404) {
+        // Billing endpoint not deployed; still show the real account from admin.
+        return BillingInfo(platformAccount: await accountFuture);
+      }
       rethrow;
     }
   }

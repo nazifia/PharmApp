@@ -381,7 +381,7 @@ class BillingInfo {
         platformAccount: json['platform_account'] != null
             ? PlatformPaymentAccount.fromJson(
                 json['platform_account'] as Map<String, dynamic>)
-            : PlatformPaymentAccount.placeholder(),
+            : null,
         autoBillingEnabled:
             (json['auto_billing_enabled'] as bool?) ?? false,
       );
