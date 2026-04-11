@@ -278,12 +278,13 @@ class LocalDb {
           where: 'id = ?', whereArgs: [id]);
 
   Future<Map<String, dynamic>> updateUser(int id,
-      {String? role, bool? isActive, String? username}) async {
+      {String? role, bool? isActive, String? username, String? fullname}) async {
     final d = await db;
     final u = <String, dynamic>{};
     if (role != null) u['role'] = role;
     if (isActive != null) u['is_active'] = isActive ? 1 : 0;
     if (username != null) u['username'] = username;
+    if (fullname != null) u['fullname'] = fullname;
     if (u.isNotEmpty)
       await d.update('users', u, where: 'id = ?', whereArgs: [id]);
     final rows = await d.query('users', where: 'id = ?', whereArgs: [id]);
@@ -294,6 +295,7 @@ class LocalDb {
         'id': r['id'],
         'phoneNumber': r['phone_number'],
         'username': r['username'] ?? '',
+        'fullname': r['fullname'] ?? '',
         'role': r['role'],
         'isActive': r['is_active'] == 1,
         'isWholesaleOperator': r['is_wholesale_operator'] == 1,

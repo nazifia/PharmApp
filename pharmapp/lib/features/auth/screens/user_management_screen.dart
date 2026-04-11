@@ -481,9 +481,10 @@ class _UserManagementScreenState
 
   // ─── Edit user sheet ──────────────────────────────────────────────────────
   void _showEditUserSheet(User user) {
-    String role        = user.role;
-    bool isActive      = user.isActive;
-    final usernameCtrl = TextEditingController(text: user.username);
+    String role         = user.role;
+    bool isActive       = user.isActive;
+    final usernameCtrl  = TextEditingController(text: user.username);
+    final fullnameCtrl  = TextEditingController(text: user.fullname);
 
     showModalBottomSheet(
       context: context,
@@ -566,6 +567,16 @@ class _UserManagementScreenState
                       ),
                     ]),
                     const SizedBox(height: 22),
+
+                    // ── Full Name field ────────────────────────────
+                    TextField(
+                      controller: fullnameCtrl,
+                      style: GoogleFonts.inter(
+                          color: ctx.labelColor, fontSize: 14),
+                      decoration:
+                          _inputDecoration(ctx, 'Full Name'),
+                    ),
+                    const SizedBox(height: 12),
 
                     // ── Username field ─────────────────────────────
                     TextField(
@@ -781,6 +792,7 @@ class _UserManagementScreenState
                               role: role,
                               isActive: isActive,
                               username: usernameCtrl.text.trim(),
+                              fullname: fullnameCtrl.text.trim(),
                             );
                             if (!context.mounted) return;
                             setState(() {});

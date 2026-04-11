@@ -11,6 +11,7 @@ class User with _$User {
     required String role, // e.g., 'Admin', 'Pharmacist', 'Cashier'
     required bool isActive,
     @Default('') String username,
+    @Default('') String fullname,
     @Default(false) bool isWholesaleOperator,
     @Default(false) bool isSuperuser,
     @Default(0) int organizationId,

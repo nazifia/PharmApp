@@ -830,15 +830,16 @@ class PosApiClient {
   }
 
   Future<Map<String, dynamic>> updateUser(int id,
-      {String? role, bool? isActive, String? username}) async {
+      {String? role, bool? isActive, String? username, String? fullname}) async {
     if (_isLocal) {
-      return LocalDb.instance.updateUser(id, role: role, isActive: isActive, username: username);
+      return LocalDb.instance.updateUser(id, role: role, isActive: isActive, username: username, fullname: fullname);
     }
     try {
       final data = <String, dynamic>{};
       if (role != null) data['role'] = role;
       if (isActive != null) data['is_active'] = isActive;
       if (username != null) data['username'] = username;
+      if (fullname != null) data['fullname'] = fullname;
       final res = await _dio!.patch('/pos/users/$id/', data: data);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
@@ -2051,11 +2052,11 @@ class UserNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<Map<String, dynamic>?> updateUser(int id,
-      {String? role, bool? isActive, String? username}) async {
+      {String? role, bool? isActive, String? username, String? fullname}) async {
     state = const AsyncValue.loading();
     try {
       final result = await _api.updateUser(
-          id, role: role, isActive: isActive, username: username);
+          id, role: role, isActive: isActive, username: username, fullname: fullname);
       state = const AsyncValue.data(null);
       return result;
     } on DioException catch (e, st) {
@@ -2064,6 +2065,7 @@ class UserNotifier extends StateNotifier<AsyncValue<void>> {
         if (role != null) body['role'] = role;
         if (isActive != null) body['is_active'] = isActive;
         if (username != null) body['username'] = username;
+        if (fullname != null) body['fullname'] = fullname;
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'PATCH', '/pos/users/$id/',
           body: body,
