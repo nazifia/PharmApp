@@ -29,10 +29,10 @@ class MaintenanceModeMiddleware:
 
 class AdminInactivityMiddleware:
     """
-    Auto-logs out admin users after 2 minutes of inactivity.
+    Auto-logs out admin users after 5 minutes of inactivity.
     Only applies to /admin/ paths; updates session timestamp on each request.
     """
-    INACTIVITY_TIMEOUT = 120  # 2 minutes
+    INACTIVITY_TIMEOUT = 300  # 5 minutes
 
     def __init__(self, get_response):
         self.get_response = get_response

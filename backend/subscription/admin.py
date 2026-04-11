@@ -32,7 +32,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     FEATURE_KEY_CHOICES, PLAN_CHOICES, PLAN_FEATURES, PLAN_FEATURES_DEFAULT,
     PLAN_LIMITS, PLAN_PRICES, SUPPORTED_CURRENCIES,
-    PlanFeatureFlag, PlanPricing, Subscription, SubscriptionEvent,
+    PaymentAccount, PlanFeatureFlag, PlanPricing, Subscription, SubscriptionEvent,
 )
 
 # ── Colour helpers ─────────────────────────────────────────────────────────────
@@ -1380,4 +1380,127 @@ class PlanFeatureFlagAdmin(admin.ModelAdmin):
             )
         return HttpResponseRedirect(
             reverse('admin:subscription_planfeatureflag_changelist')
+        )
+
+
+# ── Payment Account Admin ─────────────────────────────────────────────────────
+
+ACCOUNT_TYPE_COLORS = {
+    'bank_transfer': '#3B82F6',
+    'mobile_money':  '#10B981',
+    'paypal':        '#0070BA',
+    'payoneer':      '#FF6600',
+    'flutterwave':   '#F5A623',
+    'stripe':        '#635BFF',
+    'crypto':        '#F59E0B',
+    'other':         '#6B7280',
+}
+
+
+@admin.register(PaymentAccount)
+class PaymentAccountAdmin(admin.ModelAdmin):
+    """
+    Manage payment receiving accounts.  Superusers only.
+
+    Active accounts are served to the Flutter app via
+    GET /api/subscription/payment-accounts/ so pharmacy admins
+    know where to send subscription payments.
+    """
+
+    list_display = (
+        'label', 'account_type_badge', 'account_name', 'account_number_masked',
+        'currency', 'country', 'is_active', 'sort_order', 'updated_at',
+    )
+    list_filter   = ('account_type', 'currency', 'is_active')
+    search_fields = ('label', 'account_name', 'bank_name', 'account_number', 'country')
+    list_editable = ('sort_order', 'is_active')
+    ordering      = ('sort_order', 'currency', 'label')
+
+    fieldsets = (
+        ('Display', {
+            'fields': ('label', 'is_active', 'sort_order'),
+            'description': mark_safe(
+                '<strong>Label</strong> is the short title shown in the Flutter app '
+                '(e.g. "GTBank — NGN Account"). '
+                'Only <strong>active</strong> accounts are visible to customers. '
+                '<strong>Sort order</strong>: lower number = appears first.'
+            ),
+        }),
+        ('Account Details', {
+            'fields': (
+                'account_type',
+                'account_name',
+                'bank_name',
+                'account_number',
+                'routing_info',
+            ),
+            'description': mark_safe(
+                'Fill in all fields that apply to this payment method. '
+                'Leave <strong>Bank Name</strong> and <strong>Routing Info</strong> '
+                'blank for PayPal, mobile money, or crypto accounts.'
+            ),
+        }),
+        ('Region & Currency', {
+            'fields': ('currency', 'country'),
+        }),
+        ('Instructions', {
+            'fields': ('instructions',),
+            'description': (
+                'Additional text shown below the account details in the app, '
+                'e.g. "Use your pharmacy name as the payment reference" or '
+                '"Payments processed within 1 business day".'
+            ),
+        }),
+        ('Audit', {
+            'fields': ('updated_at', 'updated_by'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    readonly_fields = ('updated_at', 'updated_by')
+
+    # ── Permissions ──────────────────────────────────────────────────────────
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    # ── Save: stamp updated_by ────────────────────────────────────────────────
+
+    def save_model(self, request, obj, form, change):
+        obj.updated_by = getattr(request.user, 'phone_number', None) or request.user.username
+        super().save_model(request, obj, form, change)
+
+    # ── List columns ─────────────────────────────────────────────────────────
+
+    @admin.display(description='Type', ordering='account_type')
+    def account_type_badge(self, obj):
+        color = ACCOUNT_TYPE_COLORS.get(obj.account_type, '#6B7280')
+        return _badge(obj.get_account_type_display(), color)
+
+    @admin.display(description='Account Number')
+    def account_number_masked(self, obj):
+        num = obj.account_number
+        if len(num) > 8:
+            return f"{num[:4]}{'*' * (len(num) - 8)}{num[-4:]}"
+        return num
+
+    @admin.display(description='Active', boolean=False, ordering='is_active')
+    def active_badge(self, obj):
+        if obj.is_active:
+            return format_html(
+                '<span style="background:#10B981;color:#fff;padding:2px 10px;'
+                'border-radius:10px;font-size:11px;font-weight:600">Active</span>'
+            )
+        return format_html(
+            '<span style="background:#EF4444;color:#fff;padding:2px 10px;'
+            'border-radius:10px;font-size:11px;font-weight:600">Inactive</span>'
         )

@@ -7,7 +7,7 @@ from rest_framework import status
 
 from authapp.models import Organization
 from authapp.utils import require_org
-from .models import Subscription, SubscriptionEvent
+from .models import PaymentAccount, Subscription, SubscriptionEvent
 
 # ── Plan upgrade constraints ───────────────────────────────────────────────────
 
@@ -501,3 +501,17 @@ def superuser_plan_features(request):
                 updated += 1
 
     return Response(PlanFeatureFlag.get_all_features_matrix())
+
+
+# ── GET /api/subscription/payment-accounts/ ──────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def payment_accounts(request):
+    """
+    Return all active payment receiving accounts.
+    Used by the Flutter upgrade screen to show pharmacy admins
+    where to send payment for their subscription.
+    """
+    accounts = PaymentAccount.objects.filter(is_active=True).order_by('sort_order', 'currency')
+    return Response([acc.to_api_dict() for acc in accounts])

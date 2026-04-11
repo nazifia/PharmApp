@@ -3,7 +3,8 @@ from . import views
 
 urlpatterns = [
     # ── Org subscription (authenticated user's own org) ────────────────────────
-    path('',        views.subscription_detail,  name='subscription-detail'),
+    path('',               views.subscription_detail,  name='subscription-detail'),
+    path('payment-accounts/', views.payment_accounts,  name='payment-accounts'),
     path('upgrade/', views.subscription_upgrade, name='subscription-upgrade'),
     path('cancel/',  views.subscription_cancel,  name='subscription-cancel'),
 

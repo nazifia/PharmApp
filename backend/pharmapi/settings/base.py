@@ -104,8 +104,12 @@ JAZZMIN_SETTINGS = {
 
         "auth.Group": "fas fa-layer-group",
 
-        "subscription":                    "fas fa-credit-card",
-        "subscription.Subscription":       "fas fa-id-card",
+        "subscription":                         "fas fa-credit-card",
+        "subscription.Subscription":            "fas fa-id-card",
+        "subscription.PlanPricing":             "fas fa-tags",
+        "subscription.PlanFeatureFlag":         "fas fa-toggle-on",
+        "subscription.PaymentAccount":          "fas fa-university",
+        "subscription.SubscriptionEvent":       "fas fa-history",
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
