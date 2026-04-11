@@ -1163,7 +1163,8 @@ def user_list(request):
         search = request.query_params.get("search", "").strip()
         role = request.query_params.get("role", "").strip()
         if search:
-            users = users.filter(phone_number__icontains=search)
+            from django.db.models import Q
+            users = users.filter(Q(phone_number__icontains=search) | Q(full_name__icontains=search))
         if role:
             users = users.filter(role=role)
         return Response([u.to_api_dict() for u in users])
@@ -1172,6 +1173,7 @@ def user_list(request):
     phone = data.get("phoneNumber", "").strip()
     password = data.get("password", "").strip()
     role = data.get("role", "Cashier")
+    full_name = data.get("username", "").strip()
 
     if not phone or not password:
         return Response(
@@ -1184,7 +1186,8 @@ def user_list(request):
         )
 
     user = PharmUser.objects.create_user(
-        phone_number=phone, password=password, role=role, organization=org
+        phone_number=phone, password=password, role=role, organization=org,
+        full_name=full_name,
     )
     return Response(user.to_api_dict(), status=status.HTTP_201_CREATED)
 
@@ -1206,6 +1209,8 @@ def user_detail(request, pk):
     user.phone_number = data.get("phoneNumber", user.phone_number)
     user.role = data.get("role", user.role)
     user.is_active = data.get("isActive", user.is_active)
+    if "username" in data:
+        user.full_name = data["username"].strip()
     user.save()
     return Response(user.to_api_dict())
 

@@ -1747,7 +1747,7 @@ class _UserManagementScreenState
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          if (user.username.isNotEmpty)
+                          if (user.username.isEmpty && user.phoneNumber.isNotEmpty)
                             Text(
                               user.phoneNumber,
                               style: GoogleFonts.inter(

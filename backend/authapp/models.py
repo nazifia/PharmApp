@@ -96,6 +96,7 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
         return {
             'id':                   self.id,
             'phoneNumber':          self.phone_number,
+            'username':             self.full_name or '',
             'fullName':             self.full_name,
             'role':                 self.role,
             'isActive':             self.is_active,

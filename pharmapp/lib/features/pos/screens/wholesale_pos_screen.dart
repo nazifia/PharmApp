@@ -1,4 +1,5 @@
-﻿import 'dart:ui';
+﻿import 'dart:convert';
+import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -10,11 +11,13 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/models/sale.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
+import 'receipt_screen.dart';
 
 const _kWalkInId = -1;
 const _kWalkInName = 'Walk-in Customer';
@@ -432,8 +435,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
         return;
       }
 
-      final total = _cartTotal;
-      final name  = _selectedCustomerName ?? 'Customer';
+      final total        = _cartTotal;
+      final name         = _selectedCustomerName ?? 'Customer';
+      final customerId   = _selectedCustomerId;
+      final cartSnapshot = List<_CartLine>.from(_cart);
 
       setState(() {
         _cart.clear();
@@ -443,8 +448,17 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       });
 
       if (result['offline'] == true) {
-        // Queued while offline — will sync automatically when back online
-        _showSnackBar('No connection — sale saved and will sync when online', type: _SnackType.warning);
+        // Build and persist an offline receipt so it appears in Sales History
+        // with the correct customer name, then show the queued-offline sheet.
+        final queue   = ref.read(offlineQueueProvider);
+        final queueId = queue.isNotEmpty
+            ? queue.last.id
+            : DateTime.now().microsecondsSinceEpoch.toString();
+        final receiptData = _buildWholesaleOfflineReceipt(
+            cartSnapshot, name, customerId, queueId, total, method, payments);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('offline_receipt_$queueId', jsonEncode(receiptData));
+        if (mounted) _showWholesaleOfflineSheet(receiptData);
       } else {
         final receiptId = result['receiptId'] as String? ?? result['receipt_id'] as String? ?? '';
         showModalBottomSheet(
@@ -470,6 +484,147 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  // ── Offline wholesale receipt helpers ──────────────────────────────────────
+
+  Map<String, dynamic> _buildWholesaleOfflineReceipt(
+    List<_CartLine> cart,
+    String customerName,
+    int? customerId,
+    String queueId,
+    double total,
+    String paymentMethod,
+    Map<String, double> payments,
+  ) {
+    final now    = DateTime.now().toIso8601String();
+    final suffix = queueId.length > 6 ? queueId.substring(queueId.length - 6) : queueId;
+    return {
+      'id':              'offline_$queueId',
+      'receiptId':       'OFFLINE-$suffix',
+      'status':          'pending_sync',
+      '_offlineQueueId': queueId,
+      'totalAmount':     total,
+      'paymentMethod':   paymentMethod,
+      'paymentCash':     payments['cash'] ?? 0,
+      'paymentPos':      payments['pos'] ?? 0,
+      'paymentTransfer': payments['bankTransfer'] ?? 0,
+      'paymentWallet':   payments['wallet'] ?? 0,
+      'customerName':    customerName,
+      'isWholesale':     true,
+      'createdAt':       now,
+      'items': cart.map((l) => {
+        'name':     l.name,
+        'quantity': l.qty,
+        'price':    l.price,
+        'discount': l.discount,
+        'subtotal': l.total,
+      }).toList(),
+    };
+  }
+
+  void _showWholesaleOfflineSheet(Map<String, dynamic> receiptData) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: false,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B).withValues(alpha: 0.97),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 28),
+              Container(
+                width: 80, height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                    EnhancedTheme.warningAmber.withValues(alpha: 0.2),
+                    EnhancedTheme.warningAmber.withValues(alpha: 0.08),
+                  ]),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.3), width: 2),
+                ),
+                child: const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.warningAmber, size: 38),
+              ).animate().scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
+              const SizedBox(height: 20),
+              Text('Sale Saved Offline',
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800))
+                  .animate().fadeIn(delay: 200.ms),
+              const SizedBox(height: 8),
+              const Text(
+                'No internet connection. This sale has been saved and will sync automatically when back online.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.5),
+              ).animate().fadeIn(delay: 300.ms),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.warningAmber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.3)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.receipt_rounded, color: EnhancedTheme.warningAmber, size: 14),
+                  const SizedBox(width: 6),
+                  Text(receiptData['receiptId'] as String? ?? 'OFFLINE',
+                      style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 12, fontWeight: FontWeight.w700)),
+                ]),
+              ).animate().fadeIn(delay: 350.ms),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  showReceiptSheet(context, receiptData);
+                },
+                icon: const Icon(Icons.receipt_long_rounded, size: 16),
+                label: const Text('View Receipt'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: EnhancedTheme.primaryTeal,
+                  side: const BorderSide(color: EnhancedTheme.primaryTeal),
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.15, end: 0),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [EnhancedTheme.warningAmber, Color(0xFFD97706)]),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [BoxShadow(color: EnhancedTheme.warningAmber.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 4))],
+                ),
+                child: SizedBox(width: double.infinity, child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text('OK, Got It', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black)),
+                )),
+              ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 
   // ── Send to cashier ────────────────────────────────────────────────────────

@@ -295,7 +295,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
                 const SizedBox(height: 22),
 
-                // ── Phone read-only row ──────────────────────────────
+                // ── Account info read-only row ────────────────────────
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -321,7 +321,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
-                          Icons.phone_outlined,
+                          Icons.person_outline,
                           color: EnhancedTheme.primaryTeal,
                           size: 18,
                         ),
@@ -331,7 +331,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Phone Number',
+                            (user?.username ?? '').isNotEmpty
+                                ? 'Username'
+                                : 'Phone Number',
                             style: GoogleFonts.inter(
                               color: context.hintColor,
                               fontSize: 10,
@@ -341,13 +343,26 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            user?.phoneNumber ?? '—',
+                            (user?.username ?? '').isNotEmpty
+                                ? user!.username
+                                : user?.phoneNumber ?? '—',
                             style: GoogleFonts.inter(
                               color: context.labelColor,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
+                          if ((user?.username ?? '').isNotEmpty &&
+                              (user?.phoneNumber ?? '').isNotEmpty) ...[
+                            const SizedBox(height: 1),
+                            Text(
+                              user!.phoneNumber,
+                              style: GoogleFonts.inter(
+                                color: context.hintColor,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const Spacer(),

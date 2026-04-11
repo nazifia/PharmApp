@@ -394,7 +394,7 @@ class _DrawerHeader extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     fontSize: 15),
                 overflow: TextOverflow.ellipsis),
-            if (username.isNotEmpty && phoneNumber.isNotEmpty) ...[
+            if (username.isEmpty && phoneNumber.isNotEmpty) ...[
               const SizedBox(height: 1),
               Text(phoneNumber,
                   style: TextStyle(color: context.subLabelColor, fontSize: 11),

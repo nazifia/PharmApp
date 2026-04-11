@@ -13,6 +13,7 @@ from inventory.models import Item
 from customers.models import Customer
 from .models import Sale, SaleItem, TransferRequest, ReturnRecord, DispensingLog
 from authapp.utils import require_org
+from authapp.permissions import require_role, TRANSFERS_ROLES
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -63,8 +64,8 @@ def wholesale_dashboard(request):
     )
 
     recent_transfers = TransferRequest.objects.filter(
-        from_wholesale=True, status="pending"
-    )[:5]
+        organization=org, from_wholesale=True, status="pending"
+    ).select_related("requested_by")[:5]
 
     return Response(
         {
@@ -178,7 +179,7 @@ def wholesale_sale_by_user(request):
             created_at__date__lte=date_to,
             sale__is_wholesale=True,
         )
-        .values("user__phone_number")
+        .values("user__phone_number", "user__full_name")
         .annotate(total_items=Sum("quantity"), total_amount=Sum("amount"))
         .order_by("-total_amount")
     )
@@ -186,7 +187,8 @@ def wholesale_sale_by_user(request):
     return Response(
         [
             {
-                "user": r["user__phone_number"] or "Unknown",
+                "userName": r["user__full_name"] or r["user__phone_number"] or "Unknown",
+                "user": r["user__full_name"] or r["user__phone_number"] or "Unknown",
                 "totalItems": r["total_items"] or 0,
                 "totalAmount": float(r["total_amount"] or 0),
             }
@@ -206,9 +208,15 @@ def transfer_list(request):
     if err:
         return err
 
+    err = require_role(request, TRANSFERS_ROLES)
+    if err:
+        return err
+
     if request.method == "GET":
-        transfers = TransferRequest.objects.filter(organization=org).order_by(
-            "-created_at"
+        transfers = (
+            TransferRequest.objects.filter(organization=org)
+            .select_related("requested_by")
+            .order_by("-created_at")
         )
         status_filter = request.query_params.get("status", "")
         if status_filter:
@@ -238,7 +246,14 @@ def transfer_detail(request, pk):
     org, err = require_org(request)
     if err:
         return err
-    transfer = get_object_or_404(TransferRequest, pk=pk, organization=org)
+
+    err = require_role(request, TRANSFERS_ROLES)
+    if err:
+        return err
+
+    transfer = get_object_or_404(
+        TransferRequest.objects.select_related("requested_by"), pk=pk, organization=org
+    )
     return Response(transfer.to_api_dict())
 
 
@@ -247,6 +262,11 @@ def transfer_approve(request, pk):
     org, err = require_org(request)
     if err:
         return err
+
+    err = require_role(request, TRANSFERS_ROLES)
+    if err:
+        return err
+
     transfer = get_object_or_404(TransferRequest, pk=pk, organization=org)
     if transfer.status != "pending":
         return Response(
@@ -285,6 +305,11 @@ def transfer_reject(request, pk):
     org, err = require_org(request)
     if err:
         return err
+
+    err = require_role(request, TRANSFERS_ROLES)
+    if err:
+        return err
+
     transfer = get_object_or_404(TransferRequest, pk=pk, organization=org)
     if transfer.status != "pending":
         return Response(
@@ -300,38 +325,52 @@ def transfer_receive(request, pk):
     org, err = require_org(request)
     if err:
         return err
+
+    err = require_role(request, TRANSFERS_ROLES)
+    if err:
+        return err
+
     transfer = get_object_or_404(TransferRequest, pk=pk, organization=org)
     if transfer.status != "approved":
         return Response(
             {"detail": "Must be approved first"}, status=status.HTTP_400_BAD_REQUEST
         )
 
+    qty = transfer.approved_quantity
+    if transfer.from_wholesale:
+        # Wholesale → Retail: deduct from wholesale, add to retail
+        src_store, dst_store = "wholesale", "retail"
+    else:
+        # Retail → Wholesale: deduct from retail, add to wholesale
+        src_store, dst_store = "retail", "wholesale"
+
+    # Validate source item and stock BEFORE entering the atomic block so that
+    # a validation failure does not accidentally commit a status change.
+    src_item = Item.objects.filter(
+        organization=org, name__iexact=transfer.item_name, store=src_store
+    ).first()
+    if src_item is None:
+        return Response(
+            {
+                "detail": f"Source item '{transfer.item_name}' not found in {src_store} store."
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if qty > src_item.stock:
+        return Response(
+            {
+                "detail": f"Insufficient stock: only {src_item.stock} available in {src_store}."
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     with transaction.atomic():
         transfer.status = "received"
         transfer.save()
 
-        qty = transfer.approved_quantity
-        if transfer.from_wholesale:
-            # Wholesale → Retail: deduct from wholesale, add to retail
-            src_store, dst_store = "wholesale", "retail"
-        else:
-            # Retail → Wholesale: deduct from retail, add to wholesale
-            src_store, dst_store = "retail", "wholesale"
-
-        src_item = Item.objects.filter(
-            organization=org, name__iexact=transfer.item_name, store=src_store
-        ).first()
         dst_item = Item.objects.filter(
             organization=org, name__iexact=transfer.item_name, store=dst_store
         ).first()
-
-        if src_item is None:
-            return Response(
-                {
-                    "detail": f"Source item '{transfer.item_name}' not found in {src_store} store."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         # If destination store doesn't carry this item yet, create it
         if dst_item is None:
@@ -349,7 +388,7 @@ def transfer_receive(request, pk):
                 stock=0,
             )
 
-        src_item.stock = max(0, src_item.stock - qty)
+        src_item.stock -= qty
         src_item.save()
 
         dst_item.stock += qty

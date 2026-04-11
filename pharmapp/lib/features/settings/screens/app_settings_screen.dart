@@ -162,7 +162,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text((user?.username.isNotEmpty == true ? user!.username : user?.phoneNumber) ?? '—',
                   style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600)),
-              if ((user?.username ?? '').isNotEmpty) ...[
+              if ((user?.username ?? '').isEmpty && (user?.phoneNumber ?? '').isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(user!.phoneNumber,
                     style: TextStyle(color: context.subLabelColor, fontSize: 12)),
