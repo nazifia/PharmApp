@@ -12,6 +12,14 @@ urlpatterns = [
     path('billing/',                       views.billing_info,               name='billing-info'),
     path('billing/receiving-account/',     views.billing_receiving_account,  name='billing-receiving-account'),
 
+    # ── Superuser payment-account management ───────────────────────────────────
+    path('superuser/payment-accounts/',
+         views.superuser_list_payment_accounts,
+         name='superuser-payment-accounts'),
+    path('superuser/payment-accounts/<int:account_id>/',
+         views.superuser_toggle_payment_account,
+         name='superuser-toggle-payment-account'),
+
     # ── Superuser cross-org management ────────────────────────────────────────
     path('superuser/organizations/',
          views.superuser_org_list,

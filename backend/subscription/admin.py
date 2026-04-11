@@ -1405,16 +1405,20 @@ class PaymentAccountAdmin(admin.ModelAdmin):
     Active accounts are served to the Flutter app via
     GET /api/subscription/payment-accounts/ so pharmacy admins
     know where to send subscription payments.
+
+    Per-row: toggle the Active checkbox inline and click Save.
+    Bulk:    select rows → Actions → Enable / Disable selected accounts.
     """
 
     list_display = (
         'label', 'account_type_badge', 'account_name', 'account_number_masked',
-        'currency', 'country', 'is_active', 'sort_order', 'updated_at',
+        'currency', 'country', 'active_badge', 'sort_order', 'updated_at',
     )
     list_filter   = ('account_type', 'currency', 'is_active')
     search_fields = ('label', 'account_name', 'bank_name', 'account_number', 'country')
-    list_editable = ('sort_order', 'is_active')
+    list_editable = ('sort_order',)
     ordering      = ('sort_order', 'currency', 'label')
+    actions       = ['enable_accounts', 'disable_accounts']
 
     fieldsets = (
         ('Display', {
@@ -1478,6 +1482,32 @@ class PaymentAccountAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.updated_by = getattr(request.user, 'phone_number', None) or request.user.username
         super().save_model(request, obj, form, change)
+
+    # ── Bulk actions ──────────────────────────────────────────────────────────
+
+    @admin.action(description='✅ Enable selected payment accounts')
+    def enable_accounts(self, request, queryset):
+        updated = queryset.update(
+            is_active  = True,
+            updated_by = getattr(request.user, 'phone_number', None) or request.user.username,
+        )
+        self.message_user(
+            request,
+            f'{updated} payment account(s) enabled — now visible to subscribers.',
+            messages.SUCCESS,
+        )
+
+    @admin.action(description='🚫 Disable selected payment accounts')
+    def disable_accounts(self, request, queryset):
+        updated = queryset.update(
+            is_active  = False,
+            updated_by = getattr(request.user, 'phone_number', None) or request.user.username,
+        )
+        self.message_user(
+            request,
+            f'{updated} payment account(s) disabled — hidden from subscribers.',
+            messages.WARNING,
+        )
 
     # ── List columns ─────────────────────────────────────────────────────────
 

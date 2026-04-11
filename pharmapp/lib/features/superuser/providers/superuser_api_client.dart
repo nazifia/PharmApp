@@ -83,6 +83,7 @@ class SuperuserApiClient {
     );
     return PlanFeatureMatrix.fromJson(res.data as Map<String, dynamic>);
   }
+
 }
 
 final superuserApiClientProvider = Provider<SuperuserApiClient>((ref) {

@@ -590,3 +590,64 @@ def billing_receiving_account(request):
         'payment_link':   None,
         'currency':       account.currency,
     })
+
+
+# ── GET /api/subscription/superuser/payment-accounts/ ────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def superuser_list_payment_accounts(request):
+    """
+    Return ALL payment accounts (active and inactive). Superuser only.
+    Used by the Flutter superuser screen to manage payment method visibility.
+    """
+    err = _require_superuser(request)
+    if err:
+        return err
+
+    accounts = PaymentAccount.objects.order_by('sort_order', 'currency', 'id')
+    return Response([_payment_account_full_dict(acc) for acc in accounts])
+
+
+# ── PATCH /api/subscription/superuser/payment-accounts/{id}/ ─────────────────
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def superuser_toggle_payment_account(request, account_id):
+    """
+    Toggle is_active for a single PaymentAccount. Superuser only.
+    Body: { "is_active": true | false }
+    Returns the updated account.
+    """
+    err = _require_superuser(request)
+    if err:
+        return err
+
+    try:
+        account = PaymentAccount.objects.get(pk=account_id)
+    except PaymentAccount.DoesNotExist:
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    is_active = request.data.get('is_active')
+    if not isinstance(is_active, bool):
+        return Response(
+            {'detail': 'is_active must be a boolean.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    account.is_active   = is_active
+    account.updated_by  = request.user.phone_number
+    account.save(update_fields=['is_active', 'updated_by', 'updated_at'])
+    return Response(_payment_account_full_dict(account))
+
+
+def _payment_account_full_dict(account):
+    """Full serialization including is_active — used by superuser endpoints."""
+    return {
+        **account.to_api_dict(),
+        'is_active':    account.is_active,
+        'sort_order':   account.sort_order,
+        'instructions': account.instructions,
+        'updated_at':   account.updated_at.isoformat(),
+        'updated_by':   account.updated_by,
+    }
