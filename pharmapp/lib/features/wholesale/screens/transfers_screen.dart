@@ -561,13 +561,29 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
                                   'Approve',
                                   EnhancedTheme.successGreen,
                                   Icons.check_rounded,
-                                  () => _showApproveDialog(
-                                      id is int ? id : int.tryParse('$id') ?? 0,
-                                      itemName,
-                                      requestedQty is int
-                                          ? requestedQty
-                                          : int.tryParse('$requestedQty') ??
-                                              0))),
+                                  () {
+                                    // Look up available stock from the source store
+                                    final srcInv = isFromWholesale
+                                        ? ref.read(wholesaleInventoryProvider)
+                                        : ref.read(retailInventoryProvider);
+                                    final srcItems =
+                                        srcInv.valueOrNull ?? [];
+                                    final matches = srcItems
+                                        .where((i) => i.name == itemName);
+                                    final availableQty = matches.isNotEmpty
+                                        ? matches.first.stock
+                                        : null;
+                                    _showApproveDialog(
+                                        id is int
+                                            ? id
+                                            : int.tryParse('$id') ?? 0,
+                                        itemName,
+                                        requestedQty is int
+                                            ? requestedQty
+                                            : int.tryParse('$requestedQty') ??
+                                                0,
+                                        availableQty);
+                                  })),
                           const SizedBox(width: 8),
                           Expanded(
                               child: _actionBtn(
@@ -631,121 +647,194 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
     );
   }
 
-  void _showApproveDialog(int id, String itemName, int requestedQty) {
+  void _showApproveDialog(
+      int id, String itemName, int requestedQty, int? availableQty) {
     final qtyCtrl = TextEditingController(text: '$requestedQty');
+    // Dispose the controller when the sheet closes, regardless of how it closes
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => Container(
-        padding: EdgeInsets.fromLTRB(
-            24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-        decoration: BoxDecoration(
-          color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                  child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: context.hintColor,
-                    borderRadius: BorderRadius.circular(2)),
-              )),
-              const SizedBox(height: 20),
-              Row(children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [
-                      EnhancedTheme.successGreen.withValues(alpha: 0.25),
-                      EnhancedTheme.successGreen.withValues(alpha: 0.1),
-                    ]),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.check_rounded,
-                      color: EnhancedTheme.successGreen, size: 22),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text('Approve Transfer',
-                          style: GoogleFonts.outfit(
-                              color: context.labelColor,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800)),
-                      Text(itemName,
-                          style: GoogleFonts.inter(
-                              color: context.subLabelColor, fontSize: 13)),
-                    ])),
-              ]),
-              const SizedBox(height: 20),
-              Text('Approved Quantity',
-                  style: GoogleFonts.inter(
-                      color: context.labelColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(height: 10),
-              TextField(
-                controller: qtyCtrl,
-                keyboardType: TextInputType.number,
-                style:
-                    GoogleFonts.inter(color: context.labelColor, fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: 'Enter quantity',
-                  hintStyle: GoogleFonts.inter(color: context.hintColor),
-                  filled: true,
-                  fillColor: context.cardColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: context.borderColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: context.borderColor),
-                  ),
-                  focusedBorder: const OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(14)),
-                    borderSide: BorderSide(
-                        color: EnhancedTheme.primaryTeal, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text('Requested: $requestedQty',
-                  style: GoogleFonts.inter(
-                      color: context.hintColor, fontSize: 12)),
-              const SizedBox(height: 20),
-              SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final qty = int.tryParse(qtyCtrl.text) ?? 0;
-                      if (qty <= 0) return;
-                      Navigator.pop(context);
-                      await _approveTransfer(id, qty);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: EnhancedTheme.successGreen,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text('Confirm Approve',
-                        style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w700, fontSize: 15)),
+      // Use builder context (ctx) for MediaQuery / theme — NOT the outer screen
+      // context — so the sheet correctly tracks keyboard insets
+      builder: (ctx) => Padding(
+        // ctx.viewInsets reflects the keyboard opening inside this sheet
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          decoration: BoxDecoration(
+            color: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                      child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: ctx.hintColor,
+                        borderRadius: BorderRadius.circular(2)),
                   )),
-            ]),
+                  const SizedBox(height: 20),
+                  Row(children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [
+                          EnhancedTheme.successGreen.withValues(alpha: 0.25),
+                          EnhancedTheme.successGreen.withValues(alpha: 0.1),
+                        ]),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.check_rounded,
+                          color: EnhancedTheme.successGreen, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Text('Approve Transfer',
+                              style: GoogleFonts.outfit(
+                                  color: ctx.labelColor,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800)),
+                          Text(itemName,
+                              style: GoogleFonts.inter(
+                                  color: ctx.subLabelColor, fontSize: 13)),
+                        ])),
+                  ]),
+                  const SizedBox(height: 20),
+                  Text('Approved Quantity',
+                      style: GoogleFonts.inter(
+                          color: ctx.labelColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: qtyCtrl,
+                    keyboardType: TextInputType.number,
+                    style: GoogleFonts.inter(
+                        color: ctx.labelColor, fontSize: 16),
+                    decoration: InputDecoration(
+                      hintText: 'Enter quantity',
+                      hintStyle: GoogleFonts.inter(color: ctx.hintColor),
+                      filled: true,
+                      fillColor: ctx.cardColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: ctx.borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: ctx.borderColor),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(14)),
+                        borderSide: BorderSide(
+                            color: EnhancedTheme.primaryTeal, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Text('Requested: $requestedQty',
+                        style: GoogleFonts.inter(
+                            color: ctx.hintColor, fontSize: 12)),
+                    if (availableQty != null) ...[
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: (availableQty > 0
+                                  ? EnhancedTheme.successGreen
+                                  : EnhancedTheme.errorRed)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: (availableQty > 0
+                                    ? EnhancedTheme.successGreen
+                                    : EnhancedTheme.errorRed)
+                                .withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(
+                            Icons.inventory_2_rounded,
+                            size: 11,
+                            color: availableQty > 0
+                                ? EnhancedTheme.successGreen
+                                : EnhancedTheme.errorRed,
+                          ),
+                          const SizedBox(width: 4),
+                          Text('In stock: $availableQty',
+                              style: GoogleFonts.inter(
+                                  color: availableQty > 0
+                                      ? EnhancedTheme.successGreen
+                                      : EnhancedTheme.errorRed,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                    ],
+                  ]),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final qty = int.tryParse(qtyCtrl.text) ?? 0;
+                          if (qty <= 0) return;
+                          if (availableQty != null && qty > availableQty) {
+                            // Use outer context's ScaffoldMessenger so the
+                            // snackbar appears on the main scaffold
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              backgroundColor: EnhancedTheme.warningAmber
+                                  .withValues(alpha: 0.92),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              margin: const EdgeInsets.all(16),
+                              content: Row(children: [
+                                const Icon(Icons.warning_amber_rounded,
+                                    color: Colors.black, size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                    child: Text(
+                                        'Qty exceeds available stock ($availableQty)',
+                                        style: GoogleFonts.inter(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w600))),
+                              ]),
+                            ));
+                            return;
+                          }
+                          Navigator.pop(ctx);
+                          await _approveTransfer(id, qty);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: EnhancedTheme.successGreen,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: Text('Confirm Approve',
+                            style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700, fontSize: 15)),
+                      )),
+                ]),
+          ),
+        ),
       ),
-    );
+    ).whenComplete(qtyCtrl.dispose);
   }
 
   Future<void> _approveTransfer(int id, int qty) async {
@@ -1057,6 +1146,7 @@ class _CreateTransferSheet extends ConsumerStatefulWidget {
 
 class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
   String _itemName = '';
+  int? _availableStock; // null = no matching item selected yet
   final _qtyCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   String _unit = 'Pcs';
@@ -1201,8 +1291,67 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
             _ItemAutocomplete(
               key: ValueKey(_fromWholesale ? 'wholesale' : 'retail'),
               sourceStore: _fromWholesale ? 'wholesale' : 'retail',
-              onSelected: (name) => setState(() => _itemName = name),
+              // Fired only when user picks a suggestion — update stock display
+              onSelected: (name) {
+                setState(() {
+                  _itemName = name;
+                  final inventoryAsync = _fromWholesale
+                      ? ref.read(wholesaleInventoryProvider)
+                      : ref.read(retailInventoryProvider);
+                  final items = inventoryAsync.valueOrNull ?? [];
+                  final matches = items.where((i) => i.name == name);
+                  _availableStock =
+                      matches.isNotEmpty ? matches.first.stock : null;
+                });
+              },
+              // Fired on every keystroke — keep _itemName in sync for submit,
+              // but clear the stock badge so stale "Available" isn't shown
+              onTextChanged: (text) {
+                setState(() {
+                  _itemName = text;
+                  _availableStock = null; // badge hidden until a match is picked
+                });
+              },
             ),
+            if (_itemName.isNotEmpty && _availableStock != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: (_availableStock! > 0
+                          ? EnhancedTheme.successGreen
+                          : EnhancedTheme.errorRed)
+                      .withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: (_availableStock! > 0
+                            ? EnhancedTheme.successGreen
+                            : EnhancedTheme.errorRed)
+                        .withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(
+                    _availableStock! > 0
+                        ? Icons.inventory_2_rounded
+                        : Icons.warning_amber_rounded,
+                    color: _availableStock! > 0
+                        ? EnhancedTheme.successGreen
+                        : EnhancedTheme.errorRed,
+                    size: 13,
+                  ),
+                  const SizedBox(width: 6),
+                  Text('Available in stock: $_availableStock $_unit',
+                      style: GoogleFonts.inter(
+                          color: _availableStock! > 0
+                              ? EnhancedTheme.successGreen
+                              : EnhancedTheme.errorRed,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ],
             const SizedBox(height: 16),
 
             // Quantity & Unit
@@ -1371,6 +1520,7 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
       onTap: () => setState(() {
         _fromWholesale = isFromWholesale;
         _itemName = '';
+        _availableStock = null;
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -1408,10 +1558,21 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
 // ── Inventory Item Autocomplete ───────────────────────────────────────────────
 
 class _ItemAutocomplete extends ConsumerWidget {
+  /// Called when the user picks a suggestion from the dropdown.
   final ValueChanged<String> onSelected;
+
+  /// Called on every keystroke so the parent can track the raw typed text
+  /// (used in submit validation). Separate from [onSelected] so that selecting
+  /// from the dropdown doesn't fire both callbacks and cause a double-setState.
+  final ValueChanged<String> onTextChanged;
+
   final String sourceStore; // 'wholesale' or 'retail'
-  const _ItemAutocomplete(
-      {super.key, required this.onSelected, required this.sourceStore});
+  const _ItemAutocomplete({
+    super.key,
+    required this.onSelected,
+    required this.onTextChanged,
+    required this.sourceStore,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1432,7 +1593,7 @@ class _ItemAutocomplete extends ConsumerWidget {
         return TextField(
           controller: ctrl,
           focusNode: focusNode,
-          onChanged: (v) => onSelected(v),
+          onChanged: onTextChanged,
           style: GoogleFonts.inter(color: context.labelColor, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Search medication...',
