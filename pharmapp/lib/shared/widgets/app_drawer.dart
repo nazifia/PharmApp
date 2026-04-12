@@ -7,9 +7,11 @@ import 'package:pharmapp/core/rbac/rbac_provider.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/features/subscription/widgets/trial_banner.dart';
+import 'package:pharmapp/shared/models/branch.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
@@ -51,6 +53,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     final hasCustFeature     = ref.watch(hasFeatureProvider(SaasFeature.customers));
     final hasWsFeature       = ref.watch(hasFeatureProvider(SaasFeature.wholesale));
     final hasReportsFeature  = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
+    final hasBranchFeature   = ref.watch(hasFeatureProvider(SaasFeature.multiBranch));
+    final branches           = ref.watch(branchListProvider);
+    final activeBranch       = ref.watch(activeBranchProvider);
     final isDark         = context.isDark;
     final notifCount     = ref.watch(notificationCountProvider).valueOrNull ?? 0;
 
@@ -95,6 +100,16 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
                   // ── Trial / expiry banner ───────────────────────────────────
                   const TrialBanner(),
+
+                  // ── Branch switcher (Professional / Enterprise only) ─────────
+                  if (hasBranchFeature && branches.length > 1)
+                    _BranchSwitcher(
+                      branches:      branches,
+                      activeBranch:  activeBranch,
+                      onSelect: (b) => ref
+                          .read(activeBranchProvider.notifier)
+                          .state = b,
+                    ),
 
                   // ── Nav items ──────────────────────────────────────────────
                   Expanded(
@@ -262,6 +277,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               _SubNavItem(icon: Icons.people_alt_rounded, label: 'User Management', route: '/dashboard/users', onTap: navigate),
                               _SubNavItem(icon: Icons.notifications_rounded, label: 'Notifications', route: '/dashboard/notifications', onTap: navigate, badge: notifCount),
                               _SubNavItem(icon: Icons.settings_rounded, label: 'Settings', route: '/dashboard/settings', onTap: navigate),
+                              _SubNavItem(icon: Icons.account_tree_rounded, label: 'Branches', route: '/dashboard/branches', onTap: navigate),
                             ],
                           ),
                         ],
@@ -679,6 +695,138 @@ class _LogoutTile extends StatelessWidget {
                     fontSize: 14)),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+// ── Branch Switcher ────────────────────────────────────────────────────────────
+
+class _BranchSwitcher extends StatelessWidget {
+  final List<Branch>  branches;
+  final Branch?       activeBranch;
+  final void Function(Branch?) onSelect;
+
+  const _BranchSwitcher({
+    required this.branches,
+    required this.activeBranch,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = activeBranch?.name ?? 'All Branches';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+      child: InkWell(
+        onTap: () => _showPicker(context),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.account_tree_rounded,
+                  color: EnhancedTheme.primaryTeal, size: 15),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                      color: EnhancedTheme.primaryTeal,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Icon(Icons.expand_more_rounded,
+                  color: EnhancedTheme.primaryTeal, size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: EnhancedTheme.surfaceColor,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 36, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Switch Branch',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // All branches option
+          ListTile(
+            leading: const Icon(Icons.all_inclusive_rounded,
+                color: Colors.white54),
+            title: const Text('All Branches',
+                style: TextStyle(color: Colors.white70)),
+            trailing: activeBranch == null
+                ? const Icon(Icons.check_rounded,
+                    color: EnhancedTheme.primaryTeal)
+                : null,
+            onTap: () {
+              onSelect(null);
+              Navigator.pop(context);
+            },
+          ),
+          ...branches.map(
+            (b) => ListTile(
+              leading: Icon(
+                b.isMain
+                    ? Icons.home_work_rounded
+                    : Icons.store_rounded,
+                color: Colors.white54,
+              ),
+              title: Text(b.name,
+                  style: const TextStyle(color: Colors.white70)),
+              subtitle: b.address.isNotEmpty
+                  ? Text(b.address,
+                      style: const TextStyle(
+                          color: Colors.white38, fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)
+                  : null,
+              trailing: activeBranch?.id == b.id
+                  ? const Icon(Icons.check_rounded,
+                      color: EnhancedTheme.primaryTeal)
+                  : null,
+              onTap: () {
+                onSelect(b);
+                Navigator.pop(context);
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }

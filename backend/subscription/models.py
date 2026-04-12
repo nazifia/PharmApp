@@ -186,9 +186,7 @@ FEATURE_KEY_CHOICES = [
     ('wholesale',        'Wholesale Module'),
     ('export_data',      'Export Data'),
     ('multi_branch',     'Multi-Branch'),
-    ('api_access',       'API Access'),
     ('priority_support', 'Priority Support'),
-    ('white_label',      'White Label'),
 ]
 
 # Default features per plan — used as fallback if no DB rows exist.
@@ -196,10 +194,10 @@ PLAN_FEATURES_DEFAULT = {
     'trial':        {'pos', 'inventory'},
     'starter':      {'pos', 'inventory', 'customers', 'user_management', 'basic_reports'},
     'professional': {'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
-                     'advanced_reports', 'wholesale', 'export_data'},
+                     'advanced_reports', 'wholesale', 'export_data', 'multi_branch'},
     'enterprise':   {'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
                      'advanced_reports', 'wholesale', 'export_data',
-                     'multi_branch', 'api_access', 'priority_support', 'white_label'},
+                     'multi_branch', 'priority_support'},
 }
 
 
@@ -361,8 +359,7 @@ class Subscription(models.Model):
         help_text=(
             'Feature keys enabled for this org beyond the plan default. '
             'Valid keys: pos, inventory, customers, user_management, basic_reports, '
-            'advanced_reports, wholesale, export_data, multi_branch, api_access, '
-            'priority_support, white_label'
+            'advanced_reports, wholesale, export_data, multi_branch, priority_support'
         ),
     )
     # Features removed from what the plan normally includes.
@@ -443,11 +440,17 @@ class Subscription(models.Model):
         except Exception:
             tx_count = 0
 
+        try:
+            from branches.models import Branch
+            branches_count = Branch.objects.filter(organization=org, is_active=True).count()
+        except Exception:
+            branches_count = 1
+
         return {
             'users_count':             users_count,
             'items_count':             items_count,
             'transactions_this_month': tx_count,
-            'branches_count':          1,
+            'branches_count':          branches_count,
         }
 
     # ── API serialization ─────────────────────────────────────────────────────

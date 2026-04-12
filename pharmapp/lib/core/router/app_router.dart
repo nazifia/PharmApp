@@ -46,6 +46,7 @@ import 'package:pharmapp/features/superuser/screens/org_subscription_editor_scre
 import 'package:pharmapp/features/superuser/screens/plan_feature_editor_screen.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:pharmapp/shared/widgets/sync_queue_screen.dart';
+import 'package:pharmapp/features/branches/screens/branch_management_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -175,6 +176,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/subscription';
       }
 
+      // Multi-branch — Professional / Enterprise only
+      if (loc == '/dashboard/branches' &&
+          !ref.read(hasFeatureProvider(SaasFeature.multiBranch))) {
+        return '/subscription';
+      }
+
       return null;
     },
     routes: [
@@ -229,6 +236,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'transfers',       name: 'transfers',       builder: (_, __) => const TransfersScreen()),
               GoRoute(path: 'wholesale-sales', name: 'wholesale_sales', builder: (_, __) => const WholesaleSalesScreen()),
               GoRoute(path: 'sync-queue',      name: 'sync_queue',      builder: (_, __) => const SyncQueueScreen()),
+              GoRoute(path: 'branches',        name: 'branches',        builder: (_, __) => const BranchManagementScreen()),
             ],
           ),
 

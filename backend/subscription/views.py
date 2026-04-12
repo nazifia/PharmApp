@@ -212,7 +212,7 @@ VALID_STATUSES  = {'trial', 'expiring', 'expired', 'active', 'suspended', 'cance
 _BUILTIN_FEATURES = {
     'pos', 'inventory', 'customers', 'user_management', 'basic_reports',
     'advanced_reports', 'wholesale', 'export_data', 'multi_branch',
-    'api_access', 'priority_support', 'white_label',
+    'priority_support',
 }
 
 

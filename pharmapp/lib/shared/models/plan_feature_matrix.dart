@@ -32,9 +32,7 @@ class PlanFeatureMatrix {
       SaasFeature.wholesale,
       SaasFeature.exportData,
       SaasFeature.multiBranch,
-      SaasFeature.apiAccess,
       SaasFeature.prioritySupport,
-      SaasFeature.whiteLabel,
     ];
     return PlanFeatureMatrix(
       planFeatures: {

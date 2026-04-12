@@ -65,7 +65,6 @@ class FeatureGate extends ConsumerWidget {
         SaasFeature.customers       => 'Customer Management',
         SaasFeature.exportData      => 'Data Export',
         SaasFeature.multiBranch     => 'Multi-Branch',
-        SaasFeature.apiAccess       => 'API Access',
         _                           => feature.replaceAll('_', ' '),
       };
 }

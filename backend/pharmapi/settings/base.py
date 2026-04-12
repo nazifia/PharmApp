@@ -200,6 +200,7 @@ INSTALLED_APPS = [
     "pos",
     "reports",
     "subscription",
+    "branches",
 ]
 
 MIDDLEWARE = [

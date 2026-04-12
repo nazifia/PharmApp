@@ -157,9 +157,7 @@ class SaasFeature {
   static const String wholesale        = 'wholesale';
   static const String exportData       = 'export_data';
   static const String multiBranch      = 'multi_branch';
-  static const String apiAccess        = 'api_access';
   static const String prioritySupport  = 'priority_support';
-  static const String whiteLabel       = 'white_label';
 
   /// Public display label for a feature key.
   static String labelFor(String key) => switch (key) {
@@ -172,9 +170,7 @@ class SaasFeature {
         wholesale       => 'Wholesale Module',
         exportData      => 'Export Data',
         multiBranch     => 'Multi-Branch',
-        apiAccess       => 'API Access',
         prioritySupport => 'Priority Support',
-        whiteLabel      => 'White Label',
         _               => key,
       };
 
@@ -185,10 +181,10 @@ class SaasFeature {
       base.addAll({customers, userManagement, basicReports});
     }
     if (plan.isAtLeast(SubscriptionPlan.professional)) {
-      base.addAll({advancedReports, wholesale, exportData});
+      base.addAll({advancedReports, wholesale, exportData, multiBranch});
     }
     if (plan.isAtLeast(SubscriptionPlan.enterprise)) {
-      base.addAll({multiBranch, apiAccess, prioritySupport, whiteLabel});
+      base.addAll({prioritySupport});
     }
 
     return base;
@@ -483,9 +479,7 @@ class Subscription {
         SaasFeature.wholesale       => 'Wholesale Module',
         SaasFeature.exportData      => 'Export Data',
         SaasFeature.multiBranch     => 'Multi-Branch',
-        SaasFeature.apiAccess       => 'API Access',
         SaasFeature.prioritySupport => 'Priority Support',
-        SaasFeature.whiteLabel      => 'White Label',
         _                           => f,
       };
 
@@ -499,9 +493,7 @@ class Subscription {
     SaasFeature.wholesale,
     SaasFeature.exportData,
     SaasFeature.multiBranch,
-    SaasFeature.apiAccess,
     SaasFeature.prioritySupport,
-    SaasFeature.whiteLabel,
   ];
 
   // ── Dynamic price helpers ─────────────────────────────────────────────────

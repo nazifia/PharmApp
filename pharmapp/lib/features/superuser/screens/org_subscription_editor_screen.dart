@@ -759,9 +759,7 @@ class _OrgSubscriptionEditorScreenState
     (SaasFeature.wholesale,       'Wholesale Module'),
     (SaasFeature.exportData,      'Export Data'),
     (SaasFeature.multiBranch,     'Multi-Branch'),
-    (SaasFeature.apiAccess,       'API Access'),
     (SaasFeature.prioritySupport, 'Priority Support'),
-    (SaasFeature.whiteLabel,      'White Label'),
   ];
 
   String _statusLabel(SubscriptionStatus s) => switch (s) {
