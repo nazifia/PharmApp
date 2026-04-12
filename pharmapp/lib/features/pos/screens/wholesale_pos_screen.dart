@@ -802,7 +802,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inventoryAsync = ref.watch(inventoryListProvider);
+    final inventoryAsync = ref.watch(wholesaleInventoryProvider);
     final customersAsync = ref.watch(customerListProvider);
     final wide = MediaQuery.of(context).size.width > 800;
 
@@ -838,7 +838,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   // ── Header ─────────────────────────────────────────────────────────────────
 
   Widget _header(BuildContext context) {
-    final itemCount = ref.watch(inventoryListProvider).whenOrNull(data: (l) => l.length);
+    final itemCount = ref.watch(wholesaleInventoryProvider).whenOrNull(data: (l) => l.length);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1070,7 +1070,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
             Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 12), textAlign: TextAlign.center),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: () => ref.invalidate(inventoryListProvider),
+              onPressed: () => ref.invalidate(wholesaleInventoryProvider),
               icon: const Icon(Icons.refresh_rounded, size: 16, color: EnhancedTheme.accentCyan),
               label: const Text('Retry', style: TextStyle(color: EnhancedTheme.accentCyan)),
               style: OutlinedButton.styleFrom(

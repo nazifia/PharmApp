@@ -158,10 +158,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           ),
         ),
 
-        SafeArea(child: Column(children: [
+        SafeArea(child: CustomScrollView(slivers: [
 
           // ── Header ──────────────────────────────────────────────────────────
-          Padding(
+          SliverToBoxAdapter(child: Padding(
             padding: const EdgeInsets.fromLTRB(8, 12, 16, 0),
             child: Row(children: [
               IconButton(
@@ -195,10 +195,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   ref.invalidate(walletTransactionsProvider(_customerId));
                 }),
             ]),
-          ),
+          )),
 
           // ── Balance + Action Card ────────────────────────────────────────────
-          Padding(
+          SliverToBoxAdapter(child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(28),
@@ -398,10 +398,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 ),
               ),
             ),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0),
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0)),
 
           // ── Transaction History header ────────────────────────────────────────
-          Padding(
+          SliverToBoxAdapter(child: Padding(
             padding: const EdgeInsets.fromLTRB(22, 6, 20, 10),
             child: Row(children: [
               Container(
@@ -434,69 +434,87 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 ),
               ),
             ]),
-          ),
+          )),
 
           // ── Transactions list ────────────────────────────────────────────────
-          Expanded(child: transactionsAsync.when(
-            loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              SizedBox(
-                width: 40, height: 40,
-                child: CircularProgressIndicator(
-                  color: EnhancedTheme.primaryTeal,
-                  backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                  strokeWidth: 3,
+          if (transactionsAsync.isLoading)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                SizedBox(
+                  width: 40, height: 40,
+                  child: CircularProgressIndicator(
+                    color: EnhancedTheme.primaryTeal,
+                    backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                    strokeWidth: 3,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text('Loading transactions…', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
-            ])),
-            error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: EnhancedTheme.errorRed.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
+                const SizedBox(height: 12),
+                Text('Loading transactions…', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+              ])),
+            )
+          else if (transactionsAsync.hasError)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.errorRed.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed, size: 36),
                 ),
-                child: const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed, size: 36),
-              ),
-              const SizedBox(height: 12),
-              Text('Could not load transactions',
-                  style: TextStyle(color: context.subLabelColor, fontSize: 13)),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => ref.invalidate(walletTransactionsProvider(_customerId)),
-                child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal))),
-            ])),
-            data: (txs) => txs.isEmpty
-                ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(colors: [
-                          EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
-                          EnhancedTheme.primaryTeal.withValues(alpha: 0.02),
-                        ]),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.receipt_long_outlined,
-                          color: EnhancedTheme.primaryTeal, size: 48),
+                const SizedBox(height: 12),
+                Text('Could not load transactions',
+                    style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => ref.invalidate(walletTransactionsProvider(_customerId)),
+                  child: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal))),
+              ])),
+            )
+          else if (transactionsAsync.value!.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(colors: [
+                        EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                        EnhancedTheme.primaryTeal.withValues(alpha: 0.02),
+                      ]),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 16),
-                    Text('No transactions yet',
-                        style: GoogleFonts.outfit(
-                            color: context.labelColor, fontSize: 17, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 8),
-                    Text('Top up or deduct from the wallet above',
-                        style: TextStyle(color: context.subLabelColor, fontSize: 12)),
-                  ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9)))
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    itemCount: txs.length,
-                    itemBuilder: (_, i) => _txRow(txs[i])
+                    child: const Icon(Icons.receipt_long_outlined,
+                        color: EnhancedTheme.primaryTeal, size: 48),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('No transactions yet',
+                      style: GoogleFonts.outfit(
+                          color: context.labelColor, fontSize: 17, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  Text('Top up or deduct from the wallet above',
+                      style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+                ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9))),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) {
+                    final txs = transactionsAsync.value!;
+                    return _txRow(txs[i])
                         .animate(delay: (i * 30).ms)
                         .fadeIn(duration: 300.ms)
-                        .slideX(begin: 0.1, end: 0)),
-          )),
+                        .slideX(begin: 0.1, end: 0);
+                  },
+                  childCount: transactionsAsync.value!.length,
+                ),
+              ),
+            ),
         ])),
       ]),
     );

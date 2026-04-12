@@ -87,6 +87,7 @@ def checkout(request):
             )
 
     # Validate items and stock
+    expected_store = "wholesale" if is_wholesale else "retail"
     total = Decimal("0")
     discount_total = Decimal("0")
     resolved = []
@@ -114,6 +115,17 @@ def checkout(request):
             item = Item.objects.filter(pk=item_id, organization=org).first()
         elif barcode:
             item = Item.objects.filter(barcode=barcode, organization=org).first()
+
+        if item and item.store != expected_store:
+            return Response(
+                {
+                    "detail": (
+                        f"Item '{item.name}' belongs to the {item.store} store "
+                        f"and cannot be sold in a {expected_store} transaction."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if item and item.stock < qty:
             return Response(
@@ -187,6 +199,10 @@ def checkout(request):
             qty = ri["qty"]
             if item:
                 item = Item.objects.select_for_update().get(pk=item.pk)
+                if item.store != expected_store:
+                    raise ValueError(
+                        f"Store mismatch for {item.name}: expected {expected_store}"
+                    )
                 if item.stock < qty:
                     raise ValueError(f"Insufficient stock for {item.name}")
                 item.stock -= qty

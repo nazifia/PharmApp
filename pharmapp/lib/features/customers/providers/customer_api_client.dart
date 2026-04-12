@@ -69,9 +69,12 @@ class CustomerSale {
       required this.total, required this.status});
 
   factory CustomerSale.fromJson(Map<String, dynamic> j) => CustomerSale(
-        date: (j['date'] as String?) ?? '',
-        items: (j['items'] as num?)?.toInt() ?? 0,
-        total: (j['total'] as num?)?.toDouble() ?? 0.0,
+        date: (j['created'] as String?) ?? (j['date'] as String?) ?? '',
+        items: j['items'] is List
+            ? (j['items'] as List).length
+            : (j['items'] as num?)?.toInt() ?? 0,
+        total: (j['totalAmount'] as num?)?.toDouble() ??
+            (j['total'] as num?)?.toDouble() ?? 0.0,
         status: (j['status'] as String?) ?? 'Paid',
       );
 }
