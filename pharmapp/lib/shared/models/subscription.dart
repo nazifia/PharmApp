@@ -41,9 +41,9 @@ enum SubscriptionPlan {
   /// Monthly price label.
   String get price => switch (this) {
         trial        => 'Free',
-        starter      => '\$9.99/mo',
-        professional => '\$29.99/mo',
-        enterprise   => '\$79.99/mo',
+        starter      => '₦9.99/mo',
+        professional => '₦29.99/mo',
+        enterprise   => '₦79.99/mo',
       };
 
   /// Monthly price as a number (0 for trial).
@@ -68,9 +68,9 @@ enum SubscriptionPlan {
   String priceLabel(BillingCycle cycle) {
     if (monthlyAmount == 0) return 'Free';
     return switch (cycle) {
-      BillingCycle.monthly => '\$${monthlyAmount.toStringAsFixed(2)}/mo',
+      BillingCycle.monthly => '₦${monthlyAmount.toStringAsFixed(2)}/mo',
       BillingCycle.annual  =>
-        '\$${annualMonthlyAmount.toStringAsFixed(2)}/mo · \$${annualTotal.toStringAsFixed(2)}/yr',
+        '₦${annualMonthlyAmount.toStringAsFixed(2)}/mo · ₦${annualTotal.toStringAsFixed(2)}/yr',
     };
   }
 
@@ -438,6 +438,9 @@ class Subscription {
   final Map<String, String>?      featureLabels;
   /// Ordered list of feature keys for the comparison table.
   final List<String>?             featureOrder;
+  /// Dynamic plan prices from backend: plan_name → monthly price in USD.
+  /// Null when the backend doesn't include pricing (falls back to hardcoded defaults).
+  final Map<String, double>?      planPrices;
 
   Subscription({
     required this.plan,
@@ -453,6 +456,7 @@ class Subscription {
     this.planFeatures,
     this.featureLabels,
     this.featureOrder,
+    this.planPrices,
   });
 
   // ── Dynamic feature helpers ───────────────────────────────────────────────
@@ -499,6 +503,36 @@ class Subscription {
     SaasFeature.prioritySupport,
     SaasFeature.whiteLabel,
   ];
+
+  // ── Dynamic price helpers ─────────────────────────────────────────────────
+
+  /// Monthly price for [p] — uses backend value if available, else enum default.
+  double monthlyAmountForPlan(SubscriptionPlan p) =>
+      planPrices?[p.name] ?? p.monthlyAmount;
+
+  /// Annual total for [p] (20 % discount applied to backend price too).
+  double annualTotalForPlan(SubscriptionPlan p) {
+    final monthly = monthlyAmountForPlan(p);
+    return (monthly * 0.80 * 12 * 100).roundToDouble() / 100;
+  }
+
+  /// Annual savings vs 12 × monthly for [p].
+  double annualSavingsForPlan(SubscriptionPlan p) {
+    final monthly = monthlyAmountForPlan(p);
+    return (monthly * 12 * 100).roundToDouble() / 100 - annualTotalForPlan(p);
+  }
+
+  /// Formatted price label for [p] at [cycle].
+  String priceLabelForPlan(SubscriptionPlan p, BillingCycle cycle) {
+    final monthly = monthlyAmountForPlan(p);
+    if (monthly == 0) return 'Free';
+    return switch (cycle) {
+      BillingCycle.monthly =>
+        '₦${monthly.toStringAsFixed(2)}/mo',
+      BillingCycle.annual =>
+        '₦${(monthly * 0.80).toStringAsFixed(2)}/mo · ₦${annualTotalForPlan(p).toStringAsFixed(2)}/yr',
+    };
+  }
 
   // ── Derived helpers ──────────────────────────────────────────────────────────
 
@@ -578,6 +612,28 @@ class Subscription {
       featureOrder = (json['feature_order'] as List<dynamic>).cast<String>();
     }
 
+    // Dynamic plan prices from backend.
+    // Backend sends `plan_pricing` — a nested dict: {plan: {monthly_price, annual_price, ...}}
+    // Fall back to flat `plan_prices` {plan: double} for older backend versions.
+    Map<String, double>? planPrices;
+    if (json['plan_pricing'] is Map) {
+      planPrices = {};
+      for (final entry
+          in (json['plan_pricing'] as Map<String, dynamic>).entries) {
+        final v = entry.value;
+        if (v is Map) {
+          planPrices[entry.key] =
+              (v['monthly_price'] as num?)?.toDouble() ?? 0.0;
+        } else if (v is num) {
+          planPrices[entry.key] = v.toDouble();
+        }
+      }
+    } else if (json['plan_prices'] is Map) {
+      planPrices = (json['plan_prices'] as Map<String, dynamic>).map(
+        (k, v) => MapEntry(k, (v as num).toDouble()),
+      );
+    }
+
     // If the backend sent plan_features, recompute effective features using
     // the backend-defined baseline for THIS plan (instead of the hardcoded one)
     if (planFeatures != null) {
@@ -607,6 +663,7 @@ class Subscription {
       planFeatures:    planFeatures,
       featureLabels:   featureLabels,
       featureOrder:    featureOrder,
+      planPrices:      planPrices,
       usage:    json['usage'] != null
           ? CurrentUsage.fromJson(json['usage'] as Map<String, dynamic>)
           : const CurrentUsage(),

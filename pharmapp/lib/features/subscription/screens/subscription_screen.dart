@@ -11,11 +11,29 @@ import 'package:pharmapp/shared/widgets/app_shell.dart';
 final _billingCycleProvider =
     StateProvider<BillingCycle>((ref) => BillingCycle.monthly);
 
-class SubscriptionScreen extends ConsumerWidget {
+class SubscriptionScreen extends ConsumerStatefulWidget {
   const SubscriptionScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh from backend every time this screen is opened so that
+    // price or plan changes made in Django admin are always reflected.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(subscriptionNotifierProvider.notifier).refresh();
+    });
+  }
+
+  Future<void> _refresh() =>
+      ref.read(subscriptionNotifierProvider.notifier).refresh();
+
+  @override
+  Widget build(BuildContext context) {
     final sub        = ref.watch(currentSubscriptionProvider);
     final asyncState = ref.watch(subscriptionNotifierProvider);
     final isLoading  = asyncState is AsyncLoading;
@@ -79,6 +97,10 @@ class SubscriptionScreen extends ConsumerWidget {
                 ),
 
                 Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _refresh,
+                    color: EnhancedTheme.primaryTeal,
+                    backgroundColor: EnhancedTheme.surfaceColor,
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
@@ -132,6 +154,7 @@ class SubscriptionScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
                     ],
                   ),
+                  ), // RefreshIndicator
                 ),
               ],
             ),
@@ -499,7 +522,8 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
     // Use backend-driven features if available, else fall back to hardcoded
     final features  = widget.sub.featuresForPlan(widget.plan);
     final isAnnual  = widget.cycle == BillingCycle.annual;
-    final savings   = widget.plan.annualSavings;
+    // Use backend-driven prices if available, else fall back to hardcoded
+    final savings   = widget.sub.annualSavingsForPlan(widget.plan);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -576,7 +600,7 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    'Save \$${savings.toStringAsFixed(0)}/yr',
+                                    'Save ₦${savings.toStringAsFixed(0)}/yr',
                                     style: const TextStyle(
                                         color: EnhancedTheme.successGreen,
                                         fontSize: 9,
@@ -588,15 +612,15 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            widget.plan.priceLabel(widget.cycle),
+                            widget.sub.priceLabelForPlan(widget.plan, widget.cycle),
                             style: const TextStyle(
                                 color: Colors.black54, fontSize: 12),
                           ),
                           if (isAnnual &&
-                              widget.plan.monthlyAmount > 0) ...[
+                              widget.sub.monthlyAmountForPlan(widget.plan) > 0) ...[
                             const SizedBox(height: 1),
                             Text(
-                              '\$${widget.plan.monthlyAmount.toStringAsFixed(2)}/mo billed monthly',
+                              '₦${widget.sub.monthlyAmountForPlan(widget.plan).toStringAsFixed(2)}/mo billed monthly',
                               style: const TextStyle(
                                 color: Colors.black38,
                                 fontSize: 10,

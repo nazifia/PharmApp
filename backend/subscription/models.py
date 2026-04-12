@@ -456,6 +456,8 @@ class Subscription(models.Model):
         self.refresh_status()
         # Seed feature flags on first call if table is empty
         PlanFeatureFlag.ensure_defaults()
+        # Seed plan pricing rows so Django admin shows editable entries
+        PlanPricing.ensure_defaults()
         # Inline plan pricing so Flutter always shows current prices
         pricing = {}
         for pp in PlanPricing.objects.all():
