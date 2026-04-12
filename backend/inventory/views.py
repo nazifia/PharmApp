@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_date
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Item
@@ -8,6 +9,7 @@ from authapp.utils import require_org
 
 
 @api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
 def item_list(request):
     org, err = require_org(request)
     if err:
@@ -77,6 +79,7 @@ def item_list(request):
 
 
 @api_view(["GET", "PUT", "PATCH", "DELETE"])
+@permission_classes([IsAuthenticated])
 def item_detail(request, pk):
     org, err = require_org(request)
     if err:
@@ -130,6 +133,7 @@ def item_detail(request, pk):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def adjust_stock(request, pk):
     org, err = require_org(request)
     if err:

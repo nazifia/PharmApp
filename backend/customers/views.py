@@ -1,7 +1,8 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework.decorators import api_view, throttle_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.throttling import ScopedRateThrottle
@@ -10,6 +11,7 @@ from authapp.utils import require_org
 
 
 @api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
 def customer_list(request):
     org, err = require_org(request)
     if err:
@@ -51,6 +53,7 @@ def customer_list(request):
 
 
 @api_view(["GET", "PUT", "PATCH", "DELETE"])
+@permission_classes([IsAuthenticated])
 def customer_detail(request, pk):
     org, err = require_org(request)
     if err:
@@ -75,6 +78,7 @@ def customer_detail(request, pk):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def wallet_transactions(request, pk):
     org, err = require_org(request)
     if err:
@@ -103,6 +107,7 @@ def wallet_transactions(request, pk):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 @throttle_classes([ScopedRateThrottle])
 def wallet_topup(request, pk):
     request.throttle_scope = 'wallet'
@@ -142,6 +147,7 @@ def wallet_topup(request, pk):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 @throttle_classes([ScopedRateThrottle])
 def wallet_deduct(request, pk):
     request.throttle_scope = 'wallet'
@@ -178,6 +184,7 @@ def wallet_deduct(request, pk):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def customer_sales(request, pk):
     org, err = require_org(request)
     if err:
@@ -188,6 +195,7 @@ def customer_sales(request, pk):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 @throttle_classes([ScopedRateThrottle])
 def wallet_reset(request, pk):
     request.throttle_scope = 'wallet'
@@ -211,6 +219,7 @@ def wallet_reset(request, pk):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 @throttle_classes([ScopedRateThrottle])
 def record_payment(request, pk):
     request.throttle_scope = 'wallet'

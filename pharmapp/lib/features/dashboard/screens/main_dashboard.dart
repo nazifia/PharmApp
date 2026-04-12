@@ -11,6 +11,8 @@ import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_api_client.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
+import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
+import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/dashboard_card.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
@@ -101,6 +103,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     final hour       = DateTime.now().hour;
     final greeting   = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
+    final hasCustFeature    = ref.watch(hasFeatureProvider(SaasFeature.customers));
+    final hasReportsFeature = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
     final revenue   = salesAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
     final lowStock  = invAsync.whenOrNull(data: (d) => d.lowStockCount) ?? 0;
     final customers = custAsync.whenOrNull(data: (d) => d.total) ?? 0;
@@ -135,7 +139,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             _quickActionsRow([
               (Icons.add_shopping_cart, 'New Sale',   EnhancedTheme.primaryTeal,   () => context.go('/dashboard/pos')),
               (Icons.inventory_2,        'Inventory',  EnhancedTheme.infoBlue,      () => context.go('/dashboard/inventory')),
-              (Icons.people,             'Customers',  EnhancedTheme.accentPurple,  () => context.go('/dashboard/customers')),
+              if (hasCustFeature)
+                (Icons.people,           'Customers',  EnhancedTheme.accentPurple,  () => context.go('/dashboard/customers')),
               (Icons.more_horiz_rounded, 'More',       context.subLabelColor,       _showMoreSheet),
             ]),
             const SizedBox(height: 20),
@@ -152,7 +157,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
             const SizedBox(height: 24),
 
-            _quickAccessPanel(wide2),
+            _quickAccessPanel(wide2, hasReportsFeature: hasReportsFeature),
             const SizedBox(height: 24),
 
             _sectionHeader('Sales Trend', () => context.go('/dashboard/reports/sales')),
@@ -687,7 +692,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   // ── Quick Access Panel ─────────────────────────────────────────────────────
 
-  Widget _quickAccessPanel(bool wide) {
+  Widget _quickAccessPanel(bool wide, {required bool hasReportsFeature}) {
     final user = ref.read(currentUserProvider);
     final role = user?.role ?? '';
     final isAdminUser = role == 'Admin' || role == 'Manager';
@@ -737,13 +742,13 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       [(Icons.shopping_cart_rounded, 'Retail', '/dashboard/pos'),
                        (Icons.store_rounded, 'Wholesale', '/dashboard/wholesale-pos')],
                     )),
-                    if (isAdminUser) ...[
+                    if (isAdminUser && hasReportsFeature) ...[
                       const SizedBox(width: 10),
                       Expanded(child: _quickAccessCard(
                         'Reports & Analytics', 'Business Insights',
                         Icons.analytics_rounded, EnhancedTheme.accentCyan,
                         [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
-                         (Icons.calendar_month_rounded, 'Monthly', '/dashboard/reports/profit')],
+                         (Icons.show_chart_rounded, 'Sales Report', '/dashboard/reports/sales')],
                       )),
                     ],
                   ])
@@ -761,13 +766,13 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       [(Icons.shopping_cart_rounded, 'Retail', '/dashboard/pos'),
                        (Icons.store_rounded, 'Wholesale', '/dashboard/wholesale-pos')],
                     ),
-                    if (isAdminUser) ...[
+                    if (isAdminUser && hasReportsFeature) ...[
                       const SizedBox(height: 10),
                       _quickAccessCard(
                         'Reports & Analytics', 'Business Insights',
                         Icons.analytics_rounded, EnhancedTheme.accentCyan,
                         [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
-                         (Icons.calendar_month_rounded, 'Monthly', '/dashboard/reports/profit')],
+                         (Icons.show_chart_rounded, 'Sales Report', '/dashboard/reports/sales')],
                       ),
                     ],
                   ]),
@@ -1095,7 +1100,7 @@ class _PressableCardState extends State<_PressableCard> {
 
 // ── More Features Bottom Sheet ─────────────────────────────────────────────────
 
-class _MoreFeaturesSheet extends StatelessWidget {
+class _MoreFeaturesSheet extends ConsumerWidget {
   final bool isAdmin;
   final bool isWholesale;
   final void Function(String route) onNavigate;
@@ -1109,7 +1114,10 @@ class _MoreFeaturesSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasReportsFeature  = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
+    final hasAdvancedReports = ref.watch(hasFeatureProvider(SaasFeature.advancedReports));
+    final hasWsFeature       = ref.watch(hasFeatureProvider(SaasFeature.wholesale));
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: BackdropFilter(
@@ -1145,7 +1153,7 @@ class _MoreFeaturesSheet extends StatelessWidget {
             ]),
             const SizedBox(height: 20),
 
-            if (isAdmin) ...[
+            if (isAdmin && hasReportsFeature) ...[
               // Reports section
               _sectionLabel(context, 'Reports'),
               const SizedBox(height: 10),
@@ -1155,8 +1163,10 @@ class _MoreFeaturesSheet extends StatelessWidget {
                 _featureCard(context, Icons.inventory_2_outlined, 'Inventory', EnhancedTheme.infoBlue,    '/dashboard/reports/inventory'),
                 const SizedBox(width: 10),
                 _featureCard(context, Icons.people_outline,       'Customers', EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
-                const SizedBox(width: 10),
-                _featureCard(context, Icons.trending_up,          'Profit',    EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
+                if (hasAdvancedReports) ...[
+                  const SizedBox(width: 10),
+                  _featureCard(context, Icons.trending_up,        'Profit',    EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
+                ],
               ]),
               const SizedBox(height: 20),
             ],
@@ -1171,7 +1181,7 @@ class _MoreFeaturesSheet extends StatelessWidget {
                 _featureCard(context, Icons.admin_panel_settings_outlined, 'Admin', EnhancedTheme.errorRed, '/admin-dashboard'),
                 const SizedBox(width: 10),
               ],
-              if (isWholesale) ...[
+              if (isWholesale && hasWsFeature) ...[
                 _featureCard(context, Icons.store_outlined, 'Wholesale', EnhancedTheme.accentCyan, '/wholesale-dashboard'),
                 const SizedBox(width: 10),
               ],

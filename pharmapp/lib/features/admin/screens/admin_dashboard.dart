@@ -9,7 +9,9 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
+import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/item.dart';
+import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 
 class AdminDashboard extends ConsumerStatefulWidget {
@@ -55,6 +57,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final hasCustFeature    = ref.watch(hasFeatureProvider(SaasFeature.customers));
+    final hasReportsFeature = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
+    final hasWsFeature      = ref.watch(hasFeatureProvider(SaasFeature.wholesale));
     final salesToday = ref.watch(salesReportProvider('today'));
     final inventoryRpt = ref.watch(inventoryReportProvider);
     final customerRpt = ref.watch(customerReportProvider);
@@ -135,24 +140,27 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         'color': EnhancedTheme.infoBlue,
         'route': '/dashboard/inventory'
       },
-      {
-        'label': 'Customers',
-        'icon': Icons.people_rounded,
-        'color': EnhancedTheme.accentPurple,
-        'route': '/dashboard/customers'
-      },
-      {
-        'label': 'Reports',
-        'icon': Icons.bar_chart_rounded,
-        'color': EnhancedTheme.successGreen,
-        'route': '/dashboard/reports'
-      },
-      {
-        'label': 'Wholesale',
-        'icon': Icons.store_rounded,
-        'color': EnhancedTheme.accentCyan,
-        'route': '/wholesale-dashboard'
-      },
+      if (hasCustFeature)
+        {
+          'label': 'Customers',
+          'icon': Icons.people_rounded,
+          'color': EnhancedTheme.accentPurple,
+          'route': '/dashboard/customers'
+        },
+      if (hasReportsFeature)
+        {
+          'label': 'Reports',
+          'icon': Icons.bar_chart_rounded,
+          'color': EnhancedTheme.successGreen,
+          'route': '/dashboard/reports'
+        },
+      if (hasWsFeature)
+        {
+          'label': 'Wholesale',
+          'icon': Icons.store_rounded,
+          'color': EnhancedTheme.accentCyan,
+          'route': '/wholesale-dashboard'
+        },
       {
         'label': 'More',
         'icon': Icons.more_horiz_rounded,
@@ -958,14 +966,17 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
 
 // ── More Features Bottom Sheet ────────────────────────────────────────────────
 
-class _AdminMoreSheet extends StatelessWidget {
+class _AdminMoreSheet extends ConsumerWidget {
   final void Function(String route) onNavigate;
   final VoidCallback onLogout;
 
   const _AdminMoreSheet({required this.onNavigate, required this.onLogout});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasReportsFeature = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
+    final hasAdvancedReports = ref.watch(hasFeatureProvider(SaasFeature.advancedReports));
+    final hasWsFeature = ref.watch(hasFeatureProvider(SaasFeature.wholesale));
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: BackdropFilter(
@@ -1017,32 +1028,38 @@ class _AdminMoreSheet extends StatelessWidget {
                       fontWeight: FontWeight.w800)),
             ]),
             const SizedBox(height: 20),
-            _sectionLabel(context, 'Reports', Icons.analytics_outlined,
-                EnhancedTheme.successGreen),
-            const SizedBox(height: 10),
-            Row(children: [
-              _card(context, Icons.show_chart, 'Sales',
-                  EnhancedTheme.successGreen, '/dashboard/reports/sales'),
-              const SizedBox(width: 10),
-              _card(context, Icons.inventory_2_outlined, 'Inventory',
-                  EnhancedTheme.infoBlue, '/dashboard/reports/inventory'),
-              const SizedBox(width: 10),
-              _card(context, Icons.people_outline, 'Customers',
-                  EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
-              const SizedBox(width: 10),
-              _card(context, Icons.trending_up, 'Profit',
-                  EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
-            ]),
-            const SizedBox(height: 22),
+            if (hasReportsFeature) ...[
+              _sectionLabel(context, 'Reports', Icons.analytics_outlined,
+                  EnhancedTheme.successGreen),
+              const SizedBox(height: 10),
+              Row(children: [
+                _card(context, Icons.show_chart, 'Sales',
+                    EnhancedTheme.successGreen, '/dashboard/reports/sales'),
+                const SizedBox(width: 10),
+                _card(context, Icons.inventory_2_outlined, 'Inventory',
+                    EnhancedTheme.infoBlue, '/dashboard/reports/inventory'),
+                const SizedBox(width: 10),
+                _card(context, Icons.people_outline, 'Customers',
+                    EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
+                if (hasAdvancedReports) ...[
+                  const SizedBox(width: 10),
+                  _card(context, Icons.trending_up, 'Profit',
+                      EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
+                ],
+              ]),
+              const SizedBox(height: 22),
+            ],
             _sectionLabel(context, 'Navigate', Icons.navigation_outlined,
                 EnhancedTheme.infoBlue),
             const SizedBox(height: 10),
             Row(children: [
               _card(context, Icons.storefront_outlined, 'Retail',
                   EnhancedTheme.primaryTeal, '/dashboard'),
-              const SizedBox(width: 10),
-              _card(context, Icons.store_outlined, 'Wholesale',
-                  EnhancedTheme.accentCyan, '/wholesale-dashboard'),
+              if (hasWsFeature) ...[
+                const SizedBox(width: 10),
+                _card(context, Icons.store_outlined, 'Wholesale',
+                    EnhancedTheme.accentCyan, '/wholesale-dashboard'),
+              ],
               const SizedBox(width: 10),
               _card(context, Icons.point_of_sale_outlined, 'POS',
                   EnhancedTheme.successGreen, '/dashboard/pos'),

@@ -310,7 +310,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Enter your password';
-                    if (v.length < 4) return 'Password is too short';
+                    if (v.length < 8) return 'Password must be at least 8 characters';
                     return null;
                   },
                 ),

@@ -1,5 +1,4 @@
 {
-  
   "permissions": {
     "allow": [
       "Bash(flutter pub:*)",
@@ -86,7 +85,8 @@
       "Bash(pip3 install:*)",
       "Bash(del \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\core\\\\sync\\\\sync_service.dart\")",
       "Bash(git checkout:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(find:*)"
     ]
   }
 }

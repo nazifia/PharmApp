@@ -53,7 +53,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     final hasCustFeature     = ref.watch(hasFeatureProvider(SaasFeature.customers));
     final hasWsFeature       = ref.watch(hasFeatureProvider(SaasFeature.wholesale));
     final hasReportsFeature  = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
-    final hasBranchFeature   = ref.watch(hasFeatureProvider(SaasFeature.multiBranch));
+    final hasBranchFeature      = ref.watch(hasFeatureProvider(SaasFeature.multiBranch));
+    final hasAdvancedReports    = ref.watch(hasFeatureProvider(SaasFeature.advancedReports));
+    final hasUserMgmtFeature    = ref.watch(hasFeatureProvider(SaasFeature.userManagement));
     final branches           = ref.watch(branchListProvider);
     final activeBranch       = ref.watch(activeBranchProvider);
     final isDark         = context.isDark;
@@ -229,8 +231,10 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               _SubNavItem(icon: Icons.show_chart_rounded, label: 'Sales Report', route: '/dashboard/reports/sales', onTap: navigate),
                               _SubNavItem(icon: Icons.inventory_2_outlined, label: 'Inventory Report', route: '/dashboard/reports/inventory', onTap: navigate),
                               _SubNavItem(icon: Icons.people_outline, label: 'Customer Report', route: '/dashboard/reports/customers', onTap: navigate),
-                              _SubNavItem(icon: Icons.trending_up_rounded, label: 'Profit Report', route: '/dashboard/reports/profit', onTap: navigate),
-                              _SubNavItem(icon: Icons.calendar_month_rounded, label: 'Monthly Report', route: '/dashboard/reports/monthly', onTap: navigate),
+                              if (hasAdvancedReports) ...[
+                                _SubNavItem(icon: Icons.trending_up_rounded, label: 'Profit Report', route: '/dashboard/reports/profit', onTap: navigate),
+                                _SubNavItem(icon: Icons.calendar_month_rounded, label: 'Monthly Report', route: '/dashboard/reports/monthly', onTap: navigate),
+                              ],
                             ],
                           ),
                         ],
@@ -274,10 +278,12 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             isExpanded: _expanded.contains('admin'),
                             onToggle: () => _toggle('admin'),
                             children: [
-                              _SubNavItem(icon: Icons.people_alt_rounded, label: 'User Management', route: '/dashboard/users', onTap: navigate),
+                              if (hasUserMgmtFeature)
+                                _SubNavItem(icon: Icons.people_alt_rounded, label: 'User Management', route: '/dashboard/users', onTap: navigate),
                               _SubNavItem(icon: Icons.notifications_rounded, label: 'Notifications', route: '/dashboard/notifications', onTap: navigate, badge: notifCount),
                               _SubNavItem(icon: Icons.settings_rounded, label: 'Settings', route: '/dashboard/settings', onTap: navigate),
-                              _SubNavItem(icon: Icons.account_tree_rounded, label: 'Branches', route: '/dashboard/branches', onTap: navigate),
+                              if (hasBranchFeature)
+                                _SubNavItem(icon: Icons.account_tree_rounded, label: 'Branches', route: '/dashboard/branches', onTap: navigate),
                             ],
                           ),
                         ],

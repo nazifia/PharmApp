@@ -36,7 +36,7 @@ final mediaBaseUrlProvider = StateProvider<String>((ref) {
 String resolvedMediaUrl(String path, {String? mediaBase}) {
   if (path.isEmpty) return '';
   if (path.startsWith('http')) return path;
-  mediaBase ??= 'http://localhost:8000'; // safe default; overridden in practice
+  mediaBase ??= 'https://PharmApp.pythonanywhere.com'; // safe default; overridden in practice
   final cleanPath = path.startsWith('/') ? path : '/$path';
   return '$mediaBase$cleanPath';
 }
@@ -89,27 +89,14 @@ class AuthInterceptor extends Interceptor {
 
 // ── Safe log interceptor ─────────────────────────────────────────────────────
 
-/// Logs requests and responses but truncates large bodies and skips HTML.
+/// Logs requests and responses (method + URI + status only — never body/headers
+/// that may contain tokens, passwords, or PII).
 class SafeLogInterceptor extends Interceptor {
-  static const _maxLogLength = 500;
-
-  String _truncate(dynamic data) {
-    final str = data?.toString() ?? '';
-    if (str.length > _maxLogLength) {
-      return '${str.substring(0, _maxLogLength)}... (${str.length} chars)';
-    }
-    return str;
-  }
-
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (kDebugMode) {
       // ignore: avoid_print
       print('DioLog --> ${options.method} ${options.uri}');
-      if (options.data != null) {
-        // ignore: avoid_print
-        print('DioLog     body: ${_truncate(options.data)}');
-      }
     }
     handler.next(options);
   }
@@ -117,16 +104,8 @@ class SafeLogInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (kDebugMode) {
-      final isJson = response.headers.value('content-type')?.contains('json') ?? false;
-      if (isJson) {
-        // ignore: avoid_print
-        print('DioLog <-- ${response.statusCode} ${response.requestOptions.uri}');
-        // ignore: avoid_print
-        print('DioLog     ${_truncate(response.data)}');
-      } else {
-        // ignore: avoid_print
-        print('DioLog <-- ${response.statusCode} ${response.requestOptions.uri} (non-JSON response, ${response.data?.toString().length ?? 0} bytes)');
-      }
+      // ignore: avoid_print
+      print('DioLog <-- ${response.statusCode} ${response.requestOptions.uri}');
     }
     handler.next(response);
   }
@@ -134,17 +113,9 @@ class SafeLogInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (kDebugMode) {
-      final status = err.response?.statusCode ?? 'N/A';
-      final isJson = err.response?.headers.value('content-type')?.contains('json') ?? false;
+      final statusCode = err.response?.statusCode ?? 'N/A';
       // ignore: avoid_print
-      print('DioLog ERR $status ${err.requestOptions.method} ${err.requestOptions.uri}');
-      if (isJson) {
-        // ignore: avoid_print
-        print('DioLog     ${_truncate(err.response?.data)}');
-      } else {
-        // ignore: avoid_print
-        print('DioLog     ${err.message} (non-JSON error response)');
-      }
+      print('DioLog ERR $statusCode ${err.requestOptions.method} ${err.requestOptions.uri}');
     }
     handler.next(err);
   }
