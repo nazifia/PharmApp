@@ -654,6 +654,8 @@ class StockCheckItem(models.Model):
         return f"{self.item.name} (exp:{self.expected_quantity}, act:{self.actual_quantity})"
 
     def to_api_dict(self):
+        discrepancy = (self.actual_quantity or self.expected_quantity) - self.expected_quantity
+        unit_price = float(getattr(self.item, "price", 0) or 0)
         return {
             "id": self.id,
             "itemId": self.item_id,
@@ -661,8 +663,8 @@ class StockCheckItem(models.Model):
             "expected": self.expected_quantity,
             "actual": self.actual_quantity,
             "status": self.status,
-            "discrepancy": (self.actual_quantity or self.expected_quantity)
-            - self.expected_quantity,
+            "discrepancy": discrepancy,
+            "costDifference": round(discrepancy * unit_price, 2),
         }
 
 

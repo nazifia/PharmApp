@@ -118,93 +118,52 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     child: ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       children: [
+
                         // ══ DASHBOARD ═════════════════════════════════════════
                         _NavItem(icon: Icons.home_rounded, label: 'Dashboard', route: AppShell.roleFallback(ref), onTap: navigate),
 
+                        // ══ OPERATIONS ════════════════════════════════════════
                         if (canPOS || isWholesale) ...[
-                        const SizedBox(height: 4),
-                        _SectionDivider(label: 'Operations'),
-                        ],
-
-                        // ══ DISPENSING ════════════════════════════════════════
-                        if (canPOS || isWholesale)
-                        _ExpandableSection(
-                          icon: Icons.medication_rounded, label: 'Dispensing',
-                          isExpanded: _expanded.contains('dispensing'),
-                          onToggle: () => _toggle('dispensing'),
-                          children: [
-                            if (canPOS)
-                              _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'Retail Dispense', route: '/dashboard/pos', onTap: navigate),
-                            if (isWholesale)
-                              _SubNavItem(icon: Icons.store_rounded, label: 'Wholesale Dispense', route: '/dashboard/wholesale-pos', onTap: navigate),
-                          ],
-                        ),
-
-                        // ══ CUSTOMERS ════════════════════════════════════════
-                        if (canReadCust && hasCustFeature)
-                        _ExpandableSection(
-                          icon: Icons.people_rounded, label: 'Customers',
-                          isExpanded: _expanded.contains('customers'),
-                          onToggle: () => _toggle('customers'),
-                          children: [
-                            _SubNavItem(icon: Icons.list_rounded, label: 'Customer List', route: '/dashboard/customers', onTap: navigate),
-                          ],
-                        ),
-
-                        // ══ PAYMENTS ═════════════════════════════════════════
-                        if (canPayments)
-                        _ExpandableSection(
-                          icon: Icons.credit_card_rounded, label: 'Payments',
-                          isExpanded: _expanded.contains('payments'),
-                          onToggle: () => _toggle('payments'),
-                          children: [
-                            _SubNavItem(icon: Icons.request_page_rounded, label: 'Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
-                          ],
-                        ),
-
-                        // ══ SALES ════════════════════════════════════════════
-                        if (canPOS || isWholesale)
-                        _ExpandableSection(
-                          icon: Icons.receipt_long_rounded, label: 'Sales',
-                          isExpanded: _expanded.contains('sales'),
-                          onToggle: () => _toggle('sales'),
-                          children: [
-                            _SubNavItem(icon: Icons.history_rounded, label: 'Sales History', route: '/dashboard/sales', onTap: navigate),
-                            _SubNavItem(icon: Icons.list_alt_rounded, label: 'Dispensing Log', route: '/dashboard/dispensing-log', onTap: navigate),
-                            if (isWholesale && hasWsFeature)
-                              _SubNavItem(icon: Icons.store_rounded, label: 'Wholesale Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
-                          ],
-                        ),
-
-                        // ══ WHOLESALE ─────────────────────────────────────────
-                        if (isWholesale && hasWsFeature) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Wholesale'),
+                          _SectionDivider(label: 'Operations'),
                           _ExpandableSection(
-                            icon: Icons.store_rounded, label: 'Wholesale',
-                            isExpanded: _expanded.contains('wholesale'),
-                            onToggle: () => _toggle('wholesale'),
+                            icon: Icons.medication_rounded, label: 'Dispensing',
+                            isExpanded: _expanded.contains('dispensing'),
+                            onToggle: () => _toggle('dispensing'),
                             children: [
-                              _SubNavItem(icon: Icons.dashboard_rounded, label: 'WS Dashboard', route: '/wholesale-dashboard', onTap: navigate),
-                              _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'WS POS', route: '/dashboard/wholesale-pos', onTap: navigate),
-                              _SubNavItem(icon: Icons.receipt_long_rounded, label: 'WS Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
-                              if (canTransfers)
-                                _SubNavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
-                              _SubNavItem(icon: Icons.inventory_rounded, label: 'Adjust WS Stock', route: '/dashboard/inventory', onTap: navigate),
-                              _SubNavItem(icon: Icons.warning_amber_rounded, label: 'Low Stock Alerts', route: '/dashboard/inventory', onTap: navigate),
-                              _SubNavItem(icon: Icons.hourglass_bottom_rounded, label: 'Expiry Alerts', route: '/dashboard/inventory', onTap: navigate),
-                              _SubNavItem(icon: Icons.fact_check_rounded, label: 'WS Stock Check', route: '/dashboard/ws-stock-check', onTap: navigate),
-                              _SubNavItem(icon: Icons.star_rounded, label: 'Top Products', route: '/wholesale-dashboard', onTap: navigate),
-                              _SubNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Inventory Value', route: '/wholesale-dashboard', onTap: navigate),
+                              if (canPOS)
+                                _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'Retail POS', route: '/dashboard/pos', onTap: navigate),
+                              if (isWholesale)
+                                _SubNavItem(icon: Icons.store_rounded, label: 'Wholesale POS', route: '/dashboard/wholesale-pos', onTap: navigate),
+                            ],
+                          ),
+                          _ExpandableSection(
+                            icon: Icons.receipt_long_rounded, label: 'Sales',
+                            isExpanded: _expanded.contains('sales'),
+                            onToggle: () => _toggle('sales'),
+                            children: [
+                              _SubNavItem(icon: Icons.history_rounded, label: 'Sales History', route: '/dashboard/sales', onTap: navigate),
+                              _SubNavItem(icon: Icons.list_alt_rounded, label: 'Dispensing Log', route: '/dashboard/dispensing-log', onTap: navigate),
+                              if (isWholesale && hasWsFeature)
+                                _SubNavItem(icon: Icons.store_rounded, label: 'Wholesale Sales', route: '/dashboard/wholesale-sales', onTap: navigate),
                             ],
                           ),
                         ],
 
+                        // ══ CUSTOMERS ════════════════════════════════════════
+                        if ((canReadCust && hasCustFeature) || canPayments) ...[
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Customers'),
+                          if (canReadCust && hasCustFeature)
+                            _NavItem(icon: Icons.people_rounded, label: 'Customer List', route: '/dashboard/customers', onTap: navigate),
+                          if (canPayments)
+                            _NavItem(icon: Icons.credit_card_rounded, label: 'Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
+                        ],
+
+                        // ══ INVENTORY ════════════════════════════════════════
                         if (canReadInv) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Inventory'),
-
-                          // ══ INVENTORY ═══════════════════════════════════════
                           _ExpandableSection(
                             icon: Icons.inventory_2_rounded, label: 'Inventory',
                             isExpanded: _expanded.contains('inventory'),
@@ -218,11 +177,20 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           ),
                         ],
 
+                        // ══ WHOLESALE ════════════════════════════════════════
+                        if (isWholesale && hasWsFeature) ...[
+                          const SizedBox(height: 4),
+                          _SectionDivider(label: 'Wholesale'),
+                          _NavItem(icon: Icons.dashboard_rounded, label: 'WS Dashboard', route: '/wholesale-dashboard', onTap: navigate),
+                          _NavItem(icon: Icons.fact_check_rounded, label: 'WS Stock Check', route: '/dashboard/ws-stock-check', onTap: navigate),
+                          if (canTransfers)
+                            _NavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
+                        ],
+
+                        // ══ REPORTS & ANALYTICS ══════════════════════════════
                         if (canViewReports && hasReportsFeature) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Reports & Analytics'),
-
-                          // ══ REPORTS ═══════════════════════════════════════════
                           _ExpandableSection(
                             icon: Icons.analytics_rounded, label: 'Reports',
                             isExpanded: _expanded.contains('reports'),
@@ -235,41 +203,29 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                 _SubNavItem(icon: Icons.trending_up_rounded, label: 'Profit Report', route: '/dashboard/reports/profit', onTap: navigate),
                                 _SubNavItem(icon: Icons.calendar_month_rounded, label: 'Monthly Report', route: '/dashboard/reports/monthly', onTap: navigate),
                               ],
+                              if (canReadInv)
+                                _SubNavItem(icon: Icons.fact_check_rounded, label: 'Stock Check Report', route: '/dashboard/stock-check-report', onTap: navigate),
+                              if (canReadInv && isWholesale && hasWsFeature)
+                                _SubNavItem(icon: Icons.fact_check_rounded, label: 'WS Stock Check Report', route: '/dashboard/ws-stock-check-report', onTap: navigate),
                             ],
                           ),
                         ],
 
+                        // ══ FINANCE ══════════════════════════════════════════
                         if (canExpenses) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Finance'),
-
-                          // ══ FINANCE ═══════════════════════════════════════════
-                          _ExpandableSection(
-                            icon: Icons.attach_money_rounded, label: 'Finance',
-                            isExpanded: _expanded.contains('finance'),
-                            onToggle: () => _toggle('finance'),
-                            children: [
-                              _SubNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Expenses', route: '/dashboard/expenses', onTap: navigate),
-                            ],
-                          ),
+                          _NavItem(icon: Icons.account_balance_wallet_rounded, label: 'Expenses', route: '/dashboard/expenses', onTap: navigate),
                         ],
 
+                        // ══ PROCUREMENT ══════════════════════════════════════
                         if (canSuppliers) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Procurement'),
-
-                          // ══ PROCUREMENT ═══════════════════════════════════════
-                          _ExpandableSection(
-                            icon: Icons.local_shipping_rounded, label: 'Procurement',
-                            isExpanded: _expanded.contains('procurement'),
-                            onToggle: () => _toggle('procurement'),
-                            children: [
-                              _SubNavItem(icon: Icons.storefront_rounded, label: 'Suppliers', route: '/dashboard/suppliers', onTap: navigate),
-                            ],
-                          ),
+                          _NavItem(icon: Icons.storefront_rounded, label: 'Suppliers', route: '/dashboard/suppliers', onTap: navigate),
                         ],
 
-                        // ══ ADMIN ═════════════════════════════════════════════
+                        // ══ ADMINISTRATION ═══════════════════════════════════
                         if (isAdmin) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Administration'),
@@ -280,42 +236,27 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             children: [
                               if (hasUserMgmtFeature)
                                 _SubNavItem(icon: Icons.people_alt_rounded, label: 'User Management', route: '/dashboard/users', onTap: navigate),
-                              _SubNavItem(icon: Icons.notifications_rounded, label: 'Notifications', route: '/dashboard/notifications', onTap: navigate, badge: notifCount),
-                              _SubNavItem(icon: Icons.settings_rounded, label: 'Settings', route: '/dashboard/settings', onTap: navigate),
                               if (hasBranchFeature)
                                 _SubNavItem(icon: Icons.account_tree_rounded, label: 'Branches', route: '/dashboard/branches', onTap: navigate),
+                              _SubNavItem(icon: Icons.notifications_rounded, label: 'Notifications', route: '/dashboard/notifications', onTap: navigate, badge: notifCount),
+                              _SubNavItem(icon: Icons.settings_rounded, label: 'Settings', route: '/dashboard/settings', onTap: navigate),
                             ],
                           ),
                         ],
 
-                        // ══ SUBSCRIPTION — visible to Admin & Manager only ══════
+                        // ══ BILLING ══════════════════════════════════════════
                         if (isAdmin) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Billing'),
-                          _NavItem(
-                            icon: Icons.workspace_premium_rounded,
-                            label: 'Subscription & Plans',
-                            route: '/subscription',
-                            onTap: navigate,
-                          ),
-                          _NavItem(
-                            icon: Icons.receipt_long_rounded,
-                            label: 'Billing & Invoices',
-                            route: '/billing',
-                            onTap: navigate,
-                          ),
+                          _NavItem(icon: Icons.workspace_premium_rounded, label: 'Subscription & Plans', route: '/subscription', onTap: navigate),
+                          _NavItem(icon: Icons.receipt_long_rounded, label: 'Billing & Invoices', route: '/billing', onTap: navigate),
                         ],
 
                         // ══ PLATFORM ADMIN (superusers only) ══════════════════
                         if (user?.isSuperuser == true) ...[
                           const SizedBox(height: 4),
                           _SectionDivider(label: 'Platform Admin'),
-                          _NavItem(
-                            icon: Icons.admin_panel_settings_rounded,
-                            label: 'Subscription Manager',
-                            route: '/superuser',
-                            onTap: navigate,
-                          ),
+                          _NavItem(icon: Icons.admin_panel_settings_rounded, label: 'Subscription Manager', route: '/superuser', onTap: navigate),
                         ],
 
                       ],

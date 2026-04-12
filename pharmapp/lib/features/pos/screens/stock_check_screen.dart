@@ -16,7 +16,8 @@ import '../providers/pos_api_provider.dart';
 
 class StockCheckScreen extends ConsumerStatefulWidget {
   final bool isWholesale;
-  const StockCheckScreen({super.key, this.isWholesale = false});
+  final bool showReport;
+  const StockCheckScreen({super.key, this.isWholesale = false, this.showReport = false});
 
   @override
   ConsumerState<StockCheckScreen> createState() => _StockCheckScreenState();
@@ -41,7 +42,12 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
   @override
   void initState() {
     super.initState();
-    _loadChecks();
+    if (widget.showReport) {
+      _showReport = true;
+      _loadReport();
+    } else {
+      _loadChecks();
+    }
   }
 
   Future<void> _loadChecks() async {
@@ -444,6 +450,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     final itemStatus = (item['status'] as String?) ?? 'pending';
     final itemId = (item['id'] as num?)?.toInt() ?? 0;
     final discrepancy = actual != null ? actual - expected : null;
+    final itemCostDiff = (item['costDifference'] as num?);
 
     final qtyController = TextEditingController(text: actual?.toString() ?? '');
 
@@ -583,6 +590,28 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                                   : Icons.check_rounded,
                     )),
                   ]),
+
+                  if (itemCostDiff != null && itemCostDiff != 0) ...[
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Icon(Icons.attach_money_rounded,
+                          color: itemCostDiff < 0
+                              ? EnhancedTheme.errorRed
+                              : EnhancedTheme.successGreen,
+                          size: 12),
+                      const SizedBox(width: 4),
+                      Text('Cost diff: ',
+                          style: GoogleFonts.inter(
+                              color: context.subLabelColor, fontSize: 11)),
+                      Text(_fmt(itemCostDiff),
+                          style: GoogleFonts.outfit(
+                              color: itemCostDiff < 0
+                                  ? EnhancedTheme.errorRed
+                                  : EnhancedTheme.successGreen,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                    ]),
+                  ],
 
                   if (checkStatus == 'in_progress') ...[
                     const SizedBox(height: 12),
@@ -747,34 +776,39 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                             style: GoogleFonts.outfit(color: context.labelColor,
                                 fontSize: 14, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 10),
-                        GridView.count(
-                          crossAxisCount: 2,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: 1.7,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _summaryCard('Total Checks',
+                            Expanded(child: _summaryCard('Total Checks',
                                 '${summary['totalChecks'] ?? 0}',
                                 EnhancedTheme.primaryTeal,
-                                Icons.fact_check_rounded),
-                            _summaryCard('Completed',
+                                Icons.fact_check_rounded)),
+                            const SizedBox(width: 10),
+                            Expanded(child: _summaryCard('Completed',
                                 '${summary['completedChecks'] ?? 0}',
                                 EnhancedTheme.successGreen,
-                                Icons.check_circle_rounded),
-                            _summaryCard('Items Checked',
+                                Icons.check_circle_rounded)),
+                            const SizedBox(width: 10),
+                            Expanded(child: _summaryCard('Items Checked',
                                 '${summary['totalItemsChecked'] ?? 0}',
                                 EnhancedTheme.infoBlue,
-                                Icons.inventory_rounded),
-                            _summaryCard('Discrepancies',
+                                Icons.inventory_rounded)),
+                            const SizedBox(width: 10),
+                            Expanded(child: _summaryCard('Discrepancies',
                                 '${summary['totalDiscrepancies'] ?? 0}',
                                 EnhancedTheme.errorRed,
-                                Icons.warning_rounded),
-                            _summaryCard('Adjustments Made',
+                                Icons.warning_rounded)),
+                            const SizedBox(width: 10),
+                            Expanded(child: _summaryCard('Adjustments Made',
                                 '${summary['totalAdjustments'] ?? 0}',
                                 EnhancedTheme.warningAmber,
-                                Icons.tune_rounded),
+                                Icons.tune_rounded)),
+                            const SizedBox(width: 10),
+                            Expanded(child: _summaryCard(
+                                'Cost Difference',
+                                _fmt((summary['totalCostDifference'] as num?) ?? 0),
+                                EnhancedTheme.accentPurple,
+                                Icons.attach_money_rounded)),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -797,6 +831,14 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
         ])),
       ]),
     );
+  }
+
+  String _fmt(num v) {
+    final abs = v.abs();
+    final sign = v < 0 ? '-' : '';
+    if (abs >= 1000000) return '$sign₦${(abs / 1000000).toStringAsFixed(1)}M';
+    if (abs >= 1000) return '$sign₦${(abs / 1000).toStringAsFixed(1)}K';
+    return '$sign₦${abs.toStringAsFixed(0)}';
   }
 
   Widget _summaryCard(String label, String value, Color color, IconData icon) {
@@ -841,6 +883,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     final matched = (check['matchedItems'] as num?)?.toInt() ?? 0;
     final discrepant = (check['discrepantItems'] as num?)?.toInt() ?? 0;
     final adjusted = (check['adjustedItems'] as num?)?.toInt() ?? 0;
+    final costDiff = (check['totalCostDifference'] as num?) ?? 0;
 
     final accuracy = total > 0 ? matched / total : 1.0;
     final accuracyPct = (accuracy * 100).round();
@@ -938,6 +981,27 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                       minHeight: 6,
                     ),
                   ),
+                  if (costDiff != 0) ...[
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Icon(Icons.attach_money_rounded,
+                          color: costDiff < 0
+                              ? EnhancedTheme.errorRed
+                              : EnhancedTheme.successGreen,
+                          size: 13),
+                      const SizedBox(width: 4),
+                      Text('Cost difference: ',
+                          style: GoogleFonts.inter(
+                              color: context.subLabelColor, fontSize: 11)),
+                      Text(_fmt(costDiff),
+                          style: GoogleFonts.outfit(
+                              color: costDiff < 0
+                                  ? EnhancedTheme.errorRed
+                                  : EnhancedTheme.successGreen,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700)),
+                    ]),
+                  ],
                 ]),
               ),
             ]),

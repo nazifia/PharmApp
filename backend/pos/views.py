@@ -1098,10 +1098,11 @@ def stock_check_report(request):
     total_items = 0
     total_discrepancies = 0
     total_adjusted = 0
+    total_cost_difference = 0.0
     completed_list = []
 
     for c in completed.order_by("-date"):
-        items = c.items.all()
+        items = c.items.select_related("item").all()
         t = items.count()
         matched = items.filter(status="matched").count()
         discrepant = items.filter(status__in=["discrepant", "adjusted"]).count()
@@ -1109,6 +1110,13 @@ def stock_check_report(request):
         total_items += t
         total_discrepancies += discrepant
         total_adjusted += adjusted
+
+        check_cost_diff = 0.0
+        for ci in items:
+            discrepancy = (ci.actual_quantity or ci.expected_quantity) - ci.expected_quantity
+            unit_price = float(getattr(ci.item, "price", 0) or 0)
+            check_cost_diff += discrepancy * unit_price
+        total_cost_difference += check_cost_diff
 
         cb = c.created_by
         created_by_name = (
@@ -1124,6 +1132,7 @@ def stock_check_report(request):
             "matchedItems": matched,
             "discrepantItems": discrepant,
             "adjustedItems": adjusted,
+            "totalCostDifference": round(check_cost_diff, 2),
         })
 
     return Response({
@@ -1133,6 +1142,7 @@ def stock_check_report(request):
             "totalItemsChecked": total_items,
             "totalDiscrepancies": total_discrepancies,
             "totalAdjustments": total_adjusted,
+            "totalCostDifference": round(total_cost_difference, 2),
         },
         "completedChecks": completed_list,
     })
