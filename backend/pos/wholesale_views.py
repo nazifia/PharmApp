@@ -162,8 +162,6 @@ def wholesale_sale_list(request):
 @api_view(["GET"])
 def wholesale_sale_by_user(request):
     """Sales aggregated by user (dispenser)."""
-    from pos.models import DispensingLog
-
     org, err = require_org(request)
     if err:
         return err
@@ -172,27 +170,30 @@ def wholesale_sale_by_user(request):
     date_from = request.query_params.get("from", today.isoformat())
     date_to = request.query_params.get("to", today.isoformat())
 
-    logs = (
-        DispensingLog.objects.filter(
-            sale__organization=org,
-            created_at__date__gte=date_from,
-            created_at__date__lte=date_to,
-            sale__is_wholesale=True,
+    rows = (
+        Sale.objects.filter(
+            organization=org,
+            is_wholesale=True,
+            created__date__gte=date_from,
+            created__date__lte=date_to,
         )
-        .values("user__phone_number", "user__full_name")
-        .annotate(total_items=Sum("quantity"), total_amount=Sum("amount"))
+        .values("dispenser__phone_number", "dispenser__full_name")
+        .annotate(
+            total_sales=Count("id"),
+            total_amount=Sum("total_amount"),
+        )
         .order_by("-total_amount")
     )
 
     return Response(
         [
             {
-                "userName": r["user__full_name"] or r["user__phone_number"] or "Unknown",
-                "user": r["user__full_name"] or r["user__phone_number"] or "Unknown",
-                "totalItems": r["total_items"] or 0,
+                "userName": r["dispenser__full_name"] or r["dispenser__phone_number"] or "Unknown",
+                "user": r["dispenser__full_name"] or r["dispenser__phone_number"] or "Unknown",
+                "totalSales": r["total_sales"] or 0,
                 "totalAmount": float(r["total_amount"] or 0),
             }
-            for r in logs
+            for r in rows
         ]
     )
 

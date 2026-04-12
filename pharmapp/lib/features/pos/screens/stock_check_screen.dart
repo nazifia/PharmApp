@@ -865,7 +865,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                       fontSize: 10),
                   overflow: TextOverflow.ellipsis)),
             ]),
-            const Spacer(),
+            const SizedBox(height: 8),
             Text(value,
                 style: GoogleFonts.outfit(color: color,
                     fontSize: 24, fontWeight: FontWeight.w800)),

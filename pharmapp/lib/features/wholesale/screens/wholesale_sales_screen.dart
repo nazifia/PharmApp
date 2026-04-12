@@ -551,7 +551,8 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
           borderRadius: BorderRadius.circular(18),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
+            child: IntrinsicHeight(
+              child: Container(
               decoration: BoxDecoration(
                 color: context.cardColor,
                 borderRadius: BorderRadius.circular(18),
@@ -660,6 +661,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
                 )),
               ]),
             ),
+            ), // IntrinsicHeight
           ),
         ),
       ),
