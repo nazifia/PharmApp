@@ -193,7 +193,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               _SubNavItem(icon: Icons.inventory_rounded, label: 'Adjust WS Stock', route: '/dashboard/inventory', onTap: navigate),
                               _SubNavItem(icon: Icons.warning_amber_rounded, label: 'Low Stock Alerts', route: '/dashboard/inventory', onTap: navigate),
                               _SubNavItem(icon: Icons.hourglass_bottom_rounded, label: 'Expiry Alerts', route: '/dashboard/inventory', onTap: navigate),
-                              _SubNavItem(icon: Icons.fact_check_rounded, label: 'WS Stock Check', route: '/dashboard/stock-check', onTap: navigate),
+                              _SubNavItem(icon: Icons.fact_check_rounded, label: 'WS Stock Check', route: '/dashboard/ws-stock-check', onTap: navigate),
                               _SubNavItem(icon: Icons.star_rounded, label: 'Top Products', route: '/wholesale-dashboard', onTap: navigate),
                               _SubNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Inventory Value', route: '/wholesale-dashboard', onTap: navigate),
                             ],

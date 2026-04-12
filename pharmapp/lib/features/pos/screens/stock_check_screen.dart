@@ -15,16 +15,22 @@ import '../providers/pos_api_provider.dart';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class StockCheckScreen extends ConsumerStatefulWidget {
-  const StockCheckScreen({super.key});
+  final bool isWholesale;
+  const StockCheckScreen({super.key, this.isWholesale = false});
 
   @override
   ConsumerState<StockCheckScreen> createState() => _StockCheckScreenState();
 }
 
 class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
+  bool get _isWholesale => widget.isWholesale;
+  String get _storeType => _isWholesale ? 'wholesale' : 'retail';
   List<dynamic> _checks = [];
   bool _loading = true;
   String? _error;
+  bool _showReport = false;
+  Map<String, dynamic>? _reportData;
+  bool _reportLoading = false;
 
   // Detail state
   Map<String, dynamic>? _selectedCheck;
@@ -41,7 +47,8 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
   Future<void> _loadChecks() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final checks = await ref.read(posApiProvider).fetchStockChecks();
+      final checks = await ref.read(posApiProvider)
+          .fetchStockChecks(storeType: _storeType);
       if (!mounted) return;
       setState(() { _checks = checks; _loading = false; });
     } catch (e) {
@@ -67,9 +74,23 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     }
   }
 
+  Future<void> _loadReport() async {
+    setState(() { _reportLoading = true; });
+    try {
+      final data = await ref.read(posApiProvider)
+          .fetchStockCheckReport(storeType: _storeType);
+      if (!mounted) return;
+      setState(() { _reportData = data; _reportLoading = false; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _reportLoading = false);
+      _showError('Failed to load report: $e');
+    }
+  }
+
   Future<void> _createCheck() async {
     try {
-      await ref.read(posApiProvider).createStockCheck();
+      await ref.read(posApiProvider).createStockCheck(storeType: _storeType);
       if (!mounted) return;
       _showSnack('Stock check created', EnhancedTheme.successGreen);
       _loadChecks();
@@ -86,6 +107,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       isScrollControlled: true,
       builder: (_) => _AddItemsSheet(
         checkId: checkId,
+        isWholesale: _isWholesale,
         alreadyAdded: _detailItems
             .map((it) => (it['itemId'] as num?)?.toInt() ?? (it['id'] as num?)?.toInt() ?? 0)
             .toSet(),
@@ -184,6 +206,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
   @override
   Widget build(BuildContext context) {
     if (_selectedCheck != null) return _buildDetail();
+    if (_showReport) return _buildReport();
     return _buildList();
   }
 
@@ -340,14 +363,15 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                   hintStyle: GoogleFonts.inter(color: context.hintColor, fontSize: 13),
                   prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
                   filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.06),
+                  fillColor: Colors.white.withValues(alpha: 0.08),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none),
+                      borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.35))),
                   enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.1))),
+                          color: Colors.white.withValues(alpha: 0.35))),
                   focusedBorder: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(14)),
                       borderSide: BorderSide(
@@ -509,15 +533,15 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                                     contentPadding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 8),
                                     filled: true,
-                                    fillColor: Colors.white.withValues(alpha: 0.06),
+                                    fillColor: Colors.white.withValues(alpha: 0.08),
                                     border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(10),
                                         borderSide: BorderSide(
-                                            color: Colors.white.withValues(alpha: 0.15))),
+                                            color: Colors.white.withValues(alpha: 0.4))),
                                     enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(10),
                                         borderSide: BorderSide(
-                                            color: Colors.white.withValues(alpha: 0.15))),
+                                            color: Colors.white.withValues(alpha: 0.4))),
                                     focusedBorder: const OutlineInputBorder(
                                         borderRadius: BorderRadius.all(Radius.circular(10)),
                                         borderSide: BorderSide(
@@ -640,6 +664,304 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     );
   }
 
+  // ── Report View ────────────────────────────────────────────────────────────
+
+  Widget _buildReport() {
+    final summary = (_reportData?['summary'] as Map?)?.cast<String, dynamic>() ?? {};
+    final completed = (_reportData?['completedChecks'] as List?) ?? [];
+
+    return Scaffold(
+      backgroundColor: context.scaffoldBg,
+      body: Stack(children: [
+        Container(decoration: context.bgGradient),
+        Positioned(
+          top: -60, right: -40,
+          child: Container(
+            width: 200, height: 200,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [
+                EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+                Colors.transparent,
+              ]),
+            ),
+          ),
+        ),
+        SafeArea(child: Column(children: [
+          // Header
+          ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(4, 8, 16, 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  border: Border(bottom: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.08))),
+                ),
+                child: Row(children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
+                    onPressed: () => setState(() => _showReport = false),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(_isWholesale ? 'WS Stock Check Report' : 'Stock Check Report',
+                        style: GoogleFonts.outfit(color: context.labelColor,
+                            fontSize: 18, fontWeight: FontWeight.w700)),
+                    Text('Completed checks summary',
+                        style: GoogleFonts.inter(color: context.subLabelColor,
+                            fontSize: 11)),
+                  ])),
+                  GestureDetector(
+                    onTap: _loadReport,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.accentPurple.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: EnhancedTheme.accentPurple.withValues(alpha: 0.3)),
+                      ),
+                      child: Icon(Icons.refresh_rounded,
+                          color: EnhancedTheme.accentPurple, size: 18),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+
+          Expanded(child: _reportLoading
+              ? const Center(child: CircularProgressIndicator(
+                  color: EnhancedTheme.accentPurple))
+              : RefreshIndicator(
+                  color: EnhancedTheme.accentPurple,
+                  onRefresh: _loadReport,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    children: [
+                      // Summary cards grid
+                      if (summary.isNotEmpty) ...[
+                        Text('Overview',
+                            style: GoogleFonts.outfit(color: context.labelColor,
+                                fontSize: 14, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 10),
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 1.7,
+                          children: [
+                            _summaryCard('Total Checks',
+                                '${summary['totalChecks'] ?? 0}',
+                                EnhancedTheme.primaryTeal,
+                                Icons.fact_check_rounded),
+                            _summaryCard('Completed',
+                                '${summary['completedChecks'] ?? 0}',
+                                EnhancedTheme.successGreen,
+                                Icons.check_circle_rounded),
+                            _summaryCard('Items Checked',
+                                '${summary['totalItemsChecked'] ?? 0}',
+                                EnhancedTheme.infoBlue,
+                                Icons.inventory_rounded),
+                            _summaryCard('Discrepancies',
+                                '${summary['totalDiscrepancies'] ?? 0}',
+                                EnhancedTheme.errorRed,
+                                Icons.warning_rounded),
+                            _summaryCard('Adjustments Made',
+                                '${summary['totalAdjustments'] ?? 0}',
+                                EnhancedTheme.warningAmber,
+                                Icons.tune_rounded),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Completed checks list
+                      if (completed.isNotEmpty) ...[
+                        Text('Completed Checks',
+                            style: GoogleFonts.outfit(color: context.labelColor,
+                                fontSize: 14, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 10),
+                        ...completed.asMap().entries.map(
+                            (e) => _reportCheckCard(e.value, e.key)),
+                      ] else if (!_reportLoading)
+                        _emptyState(Icons.bar_chart_rounded,
+                            'No completed checks yet'),
+                    ],
+                  ),
+                )),
+        ])),
+      ]),
+    );
+  }
+
+  Widget _summaryCard(String label, String value, Color color, IconData icon) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [
+              color.withValues(alpha: 0.12),
+              color.withValues(alpha: 0.04),
+            ]),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.25)),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(icon, color: color, size: 16),
+              const SizedBox(width: 6),
+              Expanded(child: Text(label,
+                  style: GoogleFonts.inter(color: context.subLabelColor,
+                      fontSize: 10),
+                  overflow: TextOverflow.ellipsis)),
+            ]),
+            const Spacer(),
+            Text(value,
+                style: GoogleFonts.outfit(color: color,
+                    fontSize: 24, fontWeight: FontWeight.w800)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _reportCheckCard(dynamic check, int index) {
+    final id = (check['id'] as num?)?.toInt() ?? 0;
+    final createdBy = (check['createdBy'] as String?) ?? 'Unknown';
+    final date = (check['createdAt'] as String?) ?? '';
+    final total = (check['totalItems'] as num?)?.toInt() ?? 0;
+    final matched = (check['matchedItems'] as num?)?.toInt() ?? 0;
+    final discrepant = (check['discrepantItems'] as num?)?.toInt() ?? 0;
+    final adjusted = (check['adjustedItems'] as num?)?.toInt() ?? 0;
+
+    final accuracy = total > 0 ? matched / total : 1.0;
+    final accuracyPct = (accuracy * 100).round();
+    final accentColor = discrepant == 0
+        ? EnhancedTheme.successGreen
+        : discrepant <= 2
+            ? EnhancedTheme.warningAmber
+            : EnhancedTheme.errorRed;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+            ),
+            child: Column(children: [
+              // Accent strip
+              Container(
+                height: 3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                      colors: [accentColor, accentColor.withValues(alpha: 0.3)]),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(children: [
+                  Row(children: [
+                    Container(
+                      width: 42, height: 42,
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Icon(Icons.fact_check_rounded, color: accentColor, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Check #$id',
+                          style: GoogleFonts.outfit(color: context.labelColor,
+                              fontSize: 14, fontWeight: FontWeight.w700)),
+                      Row(children: [
+                        Icon(Icons.person_outline_rounded,
+                            color: context.hintColor, size: 11),
+                        const SizedBox(width: 3),
+                        Text(createdBy,
+                            style: GoogleFonts.inter(color: context.subLabelColor,
+                                fontSize: 11)),
+                        const SizedBox(width: 8),
+                        Icon(Icons.calendar_today_rounded,
+                            color: context.hintColor, size: 11),
+                        const SizedBox(width: 3),
+                        Text(date.length > 10 ? date.substring(0, 10) : date,
+                            style: GoogleFonts.inter(color: context.subLabelColor,
+                                fontSize: 11)),
+                      ]),
+                    ])),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text('$accuracyPct%',
+                          style: GoogleFonts.outfit(color: accentColor,
+                              fontSize: 20, fontWeight: FontWeight.w800)),
+                      Text('accuracy',
+                          style: GoogleFonts.inter(color: context.hintColor,
+                              fontSize: 10)),
+                    ]),
+                  ]),
+                  const SizedBox(height: 12),
+                  // Stats row
+                  Row(children: [
+                    Expanded(child: _reportStat('Total', '$total',
+                        EnhancedTheme.infoBlue, Icons.inventory_rounded)),
+                    Expanded(child: _reportStat('Matched', '$matched',
+                        EnhancedTheme.successGreen, Icons.check_rounded)),
+                    Expanded(child: _reportStat('Discrepant', '$discrepant',
+                        EnhancedTheme.errorRed, Icons.warning_rounded)),
+                    Expanded(child: _reportStat('Adjusted', '$adjusted',
+                        EnhancedTheme.warningAmber, Icons.tune_rounded)),
+                  ]),
+                  const SizedBox(height: 10),
+                  // Accuracy bar
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: accuracy,
+                      backgroundColor: accentColor.withValues(alpha: 0.12),
+                      valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+                      minHeight: 6,
+                    ),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    )
+        .animate(delay: Duration(milliseconds: index * 50))
+        .fadeIn(duration: 300.ms)
+        .slideY(begin: 0.04, end: 0);
+  }
+
+  Widget _reportStat(String label, String value, Color color, IconData icon) {
+    return Column(children: [
+      Icon(icon, color: color.withValues(alpha: 0.7), size: 14),
+      const SizedBox(height: 3),
+      Text(value,
+          style: GoogleFonts.outfit(color: color,
+              fontSize: 16, fontWeight: FontWeight.w800)),
+      Text(label,
+          style: GoogleFonts.inter(color: context.hintColor, fontSize: 9)),
+    ]);
+  }
+
   // ── List View ──────────────────────────────────────────────────────────────
 
   Widget _buildList() {
@@ -691,10 +1013,12 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                   ),
                   const SizedBox(width: 4),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Stock Checks',
+                    Text(_isWholesale ? 'WS Stock Checks' : 'Stock Checks',
                         style: GoogleFonts.outfit(color: context.labelColor,
                             fontSize: 20, fontWeight: FontWeight.w700)),
-                    Text('Inventory reconciliation',
+                    Text(_isWholesale
+                        ? 'Wholesale inventory reconciliation'
+                        : 'Retail inventory reconciliation',
                         style: GoogleFonts.inter(color: context.subLabelColor,
                             fontSize: 11)),
                   ])),
@@ -711,6 +1035,31 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                           style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                               fontSize: 11, fontWeight: FontWeight.w700)),
                     ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _showReport = true);
+                      _loadReport();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.accentPurple.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: EnhancedTheme.accentPurple.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.bar_chart_rounded,
+                            color: EnhancedTheme.accentPurple, size: 14),
+                        const SizedBox(width: 4),
+                        Text('Report',
+                            style: GoogleFonts.outfit(
+                                color: EnhancedTheme.accentPurple,
+                                fontSize: 11, fontWeight: FontWeight.w700)),
+                      ]),
+                    ),
+                  ),
                 ]),
               ),
             ),
@@ -976,10 +1325,12 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
 
 class _AddItemsSheet extends ConsumerStatefulWidget {
   final int checkId;
+  final bool isWholesale;
   final Set<int> alreadyAdded;
   final VoidCallback onItemAdded;
   const _AddItemsSheet({
     required this.checkId,
+    required this.isWholesale,
     required this.alreadyAdded,
     required this.onItemAdded,
   });
@@ -1040,7 +1391,9 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final inventoryAsync = ref.watch(inventoryListProvider);
+    final inventoryAsync = widget.isWholesale
+        ? ref.watch(wholesaleInventoryProvider)
+        : ref.watch(retailInventoryProvider);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
@@ -1100,10 +1453,10 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
             fillColor: Colors.white.withValues(alpha: 0.06),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.35))),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.35))),
             focusedBorder: const OutlineInputBorder(
                 borderRadius: BorderRadius.all(Radius.circular(14)),
                 borderSide:

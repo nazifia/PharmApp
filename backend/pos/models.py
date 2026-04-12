@@ -582,6 +582,8 @@ class ProcurementItem(models.Model):
 
 
 class StockCheck(models.Model):
+    STORE_CHOICES = [("retail", "Retail"), ("wholesale", "Wholesale")]
+
     organization = models.ForeignKey(
         'authapp.Organization', null=True, blank=True,
         on_delete=models.CASCADE, related_name='stock_checks'
@@ -590,6 +592,10 @@ class StockCheck(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
     )
     date = models.DateTimeField(auto_now_add=True)
+    store_type = models.CharField(
+        max_length=20, choices=STORE_CHOICES, default="retail",
+        help_text="Which store this stock check belongs to"
+    )
     status = models.CharField(
         max_length=20,
         default="pending",
@@ -608,14 +614,21 @@ class StockCheck(models.Model):
     approved_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Stock Check #{self.id} — {self.status}"
+        return f"Stock Check #{self.id} ({self.store_type}) — {self.status}"
 
     def to_api_dict(self):
+        cb = self.created_by
+        created_by_name = (
+            (getattr(cb, "full_name", "") or getattr(cb, "phone_number", ""))
+            if cb else ""
+        )
         return {
             "id": self.id,
             "status": self.status,
-            "createdBy": getattr(self.created_by, "phone_number", ""),
-            "date": self.date.isoformat(),
+            "storeType": self.store_type,
+            "createdBy": created_by_name,
+            "createdAt": self.date.isoformat(),
+            "itemCount": self.items.count(),
             "items": [i.to_api_dict() for i in self.items.all()],
         }
 

@@ -159,7 +159,7 @@ class CustomerReportScreen extends ConsumerWidget {
                     child: const Icon(Icons.people_rounded, color: EnhancedTheme.accentPurple, size: 22)),
                   const SizedBox(width: 14),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Total Customers', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12, letterSpacing: 0.4)),
+                    Text('Total Customers', style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.4)),
                     Text('${data.total}', style: GoogleFonts.outfit(
                       color: Colors.black, fontSize: 36, fontWeight: FontWeight.w800)),
                   ]),
@@ -314,7 +314,7 @@ class CustomerReportScreen extends ConsumerWidget {
         const SizedBox(height: 5),
         Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 9),
+        Text(label, style: const TextStyle(color: Colors.black45, fontSize: 9),
             textAlign: TextAlign.center),
       ]),
     );

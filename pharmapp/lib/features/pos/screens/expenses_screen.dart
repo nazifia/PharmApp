@@ -494,7 +494,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
   Widget _buildReportCard() {
     final totalSales = (_report?['totalSales'] as num?)?.toDouble() ?? 0;
     final totalExpenses = (_report?['totalExpenses'] as num?)?.toDouble() ?? 0;
-    final netProfit = totalSales - totalExpenses;
+    final netProfit = (_report?['netProfit'] as num?)?.toDouble() ?? (totalSales - totalExpenses);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),

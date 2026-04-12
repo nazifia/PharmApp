@@ -45,6 +45,7 @@ urlpatterns = [
     ),
     # Stock Check
     path("stock-checks/", views.stock_check_list, name="sc-list"),
+    path("stock-checks/report/", views.stock_check_report, name="sc-report"),
     path("stock-checks/<int:pk>/", views.stock_check_detail, name="sc-detail"),
     path(
         "stock-checks/<int:pk>/add-item/",

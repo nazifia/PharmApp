@@ -562,19 +562,21 @@ class PosApiClient {
   }
 
   // ── Stock Checks ───────────────────────────────────────────────────────────
-  Future<List<dynamic>> fetchStockChecks() async {
+  Future<List<dynamic>> fetchStockChecks({String storeType = 'retail'}) async {
     if (_isLocal) return LocalDb.instance.getStockChecks();
+    final cacheKey = 'cache_stock_checks_$storeType';
     try {
-      final res = await _dio!.get('/pos/stock-checks/');
+      final res = await _dio!.get('/pos/stock-checks/',
+          queryParameters: {'store_type': storeType});
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
-      await _cacheStr('cache_stock_checks', list);
+      await _cacheStr(cacheKey, list);
       return list;
     } on DioException catch (e) {
       if (e.response == null) {
-        final cached = await _getCache('cache_stock_checks');
+        final cached = await _getCache(cacheKey);
         if (cached != null) return cached as List;
         throw Exception('Offline — no cached stock checks available');
       }
@@ -583,10 +585,11 @@ class PosApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> createStockCheck() async {
+  Future<Map<String, dynamic>> createStockCheck({String storeType = 'retail'}) async {
     if (_isLocal) return LocalDb.instance.createStockCheck();
     try {
-      final res = await _dio!.post('/pos/stock-checks/');
+      final res = await _dio!.post('/pos/stock-checks/',
+          data: {'store_type': storeType});
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       if (e.response == null) rethrow;
@@ -668,6 +671,29 @@ class PosApiClient {
       if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to delete stock check');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchStockCheckReport(
+      {String storeType = 'retail'}) async {
+    if (_isLocal) {
+      return {'summary': <String, dynamic>{}, 'completedChecks': <dynamic>[]};
+    }
+    final cacheKey = 'cache_stock_check_report_$storeType';
+    try {
+      final res = await _dio!.get('/pos/stock-checks/report/',
+          queryParameters: {'store_type': storeType});
+      final data = res.data as Map<String, dynamic>;
+      await _cacheStr(cacheKey, data);
+      return data;
+    } on DioException catch (e) {
+      if (e.response == null) {
+        final cached = await _getCache(cacheKey);
+        if (cached != null) return cached as Map<String, dynamic>;
+        throw Exception('Offline — no cached report available');
+      }
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to load stock check report');
     }
   }
 

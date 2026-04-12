@@ -232,6 +232,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'expenses',        name: 'expenses',        builder: (_, __) => const ExpensesScreen()),
               GoRoute(path: 'suppliers',       name: 'suppliers',       builder: (_, __) => const SuppliersScreen()),
               GoRoute(path: 'stock-check',     name: 'stock_check',     builder: (_, __) => const StockCheckScreen()),
+              GoRoute(path: 'ws-stock-check',  name: 'ws_stock_check',  builder: (_, __) => const StockCheckScreen(isWholesale: true)),
               GoRoute(path: 'payment-requests',name: 'payment_requests',builder: (_, __) => const PaymentRequestsScreen()),
               GoRoute(path: 'transfers',       name: 'transfers',       builder: (_, __) => const TransfersScreen()),
               GoRoute(path: 'wholesale-sales', name: 'wholesale_sales', builder: (_, __) => const WholesaleSalesScreen()),

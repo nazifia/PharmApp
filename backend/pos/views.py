@@ -988,13 +988,17 @@ def stock_check_list(request):
     org, err = require_org(request)
     if err:
         return err
+    store_type = request.GET.get("store_type") or request.data.get("store_type") or "retail"
+    if store_type not in ("retail", "wholesale"):
+        store_type = "retail"
     if request.method == "GET":
-        checks = StockCheck.objects.filter(organization=org)
+        checks = StockCheck.objects.filter(organization=org, store_type=store_type)
         return Response([c.to_api_dict() for c in checks])
     check = StockCheck.objects.create(
         organization=org,
         created_by=request.user if request.user.is_authenticated else None,
         status="pending",
+        store_type=store_type,
     )
     return Response(check.to_api_dict(), status=status.HTTP_201_CREATED)
 
@@ -1015,7 +1019,7 @@ def stock_check_add_item(request, pk):
         return err
     check = get_object_or_404(StockCheck, pk=pk, organization=org)
     item_id = request.data.get("item_id") or request.data.get("itemId")
-    item = get_object_or_404(Item, pk=item_id, organization=org)
+    item = get_object_or_404(Item, pk=item_id, organization=org, store=check.store_type)
     sci, created = StockCheckItem.objects.get_or_create(
         stock_check=check, item=item, defaults={"expected_quantity": item.stock}
     )
@@ -1076,6 +1080,62 @@ def stock_check_delete(request, pk):
     check = get_object_or_404(StockCheck, pk=pk, organization=org)
     check.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["GET"])
+def stock_check_report(request):
+    """Aggregate report for completed stock checks."""
+    org, err = require_org(request)
+    if err:
+        return err
+    store_type = request.GET.get("store_type", "retail")
+    if store_type not in ("retail", "wholesale"):
+        store_type = "retail"
+
+    all_checks = StockCheck.objects.filter(organization=org, store_type=store_type)
+    completed = all_checks.filter(status="completed")
+
+    total_items = 0
+    total_discrepancies = 0
+    total_adjusted = 0
+    completed_list = []
+
+    for c in completed.order_by("-date"):
+        items = c.items.all()
+        t = items.count()
+        matched = items.filter(status="matched").count()
+        discrepant = items.filter(status__in=["discrepant", "adjusted"]).count()
+        adjusted = items.filter(status="adjusted").count()
+        total_items += t
+        total_discrepancies += discrepant
+        total_adjusted += adjusted
+
+        cb = c.created_by
+        created_by_name = (
+            (getattr(cb, "full_name", "") or getattr(cb, "phone_number", ""))
+            if cb else ""
+        )
+        completed_list.append({
+            "id": c.id,
+            "createdAt": c.date.isoformat(),
+            "createdBy": created_by_name,
+            "storeType": c.store_type,
+            "totalItems": t,
+            "matchedItems": matched,
+            "discrepantItems": discrepant,
+            "adjustedItems": adjusted,
+        })
+
+    return Response({
+        "summary": {
+            "totalChecks": all_checks.count(),
+            "completedChecks": completed.count(),
+            "totalItemsChecked": total_items,
+            "totalDiscrepancies": total_discrepancies,
+            "totalAdjustments": total_adjusted,
+        },
+        "completedChecks": completed_list,
+    })
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
