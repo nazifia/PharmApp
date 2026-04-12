@@ -57,26 +57,97 @@ class WalletTransaction {
   }
 }
 
+// ── Sale item detail ──────────────────────────────────────────────────────────
+
+class SaleItemDetail {
+  final String name;
+  final String brand;
+  final String unit;
+  final int quantity;
+  final double price;
+  final double subtotal;
+  final bool returned;
+
+  SaleItemDetail({
+    required this.name,
+    required this.brand,
+    required this.unit,
+    required this.quantity,
+    required this.price,
+    required this.subtotal,
+    required this.returned,
+  });
+
+  factory SaleItemDetail.fromJson(Map<String, dynamic> j) => SaleItemDetail(
+        name: (j['name'] as String?) ?? '',
+        brand: (j['brand'] as String?) ?? '',
+        unit: (j['unit'] as String?) ?? '',
+        quantity: (j['quantity'] as num?)?.toInt() ?? 1,
+        price: (j['price'] as num?)?.toDouble() ?? 0.0,
+        subtotal: (j['subtotal'] as num?)?.toDouble() ?? 0.0,
+        returned: (j['returned'] as bool?) ?? false,
+      );
+}
+
 // ── Customer sale ─────────────────────────────────────────────────────────────
 
 class CustomerSale {
   final String date;
-  final int items;
+  final int itemCount;
   final double total;
   final String status;
+  final String? receiptId;
+  final String? paymentMethod;
+  final String? dispenserName;
+  final List<SaleItemDetail> itemDetails;
 
-  CustomerSale({required this.date, required this.items,
-      required this.total, required this.status});
+  CustomerSale({
+    required this.date,
+    required this.itemCount,
+    required this.total,
+    required this.status,
+    this.receiptId,
+    this.paymentMethod,
+    this.dispenserName,
+    this.itemDetails = const [],
+  });
 
-  factory CustomerSale.fromJson(Map<String, dynamic> j) => CustomerSale(
-        date: (j['created'] as String?) ?? (j['date'] as String?) ?? '',
-        items: j['items'] is List
-            ? (j['items'] as List).length
-            : (j['items'] as num?)?.toInt() ?? 0,
-        total: (j['totalAmount'] as num?)?.toDouble() ??
-            (j['total'] as num?)?.toDouble() ?? 0.0,
-        status: (j['status'] as String?) ?? 'Paid',
-      );
+  // keep backward-compat getter
+  int get items => itemCount;
+
+  factory CustomerSale.fromJson(Map<String, dynamic> j) {
+    final rawDate = (j['created'] as String?) ?? (j['date'] as String?) ?? '';
+    String formatted = rawDate;
+    if (rawDate.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(rawDate).toLocal();
+        formatted = '${dt.day.toString().padLeft(2, '0')}/'
+            '${dt.month.toString().padLeft(2, '0')}/${dt.year}  '
+            '${dt.hour % 12 == 0 ? 12 : dt.hour % 12}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour < 12 ? 'AM' : 'PM'}';
+      } catch (_) {}
+    }
+
+    final rawItems = j['items'];
+    final List<SaleItemDetail> details = rawItems is List
+        ? rawItems.map((e) => SaleItemDetail.fromJson(e as Map<String, dynamic>)).toList()
+        : [];
+
+    return CustomerSale(
+      date: formatted,
+      itemCount: details.isNotEmpty
+          ? details.length
+          : (rawItems is List ? rawItems.length : (rawItems as num?)?.toInt() ?? 0),
+      total: (j['totalAmount'] as num?)?.toDouble() ??
+          (j['total'] as num?)?.toDouble() ?? 0.0,
+      status: (j['status'] as String?) ?? 'Paid',
+      receiptId: j['receiptId'] as String?,
+      paymentMethod: j['paymentMethod'] as String?,
+      dispenserName: (j['dispenserName'] as String?)?.isNotEmpty == true
+          ? j['dispenserName'] as String
+          : null,
+      itemDetails: details,
+    );
+  }
 }
 
 // ── API client ────────────────────────────────────────────────────────────────

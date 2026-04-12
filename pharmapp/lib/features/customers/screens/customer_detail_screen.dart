@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import '../providers/customer_provider.dart';
+import '../providers/customer_api_client.dart' show SaleItemDetail;
 import '../../pos/providers/cart_provider.dart';
 
 class CustomerDetailScreen extends ConsumerWidget {
@@ -278,6 +279,24 @@ class CustomerDetailScreen extends ConsumerWidget {
           ],
           const SizedBox(height: 20),
 
+          // ── Actions ─────────────────────────────────────────────────────────
+          Row(children: [
+            Expanded(child: _actionButton(
+              label: 'Wallet',
+              icon: Icons.account_balance_wallet_rounded,
+              colors: [EnhancedTheme.successGreen, EnhancedTheme.primaryTeal],
+              onTap: () => context.push('/customer/${customer.id}/wallet'),
+            )),
+            const SizedBox(width: 12),
+            Expanded(child: _actionButton(
+              label: 'New Sale',
+              icon: Icons.point_of_sale_rounded,
+              colors: [accentColor, accentColor.withValues(alpha: 0.7)],
+              onTap: () => _startNewSale(context, ref, customer),
+            )),
+          ]).animate().fadeIn(duration: 400.ms, delay: 160.ms).slideY(begin: 0.2, end: 0),
+          const SizedBox(height: 20),
+
           // ── Contact details ──────────────────────────────────────────────────
           _sectionTitle(context, 'Contact Details', Icons.contact_page_outlined, EnhancedTheme.infoBlue),
           const SizedBox(height: 10),
@@ -299,7 +318,7 @@ class CustomerDetailScreen extends ConsumerWidget {
               _divider(context),
               _detailRow(context, Icons.access_time_rounded, 'Last Visit', customer.lastVisit!),
             ],
-          ])).animate().fadeIn(duration: 400.ms, delay: 160.ms),
+          ])).animate().fadeIn(duration: 400.ms, delay: 200.ms),
           const SizedBox(height: 20),
 
           // ── Recent purchases ─────────────────────────────────────────────────
@@ -326,31 +345,13 @@ class CustomerDetailScreen extends ConsumerWidget {
                     ]),
                   )))
                 : Column(children: sales.asMap().entries.map((e) =>
-                    _purchaseRow(context, e.value)
+                    _PurchaseCard(sale: e.value)
                         .animate(delay: (e.key * 40).ms)
                         .fadeIn(duration: 300.ms)
                         .slideX(begin: 0.1, end: 0)
                   ).toList()),
           ),
           const SizedBox(height: 24),
-
-          // ── Actions ─────────────────────────────────────────────────────────
-          Row(children: [
-            Expanded(child: _actionButton(
-              label: 'Wallet',
-              icon: Icons.account_balance_wallet_rounded,
-              colors: [EnhancedTheme.successGreen, EnhancedTheme.primaryTeal],
-              onTap: () => context.push('/customer/${customer.id}/wallet'),
-            )),
-            const SizedBox(width: 12),
-            Expanded(child: _actionButton(
-              label: 'New Sale',
-              icon: Icons.point_of_sale_rounded,
-              colors: [accentColor, accentColor.withValues(alpha: 0.7)],
-              onTap: () => _startNewSale(context, ref, customer),
-            )),
-          ]).animate().fadeIn(duration: 400.ms, delay: 200.ms).slideY(begin: 0.2, end: 0),
-          const SizedBox(height: 8),
         ]),
       )),
     ]);
@@ -652,60 +653,7 @@ class CustomerDetailScreen extends ConsumerWidget {
 
   // ── Shared helpers ──────────────────────────────────────────────────────────
 
-  Widget _purchaseRow(BuildContext context, CustomerSale p) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(14),
-      boxShadow: [
-        BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
-      ],
-    ),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.borderColor)),
-          child: Row(children: [
-            Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(
-                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.receipt_long_rounded, color: EnhancedTheme.primaryTeal, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(p.date,
-                  style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text('${p.items} item${p.items == 1 ? '' : 's'}',
-                  style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-            ])),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('₦${p.total.toStringAsFixed(0)}',
-                  style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 14, fontWeight: FontWeight.w800)),
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(p.status,
-                    style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 9, fontWeight: FontWeight.w700)),
-              ),
-            ]),
-          ]),
-        ),
-      ),
-    ),
-  );
+  // _purchaseRow replaced by _PurchaseCard below
 
   Widget _glassCard(BuildContext context, {required Widget child}) => ClipRRect(
     borderRadius: BorderRadius.circular(18),
@@ -839,4 +787,310 @@ class CustomerDetailScreen extends ConsumerWidget {
             fontSize: 13, fontWeight: FontWeight.w700)),
       ]),
     ));
+}
+
+// ── Expandable purchase card ──────────────────────────────────────────────────
+
+class _PurchaseCard extends StatefulWidget {
+  final CustomerSale sale;
+  const _PurchaseCard({required this.sale});
+
+  @override
+  State<_PurchaseCard> createState() => _PurchaseCardState();
+}
+
+class _PurchaseCardState extends State<_PurchaseCard>
+    with SingleTickerProviderStateMixin {
+  bool _expanded = false;
+  late final AnimationController _ctrl;
+  late final Animation<double> _rotate;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
+    _rotate = Tween<double>(begin: 0, end: 0.5).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+    _expanded ? _ctrl.forward() : _ctrl.reverse();
+  }
+
+  Color _statusColor(String s) {
+    switch (s.toLowerCase()) {
+      case 'completed': return EnhancedTheme.successGreen;
+      case 'returned': return EnhancedTheme.errorRed;
+      case 'partial_return': return EnhancedTheme.accentOrange;
+      default: return EnhancedTheme.infoBlue;
+    }
+  }
+
+  String _paymentIcon(String? method) {
+    switch ((method ?? '').toLowerCase()) {
+      case 'cash': return 'Cash';
+      case 'pos': return 'POS';
+      case 'transfer': return 'Transfer';
+      case 'wallet': return 'Wallet';
+      case 'split': return 'Split';
+      default: return method ?? '';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.sale;
+    final statusColor = _statusColor(p.status);
+    final hasDetails = p.itemDetails.isNotEmpty || p.dispenserName != null;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: context.borderColor),
+            ),
+            child: Column(children: [
+              // ── Header row ────────────────────────────────────────────────
+              InkWell(
+                onTap: hasDetails ? _toggle : null,
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                  child: Row(children: [
+                    Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.receipt_long_rounded,
+                          color: EnhancedTheme.primaryTeal, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(p.date,
+                          style: TextStyle(
+                              color: context.labelColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Row(children: [
+                        Text('${p.itemCount} item${p.itemCount == 1 ? '' : 's'}',
+                            style: TextStyle(
+                                color: context.subLabelColor, fontSize: 11)),
+                        if (p.receiptId != null) ...[
+                          const SizedBox(width: 6),
+                          Text('· ${p.receiptId}',
+                              style: TextStyle(
+                                  color: context.hintColor, fontSize: 10)),
+                        ],
+                      ]),
+                    ])),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text('₦${p.total.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              color: EnhancedTheme.primaryTeal,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(p.status,
+                            style: TextStyle(
+                                color: statusColor,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ]),
+                    if (hasDetails) ...[
+                      const SizedBox(width: 8),
+                      RotationTransition(
+                        turns: _rotate,
+                        child: Icon(Icons.expand_more_rounded,
+                            color: context.hintColor, size: 18),
+                      ),
+                    ],
+                  ]),
+                ),
+              ),
+
+              // ── Expanded details ──────────────────────────────────────────
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 220),
+                crossFadeState: _expanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                firstChild: const SizedBox.shrink(),
+                secondChild: Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                          color: context.dividerColor, width: 1),
+                    ),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Dispenser + payment method row
+                      if (p.dispenserName != null || p.paymentMethod != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(children: [
+                            if (p.dispenserName != null)
+                              Expanded(child: _metaBadge(
+                                context,
+                                Icons.medication_liquid_rounded,
+                                'Dispenser',
+                                p.dispenserName!,
+                                EnhancedTheme.accentPurple,
+                              )),
+                            if (p.dispenserName != null &&
+                                p.paymentMethod != null)
+                              const SizedBox(width: 8),
+                            if (p.paymentMethod != null)
+                              Expanded(child: _metaBadge(
+                                context,
+                                Icons.payments_rounded,
+                                'Payment',
+                                _paymentIcon(p.paymentMethod),
+                                EnhancedTheme.accentCyan,
+                              )),
+                          ]),
+                        ),
+
+                      // Item list
+                      if (p.itemDetails.isNotEmpty) ...[
+                        Text('Items',
+                            style: TextStyle(
+                                color: context.subLabelColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5)),
+                        const SizedBox(height: 6),
+                        ...p.itemDetails.map((item) => _itemLine(context, item)),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _metaBadge(BuildContext context, IconData icon, String label,
+      String value, Color color) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border:
+              Border.all(color: color.withValues(alpha: 0.2), width: 1),
+        ),
+        child: Row(children: [
+          Icon(icon, color: color, size: 13),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label,
+                  style: TextStyle(
+                      color: context.hintColor,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600)),
+              Text(value,
+                  style: TextStyle(
+                      color: context.labelColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ]),
+          ),
+        ]),
+      );
+
+  Widget _itemLine(BuildContext context, SaleItemDetail item) {
+    final isReturned = item.returned;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(children: [
+        Container(
+          width: 6, height: 6,
+          margin: const EdgeInsets.only(right: 8, top: 1),
+          decoration: BoxDecoration(
+            color: isReturned
+                ? EnhancedTheme.errorRed
+                : EnhancedTheme.primaryTeal,
+            shape: BoxShape.circle,
+          ),
+        ),
+        Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(child: Text(
+              item.name +
+                  (item.brand.isNotEmpty ? ' · ${item.brand}' : '') +
+                  (item.unit.isNotEmpty ? ' (${item.unit})' : ''),
+              style: TextStyle(
+                  color: isReturned
+                      ? context.hintColor
+                      : context.labelColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  decoration:
+                      isReturned ? TextDecoration.lineThrough : null),
+              maxLines: 2,
+            )),
+            Text('₦${item.subtotal.toStringAsFixed(0)}',
+                style: TextStyle(
+                    color: isReturned
+                        ? context.hintColor
+                        : EnhancedTheme.primaryTeal,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    decoration:
+                        isReturned ? TextDecoration.lineThrough : null)),
+          ]),
+          Text(
+            '${item.quantity} × ₦${item.price.toStringAsFixed(0)}'
+            '${isReturned ? '  (returned)' : ''}',
+            style: TextStyle(color: context.hintColor, fontSize: 10),
+          ),
+        ])),
+      ]),
+    );
+  }
 }
