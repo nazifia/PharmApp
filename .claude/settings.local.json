@@ -86,7 +86,8 @@
       "Bash(del \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\core\\\\sync\\\\sync_service.dart\")",
       "Bash(git checkout:*)",
       "Bash(git status:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(wc -l /c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/shared/models/*.dart)"
     ]
   }
 }

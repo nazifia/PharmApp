@@ -155,20 +155,25 @@ class SyncService {
   }
 
   /// Replay a single mutation against the backend.
+  ///
+  /// The mutation's stable [PendingMutation.id] is sent as the
+  /// `Idempotency-Key` header so the backend can safely ignore a retry that
+  /// was already applied (e.g. when the response was lost mid-flight).
   Future<void> _syncMutation(PendingMutation mut) async {
     final dio = ref.read(dioProvider);
+    final options = Options(headers: {'Idempotency-Key': mut.id});
     switch (mut.method) {
       case 'POST':
-        await dio.post(mut.path, data: mut.body);
+        await dio.post(mut.path, data: mut.body, options: options);
         break;
       case 'PATCH':
-        await dio.patch(mut.path, data: mut.body);
+        await dio.patch(mut.path, data: mut.body, options: options);
         break;
       case 'PUT':
-        await dio.put(mut.path, data: mut.body);
+        await dio.put(mut.path, data: mut.body, options: options);
         break;
       case 'DELETE':
-        await dio.delete(mut.path);
+        await dio.delete(mut.path, options: options);
         break;
       default:
         throw UnsupportedError('Unsupported HTTP method: ${mut.method}');

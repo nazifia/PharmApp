@@ -495,10 +495,13 @@ class LocalDb {
 
   Future<void> topUpWallet(int customerId, double amount) async {
     final d = await db;
-    final c = (await getCustomerById(customerId))!;
-    final newBal = (c['walletBalance'] as double) + amount;
-    await d.update('customers', {'wallet_balance': newBal},
-        where: 'id = ?', whereArgs: [customerId]);
+    // Atomic increment — no read-then-write race.
+    await d.rawUpdate(
+        'UPDATE customers SET wallet_balance = wallet_balance + ? WHERE id = ?',
+        [amount, customerId]);
+    final row = await d.rawQuery(
+        'SELECT wallet_balance FROM customers WHERE id = ?', [customerId]);
+    final newBal = (row.first['wallet_balance'] as num).toDouble();
     await d.insert('wallet_transactions', {
       'customer_id': customerId,
       'type': 'top_up',
@@ -511,10 +514,14 @@ class LocalDb {
 
   Future<void> deductWallet(int customerId, double amount) async {
     final d = await db;
-    final c = (await getCustomerById(customerId))!;
-    final newBal = (c['walletBalance'] as double) - amount;
-    await d.update('customers', {'wallet_balance': newBal},
-        where: 'id = ?', whereArgs: [customerId]);
+    // Atomic decrement with floor at zero — prevents negative balance and
+    // eliminates the read-modify-write race between concurrent deductions.
+    await d.rawUpdate(
+        'UPDATE customers SET wallet_balance = MAX(0, wallet_balance - ?) WHERE id = ?',
+        [amount, customerId]);
+    final row = await d.rawQuery(
+        'SELECT wallet_balance FROM customers WHERE id = ?', [customerId]);
+    final newBal = (row.first['wallet_balance'] as num).toDouble();
     await d.insert('wallet_transactions', {
       'customer_id': customerId,
       'type': 'deduction',
@@ -665,20 +672,21 @@ class LocalDb {
           [totalAmount, now, customerId]);
       final walletPay = ((payment['wallet'] ?? 0) as num).toDouble();
       if (walletPay > 0) {
-        final c = await getCustomerById(customerId);
-        if (c != null) {
-          final newBal = (c['walletBalance'] as double) - walletPay;
-          await d.update('customers', {'wallet_balance': newBal},
-              where: 'id = ?', whereArgs: [customerId]);
-          await d.insert('wallet_transactions', {
-            'customer_id': customerId,
-            'type': 'payment',
-            'amount': walletPay,
-            'note': 'POS sale #$saleId',
-            'date': now,
-            'balance_after': newBal,
-          });
-        }
+        // Atomic decrement — prevents negative balance without a separate read.
+        await d.rawUpdate(
+            'UPDATE customers SET wallet_balance = MAX(0, wallet_balance - ?) WHERE id = ?',
+            [walletPay, customerId]);
+        final row = await d.rawQuery(
+            'SELECT wallet_balance FROM customers WHERE id = ?', [customerId]);
+        final newBal = (row.first['wallet_balance'] as num).toDouble();
+        await d.insert('wallet_transactions', {
+          'customer_id': customerId,
+          'type': 'payment',
+          'amount': walletPay,
+          'note': 'POS sale #$saleId',
+          'date': now,
+          'balance_after': newBal,
+        });
       }
     }
     return (await getSaleDetail(saleId)) ??

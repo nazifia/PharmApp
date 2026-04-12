@@ -241,6 +241,49 @@ class OfflineMutationQueueNotifier
     String description = '',
   }) async {
     await ensureLoaded();
+
+    // ── Deduplication rules ─────────────────────────────────────────────────
+    // PATCH / PUT on the same path: replace the body of the existing queued
+    // mutation instead of appending. This means the latest local edit wins and
+    // sync applies it exactly once rather than twice.
+    if (method == 'PATCH' || method == 'PUT') {
+      final existingIndex =
+          state.indexWhere((m) => m.method == method && m.path == path);
+      if (existingIndex >= 0) {
+        final existing = state[existingIndex];
+        final updated = PendingMutation(
+          id: existing.id, // keep original id (idempotency anchor)
+          method: existing.method,
+          path: existing.path,
+          body: body,
+          description: description.isNotEmpty ? description : existing.description,
+          queuedAt: existing.queuedAt,
+          attempts: existing.attempts,
+        );
+        final queue = List<PendingMutation>.from(state);
+        queue[existingIndex] = updated;
+        await _saveMutationsRaw(queue);
+        state = queue;
+        return updated;
+      }
+    }
+
+    // DELETE on the same path: skip if already queued — deleting twice is a no-op.
+    if (method == 'DELETE') {
+      final existing = state.firstWhere(
+        (m) => m.method == 'DELETE' && m.path == path,
+        orElse: () => PendingMutation(
+          id: '',
+          method: '',
+          path: '',
+          description: '',
+          queuedAt: DateTime.now(),
+        ),
+      );
+      if (existing.id.isNotEmpty) return existing;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     final entry = PendingMutation(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       method: method,
