@@ -847,6 +847,8 @@ class _MoreSheet extends StatelessWidget {
         if (canTransfers)
           _MoreTile(Icons.swap_horiz_rounded, 'Transfers',
               EnhancedTheme.accentPurple, () => nav('/dashboard/transfers')),
+        _MoreTile(Icons.fact_check_rounded, 'WS Stock Check',
+            EnhancedTheme.warningAmber, () => nav('/dashboard/stock-check')),
       ],
       if (isAdmin) ...[
         _MoreTile(Icons.people_alt_rounded, 'Users', EnhancedTheme.primaryTeal,

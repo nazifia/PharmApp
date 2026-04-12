@@ -52,6 +52,11 @@ urlpatterns = [
         name="sc-add-item",
     ),
     path(
+        "stock-checks/<int:pk>/items/",
+        views.stock_check_add_item,
+        name="sc-items-add",
+    ),
+    path(
         "stock-checks/<int:pk>/items/<int:item_pk>/",
         views.stock_check_update_item,
         name="sc-update-item",

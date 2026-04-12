@@ -1014,7 +1014,7 @@ def stock_check_add_item(request, pk):
     if err:
         return err
     check = get_object_or_404(StockCheck, pk=pk, organization=org)
-    item_id = request.data.get("itemId")
+    item_id = request.data.get("item_id") or request.data.get("itemId")
     item = get_object_or_404(Item, pk=item_id, organization=org)
     sci, created = StockCheckItem.objects.get_or_create(
         stock_check=check, item=item, defaults={"expected_quantity": item.stock}
@@ -1028,14 +1028,18 @@ def stock_check_add_item(request, pk):
     return Response(sci.to_api_dict(), status=status.HTTP_201_CREATED)
 
 
-@api_view(["POST"])
+@api_view(["POST", "PATCH"])
 def stock_check_update_item(request, pk, item_pk):
     org, err = require_org(request)
     if err:
         return err
     get_object_or_404(StockCheck, pk=pk, organization=org)
     sci = get_object_or_404(StockCheckItem, pk=item_pk, stock_check_id=pk)
-    sci.actual_quantity = request.data.get("actualQuantity", sci.actual_quantity)
+    sci.actual_quantity = (
+        request.data.get("actual_quantity")
+        or request.data.get("actualQuantity")
+        or sci.actual_quantity
+    )
     sci.status = request.data.get("status", sci.status)
     sci.save()
     return Response(sci.to_api_dict())
