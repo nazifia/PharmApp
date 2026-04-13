@@ -157,13 +157,13 @@ class SaleItem(models.Model):
     brand = models.CharField(max_length=200, blank=True, default="")
     dosage_form = models.CharField(max_length=50, blank=True, default="")
     unit = models.CharField(max_length=20, blank=True, default="")
-    quantity = models.IntegerField(default=1)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     price = models.DecimalField(max_digits=12, decimal_places=2)
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
     barcode = models.CharField(max_length=100, blank=True, default="")
     returned = models.BooleanField(default=False)
-    return_qty = models.IntegerField(default=0)
+    return_qty = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def __str__(self):
         return f"{self.name} ×{self.quantity} [{self.sale.receipt_id}]"
@@ -204,7 +204,7 @@ class DispensingLog(models.Model):
     brand = models.CharField(max_length=200, blank=True, default="")
     dosage_form = models.CharField(max_length=50, blank=True, default="")
     unit = models.CharField(max_length=20, blank=True, default="")
-    quantity = models.IntegerField(default=1)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(
@@ -402,7 +402,7 @@ class ReturnRecord(models.Model):
     sale_item = models.ForeignKey(
         SaleItem, on_delete=models.CASCADE, related_name="return_records"
     )
-    quantity = models.IntegerField()
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     refund_method = models.CharField(
         max_length=20,
@@ -639,8 +639,8 @@ class StockCheckItem(models.Model):
         StockCheck, on_delete=models.CASCADE, related_name="items"
     )
     item = models.ForeignKey("inventory.Item", on_delete=models.CASCADE)
-    expected_quantity = models.IntegerField()
-    actual_quantity = models.IntegerField(null=True, blank=True)
+    expected_quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    actual_quantity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     status = models.CharField(
         max_length=20,
         default="pending",
@@ -734,8 +734,8 @@ class TransferRequest(models.Model):
     )
     from_wholesale = models.BooleanField(default=True)
     item_name = models.CharField(max_length=200)
-    requested_quantity = models.IntegerField()
-    approved_quantity = models.IntegerField(default=0)
+    requested_quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    approved_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     unit = models.CharField(max_length=20, blank=True, default="Pcs")
     status = models.CharField(
         max_length=20,

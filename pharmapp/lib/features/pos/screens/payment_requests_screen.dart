@@ -11,6 +11,7 @@ import 'package:pharmapp/shared/models/sale.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
+import 'receipt_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  PAYMENT REQUESTS SCREEN
@@ -208,7 +209,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
         return;
       }
       try {
-        await ref.read(posApiProvider).completePaymentRequest(
+        final saleData = await ref.read(posApiProvider).completePaymentRequest(
           id,
           result['payment'] as Map<String, dynamic>,
           result['paymentMethod'] as String,
@@ -217,6 +218,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
         _showSnack('Payment completed', EnhancedTheme.successGreen);
         setState(() => _selectedRequest = null);
         _loadRequests();
+        showReceiptSheet(context, saleData);
       } on DioException catch (e) {
         if (!mounted) return;
         if (e.response == null) {
@@ -317,6 +319,30 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
           _offlinePendingMutations.where((m) => m.id != mutation.id).toList();
       _offlineRequestStatuses.remove(mutation.id);
     });
+
+    // Build a local receipt map so the cashier can print before sync.
+    final offlineReceiptData = <String, dynamic>{
+      'id': null,
+      'createdAt': DateTime.now().toIso8601String(),
+      'patientName': patientNameFromRequest ?? 'Walk-in',
+      'paymentMethod': result['paymentMethod'],
+      'totalAmount': total,
+      'amountPaid': total,
+      'change': 0.0,
+      'isWholesale': checkoutPayload.isWholesale,
+      'items': rawItems.map((item) => {
+        'name': item['itemName'] ?? item['name'] ?? 'Item',
+        'quantity': item['quantity'],
+        'price': item['price'],
+        'discount': item['discount'] ?? 0,
+        'subtotal': ((item['price'] as num?)?.toDouble() ?? 0) *
+                    ((item['quantity'] as num?)?.toDouble() ?? 1) -
+                    ((item['discount'] as num?)?.toDouble() ?? 0),
+      }).toList(),
+      'payment': result['payment'],
+      'offline': true,
+    };
+    showReceiptSheet(context, offlineReceiptData);
   }
 
   void _showSnack(String msg, Color color) {
@@ -599,8 +625,11 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
 
   Widget _detailItemCard(dynamic item) {
     final name = (item['itemName'] as String?) ?? (item['name'] as String?) ?? 'Unknown Item';
-    final qty = (item['quantity'] as num?)?.toInt() ?? 0;
-    final price = (item['price'] as num?)?.toDouble() ?? 0;
+    final qty = (item['quantity'] as num?)?.toDouble() ?? 0;
+    // API returns 'unitPrice' for PaymentRequestItem; fall back to 'price' for legacy data
+    final price = (item['unitPrice'] as num?)?.toDouble()
+        ?? (item['price'] as num?)?.toDouble()
+        ?? 0;
     final subtotal = (item['subtotal'] as num?)?.toDouble() ?? (price * qty);
 
     return Padding(
@@ -637,7 +666,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 Row(children: [
                   Text('₦${price.toStringAsFixed(2)}',
                       style: TextStyle(color: context.subLabelColor, fontSize: 12)),
-                  Text(' × $qty',
+                  Text(' × ${qty % 1 == 0 ? qty.toInt() : qty.toStringAsFixed(2)}',
                       style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12,
                           fontWeight: FontWeight.w700)),
                 ]),

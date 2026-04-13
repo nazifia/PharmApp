@@ -234,7 +234,7 @@ def transfer_list(request):
         organization=org,
         from_wholesale=data.get("fromWholesale", True),
         item_name=data.get("itemName", ""),
-        requested_quantity=int(data.get("requestedQty", 0)),
+        requested_quantity=Decimal(str(data.get("requestedQty", 0))),
         unit=data.get("unit", "Pcs"),
         notes=data.get("notes", ""),
         requested_by=request.user if request.user.is_authenticated else None,
@@ -275,7 +275,7 @@ def transfer_approve(request, pk):
         )
 
     src_store = "wholesale" if transfer.from_wholesale else "retail"
-    approved_qty = int(request.data.get("approvedQty", transfer.requested_quantity))
+    approved_qty = Decimal(str(request.data.get("approvedQty", transfer.requested_quantity)))
 
     # Warn if approving more than source stock
     src_item = Item.objects.filter(

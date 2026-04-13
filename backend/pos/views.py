@@ -95,7 +95,7 @@ def checkout(request):
         item_id = i_data.get("itemId")
         barcode = i_data.get("barcode", "")
         try:
-            qty = int(i_data.get("quantity", 1))
+            qty = Decimal(str(i_data.get("quantity", 1)))
             price = Decimal(str(i_data.get("price", 0)))
             discount = Decimal(str(i_data.get("discount", 0)))
         except (ValueError, TypeError, Exception):
@@ -329,7 +329,7 @@ def return_item(request, pk):
         return err
     sale = get_object_or_404(Sale, pk=pk, organization=org)
     item_id = request.data.get("saleItemId")
-    qty = int(request.data.get("quantity", 0))
+    qty = Decimal(str(request.data.get("quantity", 0)))
     refund_method = request.data.get("refundMethod", "wallet")
     reason = request.data.get("reason", "")
 
@@ -430,7 +430,7 @@ def _create_payment_request(request, org):
     total = Decimal("0")
     for i in items_data:
         try:
-            total += Decimal(str(i.get("price", 0))) * int(i.get("quantity", 1))
+            total += Decimal(str(i.get("price", 0))) * Decimal(str(i.get("quantity", 1)))
         except (ValueError, TypeError, Exception):
             return Response(
                 {"detail": "Invalid price or quantity value"},
@@ -466,7 +466,7 @@ def _create_payment_request(request, org):
             brand=i.get("brand", item.brand if item else ""),
             dosage_form=i.get("dosageForm", item.dosage_form if item else ""),
             unit=i.get("unit", item.unit if item else ""),
-            quantity=int(i.get("quantity", 1)),
+            quantity=Decimal(str(i.get("quantity", 1))),
             unit_price=Decimal(str(i.get("price", 0))),
         )
 

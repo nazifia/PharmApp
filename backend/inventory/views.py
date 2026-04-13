@@ -51,7 +51,7 @@ def item_list(request):
     try:
         price = float(data.get("price", 0))
         cost = float(data.get("costPrice", 0))
-        stock = int(data.get("stock", 0))
+        stock = float(data.get("stock", 0))
         low_stock_threshold = int(data.get("lowStockThreshold", 10))
     except (ValueError, TypeError):
         return Response(
@@ -99,7 +99,7 @@ def item_detail(request, pk):
         try:
             price = float(data.get("price", item.price))
             cost = float(data.get("costPrice", item.cost))
-            stock = int(data.get("stock", item.stock))
+            stock = float(data.get("stock", item.stock))
             low_stock_threshold = int(
                 data.get("lowStockThreshold", item.low_stock_threshold)
             )
@@ -140,7 +140,7 @@ def adjust_stock(request, pk):
         return err
     item = get_object_or_404(Item, pk=pk, organization=org)
     try:
-        adjustment = int(request.data.get("adjustment", 0))
+        adjustment = float(request.data.get("adjustment", 0))
     except (ValueError, TypeError):
         return Response(
             {"detail": "Invalid adjustment value"}, status=status.HTTP_400_BAD_REQUEST

@@ -86,7 +86,7 @@ class Item(models.Model):
     markup = models.DecimalField(
         max_digits=5, decimal_places=2, default=0, help_text="Markup percentage 0-100"
     )
-    stock = models.IntegerField(default=0)
+    stock = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     low_stock_threshold = models.IntegerField(default=10)
     barcode = models.CharField(max_length=100, blank=True, default="", db_index=True)
     barcode_type = models.CharField(
