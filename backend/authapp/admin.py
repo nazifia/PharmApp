@@ -181,10 +181,10 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
     inlines = [UserPermissionOverrideInline]
 
     list_display = [
-        "phone_number", "full_name", "role_badge", "organization", "is_active",
-        "is_staff", "is_wholesale_operator",
+        "phone_number", "full_name", "role_badge", "organization", "branch",
+        "is_active", "is_staff", "is_wholesale_operator",
     ]
-    list_filter  = ["role", "is_active", "is_staff", "is_wholesale_operator"]
+    list_filter  = ["role", "is_active", "is_staff", "is_wholesale_operator", "branch"]
     search_fields = ["phone_number", "full_name"]
     ordering = ["phone_number"]
 
@@ -192,7 +192,7 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
     _superuser_fieldsets = (
         ('Identity', {"fields": ("phone_number", "full_name", "password")}),
         ("Role & Access", {
-            "fields": ("role_access_panel", "role", "organization", "is_wholesale_operator"),
+            "fields": ("role_access_panel", "role", "organization", "branch", "is_wholesale_operator"),
         }),
         ("Django Permissions", {
             "classes": ("collapse",),
@@ -207,7 +207,7 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
     _org_fieldsets = (
         ('Identity', {"fields": ("phone_number", "full_name", "password")}),
         ("Role & Access", {
-            "fields": ("role_access_panel", "role", "is_wholesale_operator"),
+            "fields": ("role_access_panel", "role", "branch", "is_wholesale_operator"),
         }),
         ("Account", {
             "fields": ("is_active", "is_staff"),
@@ -245,6 +245,14 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
         return rof
 
     # ── Role restrictions ─────────────────────────────────────────────────
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'branch' and not request.user.is_superuser:
+            org = getattr(request.user, 'organization', None)
+            if org:
+                from branches.models import Branch
+                kwargs['queryset'] = Branch.objects.filter(organization=org, is_active=True)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def formfield_for_choice_field(self, db_field, request, **kwargs):
         """Org admins cannot assign the Admin role — only superusers can."""

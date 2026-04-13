@@ -21,6 +21,8 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       organizationAddress: json['organizationAddress'] as String? ?? '',
       organizationPhone: json['organizationPhone'] as String? ?? '',
       organizationLogo: json['organizationLogo'] as String? ?? '',
+      branchId: (json['branchId'] as num?)?.toInt() ?? 0,
+      branchName: json['branchName'] as String? ?? '',
       permissions: (json['permissions'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as bool),
           ) ??
@@ -43,5 +45,7 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'organizationAddress': instance.organizationAddress,
       'organizationPhone': instance.organizationPhone,
       'organizationLogo': instance.organizationLogo,
+      'branchId': instance.branchId,
+      'branchName': instance.branchName,
       'permissions': instance.permissions,
     };

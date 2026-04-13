@@ -35,6 +35,8 @@ mixin _$User {
   String get organizationAddress => throw _privateConstructorUsedError;
   String get organizationPhone => throw _privateConstructorUsedError;
   String get organizationLogo => throw _privateConstructorUsedError;
+  int get branchId => throw _privateConstructorUsedError;
+  String get branchName => throw _privateConstructorUsedError;
   Map<String, bool> get permissions => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -62,6 +64,8 @@ abstract class $UserCopyWith<$Res> {
       String organizationAddress,
       String organizationPhone,
       String organizationLogo,
+      int branchId,
+      String branchName,
       Map<String, bool> permissions});
 }
 
@@ -92,6 +96,8 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? organizationAddress = null,
     Object? organizationPhone = null,
     Object? organizationLogo = null,
+    Object? branchId = null,
+    Object? branchName = null,
     Object? permissions = null,
   }) {
     return _then(_value.copyWith(
@@ -151,6 +157,14 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.organizationLogo
           : organizationLogo // ignore: cast_nullable_to_non_nullable
               as String,
+      branchId: null == branchId
+          ? _value.branchId
+          : branchId // ignore: cast_nullable_to_non_nullable
+              as int,
+      branchName: null == branchName
+          ? _value.branchName
+          : branchName // ignore: cast_nullable_to_non_nullable
+              as String,
       permissions: null == permissions
           ? _value.permissions
           : permissions // ignore: cast_nullable_to_non_nullable
@@ -181,6 +195,8 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       String organizationAddress,
       String organizationPhone,
       String organizationLogo,
+      int branchId,
+      String branchName,
       Map<String, bool> permissions});
 }
 
@@ -208,6 +224,8 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? organizationAddress = null,
     Object? organizationPhone = null,
     Object? organizationLogo = null,
+    Object? branchId = null,
+    Object? branchName = null,
     Object? permissions = null,
   }) {
     return _then(_$UserImpl(
@@ -267,6 +285,14 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.organizationLogo
           : organizationLogo // ignore: cast_nullable_to_non_nullable
               as String,
+      branchId: null == branchId
+          ? _value.branchId
+          : branchId // ignore: cast_nullable_to_non_nullable
+              as int,
+      branchName: null == branchName
+          ? _value.branchName
+          : branchName // ignore: cast_nullable_to_non_nullable
+              as String,
       permissions: null == permissions
           ? _value.permissions
           : permissions // ignore: cast_nullable_to_non_nullable
@@ -293,6 +319,8 @@ class _$UserImpl implements _User {
       this.organizationAddress = '',
       this.organizationPhone = '',
       this.organizationLogo = '',
+      this.branchId = 0,
+      this.branchName = '',
       this.permissions = const <String, bool>{}});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
@@ -339,11 +367,17 @@ class _$UserImpl implements _User {
   final String organizationLogo;
   @override
   @JsonKey()
+  final int branchId;
+  @override
+  @JsonKey()
+  final String branchName;
+  @override
+  @JsonKey()
   final Map<String, bool> permissions;
 
   @override
   String toString() {
-    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, fullname: $fullname, isWholesaleOperator: $isWholesaleOperator, isSuperuser: $isSuperuser, organizationId: $organizationId, organizationName: $organizationName, organizationSlug: $organizationSlug, organizationAddress: $organizationAddress, organizationPhone: $organizationPhone, organizationLogo: $organizationLogo, permissions: $permissions)';
+    return 'User(id: $id, phoneNumber: $phoneNumber, role: $role, isActive: $isActive, username: $username, fullname: $fullname, isWholesaleOperator: $isWholesaleOperator, isSuperuser: $isSuperuser, organizationId: $organizationId, organizationName: $organizationName, organizationSlug: $organizationSlug, organizationAddress: $organizationAddress, organizationPhone: $organizationPhone, organizationLogo: $organizationLogo, branchId: $branchId, branchName: $branchName, permissions: $permissions)';
   }
 
   @override
@@ -377,6 +411,8 @@ class _$UserImpl implements _User {
                 other.organizationPhone == organizationPhone) &&
             (identical(other.organizationLogo, organizationLogo) ||
                 other.organizationLogo == organizationLogo) &&
+            (identical(other.branchId, branchId) || other.branchId == branchId) &&
+            (identical(other.branchName, branchName) || other.branchName == branchName) &&
             (identical(other.permissions, permissions) ||
                 const DeepCollectionEquality().equals(other.permissions, permissions)));
   }
@@ -387,6 +423,7 @@ class _$UserImpl implements _User {
       runtimeType, id, phoneNumber, role, isActive, username, fullname, isWholesaleOperator,
       isSuperuser, organizationId, organizationName, organizationSlug,
       organizationAddress, organizationPhone, organizationLogo,
+      branchId, branchName,
       const DeepCollectionEquality().hash(permissions));
 
   @JsonKey(ignore: true)
@@ -419,6 +456,8 @@ abstract class _User implements User {
       final String organizationAddress,
       final String organizationPhone,
       final String organizationLogo,
+      final int branchId,
+      final String branchName,
       final Map<String, bool> permissions}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
@@ -451,6 +490,10 @@ abstract class _User implements User {
   String get organizationPhone;
   @override
   String get organizationLogo;
+  @override
+  int get branchId;
+  @override
+  String get branchName;
   @override
   Map<String, bool> get permissions;
   @override

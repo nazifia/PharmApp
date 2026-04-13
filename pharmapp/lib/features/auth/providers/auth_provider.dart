@@ -30,6 +30,13 @@ final currentOrganizationProvider = Provider<Organization?>((ref) {
   );
 });
 
+/// Derived from the authenticated user — null if user has no branch (org-wide access).
+final currentBranchProvider = Provider<({int id, String name})?> ((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null || user.branchId == 0) return null;
+  return (id: user.branchId, name: user.branchName);
+});
+
 // ── Repository provider ───────────────────────────────────────────────────────
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

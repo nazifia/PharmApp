@@ -20,6 +20,27 @@ class BranchInline(admin.TabularInline):
 
 # ── Standalone admin ─────────────────────────────────────────────────────────
 
+def _make_user_inline():
+    """Lazy-import PharmUser to avoid circular import at module load."""
+    from authapp.models import PharmUser
+
+    class _BranchUserInline(admin.TabularInline):
+        model            = PharmUser
+        fk_name          = 'branch'
+        extra            = 0
+        can_delete       = False
+        show_change_link = True
+        readonly_fields  = ('phone_number', 'full_name', 'role', 'is_active')
+        fields           = ('phone_number', 'full_name', 'role', 'is_active')
+        verbose_name        = 'Assigned User'
+        verbose_name_plural = 'Assigned Users'
+
+        def has_add_permission(self, request, obj=None):
+            return False
+
+    return _BranchUserInline
+
+
 @admin.register(Branch)
 class BranchAdmin(admin.ModelAdmin):
     list_display   = (
@@ -32,6 +53,11 @@ class BranchAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
     ordering       = ('organization__name', '-is_main', 'name')
     actions        = ['action_set_main', 'action_activate', 'action_deactivate']
+
+    def get_inlines(self, request, obj):
+        if obj is not None:
+            return [_make_user_inline()]
+        return []
 
     fieldsets = (
         (None, {

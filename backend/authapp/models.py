@@ -83,6 +83,11 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
         Organization, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='users'
     )
+    branch               = models.ForeignKey(
+        'branches.Branch', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='users',
+        help_text='Pre-assigned branch. Null = org-wide access (admin/manager scope).',
+    )
 
     USERNAME_FIELD  = 'phone_number'
     REQUIRED_FIELDS = []
@@ -108,6 +113,8 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
             'organizationAddress':  org.address if org else '',
             'organizationPhone':    org.phone   if org else '',
             'organizationLogo':     org.logo.url if org and org.logo else '',
+            'branchId':             self.branch_id or 0,
+            'branchName':           self.branch.name if self.branch_id else '',
             'permissions':          _get_user_permissions(self),
         }
 

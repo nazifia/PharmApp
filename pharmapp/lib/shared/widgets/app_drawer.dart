@@ -98,6 +98,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     phoneNumber: user?.phoneNumber ?? '',
                     orgName: ref.watch(currentOrganizationProvider)?.name ?? '',
                     orgLogo: ref.watch(currentOrganizationProvider)?.logoUrl,
+                    branchName: ref.watch(currentBranchProvider)?.name ?? '',
                   ),
                   Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
                   // ── Trial / expiry banner ───────────────────────────────────
@@ -299,7 +300,8 @@ class _DrawerHeader extends StatelessWidget {
   final String phoneNumber;
   final String orgName;
   final String? orgLogo;
-  const _DrawerHeader({required this.role, required this.username, required this.phoneNumber, required this.orgName, this.orgLogo});
+  final String branchName;
+  const _DrawerHeader({required this.role, required this.username, required this.phoneNumber, required this.orgName, this.orgLogo, this.branchName = ''});
 
   Widget _buildOrgAvatar(BuildContext context) {
     if (orgLogo != null && orgLogo!.isNotEmpty) {
@@ -386,6 +388,18 @@ class _DrawerHeader extends StatelessWidget {
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(orgName,
+                      style: TextStyle(color: context.subLabelColor, fontSize: 10),
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ]),
+            ],
+            if (branchName.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Row(children: [
+                const Icon(Icons.account_tree_rounded, size: 11, color: EnhancedTheme.accentOrange),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(branchName,
                       style: TextStyle(color: context.subLabelColor, fontSize: 10),
                       overflow: TextOverflow.ellipsis),
                 ),
