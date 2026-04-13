@@ -1025,7 +1025,7 @@ class _ProcurementLineItem {
   final TextEditingController barcodeCtrl = TextEditingController();
   String dosageForm = 'Tablet';
   String unit = 'Pack';
-  int markupPct = 20;
+  double markupPct = 20.0;
   DateTime? expiryDate;
 
   double get costPrice => double.tryParse(costCtrl.text) ?? 0;
@@ -1059,10 +1059,9 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
   bool _submitting = false;
   String _destination = 'retail'; // retail | wholesale
 
-  static const _dosageForms = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream',
-    'Ointment', 'Suspension', 'Drops', 'Inhaler', 'Patch', 'Other'];
+  static const _dosageForms = ['Tablet','Capsule','Cream','Consumable','Galenical','Injection','Infusion','Inhaler','Suspension','Syrup','Drops','Solution','Eye-drop','Ear-drop','Eye-ointment','Rectal','Vaginal','Detergent','Drinks','Paste','Patch','Table-water','Food-item','Sweets','Soaps','Biscuits'];
   static const _units = ['Pack', 'Box', 'Carton', 'Piece', 'Strip', 'Bottle', 'Vial', 'Ampoule', 'Tube', 'Sachet'];
-  static const _markups = [0, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100];
+  static const _markups = [0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 35.0, 40.0, 45.0, 50.0, 60.0, 70.0, 80.0, 100.0];
 
   @override
   void dispose() {
@@ -1468,7 +1467,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
                 Expanded(child: _dropdown(
                   value: line.markupPct,
                   items: _markups,
-                  labelBuilder: (v) => '$v% markup',
+                  labelBuilder: (v) => '${v % 1 == 0 ? v.toInt() : v}% markup',
                   onChanged: (v) =>
                       setState(() => line.markupPct = v ?? line.markupPct),
                 )),
