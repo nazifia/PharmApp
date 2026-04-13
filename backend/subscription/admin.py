@@ -36,6 +36,16 @@ from .models import (
     PaymentAccount, PlanFeatureFlag, PlanPricing, Subscription, SubscriptionEvent,
 )
 
+# ── Period-end helper ─────────────────────────────────────────────────────────
+
+def _calc_period_end(billing_cycle):
+    """Return current_period_end datetime based on billing cycle."""
+    now = timezone.now()
+    if billing_cycle == 'annual':
+        return now + timedelta(days=365)
+    return now + timedelta(days=30)  # monthly default
+
+
 # ── Colour helpers ─────────────────────────────────────────────────────────────
 
 PLAN_COLORS = {
@@ -99,11 +109,54 @@ class SubscriptionInline(admin.StackedInline):
     verbose_name = 'Subscription'
     verbose_name_plural = 'Subscription'
 
+    readonly_fields = ('billing_indicator',)
     fields = (
         ('plan', 'status'),
+        ('billing_cycle', 'billing_indicator'),
         ('trial_ends_at', 'current_period_end'),
         'external_subscription_id',
     )
+
+    @admin.display(description='Billing Summary')
+    def billing_indicator(self, obj):
+        if not obj or not obj.pk:
+            return mark_safe('<span style="color:#64748b;font-size:11px">—</span>')
+        if obj.plan == 'trial':
+            if obj.trial_ends_at:
+                days = (obj.trial_ends_at - timezone.now()).days
+                dc = '#EF4444' if days < 0 else '#F59E0B' if days <= 7 else '#10B981'
+                label = 'Expired' if days < 0 else f'{max(days, 0)} days left'
+                return format_html(
+                    '<span style="background:#F59E0B;color:#fff;padding:3px 12px;'
+                    'border-radius:10px;font-size:11px;font-weight:600">⏳ Free Trial</span>'
+                    '<span style="color:{dc};font-size:11px;margin-left:8px">{label}</span>',
+                    dc=dc, label=label,
+                )
+            return mark_safe(
+                '<span style="background:#F59E0B;color:#fff;padding:3px 12px;'
+                'border-radius:10px;font-size:11px;font-weight:600">⏳ Free Trial</span>'
+            )
+
+        cycle = obj.billing_cycle or 'monthly'
+        is_annual = cycle == 'annual'
+        icon  = '📅' if is_annual else '🗓️'
+        color = '#10B981' if is_annual else '#3B82F6'
+        label = 'Annual billing (365 days)' if is_annual else 'Monthly billing (30 days)'
+
+        if obj.current_period_end:
+            period_str = f' — expires {obj.current_period_end.strftime("%d %b %Y")}'
+        elif obj.status == 'pending':
+            period_str = ' — expiry set automatically on approval'
+        else:
+            period_str = ' — expiry not yet set'
+
+        return format_html(
+            '<span style="background:{c};color:#fff;padding:3px 12px;'
+            'border-radius:10px;font-size:11px;font-weight:600">'
+            '{icon} {label}</span>'
+            '<span style="color:#94a3b8;font-size:11px;margin-left:8px">{period}</span>',
+            c=color, icon=icon, label=label, period=period_str,
+        )
 
     def has_view_permission(self, request, obj=None):
         return request.user.is_superuser
@@ -157,11 +210,13 @@ def activate_starter(modeladmin, request, queryset):
     for sub in queryset:
         old = sub.plan
         sub.plan = 'starter'; sub.status = 'active'; sub.trial_ends_at = None
+        sub.current_period_end = _calc_period_end(sub.billing_cycle)
         sub.save()
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
             old_value=old, new_value='starter',
             performed_by=request.user.phone_number,
+            note=f'Period ends {sub.current_period_end.strftime("%Y-%m-%d")}',
         )
     modeladmin.message_user(request, f'{queryset.count()} subscription(s) → Starter (active).', messages.SUCCESS)
 
@@ -171,11 +226,13 @@ def activate_professional(modeladmin, request, queryset):
     for sub in queryset:
         old = sub.plan
         sub.plan = 'professional'; sub.status = 'active'; sub.trial_ends_at = None
+        sub.current_period_end = _calc_period_end(sub.billing_cycle)
         sub.save()
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
             old_value=old, new_value='professional',
             performed_by=request.user.phone_number,
+            note=f'Period ends {sub.current_period_end.strftime("%Y-%m-%d")}',
         )
     modeladmin.message_user(request, f'{queryset.count()} subscription(s) → Professional (active).', messages.SUCCESS)
 
@@ -185,11 +242,13 @@ def activate_enterprise(modeladmin, request, queryset):
     for sub in queryset:
         old = sub.plan
         sub.plan = 'enterprise'; sub.status = 'active'; sub.trial_ends_at = None
+        sub.current_period_end = _calc_period_end(sub.billing_cycle)
         sub.save()
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
             old_value=old, new_value='enterprise',
             performed_by=request.user.phone_number,
+            note=f'Period ends {sub.current_period_end.strftime("%Y-%m-%d")}',
         )
     modeladmin.message_user(request, f'{queryset.count()} subscription(s) → Enterprise (active).', messages.SUCCESS)
 
@@ -281,12 +340,14 @@ def approve_pending(modeladmin, request, queryset):
     for sub in queryset.filter(status='pending'):
         sub.status = 'active'
         sub.trial_ends_at = None
+        sub.current_period_end = _calc_period_end(sub.billing_cycle)
         sub.save()
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
             old_value='pending', new_value=f"active/{sub.plan}/{sub.billing_cycle}",
             performed_by=request.user.phone_number,
-            note=f"Pending upgrade approved — {sub.plan} ({sub.billing_cycle})",
+            note=f"Pending upgrade approved — {sub.plan} ({sub.billing_cycle}). "
+                 f"Period ends {sub.current_period_end.strftime('%Y-%m-%d')}",
         )
         n += 1
     if n:
@@ -353,15 +414,17 @@ def approve_pending_trial(modeladmin, request, queryset):
 def approve_pending_starter(modeladmin, request, queryset):
     n = 0
     for sub in queryset.filter(status='pending', plan='starter'):
-        sub.status        = 'active'
-        sub.trial_ends_at = None
+        sub.status             = 'active'
+        sub.trial_ends_at      = None
+        sub.current_period_end = _calc_period_end(sub.billing_cycle)
         sub.save()
         cycle_label = 'annually' if sub.billing_cycle == 'annual' else 'monthly'
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
             old_value='pending', new_value=f'active/starter/{sub.billing_cycle}',
             performed_by=request.user.phone_number,
-            note=f'Starter upgrade approved — billed {cycle_label}',
+            note=f'Starter upgrade approved — billed {cycle_label}. '
+                 f'Period ends {sub.current_period_end.strftime("%Y-%m-%d")}',
         )
         n += 1
     if n:
@@ -374,15 +437,17 @@ def approve_pending_starter(modeladmin, request, queryset):
 def approve_pending_professional(modeladmin, request, queryset):
     n = 0
     for sub in queryset.filter(status='pending', plan='professional'):
-        sub.status        = 'active'
-        sub.trial_ends_at = None
+        sub.status             = 'active'
+        sub.trial_ends_at      = None
+        sub.current_period_end = _calc_period_end(sub.billing_cycle)
         sub.save()
         cycle_label = 'annually' if sub.billing_cycle == 'annual' else 'monthly'
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
             old_value='pending', new_value=f'active/professional/{sub.billing_cycle}',
             performed_by=request.user.phone_number,
-            note=f'Professional upgrade approved — billed {cycle_label}',
+            note=f'Professional upgrade approved — billed {cycle_label}. '
+                 f'Period ends {sub.current_period_end.strftime("%Y-%m-%d")}',
         )
         n += 1
     if n:
@@ -395,15 +460,17 @@ def approve_pending_professional(modeladmin, request, queryset):
 def approve_pending_enterprise(modeladmin, request, queryset):
     n = 0
     for sub in queryset.filter(status='pending', plan='enterprise'):
-        sub.status        = 'active'
-        sub.trial_ends_at = None
+        sub.status             = 'active'
+        sub.trial_ends_at      = None
+        sub.current_period_end = _calc_period_end(sub.billing_cycle)
         sub.save()
         cycle_label = 'annually' if sub.billing_cycle == 'annual' else 'monthly'
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
             old_value='pending', new_value=f'active/enterprise/{sub.billing_cycle}',
             performed_by=request.user.phone_number,
-            note=f'Enterprise upgrade approved — billed {cycle_label}',
+            note=f'Enterprise upgrade approved — billed {cycle_label}. '
+                 f'Period ends {sub.current_period_end.strftime("%Y-%m-%d")}',
         )
         n += 1
     if n:
@@ -633,20 +700,25 @@ class SubscriptionAdmin(admin.ModelAdmin):
         if action in _activate_map:
             new_plan, cycle = _activate_map[action]
             old_plan = obj.plan
-            obj.plan          = new_plan
-            obj.billing_cycle = cycle
-            obj.status        = 'active'
-            obj.trial_ends_at = None
+            obj.plan               = new_plan
+            obj.billing_cycle      = cycle
+            obj.status             = 'active'
+            obj.trial_ends_at      = None
+            obj.current_period_end = _calc_period_end(cycle)
             obj.save()
             cycle_label = 'annually' if cycle == 'annual' else 'monthly'
             SubscriptionEvent.objects.create(
                 subscription=obj, event_type='activated',
                 old_value=old_plan, new_value=new_plan,
                 performed_by=actor,
-                note=note or f'Billed {cycle_label}',
+                note=note or (
+                    f'Billed {cycle_label}. '
+                    f'Period ends {obj.current_period_end.strftime("%Y-%m-%d")}'
+                ),
             )
             return _redirect(
-                f"Subscription activated on {new_plan.title()} plan ({cycle_label})."
+                f"Subscription activated on {new_plan.title()} plan ({cycle_label}). "
+                f"Period ends {obj.current_period_end.strftime('%Y-%m-%d')}."
             )
 
         # ── Suspend ───────────────────────────────────────────────────────
@@ -747,18 +819,23 @@ class SubscriptionAdmin(admin.ModelAdmin):
                     "Subscription is not in pending status — no change.",
                     messages.WARNING,
                 )
-            obj.status        = 'active'
-            obj.trial_ends_at = None
+            obj.status             = 'active'
+            obj.trial_ends_at      = None
+            obj.current_period_end = _calc_period_end(obj.billing_cycle)
             obj.save()
             cycle_label = 'annually' if obj.billing_cycle == 'annual' else 'monthly'
             SubscriptionEvent.objects.create(
                 subscription=obj, event_type='activated',
                 old_value='pending', new_value=f"active/{obj.plan}/{obj.billing_cycle}",
                 performed_by=actor,
-                note=note or f"Pending upgrade approved — {obj.plan} ({cycle_label})",
+                note=note or (
+                    f"Pending upgrade approved — {obj.plan} ({cycle_label}). "
+                    f"Period ends {obj.current_period_end.strftime('%Y-%m-%d')}"
+                ),
             )
             return _redirect(
-                f"Pending upgrade approved: {obj.plan.title()} ({cycle_label}) is now active."
+                f"Pending upgrade approved: {obj.plan.title()} ({cycle_label}) is now active. "
+                f"Period ends {obj.current_period_end.strftime('%Y-%m-%d')}."
             )
 
         # Unknown action — fall through to normal form processing
@@ -774,10 +851,12 @@ class SubscriptionAdmin(admin.ModelAdmin):
             except Subscription.DoesNotExist:
                 old_plan = ''
 
-            # Paid plan selected → force active, clear trial fields
+            # Paid plan selected → force active, clear trial fields, set period end
             if obj.plan != 'trial' and obj.status in ('trial', 'expiring', 'expired'):
-                obj.status        = 'active'
-                obj.trial_ends_at = None
+                obj.status             = 'active'
+                obj.trial_ends_at      = None
+                if not obj.current_period_end:
+                    obj.current_period_end = _calc_period_end(obj.billing_cycle)
 
             # Trial selected from paid → let refresh_status compute status
             if obj.plan == 'trial' and obj.status == 'active':

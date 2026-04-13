@@ -92,6 +92,43 @@ class OrganizationAdmin(admin.ModelAdmin):
             inlines.append(BranchInline)
         return inlines
 
+    def save_formset(self, request, form, formset, change):
+        """
+        Auto-set current_period_end when a subscription is approved (status → active).
+        Monthly plan  → +30 days.
+        Annual plan   → +365 days.
+        """
+        instances = formset.save(commit=False)
+        auto_set = []
+        for obj in instances:
+            if (
+                hasattr(obj, 'billing_cycle')
+                and hasattr(obj, 'status')
+                and hasattr(obj, 'plan')
+            ):
+                if obj.status == 'active' and obj.plan != 'trial' and not obj.current_period_end:
+                    try:
+                        from subscription.admin import _calc_period_end
+                        obj.current_period_end = _calc_period_end(obj.billing_cycle)
+                        auto_set.append(obj)
+                    except ImportError:
+                        pass
+            obj.save()
+        formset.save_m2m()
+        for obj in formset.deleted_objects:
+            obj.delete()
+        if auto_set:
+            sub = auto_set[0]
+            cycle_label = 'annually' if sub.billing_cycle == 'annual' else 'monthly'
+            self.message_user(
+                request,
+                (
+                    f"✅ Subscription approved: {sub.get_plan_display()} plan "
+                    f"({cycle_label}). Period ends {sub.current_period_end.strftime('%d %b %Y')}."
+                ),
+                messages.SUCCESS,
+            )
+
     @admin.display(description='Plan')
     def subscription_plan(self, obj):
         try:
