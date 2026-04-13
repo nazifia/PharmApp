@@ -17,6 +17,7 @@ STATUS_CHOICES = [
     ('expiring',  'Trial Expiring'),
     ('expired',   'Expired'),
     ('active',    'Active'),
+    ('pending',   'Pending Approval'),
     ('suspended', 'Suspended'),
     ('cancelled', 'Cancelled'),
 ]
@@ -397,8 +398,8 @@ class Subscription(models.Model):
 
     def refresh_status(self):
         """Recalculate status from dates — call before reading status."""
-        # Never auto-override a manually-set terminal status
-        if self.status in ('suspended', 'cancelled'):
+        # Never auto-override a manually-set terminal status or a pending approval
+        if self.status in ('suspended', 'cancelled', 'pending'):
             return
         if self.plan == 'trial':
             if not self.trial_ends_at:

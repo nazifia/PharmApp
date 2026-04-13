@@ -445,7 +445,8 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
 
   Widget _detailItemCard(dynamic item, int checkId, String checkStatus, int index) {
     final name = (item['itemName'] as String?) ?? (item['name'] as String?) ?? 'Unknown Item';
-    final expected = (item['expectedQuantity'] as num?)?.toInt() ?? (item['expected'] as num?)?.toInt() ?? 0;
+    final rawExpected = (item['expectedQuantity'] as num?)?.toInt() ?? (item['expected'] as num?)?.toInt() ?? 0;
+    final expected = _isWholesale ? (rawExpected / 2).ceil() : rawExpected;
     final actual = (item['actualQuantity'] as num?)?.toInt() ?? (item['actual'] as num?)?.toInt();
     final itemStatus = (item['status'] as String?) ?? 'pending';
     final itemId = (item['id'] as num?)?.toInt() ?? 0;
@@ -776,41 +777,56 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                             style: GoogleFonts.outfit(color: context.labelColor,
                                 fontSize: 14, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 10),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: _summaryCard('Total Checks',
+                        LayoutBuilder(builder: (context, constraints) {
+                          final isLarge = constraints.maxWidth >= 600;
+                          final cards = [
+                            _summaryCard('Total Checks',
                                 '${summary['totalChecks'] ?? 0}',
                                 EnhancedTheme.primaryTeal,
-                                Icons.fact_check_rounded)),
-                            const SizedBox(width: 10),
-                            Expanded(child: _summaryCard('Completed',
+                                Icons.fact_check_rounded),
+                            _summaryCard('Completed',
                                 '${summary['completedChecks'] ?? 0}',
                                 EnhancedTheme.successGreen,
-                                Icons.check_circle_rounded)),
-                            const SizedBox(width: 10),
-                            Expanded(child: _summaryCard('Items Checked',
+                                Icons.check_circle_rounded),
+                            _summaryCard('Items Checked',
                                 '${summary['totalItemsChecked'] ?? 0}',
                                 EnhancedTheme.infoBlue,
-                                Icons.inventory_rounded)),
-                            const SizedBox(width: 10),
-                            Expanded(child: _summaryCard('Discrepancies',
+                                Icons.inventory_rounded),
+                            _summaryCard('Discrepancies',
                                 '${summary['totalDiscrepancies'] ?? 0}',
                                 EnhancedTheme.errorRed,
-                                Icons.warning_rounded)),
-                            const SizedBox(width: 10),
-                            Expanded(child: _summaryCard('Adjustments Made',
+                                Icons.warning_rounded),
+                            _summaryCard('Adjustments Made',
                                 '${summary['totalAdjustments'] ?? 0}',
                                 EnhancedTheme.warningAmber,
-                                Icons.tune_rounded)),
-                            const SizedBox(width: 10),
-                            Expanded(child: _summaryCard(
+                                Icons.tune_rounded),
+                            _summaryCard(
                                 'Cost Difference',
                                 _fmt((summary['totalCostDifference'] as num?) ?? 0),
                                 EnhancedTheme.accentPurple,
-                                Icons.attach_money_rounded)),
-                          ],
-                        ),
+                                Icons.attach_money_rounded),
+                          ];
+                          if (isLarge) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (int i = 0; i < cards.length; i++) ...[
+                                  if (i > 0) const SizedBox(width: 10),
+                                  Expanded(child: cards[i]),
+                                ],
+                              ],
+                            );
+                          }
+                          // Small screen: 2-column grid
+                          final cardWidth = (constraints.maxWidth - 10) / 2;
+                          return Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: cards
+                                .map((c) => SizedBox(width: cardWidth, child: c))
+                                .toList(),
+                          );
+                        }),
                         const SizedBox(height: 20),
                       ],
 

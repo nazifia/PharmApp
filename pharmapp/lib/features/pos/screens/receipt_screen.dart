@@ -104,15 +104,16 @@ class ReceiptSheet extends StatelessWidget {
 
 // ── Print button ──────────────────────────────────────────────────────────────
 
-class _PrintButton extends StatefulWidget {
+/// Public print button — usable from any screen (e.g. payment success sheet).
+class ReceiptPrintButton extends StatefulWidget {
   final Map<String, dynamic> saleData;
-  const _PrintButton({required this.saleData});
+  const ReceiptPrintButton({super.key, required this.saleData});
 
   @override
-  State<_PrintButton> createState() => _PrintButtonState();
+  State<ReceiptPrintButton> createState() => _ReceiptPrintButtonState();
 }
 
-class _PrintButtonState extends State<_PrintButton> {
+class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
   bool _printing = false;
 
   Future<void> _print() async {
@@ -120,7 +121,7 @@ class _PrintButtonState extends State<_PrintButton> {
     try {
       await Printing.layoutPdf(
         name: widget.saleData['receiptId'] as String? ?? 'Receipt',
-        onLayout: (format) => _buildPdf(widget.saleData, format),
+        onLayout: (format) => buildReceiptPdf(widget.saleData, format),
       );
     } catch (e) {
       if (mounted) {
@@ -163,6 +164,9 @@ class _PrintButtonState extends State<_PrintButton> {
     );
   }
 }
+
+// Keep private alias so the receipt sheet's internal usage doesn't change.
+typedef _PrintButton = ReceiptPrintButton;
 
 // ── Receipt Card (on-screen) ──────────────────────────────────────────────────
 
@@ -718,7 +722,8 @@ class _PayMethodIcon extends StatelessWidget {
 
 // ── PDF builder ───────────────────────────────────────────────────────────────
 
-Future<Uint8List> _buildPdf(
+/// Public PDF builder — call directly when you need a Uint8List for printing.
+Future<Uint8List> buildReceiptPdf(
     Map<String, dynamic> data, PdfPageFormat format) async {
   final doc = pw.Document();
   final font = await PdfGoogleFonts.nunitoRegular();

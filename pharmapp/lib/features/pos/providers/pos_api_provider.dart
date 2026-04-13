@@ -469,13 +469,37 @@ class PosApiClient {
       final res = await _dio!.post('/pos/suppliers/', data: {
         'name': name,
         'phone': phone,
-        'contact_info': contactInfo,
+        'contactInfo': contactInfo,
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       if (e.response == null) rethrow;
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to create supplier');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateSupplier(
+    int id, {
+    required String name,
+    String phone = '',
+    String contactInfo = '',
+  }) async {
+    if (_isLocal) {
+      return LocalDb.instance
+          .updateSupplier(id, name: name, phone: phone, contactInfo: contactInfo);
+    }
+    try {
+      final res = await _dio!.put('/pos/suppliers/$id/', data: {
+        'name': name,
+        'phone': phone,
+        'contactInfo': contactInfo,
+      });
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      if (e.response == null) rethrow;
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to update supplier');
     }
   }
 
@@ -531,7 +555,7 @@ class PosApiClient {
     }
     try {
       final res = await _dio!.post('/pos/procurements/', data: {
-        'supplier_id': supplierId,
+        'supplierId': supplierId,
         'items': items,
         'status': status,
         'destination': destination,
@@ -1618,7 +1642,7 @@ class SupplierNotifier extends StateNotifier<AsyncValue<void>> {
       if (e.response == null) {
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/suppliers/',
-          body: {'name': name, 'phone': phone, 'contact_info': contactInfo},
+          body: {'name': name, 'phone': phone, 'contactInfo': contactInfo},
           description: 'Create supplier "$name"',
         );
         // Patch the supplier list cache so new supplier appears immediately.
@@ -1635,6 +1659,47 @@ class SupplierNotifier extends StateNotifier<AsyncValue<void>> {
           'status': 'pending_sync',
         });
         await prefs.setString('cache_suppliers', jsonEncode(list));
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> updateSupplier(
+    int id, {
+    required String name, String phone = '', String contactInfo = '',
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.updateSupplier(
+          id, name: name, phone: phone, contactInfo: contactInfo);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'PUT', '/pos/suppliers/$id/',
+          body: {'name': name, 'phone': phone, 'contactInfo': contactInfo},
+          description: 'Update supplier "$name"',
+        );
+        // Patch cache immediately.
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString('cache_suppliers');
+        if (raw != null) {
+          final list = (jsonDecode(raw) as List).map((e) {
+            final m = e as Map<String, dynamic>;
+            if (m['id'] == id) {
+              return {...m, 'name': name, 'phone': phone, 'contactInfo': contactInfo};
+            }
+            return m;
+          }).toList();
+          await prefs.setString('cache_suppliers', jsonEncode(list));
+        }
         state = const AsyncValue.data(null);
         return {'offline': true};
       }

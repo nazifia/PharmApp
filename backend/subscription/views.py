@@ -70,21 +70,37 @@ def subscription_upgrade(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    sub = Subscription.get_or_create_trial(org)
+    billing_cycle = (request.data.get('billing_cycle') or 'monthly').strip().lower()
+    if billing_cycle not in ('monthly', 'annual'):
+        billing_cycle = 'monthly'
 
-    # ── Payment integration hook ───────────────────────────────────────────────
-    # In production, create a checkout session with your payment provider and
-    # return the URL. For now we activate directly (sandbox / manual billing).
-    sub.plan   = plan_id
-    sub.status = 'active'
+    sub = Subscription.get_or_create_trial(org)
+    old_plan = sub.plan
+
+    # Record the requested plan + billing cycle and set status to pending.
+    # A superuser approves in Django admin (changes status to 'active').
+    sub.plan          = plan_id
+    sub.billing_cycle = billing_cycle
+    sub.status        = 'pending'
     sub.trial_ends_at = None
     sub.save()
 
-    # Return a placeholder checkout URL (replace with real Stripe/Paystack URL)
-    checkout_url = ''   # e.g. stripe_session.url
+    SubscriptionEvent.objects.create(
+        subscription=sub,
+        event_type='plan_changed',
+        old_value=old_plan,
+        new_value=f"{plan_id}/{billing_cycle}",
+        performed_by=request.user.phone_number,
+        note=f"Upgrade requested via app — billing cycle: {billing_cycle}. Awaiting admin approval.",
+    )
+
+    # checkout_url is empty for manual (bank-transfer) billing.
+    # Replace with a real Paystack/Flutterwave session URL when integrating.
+    checkout_url = ''
     return Response({
-        'detail':       f"Plan upgraded to {plan_id}.",
+        'detail':       f"Upgrade to {plan_id} ({billing_cycle}) submitted. Awaiting admin approval.",
         'plan':         sub.plan,
+        'billing_cycle': sub.billing_cycle,
         'status':       sub.status,
         'checkout_url': checkout_url,
     }, status=status.HTTP_200_OK)
@@ -206,7 +222,7 @@ def superuser_org_detail(request, org_id):
 # ── PATCH /api/superuser/organizations/{id}/subscription/ ────────────────────
 
 VALID_PLANS_ALL = {'trial', 'starter', 'professional', 'enterprise'}
-VALID_STATUSES  = {'trial', 'expiring', 'expired', 'active', 'suspended', 'cancelled'}
+VALID_STATUSES  = {'trial', 'expiring', 'expired', 'active', 'pending', 'suspended', 'cancelled'}
 
 # Hard-coded baseline — extended at runtime with any custom keys in the DB.
 _BUILTIN_FEATURES = {

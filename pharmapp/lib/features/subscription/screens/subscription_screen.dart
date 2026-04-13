@@ -106,6 +106,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     children: [
                       // ── Current plan card ─────────────────────────────────
                       _CurrentPlanCard(sub: sub),
+                      if (sub.status == SubscriptionStatus.pending) ...[
+                        const SizedBox(height: 8),
+                        _PendingApprovalBanner(sub: sub),
+                      ],
                       const SizedBox(height: 8),
 
                       // ── Billing shortcut ──────────────────────────────────
@@ -363,10 +367,12 @@ class _CurrentPlanCard extends StatelessWidget {
   }
 
   static String _statusLabel(Subscription sub) => switch (sub.status) {
-        SubscriptionStatus.active    => 'Active subscription',
+        SubscriptionStatus.active    => 'Active · ${sub.billingCycle.displayName} billing',
         SubscriptionStatus.trial     => 'Free trial',
         SubscriptionStatus.expiring  => 'Trial expiring soon',
         SubscriptionStatus.expired   => 'Trial expired — upgrade to continue',
+        SubscriptionStatus.pending   =>
+          'Pending approval — ${sub.billingCycle.displayName} billing requested',
         SubscriptionStatus.suspended => 'Suspended — contact support',
         SubscriptionStatus.cancelled => 'Cancelled',
       };
@@ -726,23 +732,45 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
     if (_loading) return;
     setState(() => _loading = true);
 
-    final url = await widget.ref
-        .read(subscriptionNotifierProvider.notifier)
-        .upgradePlan(
-          widget.plan.name,
-          billingCycle: widget.cycle.apiValue,
+    try {
+      final url = await widget.ref
+          .read(subscriptionNotifierProvider.notifier)
+          .upgradePlan(
+            widget.plan.name,
+            billingCycle: widget.cycle.apiValue,
+          );
+
+      if (!mounted) return;
+      setState(() => _loading = false);
+
+      if (url != null && url.isNotEmpty) {
+        // Backend returned a payment gateway URL — open it.
+        // In prod: await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        context.push('/billing');
+      } else {
+        // Manual billing flow: request is pending admin approval.
+        // Show billing screen so the user can see bank-transfer instructions.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Upgrade to ${widget.plan.displayName} (${widget.cycle.displayName}) '
+              'submitted. Complete payment and await admin approval.',
+            ),
+            backgroundColor: EnhancedTheme.accentPurple,
+            duration: const Duration(seconds: 5),
+          ),
         );
-
-    if (!mounted) return;
-    setState(() => _loading = false);
-
-    if (url != null && url.isNotEmpty) {
-      // Backend returned a payment gateway URL — open it.
-      // In prod: await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      context.push('/billing');
-    } else {
-      // No external URL — go to billing page to complete payment setup.
-      context.push('/billing');
+        context.push('/billing');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Upgrade failed: $e'),
+          backgroundColor: EnhancedTheme.errorRed,
+        ),
+      );
     }
   }
 }
@@ -975,6 +1003,65 @@ class _BillingShortcut extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Pending Approval Banner ───────────────────────────────────────────────────
+
+class _PendingApprovalBanner extends StatelessWidget {
+  final Subscription sub;
+  const _PendingApprovalBanner({required this.sub});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: EnhancedTheme.accentPurple.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.hourglass_top_rounded,
+              color: EnhancedTheme.accentPurple, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Upgrade pending admin approval',
+                  style: TextStyle(
+                      color: EnhancedTheme.accentPurple,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${sub.plan.displayName} · ${sub.billingCycle.displayName} billing. '
+                  'Make your payment then wait for activation.',
+                  style: TextStyle(
+                      color: EnhancedTheme.accentPurple.withValues(alpha: 0.75),
+                      fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => context.push('/billing'),
+            style: TextButton.styleFrom(
+              foregroundColor: EnhancedTheme.accentPurple,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Pay now',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+          ),
+        ],
       ),
     );
   }

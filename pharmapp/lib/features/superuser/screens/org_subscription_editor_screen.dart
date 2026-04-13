@@ -767,6 +767,7 @@ class _OrgSubscriptionEditorScreenState
         SubscriptionStatus.trial     => 'Trial',
         SubscriptionStatus.expiring  => 'Expiring',
         SubscriptionStatus.expired   => 'Expired',
+        SubscriptionStatus.pending   => 'Pending',
         SubscriptionStatus.suspended => 'Suspended',
         SubscriptionStatus.cancelled => 'Cancelled',
       };

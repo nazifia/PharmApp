@@ -575,6 +575,7 @@ class ProcurementItem(models.Model):
             "markup": float(self.markup),
             "subtotal": float(self.subtotal),
             "expiryDate": self.expiry_date.isoformat() if self.expiry_date else None,
+            "barcode": self.barcode,
         }
 
 

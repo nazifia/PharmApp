@@ -48,6 +48,7 @@ STATUS_COLORS = {
     'trial':     '#3B82F6',
     'expiring':  '#F59E0B',
     'expired':   '#EF4444',
+    'pending':   '#8B5CF6',
     'suspended': '#DC2626',
     'cancelled': '#6B7280',
 }
@@ -237,6 +238,38 @@ def reactivate_subscriptions(modeladmin, request, queryset):
     modeladmin.message_user(request, f'{n} subscription(s) reactivated.', messages.SUCCESS)
 
 
+@admin.action(description='💜  Approve pending upgrade requests')
+def approve_pending(modeladmin, request, queryset):
+    """
+    Approve subscriptions that are in 'pending' status (payment submitted,
+    awaiting admin verification).  Sets status to 'active' and logs the event.
+    """
+    n = 0
+    for sub in queryset.filter(status='pending'):
+        sub.status = 'active'
+        sub.trial_ends_at = None
+        sub.save()
+        SubscriptionEvent.objects.create(
+            subscription=sub, event_type='activated',
+            old_value='pending', new_value=f"active/{sub.plan}/{sub.billing_cycle}",
+            performed_by=request.user.phone_number,
+            note=f"Pending upgrade approved — {sub.plan} ({sub.billing_cycle})",
+        )
+        n += 1
+    if n:
+        modeladmin.message_user(
+            request,
+            f'{n} pending upgrade(s) approved and set to active.',
+            messages.SUCCESS,
+        )
+    else:
+        modeladmin.message_user(
+            request,
+            'No pending subscriptions in selection.',
+            messages.WARNING,
+        )
+
+
 # ── Main SubscriptionAdmin ────────────────────────────────────────────────────
 
 @admin.register(Subscription)
@@ -330,6 +363,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     inlines = [SubscriptionEventInline]
 
     actions = [
+        approve_pending,
         extend_trial_7, extend_trial_30,
         activate_starter, activate_professional, activate_enterprise,
         reset_to_trial,
@@ -397,6 +431,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
             'is_cancelled':      obj.status == 'cancelled',
             'is_active':         obj.status == 'active',
             'is_expired':        obj.status == 'expired',
+            'is_pending':        obj.status == 'pending',
             'is_annual':         obj.billing_cycle == 'annual',
             'billing_cycle':     obj.billing_cycle,
             'plan_pricing':      pricing,   # {plan: PlanPricing obj}
@@ -533,6 +568,27 @@ class SubscriptionAdmin(admin.ModelAdmin):
             return _redirect(
                 f"Subscription reset to 14-day trial. "
                 f"Ends {obj.trial_ends_at.strftime('%Y-%m-%d')}."
+            )
+
+        # ── Approve pending upgrade ───────────────────────────────────────────
+        if action == 'approve_pending':
+            if obj.status != 'pending':
+                return _redirect(
+                    "Subscription is not in pending status — no change.",
+                    messages.WARNING,
+                )
+            obj.status        = 'active'
+            obj.trial_ends_at = None
+            obj.save()
+            cycle_label = 'annually' if obj.billing_cycle == 'annual' else 'monthly'
+            SubscriptionEvent.objects.create(
+                subscription=obj, event_type='activated',
+                old_value='pending', new_value=f"active/{obj.plan}/{obj.billing_cycle}",
+                performed_by=actor,
+                note=note or f"Pending upgrade approved — {obj.plan} ({cycle_label})",
+            )
+            return _redirect(
+                f"Pending upgrade approved: {obj.plan.title()} ({cycle_label}) is now active."
             )
 
         # Unknown action — fall through to normal form processing

@@ -359,6 +359,7 @@ class _BillingSummaryCard extends ConsumerWidget {
         SubscriptionStatus.trial     => 'Free Trial',
         SubscriptionStatus.expiring  => 'Trial Expiring',
         SubscriptionStatus.expired   => 'Expired',
+        SubscriptionStatus.pending   => 'Pending Approval',
         SubscriptionStatus.suspended => 'Suspended',
         SubscriptionStatus.cancelled => 'Cancelled',
       };
@@ -368,6 +369,7 @@ class _BillingSummaryCard extends ConsumerWidget {
         SubscriptionStatus.trial     => EnhancedTheme.accentOrange,
         SubscriptionStatus.expiring  => EnhancedTheme.warningAmber,
         SubscriptionStatus.expired   => EnhancedTheme.errorRed,
+        SubscriptionStatus.pending   => EnhancedTheme.accentPurple,
         SubscriptionStatus.suspended => EnhancedTheme.errorRed,
         SubscriptionStatus.cancelled => Colors.black38,
       };

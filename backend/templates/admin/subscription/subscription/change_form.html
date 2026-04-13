@@ -247,6 +247,25 @@
         </div>
       </div>
 
+      {# ── Pending approval ─────────────────────────────────────────────── #}
+      {% if is_pending %}
+      <div class="sub-action-group" style="border:1.5px solid #8B5CF6;background:rgba(139,92,246,0.06);border-radius:10px;padding:12px 14px">
+        <div class="sub-action-group-label" style="color:#8B5CF6">⏳ Pending Upgrade Request</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:8px">
+          This org has submitted an upgrade request to
+          <strong>{{ original.get_plan_display }}</strong>
+          ({{ original.billing_cycle }}).
+          Verify payment then click <strong>Approve</strong>.
+        </div>
+        <div class="sub-action-buttons">
+          <button type="submit" class="sub-btn sub-btn-green"
+                  onclick="return confirmAction('approve_pending', 'Approve upgrade to {{ original.get_plan_display }} ({{ original.billing_cycle }}) for {{ original.organization.name }}?')">
+            💜 Approve &amp; Activate
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
       {# ── Account controls ─────────────────────────────────────────────── #}
       <div class="sub-action-group">
         <div class="sub-action-group-label">Account Control</div>

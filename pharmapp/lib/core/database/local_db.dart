@@ -870,6 +870,17 @@ class LocalDb {
     return {'id': id, 'name': name, 'phone': phone, 'contactInfo': contactInfo};
   }
 
+  Future<Map<String, dynamic>> updateSupplier(int id,
+      {required String name, String phone = '', String contactInfo = ''}) async {
+    await (await db).update(
+      'suppliers',
+      {'name': name, 'phone': phone, 'contact_info': contactInfo},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return {'id': id, 'name': name, 'phone': phone, 'contactInfo': contactInfo};
+  }
+
   Future<void> deleteSupplier(int id) async =>
       (await db).delete('suppliers', where: 'id = ?', whereArgs: [id]);
 

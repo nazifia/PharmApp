@@ -869,7 +869,7 @@ def procurement_list(request):
     if err:
         return err
     if request.method == "GET":
-        procs = Procurement.objects.filter(organization=org).select_related("supplier")
+        procs = Procurement.objects.filter(organization=org).select_related("supplier").prefetch_related("items")
         search = request.query_params.get("search", "").strip()
         if search:
             procs = procs.filter(

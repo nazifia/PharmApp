@@ -99,6 +99,7 @@ enum SubscriptionStatus {
   trial,
   expiring,    // trial < 7 days remaining
   expired,
+  pending,     // upgrade requested, awaiting admin approval
   suspended,
   cancelled;
 
@@ -107,6 +108,7 @@ enum SubscriptionStatus {
         'trial'     => SubscriptionStatus.trial,
         'expiring'  => SubscriptionStatus.expiring,
         'expired'   => SubscriptionStatus.expired,
+        'pending'   => SubscriptionStatus.pending,
         'suspended' => SubscriptionStatus.suspended,
         'cancelled' => SubscriptionStatus.cancelled,
         _           => SubscriptionStatus.trial,
@@ -531,9 +533,10 @@ class Subscription {
   bool hasFeature(String feature) => features.contains(feature);
 
   bool get isAccessible =>
-      status == SubscriptionStatus.active  ||
-      status == SubscriptionStatus.trial   ||
-      status == SubscriptionStatus.expiring;
+      status == SubscriptionStatus.active   ||
+      status == SubscriptionStatus.trial    ||
+      status == SubscriptionStatus.expiring ||
+      status == SubscriptionStatus.pending;  // keep current plan features while awaiting approval
 
   int? get trialDaysRemaining {
     if (trialEndsAt == null) return null;

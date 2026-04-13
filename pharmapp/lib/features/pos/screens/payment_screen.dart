@@ -980,27 +980,34 @@ class _SuccessSheet extends StatelessWidget {
 
             const SizedBox(height: 28),
 
-            // View Receipt button — gradient
+            // Print Receipt button — gradient (direct print, no sheet needed)
             Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 4))],
               ),
-              child: SizedBox(width: double.infinity, child: ElevatedButton.icon(
-                onPressed: onViewReceipt,
-                icon: const Icon(Icons.receipt_long_rounded, size: 18, color: Colors.black),
-                label: Text('View & Print Receipt',
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.black)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-              )),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: Center(child: ReceiptPrintButton(saleData: saleData)),
+              ),
             ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.15, end: 0),
+
+            const SizedBox(height: 10),
+            // View Receipt button — outline
+            SizedBox(width: double.infinity, child: OutlinedButton.icon(
+              onPressed: onViewReceipt,
+              icon: const Icon(Icons.receipt_long_rounded, size: 16),
+              label: Text('View Receipt',
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: EnhancedTheme.accentCyan,
+                side: const BorderSide(color: EnhancedTheme.accentCyan),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+            )).animate().fadeIn(delay: 400.ms),
 
             const SizedBox(height: 10),
             SizedBox(width: double.infinity, child: OutlinedButton(
@@ -1013,7 +1020,7 @@ class _SuccessSheet extends StatelessWidget {
               ),
               child: Text('New Sale',
                   style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15)),
-            )).animate().fadeIn(delay: 400.ms),
+            )).animate().fadeIn(delay: 450.ms),
           ]),
         ),
       ),

@@ -253,6 +253,125 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
     );
   }
 
+  void _showEditSupplierSheet(Map<String, dynamic> supplier) {
+    final nameCtrl = TextEditingController(text: supplier['name'] ?? '');
+    final phoneCtrl = TextEditingController(text: supplier['phone'] ?? '');
+    final contactCtrl = TextEditingController(text: supplier['contactInfo'] ?? '');
+    final id = supplier['id'] as int?;
+    if (id == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: context.isDark ? const Color(0xFF1A2535) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border(top: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1))),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+            child: Column(mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Center(child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2)),
+              )),
+              const SizedBox(height: 20),
+              Row(children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.edit_rounded,
+                      color: EnhancedTheme.primaryTeal, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text('Edit Supplier',
+                    style: GoogleFonts.outfit(color: context.labelColor,
+                        fontSize: 20, fontWeight: FontWeight.w700)),
+              ]),
+              const SizedBox(height: 24),
+
+              _sheetField(nameCtrl, 'Supplier Name', Icons.business_rounded,
+                  EnhancedTheme.accentPurple),
+              const SizedBox(height: 14),
+              _sheetField(phoneCtrl, 'Phone Number', Icons.phone_rounded,
+                  EnhancedTheme.primaryTeal,
+                  keyboardType: TextInputType.phone),
+              const SizedBox(height: 14),
+              _sheetField(contactCtrl, 'Contact Info (optional)',
+                  Icons.info_outline_rounded, EnhancedTheme.infoBlue),
+              const SizedBox(height: 24),
+
+              SizedBox(width: double.infinity, child: ElevatedButton(
+                onPressed: () async {
+                  if (nameCtrl.text.isEmpty) return;
+                  try {
+                    await ref.read(posApiProvider).updateSupplier(
+                      id,
+                      name: nameCtrl.text,
+                      phone: phoneCtrl.text,
+                      contactInfo: contactCtrl.text,
+                    );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    _loadSuppliers();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.all(16),
+                        content: Row(children: [
+                          const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                          const SizedBox(width: 10),
+                          const Expanded(child: Text('Supplier updated', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                        ]),
+                      ));
+                    }
+                  } catch (e) {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.all(16),
+                        content: Row(children: [
+                          const Icon(Icons.error_rounded, color: Colors.black, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text('Failed: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                        ]),
+                      ));
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EnhancedTheme.primaryTeal,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                child: Text('Save Changes',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w700,
+                        fontSize: 16)),
+              )),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _sheetField(TextEditingController ctrl, String hint, IconData icon,
       Color color, {TextInputType? keyboardType}) {
     return TextField(
@@ -619,7 +738,21 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                     ],
                   ]),
                 )),
-                const SizedBox(width: 14),
+                GestureDetector(
+                  onTap: () => _showEditSupplierSheet(s),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 14),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25)),
+                    ),
+                    child: const Icon(Icons.edit_rounded,
+                        color: EnhancedTheme.primaryTeal, size: 16),
+                  ),
+                ),
               ]),
             ),
           ),

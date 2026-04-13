@@ -597,6 +597,7 @@ Color _statusColor(SubscriptionStatus s) => switch (s) {
       SubscriptionStatus.trial     => EnhancedTheme.accentOrange,
       SubscriptionStatus.expiring  => EnhancedTheme.warningAmber,
       SubscriptionStatus.expired   => EnhancedTheme.errorRed,
+      SubscriptionStatus.pending   => EnhancedTheme.accentPurple,
       SubscriptionStatus.suspended => Colors.white38,
       SubscriptionStatus.cancelled => Colors.white24,
     };
@@ -606,6 +607,7 @@ String _statusLabel(SubscriptionStatus s) => switch (s) {
       SubscriptionStatus.trial     => 'Trial',
       SubscriptionStatus.expiring  => 'Expiring',
       SubscriptionStatus.expired   => 'Expired',
+      SubscriptionStatus.pending   => 'Pending',
       SubscriptionStatus.suspended => 'Suspended',
       SubscriptionStatus.cancelled => 'Cancelled',
     };
