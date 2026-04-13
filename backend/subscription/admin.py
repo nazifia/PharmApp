@@ -22,6 +22,7 @@ from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import admin, messages
+from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -302,6 +303,115 @@ def approve_pending(modeladmin, request, queryset):
         )
 
 
+# ── Pending-by-plan list filter ───────────────────────────────────────────────
+
+class PendingByPlanFilter(SimpleListFilter):
+    """
+    Filters the subscription list to show pending requests for a specific plan.
+    Appears as a collapsible sidebar filter with one option per plan.
+    """
+    title        = 'Pending Request (by plan)'
+    parameter_name = 'pending_plan'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('trial',        '⏳  Pending — Free Trial'),
+            ('starter',      '🚀  Pending — Starter'),
+            ('professional', '💎  Pending — Professional'),
+            ('enterprise',   '👑  Pending — Enterprise'),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(status='pending', plan=self.value())
+        return queryset
+
+
+# ── Per-plan pending approval bulk actions ────────────────────────────────────
+
+@admin.action(description='⏳  Approve pending — Free Trial (start 14-day trial)')
+def approve_pending_trial(modeladmin, request, queryset):
+    n = 0
+    for sub in queryset.filter(status='pending', plan='trial'):
+        sub.status        = 'trial'
+        sub.trial_ends_at = timezone.now() + timedelta(days=14)
+        sub.save()
+        SubscriptionEvent.objects.create(
+            subscription=sub, event_type='activated',
+            old_value='pending', new_value='trial',
+            performed_by=request.user.phone_number,
+            note='Free Trial registration approved — 14-day trial started',
+        )
+        n += 1
+    if n:
+        modeladmin.message_user(request, f'{n} Free Trial registration(s) approved.', messages.SUCCESS)
+    else:
+        modeladmin.message_user(request, 'No pending Free Trial registrations in selection.', messages.WARNING)
+
+
+@admin.action(description='🚀  Approve pending — Starter plan')
+def approve_pending_starter(modeladmin, request, queryset):
+    n = 0
+    for sub in queryset.filter(status='pending', plan='starter'):
+        sub.status        = 'active'
+        sub.trial_ends_at = None
+        sub.save()
+        cycle_label = 'annually' if sub.billing_cycle == 'annual' else 'monthly'
+        SubscriptionEvent.objects.create(
+            subscription=sub, event_type='activated',
+            old_value='pending', new_value=f'active/starter/{sub.billing_cycle}',
+            performed_by=request.user.phone_number,
+            note=f'Starter upgrade approved — billed {cycle_label}',
+        )
+        n += 1
+    if n:
+        modeladmin.message_user(request, f'{n} Starter upgrade(s) approved and set to active.', messages.SUCCESS)
+    else:
+        modeladmin.message_user(request, 'No pending Starter upgrades in selection.', messages.WARNING)
+
+
+@admin.action(description='💎  Approve pending — Professional plan')
+def approve_pending_professional(modeladmin, request, queryset):
+    n = 0
+    for sub in queryset.filter(status='pending', plan='professional'):
+        sub.status        = 'active'
+        sub.trial_ends_at = None
+        sub.save()
+        cycle_label = 'annually' if sub.billing_cycle == 'annual' else 'monthly'
+        SubscriptionEvent.objects.create(
+            subscription=sub, event_type='activated',
+            old_value='pending', new_value=f'active/professional/{sub.billing_cycle}',
+            performed_by=request.user.phone_number,
+            note=f'Professional upgrade approved — billed {cycle_label}',
+        )
+        n += 1
+    if n:
+        modeladmin.message_user(request, f'{n} Professional upgrade(s) approved and set to active.', messages.SUCCESS)
+    else:
+        modeladmin.message_user(request, 'No pending Professional upgrades in selection.', messages.WARNING)
+
+
+@admin.action(description='👑  Approve pending — Enterprise plan')
+def approve_pending_enterprise(modeladmin, request, queryset):
+    n = 0
+    for sub in queryset.filter(status='pending', plan='enterprise'):
+        sub.status        = 'active'
+        sub.trial_ends_at = None
+        sub.save()
+        cycle_label = 'annually' if sub.billing_cycle == 'annual' else 'monthly'
+        SubscriptionEvent.objects.create(
+            subscription=sub, event_type='activated',
+            old_value='pending', new_value=f'active/enterprise/{sub.billing_cycle}',
+            performed_by=request.user.phone_number,
+            note=f'Enterprise upgrade approved — billed {cycle_label}',
+        )
+        n += 1
+    if n:
+        modeladmin.message_user(request, f'{n} Enterprise upgrade(s) approved and set to active.', messages.SUCCESS)
+    else:
+        modeladmin.message_user(request, 'No pending Enterprise upgrades in selection.', messages.WARNING)
+
+
 # ── Main SubscriptionAdmin ────────────────────────────────────────────────────
 
 @admin.register(Subscription)
@@ -311,10 +421,11 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
     list_display = (
         'organization_link', 'plan_badge', 'status_badge',
+        'pending_request_badge',
         'trial_days_left', 'usage_users', 'usage_items',
         'usage_transactions', 'current_period_end', 'updated_at',
     )
-    list_filter   = ('plan', 'status')
+    list_filter   = ('plan', 'status', PendingByPlanFilter)
     search_fields = ('organization__name', 'organization__slug',
                      'external_subscription_id')
     ordering      = ('-created_at',)
@@ -397,6 +508,10 @@ class SubscriptionAdmin(admin.ModelAdmin):
     actions = [
         approve_registration,
         approve_pending,
+        approve_pending_trial,
+        approve_pending_starter,
+        approve_pending_professional,
+        approve_pending_enterprise,
         extend_trial_7, extend_trial_30,
         activate_starter, activate_professional, activate_enterprise,
         reset_to_trial,
@@ -731,6 +846,36 @@ class SubscriptionAdmin(admin.ModelAdmin):
     def status_badge(self, obj):
         obj.refresh_status()
         return _badge(obj.get_status_display(), STATUS_COLORS.get(obj.status, '#6B7280'))
+
+    @admin.display(description='Pending Request')
+    def pending_request_badge(self, obj):
+        """
+        Shows a highlighted badge only when status=pending, indicating which
+        plan the org has requested and is awaiting approval for.
+        """
+        if obj.status != 'pending':
+            return format_html('<span style="color:#475569;font-size:11px">—</span>')
+        plan_label = obj.get_plan_display()
+        plan_color = PLAN_COLORS.get(obj.plan, '#6B7280')
+        icons = {
+            'trial':        '⏳',
+            'starter':      '🚀',
+            'professional': '💎',
+            'enterprise':   '👑',
+        }
+        icon = icons.get(obj.plan, '🔔')
+        cycle = obj.billing_cycle or 'monthly'
+        cycle_badge = (
+            f'<span style="font-size:10px;color:#94a3b8;margin-left:4px">'
+            f'({cycle})</span>'
+        ) if obj.plan != 'trial' else ''
+        return format_html(
+            '<span style="background:{c};color:#fff;padding:3px 10px;'
+            'border-radius:10px;font-size:11px;font-weight:700;'
+            'box-shadow:0 0 0 2px rgba(255,255,255,0.15)">'
+            '{icon} {label}</span>{cycle}',
+            c=plan_color, icon=icon, label=plan_label, cycle=mark_safe(cycle_badge),
+        )
 
     @admin.display(description='Trial left')
     def trial_days_left(self, obj):

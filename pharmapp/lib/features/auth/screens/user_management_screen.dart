@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/user.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
@@ -1303,6 +1304,7 @@ class _UserManagementScreenState
                 _buildHeader(context)
                     .animate()
                     .fadeIn(duration: 400.ms),
+                const UsageLimitWarning(limitType: 'users'),
                 const SizedBox(height: 4),
                 _buildSearchBar()
                     .animate()

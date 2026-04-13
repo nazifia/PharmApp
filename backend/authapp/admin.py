@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from .admin_mixins import OrgScopedAdminMixin
 from .models import Organization, PharmUser, SiteConfig, UserPermissionOverride
+from branches.admin import BranchInline
 
 # ── Role metadata ──────────────────────────────────────────────────────────────
 
@@ -86,7 +87,10 @@ class OrganizationAdmin(admin.ModelAdmin):
     inlines  = []   # populated in get_inlines()
 
     def get_inlines(self, request, obj):
-        return _subscription_inline()
+        inlines = list(_subscription_inline())
+        if obj is not None:
+            inlines.append(BranchInline)
+        return inlines
 
     @admin.display(description='Plan')
     def subscription_plan(self, obj):

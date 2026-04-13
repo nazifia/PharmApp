@@ -103,20 +103,22 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         'color': EnhancedTheme.warningAmber,
         'icon': Icons.warning_amber_rounded
       },
-      {
-        'label': 'Customers',
-        'value': kpiVal('$customers'),
-        'sub': 'Total registered',
-        'color': EnhancedTheme.accentCyan,
-        'icon': Icons.people_rounded
-      },
-      {
-        'label': 'Outstanding Debt',
-        'value': kpiVal(_fmt(debt)),
-        'sub': 'Total customer debt',
-        'color': EnhancedTheme.errorRed,
-        'icon': Icons.money_off_rounded
-      },
+      if (hasCustFeature)
+        {
+          'label': 'Customers',
+          'value': kpiVal('$customers'),
+          'sub': 'Total registered',
+          'color': EnhancedTheme.accentCyan,
+          'icon': Icons.people_rounded
+        },
+      if (hasCustFeature)
+        {
+          'label': 'Outstanding Debt',
+          'value': kpiVal(_fmt(debt)),
+          'sub': 'Total customer debt',
+          'color': EnhancedTheme.errorRed,
+          'icon': Icons.money_off_rounded
+        },
       {
         'label': 'Inventory Value',
         'value': kpiVal(_fmt(stockValue)),
@@ -977,6 +979,7 @@ class _AdminMoreSheet extends ConsumerWidget {
     final hasReportsFeature = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
     final hasAdvancedReports = ref.watch(hasFeatureProvider(SaasFeature.advancedReports));
     final hasWsFeature = ref.watch(hasFeatureProvider(SaasFeature.wholesale));
+    final hasBranchFeature = ref.watch(hasFeatureProvider(SaasFeature.multiBranch));
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: BackdropFilter(
@@ -1066,6 +1069,11 @@ class _AdminMoreSheet extends ConsumerWidget {
               const SizedBox(width: 10),
               _card(context, Icons.settings_outlined, 'Settings',
                   context.subLabelColor, '/admin-dashboard/settings'),
+              if (hasBranchFeature) ...[
+                const SizedBox(width: 10),
+                _card(context, Icons.account_tree_rounded, 'Branches',
+                    EnhancedTheme.accentPurple, '/dashboard/branches'),
+              ],
             ]),
             const SizedBox(height: 24),
             GestureDetector(

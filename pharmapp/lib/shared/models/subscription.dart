@@ -665,6 +665,33 @@ class Subscription {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'plan':              plan.name,
+        'status':            status.name,
+        'billing_cycle':     billingCycle.apiValue,
+        if (trialEndsAt      != null) 'trial_ends_at':      trialEndsAt!.toIso8601String(),
+        if (currentPeriodEnd != null) 'current_period_end': currentPeriodEnd!.toIso8601String(),
+        'custom_limits': {
+          'max_users':                    limits.maxUsers,
+          'max_items':                    limits.maxItems,
+          'max_transactions_per_month':   limits.maxTransactionsPerMonth,
+          'max_branches':                 limits.maxBranches,
+        },
+        'extra_features':   extraFeatures.toList(),
+        'removed_features': removedFeatures.toList(),
+        'usage': {
+          'users_count':             usage.usersCount,
+          'items_count':             usage.itemsCount,
+          'transactions_this_month': usage.transactionsThisMonth,
+          'branches_count':          usage.branchesCount,
+        },
+        if (planFeatures != null)
+          'plan_features': planFeatures!.map((k, v) => MapEntry(k, v.toList())),
+        if (featureLabels != null) 'feature_labels': featureLabels,
+        if (featureOrder  != null) 'feature_order':  featureOrder,
+        if (planPrices    != null) 'plan_prices':     planPrices,
+      };
+
   /// Default trial subscription — used while the real data is loading
   /// or when the backend does not yet implement the subscription endpoint.
   factory Subscription.defaultTrial() => Subscription(

@@ -9,6 +9,7 @@ import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -411,6 +412,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
               color: EnhancedTheme.accentCyan.withValues(alpha: 0.05)))),
         SafeArea(child: Column(children: [
           _buildHeader(context),
+          const UsageLimitWarning(limitType: 'items'),
           _buildSearchBar(),
           _buildFilterChips(),
           // Store tabs

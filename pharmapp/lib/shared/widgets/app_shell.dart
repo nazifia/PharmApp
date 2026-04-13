@@ -17,6 +17,7 @@ import 'package:pharmapp/features/pos/screens/sales_history_screen.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
+import 'package:pharmapp/core/inactivity/inactivity_provider.dart';
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
 
@@ -264,7 +265,8 @@ class _AppShellState extends ConsumerState<AppShell>
     final posRoute =
         isWholesale ? '/dashboard/wholesale-pos' : '/dashboard/pos';
 
-    return Scaffold(
+    return InactivityGuard(
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       drawer: const AppDrawer(),
       body: Column(children: [
@@ -282,7 +284,7 @@ class _AppShellState extends ConsumerState<AppShell>
         onMoreTap: () =>
             AppShell._showMoreSheet(context, ref, isAdmin, isWholesale),
       ),
-    );
+    ));
   }
 }
 

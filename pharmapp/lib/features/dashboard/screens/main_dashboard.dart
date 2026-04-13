@@ -114,8 +114,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     final retailStats = [
       DashboardCard(title: "Today's Revenue", value: loading ? '…' : _fmt(revenue), subtitle: 'Retail + Wholesale', icon: Icons.monetization_on,  color: EnhancedTheme.successGreen),
       DashboardCard(title: 'Low Stock',        value: loading ? '…' : '$lowStock',   subtitle: 'Below threshold',     icon: Icons.warning_amber,    color: EnhancedTheme.warningAmber),
-      DashboardCard(title: 'Customers',        value: loading ? '…' : '$customers',  subtitle: 'Total registered',    icon: Icons.people,           color: EnhancedTheme.accentPurple),
-      DashboardCard(title: 'Outstanding Debt', value: loading ? '…' : _fmt(debt),    subtitle: 'Total owed',          icon: Icons.money_off,        color: EnhancedTheme.errorRed),
+      if (hasCustFeature)
+        DashboardCard(title: 'Customers',        value: loading ? '…' : '$customers',  subtitle: 'Total registered',    icon: Icons.people,           color: EnhancedTheme.accentPurple),
+      if (hasCustFeature)
+        DashboardCard(title: 'Outstanding Debt', value: loading ? '…' : _fmt(debt),    subtitle: 'Total owed',          icon: Icons.money_off,        color: EnhancedTheme.errorRed),
     ];
 
     return SingleChildScrollView(
@@ -160,6 +162,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             _quickAccessPanel(wide2, hasReportsFeature: hasReportsFeature),
             const SizedBox(height: 24),
 
+            if (hasReportsFeature) ...[
             _sectionHeader('Sales Trend', () => context.go('/dashboard/reports/sales')),
             const SizedBox(height: 12),
             _salesTrendChart(salesAsync),
@@ -214,6 +217,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               },
             ),
             const SizedBox(height: 24),
+            ], // end hasReportsFeature
 
             _sectionHeader('Low Stock Alerts', () => context.go('/dashboard/inventory')),
             const SizedBox(height: 12),
@@ -980,11 +984,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         ])),
         const PopupMenuDivider(),
         _menuItem('settings',  Icons.settings_outlined,       'Settings'),
-        if (isAdmin)
+        if (isAdmin && ref.read(hasFeatureProvider(SaasFeature.basicReports)))
           _menuItem('reports',   Icons.bar_chart_outlined,      'Reports'),
         if (isAdmin)
           _menuItem('admin',     Icons.admin_panel_settings_outlined, 'Admin Dashboard'),
-        if (isWholesale)
+        if (isWholesale && ref.read(hasFeatureProvider(SaasFeature.wholesale)))
           _menuItem('wholesale', Icons.store_outlined,         'Wholesale Dashboard'),
         const PopupMenuDivider(),
         _menuItem('logout',    Icons.logout_rounded,          'Sign Out',  color: EnhancedTheme.errorRed),

@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'subscription_api_client.dart';
 
 // ── Raw fetch ──────────────────────────────────────────────────────────────────
@@ -22,10 +24,34 @@ class SubscriptionNotifier extends StateNotifier<AsyncValue<Subscription>> {
       if (token != null) {
         _load();
       } else {
+        // Clear cache on logout so a different org doesn't inherit stale data.
+        SharedPreferences.getInstance()
+            .then((p) => p.remove(_cacheKey))
+            .ignore();
         state = AsyncValue.data(Subscription.defaultTrial());
       }
     });
     _load();
+  }
+
+  static const _cacheKey = 'cached_subscription';
+
+  Future<void> _saveCache(Subscription sub) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cacheKey, jsonEncode(sub.toJson()));
+    } catch (_) {}
+  }
+
+  Future<Subscription?> _loadCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey);
+      if (raw != null) {
+        return Subscription.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<void> _load() async {
@@ -38,12 +64,19 @@ class SubscriptionNotifier extends StateNotifier<AsyncValue<Subscription>> {
     state = const AsyncValue.loading();
     try {
       final sub = await _ref.read(subscriptionApiClientProvider).getSubscription();
+      await _saveCache(sub);
       state = AsyncValue.data(sub);
     } catch (e, st) {
-      // Fall back to trial so the app remains usable
-      state = AsyncValue.data(Subscription.defaultTrial());
+      // Offline or backend unreachable — restore last known subscription.
+      // Only fall back to trial if no cached data exists.
+      final cached = await _loadCache();
+      if (cached != null) {
+        state = AsyncValue.data(cached);
+      } else {
+        state = AsyncValue.data(Subscription.defaultTrial());
+      }
       // ignore: avoid_print
-      print('SubscriptionNotifier: backend unreachable, using trial fallback — $e\n$st');
+      print('SubscriptionNotifier: backend unreachable, using ${cached != null ? "cached" : "trial"} fallback — $e\n$st');
     }
   }
 

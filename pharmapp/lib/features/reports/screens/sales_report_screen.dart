@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
+import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
@@ -187,17 +189,31 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
               size: 18)),
       ),
       const SizedBox(width: 8),
-      GestureDetector(
-        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Export � coming soon'))),
-        child: Container(
-          padding: const EdgeInsets.all(9),
-          decoration: BoxDecoration(
-            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25))),
-          child: const Icon(Icons.download_rounded, color: EnhancedTheme.primaryTeal, size: 18)),
-      ),
+      Builder(builder: (ctx) {
+        final hasExport = ref.watch(hasFeatureProvider(SaasFeature.exportData));
+        return GestureDetector(
+          onTap: () {
+            if (!hasExport) { ctx.go('/subscription'); return; }
+            ScaffoldMessenger.of(ctx).showSnackBar(
+                const SnackBar(content: Text('Export coming soon')));
+          },
+          child: Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: hasExport
+                  ? EnhancedTheme.primaryTeal.withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: hasExport
+                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.25)
+                    : Colors.white.withValues(alpha: 0.12))),
+            child: Icon(
+              hasExport ? Icons.download_rounded : Icons.lock_rounded,
+              color: hasExport ? EnhancedTheme.primaryTeal : Colors.white38,
+              size: 18)),
+        );
+      }),
     ]),
   ).animate().fadeIn(duration: 350.ms);
 
