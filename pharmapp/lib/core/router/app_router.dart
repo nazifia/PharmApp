@@ -319,7 +319,7 @@ class _ErrorScreen extends StatelessWidget {
                   style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Text(
-                error ?? 'An unexpected error occurred',
+                'An unexpected error occurred.',
                 style: const TextStyle(color: Colors.white54, fontSize: 14),
                 textAlign: TextAlign.center,
               ),

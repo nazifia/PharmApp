@@ -124,6 +124,14 @@ def org_logo_view(request):
     if not logo_file:
         return Response({'detail': 'logo file is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+    MAX_LOGO_SIZE = 2 * 1024 * 1024  # 2 MB
+    if logo_file.size > MAX_LOGO_SIZE:
+        return Response({'detail': 'Logo file must be smaller than 2 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    allowed_types = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
+    if logo_file.content_type not in allowed_types:
+        return Response({'detail': 'Logo must be a JPEG, PNG, WebP, or GIF image.'}, status=status.HTTP_400_BAD_REQUEST)
+
     # Delete old file to avoid orphan uploads
     if org.logo:
         org.logo.delete(save=False)

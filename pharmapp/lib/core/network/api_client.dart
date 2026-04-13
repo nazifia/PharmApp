@@ -58,7 +58,8 @@ class AuthInterceptor extends Interceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final token = _ref.read(authTokenProvider);
 
-    if (token != null && !options.headers.containsKey('skip_auth')) {
+    final skipAuth = options.headers.remove('skip_auth');
+    if (token != null && skipAuth == null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
     options.headers['Accept']       = 'application/json';

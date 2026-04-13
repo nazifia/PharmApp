@@ -101,6 +101,7 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
             'role':                 self.role,
             'isActive':             self.is_active,
             'isWholesaleOperator':  self.is_wholesale_operator,
+            'isSuperuser':          self.is_superuser,
             'organizationId':       org.id      if org else 0,
             'organizationName':     org.name    if org else '',
             'organizationSlug':     org.slug    if org else '',
