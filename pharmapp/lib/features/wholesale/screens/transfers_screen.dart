@@ -719,7 +719,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: qtyCtrl,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     style: GoogleFonts.inter(
                         color: ctx.labelColor, fontSize: 16),
                     decoration: InputDecoration(
@@ -790,8 +790,8 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
-                          final qty = int.tryParse(qtyCtrl.text) ?? 0;
-                          if (qty <= 0) return;
+                          final qty = double.tryParse(qtyCtrl.text) ?? 0.0;
+                          if (qty < 0.5) return;
                           if (availableQty != null && qty > availableQty) {
                             // Use outer context's ScaffoldMessenger so the
                             // snackbar appears on the main scaffold
@@ -837,7 +837,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
     ).whenComplete(qtyCtrl.dispose);
   }
 
-  Future<void> _approveTransfer(int id, int qty) async {
+  Future<void> _approveTransfer(int id, double qty) async {
     try {
       await ref.read(posApiProvider).approveTransfer(id, qty);
       ref.invalidate(transfersListProvider(_params));
@@ -1162,8 +1162,8 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
 
   Future<void> _submit() async {
     final name = _itemName.trim();
-    final qty = int.tryParse(_qtyCtrl.text.trim()) ?? 0;
-    if (name.isEmpty || qty <= 0) {
+    final qty = double.tryParse(_qtyCtrl.text.trim()) ?? 0.0;
+    if (name.isEmpty || qty < 0.5) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
         behavior: SnackBarBehavior.floating,
@@ -1368,7 +1368,7 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: _qtyCtrl,
-                      keyboardType: TextInputType.number,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       style: GoogleFonts.inter(
                           color: context.labelColor, fontSize: 14),
                       decoration: InputDecoration(

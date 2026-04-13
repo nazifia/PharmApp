@@ -88,10 +88,16 @@ def register_org_view(request):
         organization=org,
     )
 
-    # Bootstrap a 14-day free trial for the new org
+    # Create subscription in 'pending' state — superuser must approve before trial starts
     try:
         from subscription.models import Subscription
-        Subscription.get_or_create_trial(org)
+        Subscription.objects.get_or_create(
+            organization=org,
+            defaults={
+                'plan':   'trial',
+                'status': 'pending',
+            },
+        )
     except Exception:
         pass  # non-fatal — subscription can be created later via GET /subscription/
 

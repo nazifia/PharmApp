@@ -11,7 +11,7 @@ _$SaleItemPayloadImpl _$$SaleItemPayloadImplFromJson(
     _$SaleItemPayloadImpl(
       barcode: json['barcode'] as String,
       itemId: (json['itemId'] as num?)?.toInt(),
-      quantity: (json['quantity'] as num).toInt(),
+      quantity: (json['quantity'] as num).toDouble(),
       price: (json['price'] as num).toDouble(),
       discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
     );

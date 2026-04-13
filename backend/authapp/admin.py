@@ -79,7 +79,7 @@ def _subscription_inline():
 class OrganizationAdmin(admin.ModelAdmin):
     """Visible and editable by superusers only."""
 
-    list_display  = ["name", "slug", "phone", "user_count", "subscription_plan", "created_at"]
+    list_display  = ["name", "slug", "phone", "user_count", "subscription_plan", "subscription_status", "created_at"]
     search_fields = ["name", "slug", "phone"]
     readonly_fields = ["slug", "created_at", "user_count"]
     ordering = ["name"]
@@ -103,6 +103,29 @@ class OrganizationAdmin(admin.ModelAdmin):
                 '<span style="background:{};color:#fff;padding:2px 8px;'
                 'border-radius:10px;font-size:11px">{}</span>',
                 c, sub.get_plan_display(),
+            )
+        except Exception:
+            return format_html('<span style="color:#64748b;font-size:11px">—</span>')
+
+    @admin.display(description='Status')
+    def subscription_status(self, obj):
+        try:
+            sub = obj.subscription
+            colors = {
+                'trial':     '#3B82F6',
+                'expiring':  '#F59E0B',
+                'expired':   '#EF4444',
+                'active':    '#10B981',
+                'pending':   '#8B5CF6',
+                'suspended': '#DC2626',
+                'cancelled': '#6B7280',
+            }
+            c = colors.get(sub.status, '#6B7280')
+            label = sub.get_status_display()
+            return format_html(
+                '<span style="background:{};color:#fff;padding:2px 8px;'
+                'border-radius:10px;font-size:11px">{}</span>',
+                c, label,
             )
         except Exception:
             return format_html('<span style="color:#64748b;font-size:11px">—</span>')

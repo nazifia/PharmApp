@@ -1069,7 +1069,7 @@ class PosApiClient {
 
   Future<Map<String, dynamic>> returnWholesaleItem(int saleId,
       {required int saleItemId,
-      required int quantity,
+      required double quantity,
       String refundMethod = 'wallet',
       String reason = ''}) async {
     if (_isLocal) {
@@ -1154,7 +1154,7 @@ class PosApiClient {
 
   Future<Map<String, dynamic>> createTransfer({
     required String itemName,
-    required int requestedQty,
+    required double requestedQty,
     String unit = 'Pcs',
     bool fromWholesale = true,
     String notes = '',
@@ -1183,7 +1183,7 @@ class PosApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> approveTransfer(int id, int approvedQty) async {
+  Future<Map<String, dynamic>> approveTransfer(int id, double approvedQty) async {
     if (_isLocal) {
       return LocalDb.instance.approveTransfer(id, approvedQty);
     }
@@ -1954,7 +1954,7 @@ class TransferNotifier extends StateNotifier<AsyncValue<void>> {
   TransferNotifier(this._api, this._ref) : super(const AsyncValue.data(null));
 
   Future<Map<String, dynamic>?> createTransfer({
-    required String itemName, required int requestedQty,
+    required String itemName, required double requestedQty,
     String unit = 'Pcs', bool fromWholesale = true, String notes = '',
   }) async {
     state = const AsyncValue.loading();
@@ -1983,7 +1983,7 @@ class TransferNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<Map<String, dynamic>?> approveTransfer(int id, int approvedQty) async {
+  Future<Map<String, dynamic>?> approveTransfer(int id, double approvedQty) async {
     state = const AsyncValue.loading();
     try {
       final result = await _api.approveTransfer(id, approvedQty);

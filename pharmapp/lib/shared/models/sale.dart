@@ -8,7 +8,7 @@ class SaleItemPayload with _$SaleItemPayload {
   const factory SaleItemPayload({
     required String barcode,
     required int? itemId,
-    required int quantity,
+    required double quantity,
     required double price,
     @Default(0.0) double discount,
   }) = _SaleItemPayload;

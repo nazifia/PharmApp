@@ -288,7 +288,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
       items: rawItems.map<SaleItemPayload>((item) => SaleItemPayload(
         barcode:  (item['barcode'] as String?) ?? '',
         itemId:   (item['itemId'] as num?)?.toInt(),
-        quantity: (item['quantity'] as num?)?.toInt() ?? 1,
+        quantity: (item['quantity'] as num?)?.toDouble() ?? 1.0,
         price:    (item['price'] as num?)?.toDouble() ?? 0,
         discount: (item['discount'] as num?)?.toDouble() ?? 0,
       )).toList(),

@@ -148,7 +148,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       items: cart.map((c) => SaleItemPayload(
         barcode:  c.item.barcode,
         itemId:   c.item.id,
-        quantity: c.quantity,
+        quantity: c.quantity.toDouble(),
         price:    c.item.price,
         discount: c.discount,
       )).toList(),

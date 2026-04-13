@@ -1163,7 +1163,7 @@ class _WholesaleReturnDialog extends ConsumerStatefulWidget {
 }
 
 class _WholesaleReturnDialogState extends ConsumerState<_WholesaleReturnDialog> {
-  int _quantity = 1;
+  double _quantity = 1.0;
   String _refundMethod = 'wallet';
   final _reasonCtrl = TextEditingController();
   bool _submitting = false;
@@ -1276,13 +1276,13 @@ class _WholesaleReturnDialogState extends ConsumerState<_WholesaleReturnDialog> 
               ),
               child: Row(children: [
                 _qtyBtn(Icons.remove_rounded, () {
-                  if (_quantity > 1) setState(() => _quantity--);
+                  if (_quantity > 0.5) setState(() => _quantity = (_quantity - 0.5).clamp(0.5, widget.maxQty.toDouble()));
                 }),
-                Expanded(child: Center(child: Text('$_quantity',
+                Expanded(child: Center(child: Text(_quantity % 1 == 0 ? _quantity.toInt().toString() : _quantity.toStringAsFixed(1),
                     style: GoogleFonts.outfit(color: context.labelColor,
                         fontSize: 24, fontWeight: FontWeight.w800)))),
                 _qtyBtn(Icons.add_rounded, () {
-                  if (_quantity < widget.maxQty) setState(() => _quantity++);
+                  if (_quantity < widget.maxQty) setState(() => _quantity = (_quantity + 0.5).clamp(0.5, widget.maxQty.toDouble()));
                 }),
               ]),
             ),

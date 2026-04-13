@@ -823,7 +823,7 @@ class LocalDb {
 
   Future<Map<String, dynamic>> returnSaleItem(int saleId,
       {required int saleItemId,
-      required int quantity,
+      required num quantity,
       String refundMethod = 'wallet',
       String reason = ''}) async {
     final d = await db;
@@ -1198,7 +1198,7 @@ class LocalDb {
 
   Future<Map<String, dynamic>> createTransfer({
     required String itemName,
-    required int requestedQty,
+    required double requestedQty,
     String unit = 'Pcs',
     bool fromWholesale = true,
     String notes = '',
@@ -1221,7 +1221,7 @@ class LocalDb {
     };
   }
 
-  Future<Map<String, dynamic>> approveTransfer(int id, int approvedQty) async {
+  Future<Map<String, dynamic>> approveTransfer(int id, double approvedQty) async {
     final d = await db;
     final rows = await d.query('transfers', where: 'id = ?', whereArgs: [id]);
     if (rows.isEmpty) throw Exception('Transfer not found');

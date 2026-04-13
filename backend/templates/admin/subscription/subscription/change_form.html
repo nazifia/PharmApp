@@ -247,8 +247,25 @@
         </div>
       </div>
 
-      {# ── Pending approval ─────────────────────────────────────────────── #}
-      {% if is_pending %}
+      {# ── Pending new registration ──────────────────────────────────────── #}
+      {% if is_pending_trial %}
+      <div class="sub-action-group" style="border:1.5px solid #0D9488;background:rgba(13,148,136,0.06);border-radius:10px;padding:12px 14px">
+        <div class="sub-action-group-label" style="color:#0D9488">🆕 New Registration — Awaiting Approval</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:8px">
+          <strong>{{ original.organization.name }}</strong> signed up but has not been approved yet.
+          Approving will start their <strong>14-day free trial</strong> immediately.
+        </div>
+        <div class="sub-action-buttons">
+          <button type="submit" class="sub-btn sub-btn-green"
+                  onclick="return confirmAction('approve_registration', 'Approve registration and start 14-day trial for {{ original.organization.name }}?')">
+            ✅ Approve Registration
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
+      {# ── Pending paid upgrade ──────────────────────────────────────────── #}
+      {% if is_pending and not is_pending_trial %}
       <div class="sub-action-group" style="border:1.5px solid #8B5CF6;background:rgba(139,92,246,0.06);border-radius:10px;padding:12px 14px">
         <div class="sub-action-group-label" style="color:#8B5CF6">⏳ Pending Upgrade Request</div>
         <div style="font-size:12px;color:#475569;margin-bottom:8px">

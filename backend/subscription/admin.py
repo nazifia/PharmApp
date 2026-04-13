@@ -238,6 +238,38 @@ def reactivate_subscriptions(modeladmin, request, queryset):
     modeladmin.message_user(request, f'{n} subscription(s) reactivated.', messages.SUCCESS)
 
 
+@admin.action(description='🆕  Approve new registrations → start 14-day trial')
+def approve_registration(modeladmin, request, queryset):
+    """
+    Approve brand-new pharmacy sign-ups that are in 'pending/trial' state.
+    Starts the 14-day free trial clock from today.
+    """
+    n = 0
+    for sub in queryset.filter(status='pending', plan='trial'):
+        sub.status = 'trial'
+        sub.trial_ends_at = timezone.now() + timedelta(days=14)
+        sub.save()
+        SubscriptionEvent.objects.create(
+            subscription=sub, event_type='activated',
+            old_value='pending', new_value='trial',
+            performed_by=request.user.phone_number,
+            note='New org registration approved — 14-day trial started',
+        )
+        n += 1
+    if n:
+        modeladmin.message_user(
+            request,
+            f'{n} registration(s) approved. 14-day trial started.',
+            messages.SUCCESS,
+        )
+    else:
+        modeladmin.message_user(
+            request,
+            'No pending trial registrations in selection.',
+            messages.WARNING,
+        )
+
+
 @admin.action(description='💜  Approve pending upgrade requests')
 def approve_pending(modeladmin, request, queryset):
     """
@@ -363,6 +395,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     inlines = [SubscriptionEventInline]
 
     actions = [
+        approve_registration,
         approve_pending,
         extend_trial_7, extend_trial_30,
         activate_starter, activate_professional, activate_enterprise,
@@ -432,6 +465,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
             'is_active':         obj.status == 'active',
             'is_expired':        obj.status == 'expired',
             'is_pending':        obj.status == 'pending',
+            'is_pending_trial':  obj.status == 'pending' and obj.plan == 'trial',
             'is_annual':         obj.billing_cycle == 'annual',
             'billing_cycle':     obj.billing_cycle,
             'plan_pricing':      pricing,   # {plan: PlanPricing obj}
@@ -568,6 +602,27 @@ class SubscriptionAdmin(admin.ModelAdmin):
             return _redirect(
                 f"Subscription reset to 14-day trial. "
                 f"Ends {obj.trial_ends_at.strftime('%Y-%m-%d')}."
+            )
+
+        # ── Approve new registration (pending trial → start trial) ───────────
+        if action == 'approve_registration':
+            if obj.status != 'pending' or obj.plan != 'trial':
+                return _redirect(
+                    "Not a pending registration — use 'Approve pending upgrade' for paid plans.",
+                    messages.WARNING,
+                )
+            obj.status = 'trial'
+            obj.trial_ends_at = timezone.now() + timedelta(days=14)
+            obj.save()
+            SubscriptionEvent.objects.create(
+                subscription=obj, event_type='activated',
+                old_value='pending', new_value='trial',
+                performed_by=actor,
+                note=note or 'New org registration approved — 14-day trial started',
+            )
+            return _redirect(
+                f"Registration approved for {obj.organization.name}. "
+                f"14-day trial starts now, ends {obj.trial_ends_at.strftime('%Y-%m-%d')}."
             )
 
         # ── Approve pending upgrade ───────────────────────────────────────────

@@ -22,7 +22,7 @@ SaleItemPayload _$SaleItemPayloadFromJson(Map<String, dynamic> json) {
 mixin _$SaleItemPayload {
   String get barcode => throw _privateConstructorUsedError;
   int? get itemId => throw _privateConstructorUsedError;
-  int get quantity => throw _privateConstructorUsedError;
+  double get quantity => throw _privateConstructorUsedError;
   double get price => throw _privateConstructorUsedError;
   double get discount => throw _privateConstructorUsedError;
 
@@ -38,7 +38,7 @@ abstract class $SaleItemPayloadCopyWith<$Res> {
           SaleItemPayload value, $Res Function(SaleItemPayload) then) =
       _$SaleItemPayloadCopyWithImpl<$Res, SaleItemPayload>;
   @useResult
-  $Res call({String barcode, int? itemId, int quantity, double price, double discount});
+  $Res call({String barcode, int? itemId, double quantity, double price, double discount});
 }
 
 /// @nodoc
@@ -72,7 +72,7 @@ class _$SaleItemPayloadCopyWithImpl<$Res, $Val extends SaleItemPayload>
       quantity: null == quantity
           ? _value.quantity
           : quantity // ignore: cast_nullable_to_non_nullable
-              as int,
+              as double,
       price: null == price
           ? _value.price
           : price // ignore: cast_nullable_to_non_nullable
@@ -93,7 +93,7 @@ abstract class _$$SaleItemPayloadImplCopyWith<$Res>
       __$$SaleItemPayloadImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String barcode, int? itemId, int quantity, double price, double discount});
+  $Res call({String barcode, int? itemId, double quantity, double price, double discount});
 }
 
 /// @nodoc
@@ -125,7 +125,7 @@ class __$$SaleItemPayloadImplCopyWithImpl<$Res>
       quantity: null == quantity
           ? _value.quantity
           : quantity // ignore: cast_nullable_to_non_nullable
-              as int,
+              as double,
       price: null == price
           ? _value.price
           : price // ignore: cast_nullable_to_non_nullable
@@ -156,7 +156,7 @@ class _$SaleItemPayloadImpl implements _SaleItemPayload {
   @override
   final int? itemId;
   @override
-  final int quantity;
+  final double quantity;
   @override
   final double price;
   @override
@@ -205,7 +205,7 @@ abstract class _SaleItemPayload implements SaleItemPayload {
   const factory _SaleItemPayload(
       {required final String barcode,
       required final int? itemId,
-      required final int quantity,
+      required final double quantity,
       required final double price,
       final double discount}) = _$SaleItemPayloadImpl;
 
@@ -217,7 +217,7 @@ abstract class _SaleItemPayload implements SaleItemPayload {
   @override
   int? get itemId;
   @override
-  int get quantity;
+  double get quantity;
   @override
   double get price;
   @override

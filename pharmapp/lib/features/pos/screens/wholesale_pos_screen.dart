@@ -41,7 +41,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   bool _isSubmitting = false;
 
   double get _cartTotal => _cart.fold(0.0, (s, l) => s + l.total);
-  int    get _cartCount => _cart.fold(0, (s, l) => s + l.qty);
+  double get _cartCount => _cart.fold(0.0, (s, l) => s + l.qty);
 
   @override
   void initState() {
@@ -99,11 +99,11 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     setState(() {
       if (idx >= 0) {
         if (_cart[idx].qty >= _cart[idx].stock) return; // stock cap
-        _cart[idx] = _cart[idx].copyWith(qty: _cart[idx].qty + 1);
+        _cart[idx] = _cart[idx].copyWith(qty: _cart[idx].qty + 1.0);
       } else {
         _cart.add(_CartLine(
           id: item.id, name: item.name,
-          price: item.price, qty: 1, barcode: item.barcode,
+          price: item.price, qty: 1.0, barcode: item.barcode,
           stock: item.stock,
         ));
       }
@@ -113,11 +113,11 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   void _removeFromCart(int id) =>
       setState(() => _cart.removeWhere((l) => l.id == id));
 
-  void _updateQty(int id, int qty) {
-    if (qty <= 0) { _removeFromCart(id); return; }
+  void _updateQty(int id, double qty) {
+    if (qty < 0.5) { _removeFromCart(id); return; }
     setState(() {
       final idx = _cart.indexWhere((l) => l.id == id);
-      if (idx >= 0) _cart[idx] = _cart[idx].copyWith(qty: qty.clamp(1, _cart[idx].stock));
+      if (idx >= 0) _cart[idx] = _cart[idx].copyWith(qty: qty.clamp(0.5, _cart[idx].stock.toDouble()));
     });
   }
 
@@ -920,7 +920,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.shopping_cart_rounded, color: Colors.black, size: 13),
               const SizedBox(width: 4),
-              Text('$_cartCount',
+              Text(_fmtQty(_cartCount),
                   style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w700)),
             ]),
           ),
@@ -1301,7 +1301,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                       gradient: const LinearGradient(colors: [EnhancedTheme.accentCyan, EnhancedTheme.accentPurple]),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text('${cartItem!.qty}',
+                    child: Text(_fmtQty(cartItem!.qty),
                         style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w800)),
                   ),
               ]),
@@ -1414,7 +1414,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   ),
                   child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('${_cart.length} lines · $_cartCount units',
+                      Text('${_cart.length} lines · ${_fmtQty(_cartCount)} units',
                           style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                       const Text('Order Total', style: TextStyle(color: Colors.black87, fontSize: 12)),
                     ]),
@@ -1488,9 +1488,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
 // ── Editable quantity field ───────────────────────────────────────────────────
 
 class _WsQtyField extends StatefulWidget {
-  final int quantity;
+  final double quantity;
   final int maxStock;
-  final ValueChanged<int> onChanged;
+  final ValueChanged<double> onChanged;
   const _WsQtyField({required this.quantity, required this.maxStock, required this.onChanged});
 
   @override
@@ -1503,16 +1503,16 @@ class _WsQtyFieldState extends State<_WsQtyField> {
   @override
   void initState() {
     super.initState();
-    _ctrl = TextEditingController(text: '${widget.quantity}');
+    _ctrl = TextEditingController(text: _fmtQty(widget.quantity));
   }
 
   @override
   void didUpdateWidget(_WsQtyField old) {
     super.didUpdateWidget(old);
     if (old.quantity != widget.quantity) {
-      final parsed = int.tryParse(_ctrl.text);
+      final parsed = double.tryParse(_ctrl.text);
       if (parsed != widget.quantity) {
-        _ctrl.text = '${widget.quantity}';
+        _ctrl.text = _fmtQty(widget.quantity);
         _ctrl.selection = TextSelection.fromPosition(
             TextPosition(offset: _ctrl.text.length));
       }
@@ -1532,21 +1532,21 @@ class _WsQtyFieldState extends State<_WsQtyField> {
       height: 30,
       child: TextField(
         controller: _ctrl,
-        keyboardType: TextInputType.number,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
         style: TextStyle(
             color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700),
         onChanged: (v) {
-          final n = int.tryParse(v);
-          if (n != null && n >= 1) {
-            widget.onChanged(n.clamp(1, widget.maxStock));
+          final n = double.tryParse(v);
+          if (n != null && n >= 0.5) {
+            widget.onChanged(n.clamp(0.5, widget.maxStock.toDouble()));
           }
         },
         onSubmitted: (v) {
-          final n = int.tryParse(v) ?? widget.quantity;
-          final clamped = n.clamp(1, widget.maxStock);
+          final n = double.tryParse(v) ?? widget.quantity;
+          final clamped = n.clamp(0.5, widget.maxStock.toDouble());
           widget.onChanged(clamped);
-          _ctrl.text = '$clamped';
+          _ctrl.text = _fmtQty(clamped);
         },
         decoration: InputDecoration(
           isDense: true,
@@ -2085,7 +2085,7 @@ class _WholesaleSuccessSheet extends StatelessWidget {
 
 class _WsCartItemWidget extends StatefulWidget {
   final _CartLine line;
-  final void Function(int id, int qty) onQtyChange;
+  final void Function(int id, double qty) onQtyChange;
   final void Function(int id) onRemove;
   final void Function(int id, double discount) onDiscountChange;
 
@@ -2171,7 +2171,7 @@ class _WsCartItemWidgetState extends State<_WsCartItemWidget> {
                   children: [
                     TextSpan(text: '₦${line.price.toStringAsFixed(0)}'),
                     const TextSpan(text: ' × '),
-                    TextSpan(text: '${line.qty}',
+                    TextSpan(text: _fmtQty(line.qty),
                         style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700)),
                     const TextSpan(text: ' = '),
                     TextSpan(text: '₦${line.total.toStringAsFixed(0)}',
@@ -2182,13 +2182,13 @@ class _WsCartItemWidgetState extends State<_WsCartItemWidget> {
               const SizedBox(width: 8),
               // Colored quantity controls
               Row(children: [
-                _qtyBtn(Icons.remove_rounded, () => widget.onQtyChange(line.id, line.qty - 1), color: EnhancedTheme.errorRed),
+                _qtyBtn(Icons.remove_rounded, () => widget.onQtyChange(line.id, line.qty - 0.5), color: EnhancedTheme.errorRed),
                 _WsQtyField(
                   quantity: line.qty,
                   maxStock: line.stock,
                   onChanged: (n) => widget.onQtyChange(line.id, n),
                 ),
-                _qtyBtn(Icons.add_rounded, () => widget.onQtyChange(line.id, line.qty + 1), color: EnhancedTheme.successGreen),
+                _qtyBtn(Icons.add_rounded, () => widget.onQtyChange(line.id, line.qty + 0.5), color: EnhancedTheme.successGreen),
               ]),
             ]),
             const SizedBox(height: 8),
@@ -2274,7 +2274,7 @@ class _CartLine {
   final int    id;
   final String name;
   final double price;
-  final int    qty;
+  final double qty;
   final String barcode;
   final double discount;
   final int    stock;
@@ -2291,12 +2291,15 @@ class _CartLine {
 
   double get total => (price * qty) - discount;
 
-  _CartLine copyWith({int? qty, double? discount}) => _CartLine(
+  _CartLine copyWith({double? qty, double? discount}) => _CartLine(
     id: id, name: name, price: price, barcode: barcode, stock: stock,
     qty: qty ?? this.qty,
     discount: discount ?? this.discount,
   );
 }
+
+// ── Qty format helper ─────────────────────────────────────────────────────────
+String _fmtQty(double q) => q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(1);
 
 // ── Snack type helper ─────────────────────────────────────────────────────────
 enum _SnackType { success, error, warning }
