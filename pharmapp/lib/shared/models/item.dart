@@ -13,6 +13,7 @@ class Item with _$Item {
     required double price,
     @Default(0.0) double costPrice,
     @Default(0.0) double markup,
+    @Default(0) int branchId,
     required int stock,
     required int lowStockThreshold,
     required String barcode,

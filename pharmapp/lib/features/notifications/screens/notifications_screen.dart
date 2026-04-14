@@ -18,6 +18,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   late Future<List<dynamic>> _future;
   int _unreadCount = 0;
+  List<dynamic>? _notifications;
 
   @override
   void initState() {
@@ -108,6 +109,37 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     } catch (_) {}
   }
 
+  Future<void> _dismiss(Map<String, dynamic> n, List<dynamic> notifications) async {
+    final id = n['id'];
+    if (id == null) return;
+    try {
+      await ref.read(posApiProvider).deleteNotification(id as int);
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      notifications.remove(n);
+      if (n['isRead'] != true && _unreadCount > 0) _unreadCount--;
+    });
+  }
+
+  Future<void> _markAllRead(List<dynamic> notifications) async {
+    try {
+      await ref.read(posApiProvider).markAllNotificationsRead();
+      if (!mounted) return;
+      setState(() {
+        for (final n in notifications) {
+          (n as Map<String, dynamic>)['isRead'] = true;
+        }
+        _unreadCount = 0;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed: $e'), backgroundColor: EnhancedTheme.errorRed),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,6 +180,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   ]);
                 }
                 final notifications = snap.data ?? [];
+                // Cache for header actions
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && _notifications != notifications) {
+                    setState(() => _notifications = notifications);
+                  }
+                });
                 if (notifications.isEmpty) {
                   return ListView(children: [
                     SizedBox(height: MediaQuery.of(context).size.height * 0.2),
@@ -157,8 +195,29 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 return ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                   itemCount: notifications.length,
-                  itemBuilder: (_, i) => _notificationCard(
-                    notifications[i] as Map<String, dynamic>, i),
+                  itemBuilder: (_, i) {
+                    final n = notifications[i] as Map<String, dynamic>;
+                    return Dismissible(
+                      key: ValueKey(n['id'] ?? i),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: EnhancedTheme.errorRed.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                              color: EnhancedTheme.errorRed.withValues(alpha: 0.3)),
+                        ),
+                        child: const Icon(Icons.delete_outline_rounded,
+                            color: EnhancedTheme.errorRed, size: 24),
+                      ),
+                      confirmDismiss: (_) async => true,
+                      onDismissed: (_) => _dismiss(n, notifications),
+                      child: _notificationCard(n, i),
+                    );
+                  },
                 );
               },
             ),
@@ -287,6 +346,30 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     style: GoogleFonts.outfit(color: Colors.black,
                         fontSize: 12, fontWeight: FontWeight.w700)),
               ).animate().scale(duration: 300.ms),
+            const SizedBox(width: 8),
+            if (_unreadCount > 0 && _notifications != null)
+              GestureDetector(
+                onTap: () => _markAllRead(_notifications!),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.infoBlue.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: EnhancedTheme.infoBlue.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.done_all_rounded,
+                        color: EnhancedTheme.infoBlue, size: 14),
+                    const SizedBox(width: 4),
+                    Text('Read all',
+                        style: GoogleFonts.inter(
+                            color: EnhancedTheme.infoBlue,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ),
             const SizedBox(width: 8),
             Container(
               width: 36, height: 36,

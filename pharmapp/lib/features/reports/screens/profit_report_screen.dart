@@ -5,9 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
+import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
+import '../shared/report_exporter.dart';
 
 class ProfitReportScreen extends ConsumerStatefulWidget {
   const ProfitReportScreen({super.key});
@@ -71,7 +74,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
 
         SafeArea(child: Column(children: [
           // ── Header ────────────────────────────────────────────────────────
-          _buildHeader(context),
+          _buildHeader(context, reportAsync.valueOrNull),
 
           // ── Period pill selector ───────────────────────────────────────────
           _buildPeriodSelector(),
@@ -120,7 +123,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, ProfitReportData? reportData) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
       child: Row(children: [
@@ -143,6 +146,35 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
           Text('Revenue, cost & margin analysis',
               style: GoogleFonts.inter(color: context.hintColor, fontSize: 12)),
         ])),
+        // Export button
+        Builder(builder: (ctx) {
+          final hasExport = ref.watch(hasFeatureProvider(SaasFeature.exportData));
+          return GestureDetector(
+            onTap: () async {
+              if (!hasExport) { ctx.go('/subscription'); return; }
+              if (reportData == null) return;
+              await ReportExporter.exportProfitReport(reportData, _period);
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: hasExport
+                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.1)
+                    : Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasExport
+                      ? EnhancedTheme.primaryTeal.withValues(alpha: 0.25)
+                      : Colors.white.withValues(alpha: 0.12)),
+              ),
+              child: Icon(
+                hasExport ? Icons.download_rounded : Icons.lock_rounded,
+                color: hasExport ? EnhancedTheme.primaryTeal : Colors.white38,
+                size: 18),
+            ),
+          );
+        }),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(

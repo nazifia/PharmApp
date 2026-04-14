@@ -4,8 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/shared/models/user.dart';
 import 'package:pharmapp/shared/models/organization.dart';
+import 'package:pharmapp/shared/models/branch.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
+import '../../../features/branches/providers/branch_provider.dart';
 import 'auth_repository.dart';
 
 // ── Token / User state ────────────────────────────────────────────────────────
@@ -152,6 +154,27 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     _ref.read(currentUserProvider.notifier).state = updated;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('current_user', jsonEncode(updated.toJson()));
+  }
+
+  /// Called from BranchSelectionScreen when user picks a branch.
+  /// Updates [currentUserProvider] with the chosen branch and marks
+  /// [activeBranchProvider] so the router stops redirecting to /select-branch.
+  void selectBranch(Branch branch) {
+    final current = _ref.read(currentUserProvider);
+    if (current != null) {
+      _ref.read(currentUserProvider.notifier).state = current.copyWith(
+        branchId:   branch.id,
+        branchName: branch.name,
+      );
+    }
+    _ref.read(activeBranchProvider.notifier).state = branch;
+  }
+
+  /// Called when user explicitly skips branch selection (org-wide access).
+  /// Uses a sentinel Branch(id: -1) so [activeBranchProvider] is non-null.
+  void skipBranchSelection() {
+    _ref.read(activeBranchProvider.notifier).state =
+        const Branch(id: -1, name: 'All Branches');
   }
 
   void resetFlow() {

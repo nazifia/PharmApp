@@ -6,6 +6,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/database/inventory_repository.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/offline_queue.dart';
+import '../../../features/branches/providers/branch_provider.dart';
 import '../../../shared/models/item.dart';
 import 'inventory_api_client.dart';
 
@@ -20,25 +21,44 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   return InventoryRepository(api);
 });
 
-/// Fetches the full inventory from the backend (all stores).
+/// Returns the effective branch ID to scope inventory requests.
+/// Returns null for org-wide access (sentinel id == -1 means "All Branches").
+int? _effectiveBranchId(Ref ref) {
+  final branch = ref.watch(activeBranchProvider);
+  if (branch == null || branch.id <= 0) return null;
+  return branch.id;
+}
+
+/// Fetches the full inventory from the backend (all stores), scoped to active branch.
 final inventoryListProvider = FutureProvider.autoDispose<List<Item>>((ref) {
-  return ref.watch(inventoryApiProvider).fetchInventory();
+  return ref.watch(inventoryApiProvider).fetchInventory(
+    branchId: _effectiveBranchId(ref),
+  );
 });
 
-/// Fetches only retail store inventory.
+/// Fetches only retail store inventory, scoped to active branch.
 final retailInventoryProvider = FutureProvider.autoDispose<List<Item>>((ref) {
-  return ref.watch(inventoryApiProvider).fetchInventory(store: 'retail');
+  return ref.watch(inventoryApiProvider).fetchInventory(
+    store: 'retail',
+    branchId: _effectiveBranchId(ref),
+  );
 });
 
-/// Fetches only wholesale store inventory.
+/// Fetches only wholesale store inventory, scoped to active branch.
 final wholesaleInventoryProvider = FutureProvider.autoDispose<List<Item>>((ref) {
-  return ref.watch(inventoryApiProvider).fetchInventory(store: 'wholesale');
+  return ref.watch(inventoryApiProvider).fetchInventory(
+    store: 'wholesale',
+    branchId: _effectiveBranchId(ref),
+  );
 });
 
-/// Searches inventory by keyword.
+/// Searches inventory by keyword, scoped to active branch.
 final inventorySearchProvider =
     FutureProvider.autoDispose.family<List<Item>, String>((ref, query) {
-  return ref.watch(inventoryApiProvider).fetchInventory(search: query);
+  return ref.watch(inventoryApiProvider).fetchInventory(
+    search: query,
+    branchId: _effectiveBranchId(ref),
+  );
 });
 
 /// Single item by ID.
@@ -90,15 +110,28 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
     await prefs.setString(key, jsonEncode(list));
   }
 
+  /// Returns branch cache segment for the currently active branch.
+  String _branchSegment() {
+    final branch = _ref.read(activeBranchProvider);
+    if (branch == null || branch.id <= 0) return '';
+    return '_b${branch.id}';
+  }
+
   Future<void> _patchAllInventoryCaches(Map<String, dynamic> item) async {
     final store = item['store'] as String? ?? '';
-    await _patchListCache('cache_inventory', item);
-    if (store == 'retail')     await _patchListCache('cache_inventory_retail', item);
-    if (store == 'wholesale')  await _patchListCache('cache_inventory_wholesale', item);
+    final bs = _branchSegment();
+    await _patchListCache('cache_inventory$bs', item);
+    if (store == 'retail')    await _patchListCache('cache_inventory${bs}_retail', item);
+    if (store == 'wholesale') await _patchListCache('cache_inventory${bs}_wholesale', item);
   }
 
   Future<void> _updateAllInventoryCaches(int id, Map<String, dynamic> updates) async {
-    for (final key in ['cache_inventory', 'cache_inventory_retail', 'cache_inventory_wholesale']) {
+    final bs = _branchSegment();
+    for (final key in [
+      'cache_inventory$bs',
+      'cache_inventory${bs}_retail',
+      'cache_inventory${bs}_wholesale',
+    ]) {
       await _updateListCache(key, id, updates);
     }
     final prefs = await SharedPreferences.getInstance();
@@ -111,7 +144,12 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> _removeFromAllInventoryCaches(int id) async {
-    for (final key in ['cache_inventory', 'cache_inventory_retail', 'cache_inventory_wholesale']) {
+    final bs = _branchSegment();
+    for (final key in [
+      'cache_inventory$bs',
+      'cache_inventory${bs}_retail',
+      'cache_inventory${bs}_wholesale',
+    ]) {
       await _removeFromListCache(key, id);
     }
   }
@@ -120,6 +158,9 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
 
   Future<Item?> createItem(Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
+    // Inject active branch_id so the backend assigns the item to the correct branch.
+    final branchId = _ref.read(activeBranchProvider)?.id;
+    if (branchId != null && branchId > 0) data['branch_id'] = branchId;
     try {
       final item = await _api.createItem(data);
       _ref.invalidate(retailInventoryProvider);
@@ -142,6 +183,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
           'dosageForm': data['dosage_form'] ?? data['dosageForm'] ?? '',
           'price': data['price'] ?? 0,
           'costPrice': data['cost'] ?? data['costPrice'] ?? 0,
+          'branchId': data['branch_id'] ?? data['branchId'] ?? 0,
           'stock': data['stock'] ?? 0,
           'lowStockThreshold': data['low_stock_threshold'] ?? data['lowStockThreshold'] ?? 10,
           'barcode': data['barcode'] ?? '',

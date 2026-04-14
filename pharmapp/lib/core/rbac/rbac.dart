@@ -20,6 +20,7 @@ abstract class AppPermission {
   static const String manageSettings   = 'manageSettings';
   static const String viewNotifications = 'viewNotifications';
   static const String viewSubscription = 'viewSubscription';
+  static const String viewActivityLog  = 'viewActivityLog';
 
   // Finance
   static const String manageExpenses   = 'manageExpenses';
@@ -81,6 +82,7 @@ const Map<String, Set<String>> _matrix = {
   AppPermission.manageSettings:    _seniorRoles,
   AppPermission.viewNotifications: _seniorRoles,
   AppPermission.viewSubscription:  _seniorRoles,
+  AppPermission.viewActivityLog:   _seniorRoles,
   AppPermission.manageExpenses:    _expensesRoles,
   AppPermission.processPayments:   _paymentsRoles,
   AppPermission.manageSuppliers:   _suppliersRoles,

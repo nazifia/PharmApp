@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
+import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/custom_button.dart';
 import 'package:pharmapp/shared/widgets/custom_textfield.dart';
 
@@ -49,8 +52,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  void _navigateForRole(String? role) {
-    switch (role) {
+  void _navigateAfterAuth() {
+    final user = ref.read(currentUserProvider);
+    final needsBranch = user != null &&
+        user.branchId == 0 &&
+        user.organizationId != 0 &&
+        ref.read(activeBranchProvider) == null &&
+        ref.read(hasFeatureProvider(SaasFeature.multiBranch));
+
+    if (needsBranch) {
+      context.go('/select-branch');
+      return;
+    }
+
+    switch (user?.role) {
       case 'Admin':
       case 'Manager':
         context.go('/admin-dashboard');
@@ -83,7 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget build(BuildContext context) {
     ref.listen<AuthFlowState>(authFlowProvider, (prev, next) {
       if (next == AuthFlowState.authenticated) {
-        _navigateForRole(ref.read(currentUserProvider)?.role);
+        _navigateAfterAuth();
       }
       if (next == AuthFlowState.error) {
         final msg = ref.read(authFlowProvider.notifier).errorMessage ?? 'Login failed';

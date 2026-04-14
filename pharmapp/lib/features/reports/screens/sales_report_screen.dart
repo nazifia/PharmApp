@@ -10,6 +10,7 @@ import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
+import '../shared/report_exporter.dart';
 
 class SalesReportScreen extends ConsumerStatefulWidget {
   const SalesReportScreen({super.key});
@@ -134,7 +135,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             decoration: BoxDecoration(shape: BoxShape.circle,
               color: EnhancedTheme.accentPurple.withValues(alpha: 0.05)))),
         SafeArea(child: Column(children: [
-          _header(context),
+          _header(context, reportAsync.valueOrNull),
           const SizedBox(height: 8),
           _periodSelector(),
           _customRangeBanner(),
@@ -151,7 +152,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
 
   // -- Header ------------------------------------------------------------------
 
-  Widget _header(BuildContext context) => Padding(
+  Widget _header(BuildContext context, SalesReportData? reportData) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
     child: Row(children: [
       GestureDetector(
@@ -192,10 +193,14 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       Builder(builder: (ctx) {
         final hasExport = ref.watch(hasFeatureProvider(SaasFeature.exportData));
         return GestureDetector(
-          onTap: () {
+          onTap: () async {
             if (!hasExport) { ctx.go('/subscription'); return; }
-            ScaffoldMessenger.of(ctx).showSnackBar(
-                const SnackBar(content: Text('Export coming soon')));
+            if (reportData == null) {
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Report still loading…')));
+              return;
+            }
+            await ReportExporter.exportSalesReport(reportData, _period);
           },
           child: Container(
             padding: const EdgeInsets.all(9),

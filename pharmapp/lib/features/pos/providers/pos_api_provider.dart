@@ -7,6 +7,7 @@ import '../../../core/database/local_db.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/connectivity_provider.dart';
 import '../../../core/offline/offline_queue.dart';
+import '../../../features/branches/providers/branch_provider.dart';
 import '../../../shared/models/sale.dart';
 
 const _kSalesCacheKey           = 'cache_sales_list';
@@ -37,7 +38,10 @@ class PosApiClient {
   }
 
   // ── Sales ──────────────────────────────────────────────────────────────────
-  Future<Map<String, dynamic>> submitCheckout(CheckoutPayload payload) async {
+  Future<Map<String, dynamic>> submitCheckout(
+    CheckoutPayload payload, {
+    int? branchId,
+  }) async {
     if (_isLocal) {
       // Explicitly deep-serialize nested models — freezed toJson() does not
       // convert List<SaleItemPayload> or PaymentPayload to Map automatically.
@@ -49,10 +53,15 @@ class PosApiClient {
         'paymentMethod': payload.paymentMethod,
         'totalAmount': payload.totalAmount,
         'patientName': payload.patientName,
+        if (branchId != null && branchId > 0) 'branch_id': branchId,
       });
     }
     try {
-      final res = await _dio!.post('/pos/checkout/', data: payload.toJson());
+      final body = {
+        ...payload.toJson(),
+        if (branchId != null && branchId > 0) 'branch_id': branchId,
+      };
+      final res = await _dio!.post('/pos/checkout/', data: body);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       // No response means a connection-level failure (no internet, timeout, etc.).
@@ -789,6 +798,26 @@ class PosApiClient {
     }
   }
 
+  Future<void> deleteNotification(int id) async {
+    if (_isLocal) return; // local mode: no-op
+    try {
+      await _dio!.delete('/pos/notifications/$id/');
+    } on DioException catch (e) {
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to delete notification');
+    }
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    if (_isLocal) return;
+    try {
+      await _dio!.post('/pos/notifications/read-all/');
+    } on DioException catch (e) {
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to mark all notifications read');
+    }
+  }
+
   // ── Barcode ────────────────────────────────────────────────────────────────
   Future<Map<String, dynamic>?> lookupBarcode(String code) async {
     if (_isLocal) return LocalDb.instance.getItemByBarcode(code);
@@ -1330,6 +1359,9 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Map<String, dynamic>?> processCheckout(CheckoutPayload payload) async {
     state = const AsyncValue.loading();
 
+    final branch = _ref.read(activeBranchProvider);
+    final branchId = (branch != null && branch.id > 0) ? branch.id : null;
+
     // Short-circuit: if device is already offline, enqueue without a network call.
     final isOnline = _ref.read(isOnlineProvider);
     if (!isOnline) {
@@ -1339,7 +1371,10 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
     }
 
     try {
-      final result = await _ref.read(posApiProvider).submitCheckout(payload);
+      final result = await _ref.read(posApiProvider).submitCheckout(
+        payload,
+        branchId: branchId,
+      );
       state = const AsyncValue.data(null);
       return result;
     } on DioException catch (e, st) {

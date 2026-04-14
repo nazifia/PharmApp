@@ -47,6 +47,9 @@ import 'package:pharmapp/features/superuser/screens/plan_feature_editor_screen.d
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:pharmapp/shared/widgets/sync_queue_screen.dart';
 import 'package:pharmapp/features/branches/screens/branch_management_screen.dart';
+import 'package:pharmapp/features/branches/screens/branch_selection_screen.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/features/auth/screens/activity_log_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -55,15 +58,24 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     refreshListenable: notifier,
     redirect: (context, state) {
-      final authState     = ref.read(authFlowProvider);
+      final authState       = ref.read(authFlowProvider);
       final isAuthenticated = authState == AuthFlowState.authenticated;
-      final loc = state.matchedLocation;
+      final loc             = state.matchedLocation;
+      final user            = ref.read(currentUserProvider);
+
+      // Returns true when the user must pick a branch before continuing.
+      bool needsBranchSelection() =>
+          user != null &&
+          user.branchId == 0 &&
+          user.organizationId != 0 &&
+          ref.read(activeBranchProvider) == null &&
+          ref.read(hasFeatureProvider(SaasFeature.multiBranch));
 
       const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org'];
 
       if (publicRoutes.contains(loc)) {
         if (isAuthenticated) {
-          final user = ref.read(currentUserProvider);
+          if (needsBranchSelection()) return '/select-branch';
           return _getRoleRoute(user?.role);
         }
         return null;
@@ -71,7 +83,15 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (!isAuthenticated) return '/login';
 
-      final user = ref.read(currentUserProvider);
+      // Already selected a branch (or skipped) — leave /select-branch
+      if (loc == '/select-branch' && !needsBranchSelection()) {
+        return _getRoleRoute(user?.role);
+      }
+
+      // Force branch selection before any protected screen
+      if (loc != '/select-branch' && needsBranchSelection()) {
+        return '/select-branch';
+      }
 
       // Reports — Admin / Manager only
       if (loc.startsWith('/dashboard/reports') && !Rbac.can(user, AppPermission.viewReports)) {
@@ -80,6 +100,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // User management — Admin / Manager only
       if (loc == '/dashboard/users' && !Rbac.can(user, AppPermission.manageUsers)) {
+        return '/dashboard';
+      }
+
+      // Activity log — Admin / Manager only
+      if (loc == '/dashboard/activity-log' && !Rbac.can(user, AppPermission.viewActivityLog)) {
         return '/dashboard';
       }
 
@@ -191,6 +216,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/role-selection', name: 'role_select',  builder: (_, __) => const RoleSelectionScreen()),
       GoRoute(path: '/setup',          name: 'setup',        builder: (_, __) => const SetupScreen()),
       GoRoute(path: '/register-org',   name: 'register_org',  builder: (_, __) => const RegisterOrgScreen()),
+      GoRoute(path: '/select-branch',  name: 'select_branch', builder: (_, __) => const BranchSelectionScreen()),
       GoRoute(path: '/subscription',   name: 'subscription',  builder: (_, __) => const SubscriptionScreen()),
       GoRoute(path: '/billing',        name: 'billing',       builder: (_, __) => const BillingScreen()),
       GoRoute(path: '/superuser',        name: 'superuser',       builder: (_, __) => const SuperuserDashboardScreen()),
@@ -240,6 +266,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'wholesale-sales', name: 'wholesale_sales', builder: (_, __) => const WholesaleSalesScreen()),
               GoRoute(path: 'sync-queue',      name: 'sync_queue',      builder: (_, __) => const SyncQueueScreen()),
               GoRoute(path: 'branches',        name: 'branches',        builder: (_, __) => const BranchManagementScreen()),
+              GoRoute(path: 'activity-log',    name: 'activity_log',    builder: (_, __) => const ActivityLogScreen()),
             ],
           ),
 
@@ -286,6 +313,8 @@ String _getRoleRoute(String? role) {
 class _GoRouterNotifier extends ChangeNotifier {
   _GoRouterNotifier(Ref ref) {
     ref.listen<AuthFlowState>(authFlowProvider, (_, __) => notifyListeners());
+    // Re-evaluate redirect when branch selection changes.
+    ref.listen(activeBranchProvider, (_, __) => notifyListeners());
   }
 }
 

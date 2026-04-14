@@ -21,26 +21,29 @@ class InventoryApiClient {
         'dosageForm': j['dosage_form'] ?? j['dosageForm'] ?? '',
         'price': j['price'],
         'costPrice': j['cost'] ?? j['costPrice'] ?? 0,
+        'branchId': j['branch_id'] ?? j['branchId'] ?? 0,
         'stock': j['stock'],
         'lowStockThreshold': j['low_stock_threshold'] ?? j['lowStockThreshold'] ?? 10,
         'barcode': j['barcode'] ?? '',
         'expiryDate': j['expiry_date'] ?? j['expiryDate'],
       };
 
-  Future<List<Item>> fetchInventory({String? search, String? store}) async {
+  Future<List<Item>> fetchInventory({String? search, String? store, int? branchId}) async {
     if (_isLocal) {
       return (await LocalDb.instance.getItems(search: search, store: store))
           .map(_toItem).toList();
     }
-    // Cache key per store variant (not keyed by search — searches are volatile).
+    // Branch-aware cache key — null branchId = org-wide (All Branches).
+    final branchSegment = (branchId != null && branchId > 0) ? '_b$branchId' : '';
     final cacheKey = search == null
-        ? '$_kInventoryCachePrefix${store != null ? "_$store" : ""}'
+        ? '$_kInventoryCachePrefix$branchSegment${store != null ? "_$store" : ""}'
         : null;
 
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
       if (store != null && store.isNotEmpty) params['store'] = store;
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       final res = await _dio!.get('/inventory/items/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
@@ -162,6 +165,7 @@ class InventoryApiClient {
         dosageForm: (r['dosageForm'] as String?) ?? '',
         price: (r['price'] as num).toDouble(),
         costPrice: (r['costPrice'] as num? ?? 0).toDouble(),
+        branchId: (r['branchId'] as num? ?? 0).toInt(),
         stock: r['stock'] as int,
         lowStockThreshold: (r['lowStockThreshold'] as int?) ?? 10,
         barcode: (r['barcode'] as String?) ?? '',
