@@ -25,13 +25,15 @@ def _get_client_ip(request):
     return request.META.get('REMOTE_ADDR')
 
 
-def log_activity(request, action, category, description=''):
+def log_activity(request, action, category, description='', user=None):
     """
     Fire-and-forget activity log entry. Never raises — logging must not break views.
+    Pass `user` explicitly when request.user is not yet authenticated (e.g. login view).
     """
     try:
         from authapp.models import ActivityLog
-        user = request.user if request.user.is_authenticated else None
+        if user is None:
+            user = request.user if request.user.is_authenticated else None
         org  = getattr(user, 'organization', None)
         ActivityLog.objects.create(
             organization=org,

@@ -40,7 +40,7 @@ def login_view(request):
                         status=status.HTTP_403_FORBIDDEN)
 
     log_activity(request, action='Login', category='auth',
-                 description=f'Successful login ({user.role})')
+                 description=f'Successful login ({user.role})', user=user)
     return Response({
         'access': _token_for(user),
         'user':   user.to_api_dict(),
