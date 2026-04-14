@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.throttling import ScopedRateThrottle
 from .models import Customer, WalletTransaction
-from authapp.utils import require_org
+from authapp.utils import require_org, log_activity
 
 
 @api_view(["GET", "POST"])
@@ -49,6 +49,8 @@ def customer_list(request):
         email=data.get("email", ""),
         address=data.get("address", ""),
     )
+    log_activity(request, action='Create Customer', category='customers',
+                 description=f'New customer "{customer.name}" registered')
     return Response(customer.to_detail_dict(), status=status.HTTP_201_CREATED)
 
 
@@ -71,9 +73,14 @@ def customer_detail(request, pk):
         customer.email = data.get("email", customer.email)
         customer.address = data.get("address", customer.address)
         customer.save()
+        log_activity(request, action='Update Customer', category='customers',
+                     description=f'Updated customer "{customer.name}"')
         return Response(customer.to_detail_dict())
 
+    customer_name = customer.name
     customer.delete()
+    log_activity(request, action='Delete Customer', category='customers',
+                 description=f'Deleted customer "{customer_name}"')
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -138,6 +145,8 @@ def wallet_topup(request, pk):
         txn = WalletTransaction.objects.create(
             customer=customer, txn_type="topup", amount=amount, note=note
         )
+    log_activity(request, action='Wallet Top-up', category='customers',
+                 description=f'Wallet top-up ₦{amount:,.0f} for "{customer.name}"')
     return Response(
         {
             "walletBalance": float(customer.wallet_balance),
@@ -175,6 +184,8 @@ def wallet_deduct(request, pk):
         txn = WalletTransaction.objects.create(
             customer=customer, txn_type="deduct", amount=amount, note=note
         )
+    log_activity(request, action='Wallet Deduct', category='customers',
+                 description=f'Wallet deduction ₦{amount:,.0f} from "{customer.name}"')
     return Response(
         {
             "walletBalance": float(customer.wallet_balance),

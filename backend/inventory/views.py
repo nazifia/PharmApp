@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Item
-from authapp.utils import require_org
+from authapp.utils import require_org, log_activity
 
 
 @api_view(["GET", "POST"])
@@ -75,6 +75,8 @@ def item_list(request):
         expiry_date=data.get("expiryDate") or None,
         store=data.get("store", "retail"),
     )
+    log_activity(request, action='Add Item', category='inventory',
+                 description=f'Added "{item.name}" to {item.store} inventory')
     return Response(item.to_api_dict(), status=status.HTTP_201_CREATED)
 
 
@@ -125,10 +127,15 @@ def item_detail(request, pk):
             parse_date(expiry_raw) if isinstance(expiry_raw, str) else expiry_raw
         )
         item.save()
+        log_activity(request, action='Update Item', category='inventory',
+                     description=f'Updated "{item.name}"')
         return Response(item.to_api_dict())
 
     # DELETE
+    item_name = item.name
     item.delete()
+    log_activity(request, action='Delete Item', category='inventory',
+                 description=f'Deleted "{item_name}"')
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -147,4 +154,7 @@ def adjust_stock(request, pk):
         )
     item.stock = max(0, item.stock + adjustment)
     item.save()
+    sign = '+' if adjustment >= 0 else ''
+    log_activity(request, action='Adjust Stock', category='inventory',
+                 description=f'Stock adjusted for "{item.name}" ({sign}{adjustment} units)')
     return Response(item.to_api_dict())

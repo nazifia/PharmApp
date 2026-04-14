@@ -6,10 +6,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Organization, PharmUser
+from .models import Organization, PharmUser, ActivityLog
 from .permissions import (
     IsAdminOrManager, PERMISSION_LABELS, _PERMISSION_ROLE_MAP, get_effective_permissions
 )
+from .utils import log_activity
 
 
 def _token_for(user):
@@ -38,6 +39,8 @@ def login_view(request):
         return Response({'detail': 'Account is disabled.'},
                         status=status.HTTP_403_FORBIDDEN)
 
+    log_activity(request, action='Login', category='auth',
+                 description=f'Successful login ({user.role})')
     return Response({
         'access': _token_for(user),
         'user':   user.to_api_dict(),
@@ -208,4 +211,42 @@ def user_permissions_view(request, user_id):
         'user_id': target.pk,
         'role':    role,
         'rows':    rows,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminOrManager])
+def activity_log_view(request):
+    """
+    GET /auth/activity-log/
+    Query params: page (int), page_size (int, max 100), category (str), search (str)
+    Returns: { count, results: [...] }
+    """
+    org = getattr(request.user, 'organization', None)
+    if org is None:
+        return Response({'detail': 'No organisation linked.'}, status=status.HTTP_403_FORBIDDEN)
+
+    page      = max(1, int(request.query_params.get('page', 1)))
+    page_size = min(100, max(1, int(request.query_params.get('page_size', 30))))
+    category  = request.query_params.get('category', '').strip()
+    search    = request.query_params.get('search', '').strip()
+
+    qs = ActivityLog.objects.filter(organization=org)
+    if category:
+        qs = qs.filter(category=category)
+    if search:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(username__icontains=search) |
+            Q(action__icontains=search)   |
+            Q(description__icontains=search)
+        )
+
+    total  = qs.count()
+    offset = (page - 1) * page_size
+    logs   = qs[offset: offset + page_size]
+
+    return Response({
+        'count':   total,
+        'results': [log.to_api_dict() for log in logs],
     })

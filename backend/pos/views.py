@@ -15,7 +15,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from inventory.models import Item
 from customers.models import Customer, WalletTransaction
 from authapp.models import PharmUser
-from authapp.utils import require_org
+from authapp.utils import require_org, log_activity
 from .models import (
     Cashier,
     Sale,
@@ -265,6 +265,10 @@ def checkout(request):
     except ValueError as e:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    sale_type = 'Wholesale' if is_wholesale else 'Retail'
+    item_count = len(items_data)
+    log_activity(request, action='Sale', category='sales',
+                 description=f'{sale_type} checkout — ₦{float(sale.total_amount):,.0f} ({item_count} item{"s" if item_count != 1 else ""})')
     return Response(sale.to_api_dict(), status=status.HTTP_201_CREATED)
 
 

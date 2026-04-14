@@ -35,6 +35,17 @@ class Branch {
             : null,
       );
 
+  Map<String, dynamic> toJson() => {
+        'id':        id,
+        'name':      name,
+        'address':   address,
+        'phone':     phone,
+        'email':     email,
+        'isActive':  isActive,
+        'isMain':    isMain,
+        if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+      };
+
   Branch copyWith({
     String? name,
     String? address,

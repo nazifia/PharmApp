@@ -232,3 +232,58 @@ class SiteConfig(models.Model):
 
     def __str__(self):
         return 'Site Configuration'
+
+
+# ── Activity Log ──────────────────────────────────────────────────────────────
+
+ACTIVITY_CATEGORY_CHOICES = [
+    ('auth',      'Auth'),
+    ('sales',     'Sales'),
+    ('inventory', 'Inventory'),
+    ('customers', 'Customers'),
+    ('users',     'Users'),
+    ('settings',  'Settings'),
+    ('reports',   'Reports'),
+    ('other',     'Other'),
+]
+
+
+class ActivityLog(models.Model):
+    organization = models.ForeignKey(
+        Organization, null=True, blank=True,
+        on_delete=models.CASCADE, related_name='activity_logs'
+    )
+    user         = models.ForeignKey(
+        'authapp.PharmUser', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='activity_logs'
+    )
+    username     = models.CharField(max_length=200, blank=True, default='')
+    role         = models.CharField(max_length=30, blank=True, default='')
+    action       = models.CharField(max_length=100)
+    category     = models.CharField(max_length=20, choices=ACTIVITY_CATEGORY_CHOICES, default='other')
+    description  = models.TextField(blank=True, default='')
+    ip_address   = models.GenericIPAddressField(null=True, blank=True)
+    timestamp    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes  = [
+            models.Index(fields=['organization', 'timestamp']),
+            models.Index(fields=['organization', 'category']),
+        ]
+
+    def to_api_dict(self):
+        return {
+            'id':          self.id,
+            'user_id':     self.user_id or 0,
+            'username':    self.username,
+            'role':        self.role,
+            'action':      self.action,
+            'category':    self.category,
+            'description': self.description,
+            'ip_address':  self.ip_address,
+            'timestamp':   self.timestamp.isoformat(),
+        }
+
+    def __str__(self):
+        return f"[{self.category}] {self.username}: {self.action}"

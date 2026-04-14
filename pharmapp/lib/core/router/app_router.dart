@@ -64,12 +64,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       final user            = ref.read(currentUserProvider);
 
       // Returns true when the user must pick a branch before continuing.
+      // Only applies to multi-branch subscribers whose account has no
+      // backend-assigned branch (branchId == 0 means org-wide access that
+      // needs an explicit selection each session).
       bool needsBranchSelection() =>
           user != null &&
-          user.branchId == 0 &&
           user.organizationId != 0 &&
-          ref.read(activeBranchProvider) == null &&
-          ref.read(hasFeatureProvider(SaasFeature.multiBranch));
+          user.branchId == 0 &&
+          ref.read(hasFeatureProvider(SaasFeature.multiBranch)) &&
+          ref.read(activeBranchProvider) == null;
 
       const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org'];
 

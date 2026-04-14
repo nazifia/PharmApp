@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/shared/models/branch.dart';
 import 'package:pharmapp/shared/models/user.dart';
 
 class AuthService {
@@ -39,7 +41,21 @@ class AuthService {
         final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
         // 1. Restore immediately from cache so the UI is usable right away
         _ref.read(authFlowProvider.notifier).restoreSession(token, user);
-        // 2. Refresh from backend in background — picks up permission changes
+        // 2. Restore active branch so user isn't re-prompted every app start.
+        //    If the user has a backend-assigned branch (branchId != 0), use it
+        //    directly — no manual selection ever needed for that account.
+        final branchData = prefs.getString('active_branch');
+        if (user.branchId != 0) {
+          _ref.read(activeBranchProvider.notifier).state = Branch(
+            id:   user.branchId,
+            name: user.branchName,
+          );
+        } else if (branchData != null) {
+          final branch = Branch.fromJson(
+              jsonDecode(branchData) as Map<String, dynamic>);
+          _ref.read(activeBranchProvider.notifier).state = branch;
+        }
+        // 3. Refresh from backend in background — picks up permission changes
         _ref.read(authFlowProvider.notifier).refreshProfile().ignore();
         return true;
       }
@@ -56,8 +72,10 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('current_user');
-    _ref.read(currentUserProvider.notifier).state = null;
-    _ref.read(authTokenProvider.notifier).state   = null;
+    await prefs.remove('active_branch');
+    _ref.read(currentUserProvider.notifier).state  = null;
+    _ref.read(authTokenProvider.notifier).state    = null;
+    _ref.read(activeBranchProvider.notifier).state = null;
     _ref.read(authFlowProvider.notifier).resetFlow();
   }
 

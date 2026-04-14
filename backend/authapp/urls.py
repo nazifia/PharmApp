@@ -7,4 +7,5 @@ urlpatterns = [
     path('register-org/',                       views.register_org_view,      name='auth-register-org'),
     path('org/logo/',                           views.org_logo_view,          name='auth-org-logo'),
     path('users/<int:user_id>/permissions/',    views.user_permissions_view,  name='auth-user-permissions'),
+    path('activity-log/',                       views.activity_log_view,      name='auth-activity-log'),
 ]

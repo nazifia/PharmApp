@@ -73,6 +73,14 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
       _ref.read(authTokenProvider.notifier).state   = token;
       _ref.read(currentUserProvider.notifier).state = user;
 
+      // Auto-activate backend-assigned branch — skip manual selection screen.
+      if (user.branchId != 0) {
+        _ref.read(activeBranchProvider.notifier).state = Branch(
+          id:   user.branchId,
+          name: user.branchName,
+        );
+      }
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token',   token);
       await prefs.setString('current_user', jsonEncode(user.toJson()));
@@ -157,8 +165,9 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
   }
 
   /// Called from BranchSelectionScreen when user picks a branch.
-  /// Updates [currentUserProvider] with the chosen branch and marks
-  /// [activeBranchProvider] so the router stops redirecting to /select-branch.
+  /// Updates [currentUserProvider] with the chosen branch, marks
+  /// [activeBranchProvider] so the router stops redirecting to /select-branch,
+  /// and persists the choice for session restore.
   void selectBranch(Branch branch) {
     final current = _ref.read(currentUserProvider);
     if (current != null) {
@@ -168,13 +177,17 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
       );
     }
     _ref.read(activeBranchProvider.notifier).state = branch;
+    SharedPreferences.getInstance()
+        .then((p) => p.setString('active_branch', jsonEncode(branch.toJson())));
   }
 
   /// Called when user explicitly skips branch selection (org-wide access).
   /// Uses a sentinel Branch(id: -1) so [activeBranchProvider] is non-null.
   void skipBranchSelection() {
-    _ref.read(activeBranchProvider.notifier).state =
-        const Branch(id: -1, name: 'All Branches');
+    const sentinel = Branch(id: -1, name: 'All Branches');
+    _ref.read(activeBranchProvider.notifier).state = sentinel;
+    SharedPreferences.getInstance()
+        .then((p) => p.setString('active_branch', jsonEncode(sentinel.toJson())));
   }
 
   void resetFlow() {
