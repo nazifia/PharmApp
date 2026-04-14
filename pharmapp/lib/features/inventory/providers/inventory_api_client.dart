@@ -158,6 +158,22 @@ class InventoryApiClient {
     }
   }
 
+  /// Transfers [quantity] units of [itemId] from the current branch to [toBranchId].
+  /// Backend endpoint: POST /inventory/items/{id}/transfer/
+  Future<void> transferStock(int itemId, int toBranchId, int quantity, String reason) async {
+    if (_isLocal) throw Exception('Stock transfer not supported in local mode.');
+    try {
+      await _dio!.post('/inventory/items/$itemId/transfer/', data: {
+        'to_branch_id': toBranchId,
+        'quantity':     quantity,
+        'reason':       reason,
+      });
+    } on DioException catch (e) {
+      if (e.response == null) rethrow;
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to transfer stock');
+    }
+  }
+
   Item _toItem(Map<String, dynamic> r) => Item(
         id: r['id'] as int,
         name: r['name'] as String,

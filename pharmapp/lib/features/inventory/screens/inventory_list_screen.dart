@@ -1,18 +1,17 @@
 ﻿import 'dart:ui';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart';
-import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import '../providers/inventory_provider.dart';
 
 class InventoryListScreen extends ConsumerStatefulWidget {
@@ -270,33 +269,42 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                         'barcode':           barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
                         'store':             store,
                       };
+                      // Inject active branch_id so item is assigned to correct branch.
+                      final branchId = ref.read(activeBranchProvider)?.id;
+                      if (branchId != null && branchId > 0) data['branch_id'] = branchId;
+
                       Navigator.of(ctx).pop();
                       try {
-                        await ref.read(inventoryApiProvider).createItem(data);
-                        ref.invalidate(retailInventoryProvider);
-                        ref.invalidate(wholesaleInventoryProvider);
+                        // Use notifier so branch_id injection and offline caching are handled.
+                        final created = await ref.read(inventoryNotifierProvider.notifier).createItem(data);
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          margin: const EdgeInsets.all(16),
-                          content: Row(children: [
-                            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(child: Text('${data['name']} added to ${(data['store'] as String).toUpperCase()}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                          ]),
-                        ));
-                      } on DioException catch (e) {
-                        if (!context.mounted) return;
-                        if (e.response == null) {
-                          // Offline — queue for later sync
-                          await ref.read(offlineMutationQueueProvider.notifier).enqueue(
-                            'POST', '/inventory/items/',
-                            body: data,
-                            description: 'Add item "${data['name']}"',
-                          );
-                          if (!context.mounted) return;
+                        final notifierState = ref.read(inventoryNotifierProvider);
+                        if (notifierState.hasError) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.error_rounded, color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('Error: ${notifierState.error}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } else if (created != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('${data['name']} added to ${(data['store'] as String).toUpperCase()}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } else {
+                          // null + no error = queued offline by notifier
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
                             behavior: SnackBarBehavior.floating,
@@ -306,18 +314,6 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                               Icon(Icons.cloud_off_rounded, color: Colors.black, size: 20),
                               SizedBox(width: 10),
                               Expanded(child: Text('Offline — item queued for sync', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                            ]),
-                          ));
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            margin: const EdgeInsets.all(16),
-                            content: Row(children: [
-                              const Icon(Icons.error_rounded, color: Colors.black, size: 20),
-                              const SizedBox(width: 10),
-                              Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                             ]),
                           ));
                         }
@@ -509,7 +505,29 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Inventory',
             style: GoogleFonts.outfit(color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w800)),
-        Text('Manage your stock', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+        Builder(builder: (ctx) {
+          final activeBranch = ref.watch(activeBranchProvider);
+          if (activeBranch != null && activeBranch.id > 0) {
+            return Row(children: [
+              Container(
+                margin: const EdgeInsets.only(top: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.store_rounded, color: EnhancedTheme.primaryTeal, size: 10),
+                  const SizedBox(width: 4),
+                  Text(activeBranch.name,
+                      style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 10, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ]);
+          }
+          return Text('All branches', style: TextStyle(color: context.subLabelColor, fontSize: 12));
+        }),
       ])),
       Container(
         decoration: BoxDecoration(

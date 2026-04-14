@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import '../providers/inventory_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -446,6 +447,262 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     );
   }
 
+  // ── Transfer stock to another branch ─────────────────────────────────────
+
+  void _showTransferDialog(BuildContext context, Item item) {
+    final branches   = ref.read(branchListProvider);
+    final current    = ref.read(activeBranchProvider);
+    // Only show branches other than the current one.
+    final targets    = branches.where((b) => b.id != (current?.id ?? -1)).toList();
+
+    if (targets.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: const Row(children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('No other branches available to transfer to.',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+        ]),
+      ));
+      return;
+    }
+
+    int    qty      = 1;
+    int    toBranch = targets.first.id;
+    String reason   = 'Restock';
+    final  reasons  = ['Restock', 'Overstock', 'Recall', 'Other'];
+    final  qtyCtrl  = TextEditingController(text: '1');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: EnhancedTheme.accentPurple.withValues(alpha: 0.2)),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  // Title
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.swap_horiz_rounded, color: EnhancedTheme.accentPurple, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text('Transfer Stock',
+                        style: GoogleFonts.outfit(color: ctx.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 8),
+                  // Info banner
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.infoBlue.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: EnhancedTheme.infoBlue.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.inventory_2_rounded, color: EnhancedTheme.infoBlue, size: 14),
+                      const SizedBox(width: 8),
+                      Text('Available: ${item.stock} units · ${item.name}',
+                          style: const TextStyle(color: EnhancedTheme.infoBlue, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+                  // Destination branch picker
+                  Text('Transfer To', style: TextStyle(color: ctx.subLabelColor, fontSize: 12,
+                      fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: ctx.cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: ctx.borderColor),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: toBranch,
+                        isExpanded: true,
+                        dropdownColor: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
+                        style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w600),
+                        items: targets.map((b) => DropdownMenuItem(
+                          value: b.id,
+                          child: Row(children: [
+                            Icon(b.isMain ? Icons.home_work_rounded : Icons.store_rounded,
+                                color: EnhancedTheme.primaryTeal, size: 16),
+                            const SizedBox(width: 8),
+                            Text(b.name),
+                          ]),
+                        )).toList(),
+                        onChanged: (v) { if (v != null) setDialog(() => toBranch = v); },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Quantity stepper
+                  Text('Quantity', style: TextStyle(color: ctx.subLabelColor, fontSize: 12,
+                      fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: ctx.cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: ctx.borderColor),
+                    ),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      GestureDetector(
+                        onTap: () => setDialog(() {
+                          if (qty > 1) { qty--; qtyCtrl.text = qty.toString(); }
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.remove_rounded, color: EnhancedTheme.errorRed, size: 18),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      SizedBox(width: 70, child: TextField(
+                        controller: qtyCtrl,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(color: ctx.labelColor, fontSize: 22, fontWeight: FontWeight.w800),
+                        decoration: InputDecoration(
+                          filled: true, fillColor: ctx.cardColor,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                        ),
+                        onChanged: (v) => setDialog(() => qty = (int.tryParse(v) ?? 1).clamp(1, item.stock)),
+                      )),
+                      const SizedBox(width: 14),
+                      GestureDetector(
+                        onTap: () => setDialog(() {
+                          if (qty < item.stock) { qty++; qtyCtrl.text = qty.toString(); }
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.add_rounded, color: EnhancedTheme.successGreen, size: 18),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 16),
+                  // Reason chips
+                  Text('Reason', style: TextStyle(color: ctx.subLabelColor, fontSize: 12,
+                      fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 8, children: reasons.map((r) => GestureDetector(
+                    onTap: () => setDialog(() => reason = r),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: reason == r ? EnhancedTheme.accentPurple.withValues(alpha: 0.15) : ctx.cardColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: reason == r ? EnhancedTheme.accentPurple : ctx.borderColor,
+                            width: reason == r ? 1.5 : 1),
+                      ),
+                      child: Text(r, style: TextStyle(
+                          color: reason == r ? EnhancedTheme.accentPurple : ctx.subLabelColor,
+                          fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                  )).toList()),
+                  const SizedBox(height: 24),
+                  // Actions
+                  Row(children: [
+                    Expanded(child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ctx.subLabelColor,
+                        side: BorderSide(color: ctx.borderColor),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      child: const Text('Cancel'),
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.of(ctx).pop();
+                        try {
+                          final synced = await ref.read(inventoryNotifierProvider.notifier)
+                              .transferStock(item.id, toBranch, qty, reason);
+                          if (!context.mounted) return;
+                          final branchName = targets.firstWhere((b) => b.id == toBranch).name;
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: synced
+                                ? EnhancedTheme.successGreen.withValues(alpha: 0.92)
+                                : EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              Icon(synced ? Icons.check_circle_rounded : Icons.cloud_off_rounded,
+                                  color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text(
+                                synced
+                                    ? 'Transferred $qty units to $branchName'
+                                    : 'Offline — transfer queued for sync',
+                                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.error_rounded, color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('Error: $e',
+                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: EnhancedTheme.accentPurple, foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      child: Text('Transfer', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                    )),
+                  ]),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Adjust stock ──────────────────────────────────────────────────────────
 
   void _showAdjustStockDialog(Item item) {
@@ -796,9 +1053,18 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
             color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             onSelected: (val) {
+              if (val == 'transfer') _showTransferDialog(context, item);
               if (val == 'delete') _confirmDelete(context, item);
             },
             itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'transfer',
+                child: Row(children: [
+                  Icon(Icons.swap_horiz_rounded, color: EnhancedTheme.accentPurple, size: 18),
+                  SizedBox(width: 10),
+                  Text('Transfer to Branch', style: TextStyle(color: EnhancedTheme.accentPurple, fontSize: 13)),
+                ]),
+              ),
               const PopupMenuItem(
                 value: 'delete',
                 child: Row(children: [
@@ -965,44 +1231,68 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           const SizedBox(height: 28),
 
           // Action buttons
-          Row(children: [
-            Expanded(child: ElevatedButton.icon(
-              onPressed: () => _showEditSheet(context, item),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              icon: const SizedBox.shrink(),
-              label: Ink(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
-                  borderRadius: BorderRadius.circular(16),
+          Column(children: [
+            Row(children: [
+              Expanded(child: ElevatedButton.icon(
+                onPressed: () => _showEditSheet(context, item),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: Container(
-                  width: double.infinity,
-                  alignment: Alignment.center,
+                icon: const SizedBox.shrink(),
+                label: Ink(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Icon(Icons.edit_rounded, size: 18, color: Colors.black),
+                      const SizedBox(width: 8),
+                      Text('Edit', style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 15)),
+                    ]),
+                  ),
+                ),
+              )),
+              const SizedBox(width: 14),
+              Expanded(child: OutlinedButton.icon(
+                onPressed: () => _showAdjustStockDialog(item),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: EnhancedTheme.accentCyan,
+                  side: const BorderSide(color: EnhancedTheme.accentCyan, width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Icon(Icons.edit_rounded, size: 18, color: Colors.black),
-                    const SizedBox(width: 8),
-                    Text('Edit', style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 15)),
-                  ]),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                icon: const Icon(Icons.tune_rounded, size: 18),
+                label: Text('Adjust Stock', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
+              )),
+            ]),
+            const SizedBox(height: 12),
+            // Transfer stock between branches
+            Builder(builder: (ctx) {
+              final branches = ref.watch(branchListProvider);
+              final active   = ref.watch(activeBranchProvider);
+              final hasOther = branches.any((b) => b.id != (active?.id ?? -1));
+              if (!hasOther) return const SizedBox.shrink();
+              return SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showTransferDialog(context, item),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: EnhancedTheme.accentPurple,
+                    side: const BorderSide(color: EnhancedTheme.accentPurple, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                  label: Text('Transfer to Branch',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
                 ),
-              ),
-            )),
-            const SizedBox(width: 14),
-            Expanded(child: OutlinedButton.icon(
-              onPressed: () => _showAdjustStockDialog(item),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: EnhancedTheme.accentCyan,
-                side: const BorderSide(color: EnhancedTheme.accentCyan, width: 1.5),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-              icon: const Icon(Icons.tune_rounded, size: 18),
-              label: Text('Adjust Stock', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
-            )),
+              );
+            }),
           ]).animate().fadeIn(duration: 400.ms, delay: 300.ms),
         ]),
       )),

@@ -271,6 +271,43 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  /// Transfers [quantity] units to another branch.
+  /// Returns true = success, false = queued offline. Throws on server error.
+  Future<bool> transferStock(int itemId, int toBranchId, int quantity, String reason) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.transferStock(itemId, toBranchId, quantity, reason);
+      _ref.invalidate(retailInventoryProvider);
+      _ref.invalidate(wholesaleInventoryProvider);
+      _ref.invalidate(inventoryListProvider);
+      _ref.invalidate(itemDetailProvider(itemId));
+      state = const AsyncValue.data(null);
+      return true;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/inventory/items/$itemId/transfer/',
+          body: {'to_branch_id': toBranchId, 'quantity': quantity, 'reason': reason},
+          description: 'Transfer $quantity units of item #$itemId → branch #$toBranchId',
+        );
+        // Optimistically deduct from current branch cache.
+        final bs = _branchSegment();
+        await _updateListCache('cache_inventory$bs', itemId, {'status': 'pending_sync'});
+        _ref.invalidate(retailInventoryProvider);
+        _ref.invalidate(wholesaleInventoryProvider);
+        _ref.invalidate(inventoryListProvider);
+        _ref.invalidate(itemDetailProvider(itemId));
+        state = const AsyncValue.data(null);
+        return false; // false = queued
+      }
+      state = AsyncValue.error(e, st);
+      rethrow;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
   Future<Item?> adjustStock(int id, int adjustment, String reason) async {
     state = const AsyncValue.loading();
     try {
