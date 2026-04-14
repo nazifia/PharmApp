@@ -5,16 +5,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
 
 final wholesaleSalesListProvider = FutureProvider.autoDispose.family<List<dynamic>, WholesaleSalesParams>((ref, params) {
+  final branch   = ref.watch(activeBranchProvider);
+  final branchId = (branch != null && branch.id > 0) ? branch.id : null;
   return ref.watch(posApiProvider).fetchWholesaleSales(
     search: params.search,
     from: params.from,
     to: params.to,
+    branchId: branchId,
   );
 });
 

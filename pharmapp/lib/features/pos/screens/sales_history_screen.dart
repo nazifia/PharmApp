@@ -7,16 +7,20 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import '../providers/pos_api_provider.dart';
 import 'receipt_screen.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
 
 final salesListProvider = FutureProvider.autoDispose.family<List<dynamic>, SalesParams>((ref, params) {
+  final branch   = ref.watch(activeBranchProvider);
+  final branchId = (branch != null && branch.id > 0) ? branch.id : null;
   return ref.watch(posApiProvider).fetchSales(
     search: params.search,
     from: params.from,
     to: params.to,
+    branchId: branchId,
   );
 });
 

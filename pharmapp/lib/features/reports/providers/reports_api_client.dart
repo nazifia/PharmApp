@@ -101,13 +101,17 @@ class ReportsApiClient {
 
   bool get _isLocal => _dio == null;
 
-  Future<SalesReportData> fetchSalesReport(String period) async {
+  /// Returns a cache-key segment for [branchId]: '_bN' or '' for org-wide.
+  String _bs(int? branchId) =>
+      (branchId != null && branchId > 0) ? '_b$branchId' : '';
+
+  Future<SalesReportData> fetchSalesReport(String period, {int? branchId}) async {
     // Period may be 'today'|'week'|'month'|'year' or 'custom:yyyy-MM-dd:yyyy-MM-dd'
     final isCustom = period.startsWith('custom:');
     if (_isLocal) {
       return SalesReportData.fromJson(await LocalDb.instance.getSalesReport(period));
     }
-    final cacheKey = '$_kSalesReportPrefix$period';
+    final cacheKey = '$_kSalesReportPrefix${_bs(branchId)}$period';
     try {
       final Map<String, dynamic> queryParams;
       if (isCustom) {
@@ -116,6 +120,7 @@ class ReportsApiClient {
       } else {
         queryParams = {'period': period};
       }
+      if (branchId != null && branchId > 0) queryParams['branch_id'] = branchId;
       final res = await _dio!.get('/reports/sales/', queryParameters: queryParams);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(cacheKey, jsonEncode(res.data));
@@ -131,17 +136,21 @@ class ReportsApiClient {
     }
   }
 
-  Future<InventoryReportData> fetchInventoryReport() async {
+  Future<InventoryReportData> fetchInventoryReport({int? branchId}) async {
     if (_isLocal) return InventoryReportData.fromJson(await LocalDb.instance.getInventoryReport());
+    final cacheKey = '$_kInventoryReportKey${_bs(branchId)}';
     try {
-      final res = await _dio!.get('/reports/inventory/');
+      final params = <String, dynamic>{};
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
+      final res = await _dio!.get('/reports/inventory/',
+          queryParameters: params.isNotEmpty ? params : null);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kInventoryReportKey, jsonEncode(res.data));
+      await prefs.setString(cacheKey, jsonEncode(res.data));
       return InventoryReportData.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       if (e.response == null) {
         final prefs = await SharedPreferences.getInstance();
-        final raw = prefs.getString(_kInventoryReportKey);
+        final raw = prefs.getString(cacheKey);
         if (raw != null) return InventoryReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
         throw Exception('Offline — no cached inventory report available');
       }
@@ -149,17 +158,21 @@ class ReportsApiClient {
     }
   }
 
-  Future<CustomerReportData> fetchCustomerReport() async {
+  Future<CustomerReportData> fetchCustomerReport({int? branchId}) async {
     if (_isLocal) return CustomerReportData.fromJson(await LocalDb.instance.getCustomerReport());
+    final cacheKey = '$_kCustomerReportKey${_bs(branchId)}';
     try {
-      final res = await _dio!.get('/reports/customers/');
+      final params = <String, dynamic>{};
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
+      final res = await _dio!.get('/reports/customers/',
+          queryParameters: params.isNotEmpty ? params : null);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kCustomerReportKey, jsonEncode(res.data));
+      await prefs.setString(cacheKey, jsonEncode(res.data));
       return CustomerReportData.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       if (e.response == null) {
         final prefs = await SharedPreferences.getInstance();
-        final raw = prefs.getString(_kCustomerReportKey);
+        final raw = prefs.getString(cacheKey);
         if (raw != null) return CustomerReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
         throw Exception('Offline — no cached customer report available');
       }
@@ -167,11 +180,13 @@ class ReportsApiClient {
     }
   }
 
-  Future<ProfitReportData> fetchProfitReport(String period) async {
+  Future<ProfitReportData> fetchProfitReport(String period, {int? branchId}) async {
     if (_isLocal) return ProfitReportData.fromJson(await LocalDb.instance.getProfitReport(period));
-    final cacheKey = '$_kProfitReportPrefix$period';
+    final cacheKey = '$_kProfitReportPrefix${_bs(branchId)}$period';
     try {
-      final res = await _dio!.get('/reports/profit/', queryParameters: {'period': period});
+      final params = <String, dynamic>{'period': period};
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
+      final res = await _dio!.get('/reports/profit/', queryParameters: params);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(cacheKey, jsonEncode(res.data));
       return ProfitReportData.fromJson(res.data as Map<String, dynamic>);

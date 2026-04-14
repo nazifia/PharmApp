@@ -73,19 +73,23 @@ class PosApiClient {
   }
 
   Future<List<dynamic>> fetchSales(
-      {String? from, String? to, int? customerId, String? search}) async {
+      {String? from, String? to, int? customerId, String? search, int? branchId}) async {
     if (_isLocal) {
       return LocalDb.instance
           .getSales(from: from, to: to, customerId: customerId, search: search);
     }
     // Only cache unfiltered list requests (for the sales history screen default view).
     final isCacheable = from == null && to == null && customerId == null && (search == null || search.isEmpty);
+    final cacheKey = branchId != null && branchId > 0
+        ? '${_kSalesCacheKey}_b$branchId'
+        : _kSalesCacheKey;
     try {
       final params = <String, dynamic>{};
       if (from != null) params['from'] = from;
       if (to != null) params['to'] = to;
       if (customerId != null) params['customer_id'] = customerId;
       if (search != null && search.isNotEmpty) params['search'] = search;
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       final res = await _dio!.get('/pos/sales/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
@@ -94,13 +98,13 @@ class PosApiClient {
           : data as List;
       if (isCacheable) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_kSalesCacheKey, jsonEncode(list));
+        await prefs.setString(cacheKey, jsonEncode(list));
       }
       return list;
     } on DioException catch (e) {
       if (e.response == null && isCacheable) {
         final prefs = await SharedPreferences.getInstance();
-        final raw = prefs.getString(_kSalesCacheKey);
+        final raw = prefs.getString(cacheKey);
         if (raw != null) return jsonDecode(raw) as List;
         throw Exception('Offline — no cached sales history available');
       }
@@ -157,13 +161,17 @@ class PosApiClient {
   }
 
   // ── Payment Requests ───────────────────────────────────────────────────────
-  Future<List<dynamic>> fetchPaymentRequests({String? status}) async {
+  Future<List<dynamic>> fetchPaymentRequests({String? status, int? branchId}) async {
     if (_isLocal) return LocalDb.instance.getPaymentRequests(status: status);
     // Only cache the unfiltered list so the screen can load offline.
     final isCacheable = status == null;
+    final prKey = branchId != null && branchId > 0
+        ? '${_kPaymentRequestsCacheKey}_b$branchId'
+        : _kPaymentRequestsCacheKey;
     try {
       final params = <String, dynamic>{};
       if (status != null) params['status'] = status;
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       final res = await _dio!.get('/pos/payment-requests/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
@@ -172,13 +180,13 @@ class PosApiClient {
           : data as List;
       if (isCacheable) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_kPaymentRequestsCacheKey, jsonEncode(list));
+        await prefs.setString(prKey, jsonEncode(list));
       }
       return list;
     } on DioException catch (e) {
       if (e.response == null) {
         final prefs = await SharedPreferences.getInstance();
-        final raw = prefs.getString(_kPaymentRequestsCacheKey);
+        final raw = prefs.getString(prKey);
         if (raw != null) {
           final list = jsonDecode(raw) as List;
           if (status == null) return list;
@@ -196,7 +204,8 @@ class PosApiClient {
       {int? customerId,
       int? cashierId,
       String paymentType = 'retail',
-      String? patientName}) async {
+      String? patientName,
+      int? branchId}) async {
     if (_isLocal) {
       return LocalDb.instance.createPaymentRequest(items,
           customerId: customerId,
@@ -212,6 +221,7 @@ class PosApiClient {
         'payment_type': paymentType,
         if (patientName != null && patientName.isNotEmpty)
           'patientName': patientName,
+        if (branchId != null && branchId > 0) 'branch_id': branchId,
       });
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
@@ -900,7 +910,7 @@ class PosApiClient {
     }
     try {
       await _dio!.post('/pos/users/$id/change-password/',
-          data: {'new_password': newPassword});
+          data: {'newPassword': newPassword});
     } on DioException catch (e) {
       if (e.response == null) rethrow;
       throw Exception(
@@ -1047,27 +1057,31 @@ class PosApiClient {
   }
 
   Future<List<dynamic>> fetchWholesaleSales(
-      {String? from, String? to, String? search}) async {
+      {String? from, String? to, String? search, int? branchId}) async {
     if (_isLocal) {
       return LocalDb.instance
           .getSales(from: from, to: to, search: search, isWholesale: true);
     }
     final isCacheable = from == null && to == null && (search == null || search.isEmpty);
+    final wsKey = branchId != null && branchId > 0
+        ? 'cache_wholesale_sales_b$branchId'
+        : 'cache_wholesale_sales';
     try {
       final params = <String, dynamic>{'wholesale': 'true'};
       if (from != null) params['from'] = from;
       if (to != null) params['to'] = to;
       if (search != null && search.isNotEmpty) params['search'] = search;
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       final res = await _dio!.get('/pos/sales/', queryParameters: params);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
-      if (isCacheable) await _cacheStr('cache_wholesale_sales', list);
+      if (isCacheable) await _cacheStr(wsKey, list);
       return list;
     } on DioException catch (e) {
       if (e.response == null && isCacheable) {
-        final cached = await _getCache('cache_wholesale_sales');
+        final cached = await _getCache(wsKey);
         if (cached != null) return cached as List;
         throw Exception('Offline — no cached wholesale sales available');
       }
@@ -1343,9 +1357,11 @@ final posApiProvider = Provider<PosApiClient>((ref) {
 /// Watched by AppShell on startup to warm the payment-requests cache so that
 /// the cashier's screen has data available when the device goes offline.
 final paymentRequestsPreloadProvider =
-    FutureProvider.autoDispose<List<dynamic>>(
-  (ref) => ref.watch(posApiProvider).fetchPaymentRequests(),
-);
+    FutureProvider.autoDispose<List<dynamic>>((ref) {
+  final branch   = ref.watch(activeBranchProvider);
+  final branchId = (branch != null && branch.id > 0) ? branch.id : null;
+  return ref.watch(posApiProvider).fetchPaymentRequests(branchId: branchId);
+});
 
 bool isOfflineResult(Map<String, dynamic>? result) =>
     result != null && result['offline'] == true;
@@ -1461,10 +1477,13 @@ class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
       {int? customerId, int? cashierId,
        String paymentType = 'retail', String? patientName}) async {
     state = const AsyncValue.loading();
+    final branch   = _ref.read(activeBranchProvider);
+    final branchId = (branch != null && branch.id > 0) ? branch.id : null;
     try {
       final result = await _api.sendToCashier(items,
           customerId: customerId, cashierId: cashierId,
-          paymentType: paymentType, patientName: patientName);
+          paymentType: paymentType, patientName: patientName,
+          branchId: branchId);
       state = const AsyncValue.data(null);
       return result;
     } on DioException catch (e, st) {
@@ -1475,6 +1494,7 @@ class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
           if (cashierId != null) 'cashier_id': cashierId,
           'payment_type': paymentType,
           if (patientName != null && patientName.isNotEmpty) 'patientName': patientName,
+          if (branchId != null) 'branch_id': branchId,
         };
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/payment-requests/',
@@ -2163,7 +2183,7 @@ class UserNotifier extends StateNotifier<AsyncValue<void>> {
       if (e.response == null) {
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/users/$id/change-password/',
-          body: {'new_password': newPassword},
+          body: {'newPassword': newPassword},
           description: 'Change password for user #$id',
         );
         state = const AsyncValue.data(null);
