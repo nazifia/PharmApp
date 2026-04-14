@@ -343,7 +343,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         const SizedBox(height: 16),
         Text('Failed to load report', style: GoogleFonts.outfit(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
-        Text('$e', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12), textAlign: TextAlign.center),
+        Text('$e', style: TextStyle(color: Colors.black45, fontSize: 12), textAlign: TextAlign.center),
         const SizedBox(height: 20),
         GestureDetector(
           onTap: () => ref.invalidate(salesReportProvider(_apiPeriod)),
@@ -401,7 +401,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                     child: const Icon(Icons.trending_up_rounded, color: EnhancedTheme.primaryTeal, size: 20)),
                   const SizedBox(width: 12),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Total Revenue', style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12, letterSpacing: 0.4)),
+                    Text('Total Revenue', style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.4)),
                     Text(_fmt(grand), style: GoogleFonts.outfit(
                       color: Colors.black, fontSize: 32, fontWeight: FontWeight.w800)),
                   ]),
@@ -537,7 +537,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         const SizedBox(height: 5),
         Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 9),
+        Text(label, style: TextStyle(color: Colors.black45, fontSize: 9),
             textAlign: TextAlign.center),
       ]),
     );

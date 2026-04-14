@@ -563,13 +563,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               ).animate().scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
               const SizedBox(height: 20),
               Text('Sale Saved Offline',
-                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800))
+                  style: GoogleFonts.outfit(color: Colors.black87, fontSize: 21, fontWeight: FontWeight.w800))
                   .animate().fadeIn(delay: 200.ms),
               const SizedBox(height: 8),
               const Text(
                 'No internet connection. This sale has been saved and will sync automatically when back online.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.5),
+                style: TextStyle(color: Colors.black54, fontSize: 13, height: 1.5),
               ).animate().fadeIn(delay: 300.ms),
               const SizedBox(height: 20),
               Container(
@@ -678,20 +678,20 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text('Send to Cashier',
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+                          style: GoogleFonts.outfit(color: Colors.black87, fontSize: 17, fontWeight: FontWeight.w700)),
                     ]),
                     const SizedBox(height: 16),
                     const Text('Patient / Customer name (optional)',
-                        style: TextStyle(color: Colors.white70, fontSize: 13)),
+                        style: TextStyle(color: Colors.black54, fontSize: 13)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: ctrl,
                       autofocus: true,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.black87),
                       decoration: InputDecoration(
                         hintText: 'e.g. John Doe',
-                        hintStyle: const TextStyle(color: Colors.white38),
-                        prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.white38, size: 18),
+                        hintStyle: const TextStyle(color: Colors.black38),
+                        prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.black38, size: 18),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.07),
                         border: OutlineInputBorder(
@@ -720,7 +720,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                             side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
                           ),
                         ),
-                        child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
                       )),
                       const SizedBox(width: 12),
                       Expanded(child: Container(
@@ -736,7 +736,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-                          child: const Text('Send', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                          child: const Text('Send', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
                         ),
                       )),
                     ]),
@@ -877,7 +877,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
           Row(children: [
             Text('Bulk order processing',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
+                style: TextStyle(color: Colors.black54, fontSize: 11)),
             if (itemCount != null) ...[
               const SizedBox(width: 8),
               Container(
