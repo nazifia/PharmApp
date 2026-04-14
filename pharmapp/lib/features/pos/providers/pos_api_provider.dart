@@ -845,15 +845,18 @@ class PosApiClient {
   }
 
   // ── User Management ────────────────────────────────────────────────────────
-  Future<List<dynamic>> fetchUsers({String? search, String? role}) async {
+  Future<List<dynamic>> fetchUsers({String? search, String? role, int? branchId}) async {
     if (_isLocal) {
       return LocalDb.instance.getAllUsers(search: search, role: role);
     }
-    final isCacheable = (search == null || search.isEmpty) && (role == null || role.isEmpty);
+    final isCacheable = (search == null || search.isEmpty) &&
+        (role == null || role.isEmpty) &&
+        (branchId == null || branchId == 0);
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
       if (role != null && role.isNotEmpty) params['role'] = role;
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       final res = await _dio!.get('/pos/users/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
@@ -877,16 +880,19 @@ class PosApiClient {
     required String password,
     String role = 'Cashier',
     String username = '',
+    int? branchId,
   }) async {
     if (_isLocal) {
       return LocalDb.instance.createUser(phoneNumber, password, role, username: username);
     }
     try {
-      final res = await _dio!.post('/pos/users/', data: {
+      final body = <String, dynamic>{
         'phoneNumber': phoneNumber,
         'password': password,
         'role': role,
-      });
+      };
+      if (branchId != null && branchId > 0) body['branch_id'] = branchId;
+      final res = await _dio!.post('/pos/users/', data: body);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       if (e.response == null) rethrow;
@@ -919,7 +925,7 @@ class PosApiClient {
   }
 
   Future<Map<String, dynamic>> updateUser(int id,
-      {String? role, bool? isActive, String? username, String? fullname}) async {
+      {String? role, bool? isActive, String? username, String? fullname, int? branchId}) async {
     if (_isLocal) {
       return LocalDb.instance.updateUser(id, role: role, isActive: isActive, username: username, fullname: fullname);
     }
@@ -929,6 +935,7 @@ class PosApiClient {
       if (isActive != null) data['is_active'] = isActive;
       if (username != null) data['username'] = username;
       if (fullname != null) data['fullname'] = fullname;
+      if (branchId != null) data['branch_id'] = branchId > 0 ? branchId : null;
       final res = await _dio!.patch('/pos/users/$id/', data: data);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {

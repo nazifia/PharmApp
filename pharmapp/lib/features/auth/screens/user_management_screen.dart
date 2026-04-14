@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/user.dart';
@@ -22,7 +23,8 @@ class UserManagementScreen extends ConsumerStatefulWidget {
 class _UserManagementScreenState
     extends ConsumerState<UserManagementScreen> {
   final _searchCtrl = TextEditingController();
-  String _roleFilter = 'All';
+  String _roleFilter   = 'All';
+  int?   _branchFilter; // null = all branches
 
   final _roles = [
     'All', 'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech',
@@ -73,10 +75,21 @@ class _UserManagementScreenState
   }
 
   List<User> _applyFilter(List<User> users) {
-    final q = _searchCtrl.text;
+    final q = _searchCtrl.text.toLowerCase();
     return users.where((u) {
-      if (q.isNotEmpty && !u.phoneNumber.contains(q)) return false;
+      if (q.isNotEmpty &&
+          !u.phoneNumber.contains(q) &&
+          !u.username.toLowerCase().contains(q) &&
+          !u.fullname.toLowerCase().contains(q)) return false;
       if (_roleFilter != 'All' && u.role != _roleFilter) return false;
+      if (_branchFilter != null) {
+        if (_branchFilter == 0) {
+          // "No Branch" filter
+          if (u.branchId != 0) return false;
+        } else {
+          if (u.branchId != _branchFilter) return false;
+        }
+      }
       return true;
     }).toList();
   }
@@ -113,7 +126,9 @@ class _UserManagementScreenState
     final passCtrl     = TextEditingController();
     final usernameCtrl = TextEditingController();
     String role        = 'Cashier';
+    int?   branchId;
     final formKey      = GlobalKey<FormState>();
+    final branches     = ref.read(branchListProvider);
 
     showModalBottomSheet(
       context: context,
@@ -285,6 +300,115 @@ class _UserManagementScreenState
                           )).toList(),
                         ),
                       ),
+                      if (branches.isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        Text(
+                          'ASSIGN BRANCH',
+                          style: GoogleFonts.inter(
+                            color: ctx.hintColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: GestureDetector(
+                                  onTap: () => setModal(() => branchId = null),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 150),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: branchId == null
+                                          ? EnhancedTheme.infoBlue
+                                          : ctx.cardColor,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: branchId == null
+                                            ? EnhancedTheme.infoBlue
+                                            : ctx.borderColor,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'No Branch',
+                                      style: GoogleFonts.inter(
+                                        color: branchId == null
+                                            ? Colors.black
+                                            : ctx.subLabelColor,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              ...branches.map((b) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: GestureDetector(
+                                  onTap: () => setModal(() => branchId = b.id),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 150),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: branchId == b.id
+                                          ? EnhancedTheme.accentCyan
+                                          : ctx.cardColor,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: branchId == b.id
+                                            ? EnhancedTheme.accentCyan
+                                            : ctx.borderColor,
+                                      ),
+                                      boxShadow: branchId == b.id
+                                          ? [
+                                              BoxShadow(
+                                                color: EnhancedTheme.accentCyan
+                                                    .withValues(alpha: 0.30),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (b.isMain) ...[
+                                          Icon(
+                                            Icons.star_rounded,
+                                            size: 12,
+                                            color: branchId == b.id
+                                                ? Colors.black
+                                                : EnhancedTheme.warningAmber,
+                                          ),
+                                          const SizedBox(width: 4),
+                                        ],
+                                        Text(
+                                          b.name,
+                                          style: GoogleFonts.inter(
+                                            color: branchId == b.id
+                                                ? Colors.black
+                                                : ctx.subLabelColor,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
 
                       // ── Submit button ─────────────────────────────
@@ -323,6 +447,7 @@ class _UserManagementScreenState
                                     role: role,
                                     username:
                                         usernameCtrl.text.trim(),
+                                    branchId: branchId,
                                   );
                               if (!context.mounted) return;
                               setState(() {});
@@ -484,8 +609,10 @@ class _UserManagementScreenState
   void _showEditUserSheet(User user) {
     String role         = user.role;
     bool isActive       = user.isActive;
+    int?   branchId     = user.branchId > 0 ? user.branchId : null;
     final usernameCtrl  = TextEditingController(text: user.username);
     final fullnameCtrl  = TextEditingController(text: user.fullname);
+    final branches      = ref.read(branchListProvider);
 
     showModalBottomSheet(
       context: context,
@@ -763,6 +890,115 @@ class _UserManagementScreenState
                         ),
                       ),
                     ]),
+                    if (branches.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'BRANCH',
+                        style: GoogleFonts.inter(
+                          color: ctx.hintColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: GestureDetector(
+                                onTap: () => setModal(() => branchId = null),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: branchId == null
+                                        ? EnhancedTheme.infoBlue
+                                        : ctx.cardColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: branchId == null
+                                          ? EnhancedTheme.infoBlue
+                                          : ctx.borderColor,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'No Branch',
+                                    style: GoogleFonts.inter(
+                                      color: branchId == null
+                                          ? Colors.black
+                                          : ctx.subLabelColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            ...branches.map((b) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: GestureDetector(
+                                onTap: () => setModal(() => branchId = b.id),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: branchId == b.id
+                                        ? EnhancedTheme.accentCyan
+                                        : ctx.cardColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: branchId == b.id
+                                          ? EnhancedTheme.accentCyan
+                                          : ctx.borderColor,
+                                    ),
+                                    boxShadow: branchId == b.id
+                                        ? [
+                                            BoxShadow(
+                                              color: EnhancedTheme.accentCyan
+                                                  .withValues(alpha: 0.30),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (b.isMain) ...[
+                                        Icon(
+                                          Icons.star_rounded,
+                                          size: 12,
+                                          color: branchId == b.id
+                                              ? Colors.black
+                                              : EnhancedTheme.warningAmber,
+                                        ),
+                                        const SizedBox(width: 4),
+                                      ],
+                                      Text(
+                                        b.name,
+                                        style: GoogleFonts.inter(
+                                          color: branchId == b.id
+                                              ? Colors.black
+                                              : ctx.subLabelColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
 
                     // ── Save button ───────────────────────────────
@@ -794,6 +1030,7 @@ class _UserManagementScreenState
                               isActive: isActive,
                               username: usernameCtrl.text.trim(),
                               fullname: fullnameCtrl.text.trim(),
+                              branchId: branchId ?? 0,
                             );
                             if (!context.mounted) return;
                             setState(() {});
@@ -1313,6 +1550,10 @@ class _UserManagementScreenState
                 _buildRoleFilterChips()
                     .animate()
                     .fadeIn(delay: 150.ms, duration: 400.ms),
+                const SizedBox(height: 6),
+                _buildBranchFilterChips()
+                    .animate()
+                    .fadeIn(delay: 200.ms, duration: 400.ms),
                 const SizedBox(height: 8),
                 Expanded(
                   child: FutureBuilder<List<dynamic>>(
@@ -1514,6 +1755,163 @@ class _UserManagementScreenState
             ),
           );
         },
+      ),
+    );
+  }
+
+  // ─── Branch filter chips ──────────────────────────────────────────────────
+  Widget _buildBranchFilterChips() {
+    final branches = ref.watch(branchListProvider);
+    if (branches.isEmpty) return const SizedBox.shrink();
+
+    final allSelected = _branchFilter == null;
+    final noBranchSelected = _branchFilter == 0;
+
+    return SizedBox(
+      height: 38,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        children: [
+          // "All Branches" chip
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => _branchFilter = null),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: allSelected
+                      ? EnhancedTheme.accentCyan
+                      : context.cardColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: allSelected
+                        ? EnhancedTheme.accentCyan
+                        : context.borderColor,
+                  ),
+                  boxShadow: allSelected
+                      ? [
+                          BoxShadow(
+                            color: EnhancedTheme.accentCyan.withValues(alpha: 0.35),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.account_tree_rounded,
+                      size: 12,
+                      color: allSelected ? Colors.black : context.subLabelColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    'All Branches',
+                    style: GoogleFonts.inter(
+                      color: allSelected ? Colors.black : context.subLabelColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+          // "No Branch" chip
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => _branchFilter = 0),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: noBranchSelected
+                      ? EnhancedTheme.infoBlue
+                      : context.cardColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: noBranchSelected
+                        ? EnhancedTheme.infoBlue
+                        : context.borderColor,
+                  ),
+                  boxShadow: noBranchSelected
+                      ? [
+                          BoxShadow(
+                            color: EnhancedTheme.infoBlue.withValues(alpha: 0.35),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  'No Branch',
+                  style: GoogleFonts.inter(
+                    color: noBranchSelected ? Colors.black : context.subLabelColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Individual branch chips
+          ...branches.map((b) {
+            final selected = _branchFilter == b.id;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => setState(() => _branchFilter = b.id),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? EnhancedTheme.accentCyan
+                        : context.cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: selected
+                          ? EnhancedTheme.accentCyan
+                          : context.borderColor,
+                    ),
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: EnhancedTheme.accentCyan
+                                  .withValues(alpha: 0.35),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (b.isMain) ...[
+                      Icon(Icons.star_rounded,
+                          size: 12,
+                          color: selected
+                              ? Colors.black
+                              : EnhancedTheme.warningAmber),
+                      const SizedBox(width: 4),
+                    ],
+                    Text(
+                      b.name,
+                      style: GoogleFonts.inter(
+                        color: selected ? Colors.black : context.subLabelColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -1745,11 +2143,20 @@ class _UserManagementScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Badges row
-                          Row(children: [
-                            _roleBadge(user.role, roleColor),
-                            const SizedBox(width: 6),
-                            _statusBadge(user.isActive),
-                          ]),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              _roleBadge(user.role, roleColor),
+                              _statusBadge(user.isActive),
+                              if (user.branchId > 0)
+                                _branchBadge(
+                                  user.branchName.isNotEmpty
+                                      ? user.branchName
+                                      : 'Branch #${user.branchId}',
+                                ),
+                            ],
+                          ),
                           const SizedBox(height: 6),
                           Text(
                             user.username.isNotEmpty
@@ -1808,6 +2215,27 @@ class _UserManagementScreenState
           ),
         ),
       ),
+    );
+  }
+
+  Widget _branchBadge(String branchName) {
+    const color = EnhancedTheme.accentCyan;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.account_tree_rounded, color: color, size: 9),
+        const SizedBox(width: 3),
+        Text(
+          branchName,
+          style: GoogleFonts.inter(
+              color: color, fontSize: 10, fontWeight: FontWeight.w700),
+        ),
+      ]),
     );
   }
 
