@@ -93,7 +93,8 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
           // Handle
           Center(child: Container(
             width: 40, height: 4,
@@ -152,6 +153,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                   style: TextStyle(color: context.subLabelColor, fontSize: 13)),
             ),
         ]),
+        ),
       ),
     );
   }

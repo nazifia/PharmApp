@@ -646,7 +646,8 @@ class _UserManagementScreenState
                 ),
                 padding:
                     const EdgeInsets.fromLTRB(24, 16, 24, 36),
-                child: Column(
+                child: SingleChildScrollView(
+                  child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1077,6 +1078,7 @@ class _UserManagementScreenState
                       ),
                     ),
                   ],
+                ),
                 ),
               ),
             ),
