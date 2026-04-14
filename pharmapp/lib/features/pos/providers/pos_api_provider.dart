@@ -275,28 +275,31 @@ class PosApiClient {
 
   // ── Dispensing Log ─────────────────────────────────────────────────────────
   Future<List<dynamic>> fetchDispensingLog(
-      {String? search, String? from, String? to}) async {
+      {String? search, String? from, String? to, int? branchId}) async {
     if (_isLocal) {
       return LocalDb.instance
           .getDispensingLog(search: search, from: from, to: to);
     }
     final isCacheable = (search == null || search.isEmpty) && from == null && to == null;
+    final bSeg = (branchId != null && branchId > 0) ? '_b$branchId' : '';
+    final cacheKey = 'cache_dispensing_log$bSeg';
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
       if (from != null) params['from'] = from;
       if (to != null) params['to'] = to;
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       final res = await _dio!.get('/pos/dispensing-log/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
-      if (isCacheable) await _cacheStr('cache_dispensing_log', list);
+      if (isCacheable) await _cacheStr(cacheKey, list);
       return list;
     } on DioException catch (e) {
       if (e.response == null && isCacheable) {
-        final cached = await _getCache('cache_dispensing_log');
+        final cached = await _getCache(cacheKey);
         if (cached != null) return cached as List;
         throw Exception('Offline — no cached dispensing log available');
       }
@@ -305,16 +308,21 @@ class PosApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> fetchDispensingStats() async {
+  Future<Map<String, dynamic>> fetchDispensingStats({int? branchId}) async {
     if (_isLocal) return LocalDb.instance.getDispensingStats();
+    final bSeg = (branchId != null && branchId > 0) ? '_b$branchId' : '';
+    final cacheKey = 'cache_dispensing_stats$bSeg';
     try {
-      final res = await _dio!.get('/pos/dispensing-log/stats/');
+      final params = <String, dynamic>{};
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
+      final res = await _dio!.get('/pos/dispensing-log/stats/',
+          queryParameters: params.isNotEmpty ? params : null);
       final data = res.data as Map<String, dynamic>;
-      await _cacheStr('cache_dispensing_stats', data);
+      await _cacheStr(cacheKey, data);
       return data;
     } on DioException catch (e) {
       if (e.response == null) {
-        final cached = await _getCache('cache_dispensing_stats');
+        final cached = await _getCache(cacheKey);
         if (cached != null) return cached as Map<String, dynamic>;
         throw Exception('Offline — no cached dispensing stats available');
       }
@@ -2129,21 +2137,27 @@ class UserNotifier extends StateNotifier<AsyncValue<void>> {
 
   Future<Map<String, dynamic>?> createUser({
     required String phoneNumber, required String password,
-    String role = 'Cashier', String username = '',
+    String role = 'Cashier', String username = '', int? branchId,
   }) async {
     state = const AsyncValue.loading();
     try {
       final result = await _api.createUser(
           phoneNumber: phoneNumber, password: password,
-          role: role, username: username);
+          role: role, username: username, branchId: branchId);
       state = const AsyncValue.data(null);
       return result;
     } on DioException catch (e, st) {
       if (e.response == null) {
+        final body = <String, dynamic>{
+          'phoneNumber': phoneNumber,
+          'password': password,
+          'role': role,
+          if (username.isNotEmpty) 'username': username,
+          if (branchId != null && branchId > 0) 'branch_id': branchId,
+        };
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/users/',
-          body: {'phoneNumber': phoneNumber, 'password': password,
-                 'role': role},
+          body: body,
           description: 'Create user "$phoneNumber"',
         );
         state = const AsyncValue.data(null);
@@ -2205,11 +2219,13 @@ class UserNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<Map<String, dynamic>?> updateUser(int id,
-      {String? role, bool? isActive, String? username, String? fullname}) async {
+      {String? role, bool? isActive, String? username, String? fullname,
+       int? branchId}) async {
     state = const AsyncValue.loading();
     try {
       final result = await _api.updateUser(
-          id, role: role, isActive: isActive, username: username, fullname: fullname);
+          id, role: role, isActive: isActive, username: username,
+          fullname: fullname, branchId: branchId);
       state = const AsyncValue.data(null);
       return result;
     } on DioException catch (e, st) {
@@ -2219,6 +2235,7 @@ class UserNotifier extends StateNotifier<AsyncValue<void>> {
         if (isActive != null) body['is_active'] = isActive;
         if (username != null) body['username'] = username;
         if (fullname != null) body['fullname'] = fullname;
+        if (branchId != null) body['branch_id'] = branchId > 0 ? branchId : null;
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'PATCH', '/pos/users/$id/',
           body: body,

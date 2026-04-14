@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
 import '../../../shared/models/customer.dart';
 
-const _kCustomersCacheKey = 'cache_customers';
+const _kCustomersCachePrefix = 'cache_customers';
 
 // ── Wallet transaction ─────────────────────────────────────────────────────────
 
@@ -160,13 +160,20 @@ class CustomerApiClient {
 
   bool get _isLocal => _dio == null;
 
-  Future<List<Customer>> fetchCustomers() async {
+  Future<List<Customer>> fetchCustomers({int? branchId}) async {
     if (_isLocal) {
       return (await LocalDb.instance.getCustomers())
           .map((r) => Customer.fromJson(r)).toList();
     }
+    // Branch-aware cache key — null branchId = org-wide (All Branches).
+    final branchSegment = (branchId != null && branchId > 0) ? '_b$branchId' : '';
+    final cacheKey = '$_kCustomersCachePrefix$branchSegment';
+
     try {
-      final res = await _dio!.get('/customers/');
+      final params = <String, dynamic>{};
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
+      final res = await _dio!.get('/customers/',
+          queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List : data as List;
@@ -174,14 +181,14 @@ class CustomerApiClient {
 
       // Persist for offline access.
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kCustomersCacheKey, jsonEncode(list));
+      await prefs.setString(cacheKey, jsonEncode(list));
 
       return customers;
     } on DioException catch (e) {
       // Connection-level failure — serve from cache if available.
       if (e.response == null) {
         final prefs = await SharedPreferences.getInstance();
-        final raw = prefs.getString(_kCustomersCacheKey);
+        final raw = prefs.getString(cacheKey);
         if (raw != null && raw.isNotEmpty) {
           final list = jsonDecode(raw) as List;
           return list.map((e) => Customer.fromJson(e as Map<String, dynamic>)).toList();

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/offline_queue.dart';
+import '../../../features/branches/providers/branch_provider.dart';
 import '../../../shared/models/customer.dart';
 import 'customer_api_client.dart';
 
@@ -16,9 +17,19 @@ final customerApiProvider = Provider<CustomerApiClient>((ref) {
   return CustomerApiClient.remote(ref.watch(dioProvider));
 });
 
-/// Full customer list — refresh with ref.invalidate(customerListProvider)
-final customerListProvider = FutureProvider<List<Customer>>((ref) {
-  return ref.watch(customerApiProvider).fetchCustomers();
+/// Returns the effective branch ID to scope customer requests.
+/// Returns null for org-wide access.
+int? _effectiveBranchId(Ref ref) {
+  final branch = ref.watch(activeBranchProvider);
+  if (branch == null || branch.id <= 0) return null;
+  return branch.id;
+}
+
+/// Full customer list — scoped to active branch, re-fetches on branch change.
+final customerListProvider = FutureProvider.autoDispose<List<Customer>>((ref) {
+  return ref.watch(customerApiProvider).fetchCustomers(
+    branchId: _effectiveBranchId(ref),
+  );
 });
 
 /// Single customer by ID
@@ -81,6 +92,13 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
     await prefs.setString(key, jsonEncode(list));
   }
 
+  /// Returns branch cache segment for the currently active branch.
+  String _branchSegment() {
+    final branch = _ref.read(activeBranchProvider);
+    if (branch == null || branch.id <= 0) return '';
+    return '_b${branch.id}';
+  }
+
   // ── CRUD operations ─────────────────────────────────────────────────────────
 
   Future<Customer?> createCustomer(Map<String, dynamic> data) async {
@@ -109,7 +127,7 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
           'walletBalance': 0.0,
           'status': 'pending_sync',
         };
-        await _patchListCache('cache_customers', tempCustomer);
+        await _patchListCache('cache_customers${_branchSegment()}', tempCustomer);
         _ref.invalidate(customerListProvider);
         state = const AsyncValue.data(null);
         return null; // null signals "queued offline" to the caller
@@ -138,7 +156,7 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
           description: 'Update customer "${data['name'] ?? id}"',
         );
         // Patch the list and detail caches so changes are visible offline.
-        await _updateListCache('cache_customers', id, {...data, 'status': 'pending_sync'});
+        await _updateListCache('cache_customers${_branchSegment()}', id, {...data, 'status': 'pending_sync'});
         final prefs = await SharedPreferences.getInstance();
         final detailRaw = prefs.getString('cache_customer_$id');
         if (detailRaw != null) {
@@ -174,7 +192,7 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
           description: 'Delete customer #$id',
         );
         // Remove from list cache immediately so the customer disappears offline.
-        await _removeFromListCache('cache_customers', id);
+        await _removeFromListCache('cache_customers${_branchSegment()}', id);
         _ref.invalidate(customerListProvider);
         state = const AsyncValue.data(null);
         return true; // treat as success — will sync later

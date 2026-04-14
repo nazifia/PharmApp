@@ -162,10 +162,11 @@ class _UserManagementScreenState
                     const EdgeInsets.fromLTRB(24, 16, 24, 36),
                 child: Form(
                   key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       // ── Handle ─────────────────────────────────────
                       Center(
                         child: Container(
@@ -492,6 +493,7 @@ class _UserManagementScreenState
                         ),
                       ),
                     ],
+                  ),
                   ),
                 ),
               ),

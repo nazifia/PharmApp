@@ -4,20 +4,26 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
 
 final dispensingStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
-  return ref.watch(posApiProvider).fetchDispensingStats();
+  final branch   = ref.watch(activeBranchProvider);
+  final branchId = (branch != null && branch.id > 0) ? branch.id : null;
+  return ref.watch(posApiProvider).fetchDispensingStats(branchId: branchId);
 });
 
 final dispensingLogProvider = FutureProvider.autoDispose.family<List<dynamic>, DispensingLogParams>((ref, params) {
+  final branch   = ref.watch(activeBranchProvider);
+  final branchId = (branch != null && branch.id > 0) ? branch.id : null;
   return ref.watch(posApiProvider).fetchDispensingLog(
     search: params.search,
     from: params.from,
     to: params.to,
+    branchId: branchId,
   );
 });
 
