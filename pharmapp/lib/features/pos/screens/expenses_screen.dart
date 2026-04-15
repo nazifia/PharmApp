@@ -126,6 +126,384 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     }
   }
 
+  void _showManageCategoriesSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setSheet) {
+          return DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.92,
+            expand: false,
+            builder: (ctx, scrollCtrl) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: Column(children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                    child: Column(children: [
+                      Center(child: Container(
+                        width: 44, height: 4,
+                        decoration: BoxDecoration(
+                          color: context.hintColor.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      )),
+                      const SizedBox(height: 20),
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.category_rounded,
+                              color: EnhancedTheme.accentPurple, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('Manage Categories',
+                            style: GoogleFonts.outfit(
+                                color: context.labelColor,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700)),
+                        const Spacer(),
+                        // Add new category button
+                        GestureDetector(
+                          onTap: () => _showAddCategoryDialog(ctx, setSheet),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: EnhancedTheme.accentPurple.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.add_rounded,
+                                  color: EnhancedTheme.accentPurple, size: 16),
+                              const SizedBox(width: 4),
+                              Text('Add',
+                                  style: TextStyle(
+                                      color: EnhancedTheme.accentPurple,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700)),
+                            ]),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 16),
+                    ]),
+                  ),
+                  if (_categories.isEmpty)
+                    Expanded(
+                      child: Center(
+                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.category_outlined,
+                              color: context.hintColor, size: 48),
+                          const SizedBox(height: 12),
+                          Text('No categories yet',
+                              style: TextStyle(color: context.subLabelColor, fontSize: 14)),
+                        ]),
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.separated(
+                        controller: scrollCtrl,
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                        itemCount: _categories.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (ctx, i) {
+                          final cat = _categories[i];
+                          final catId = cat['id'] as int;
+                          final catName = cat['name'] as String? ?? '';
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: context.cardColor,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: context.borderColor),
+                            ),
+                            child: Row(children: [
+                              Container(
+                                width: 36, height: 36,
+                                decoration: BoxDecoration(
+                                  color: EnhancedTheme.accentPurple.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.label_rounded,
+                                    color: EnhancedTheme.accentPurple, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(catName,
+                                    style: GoogleFonts.outfit(
+                                        color: context.labelColor,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                              // Edit button
+                              GestureDetector(
+                                onTap: () => _showEditCategoryDialog(
+                                    ctx, setSheet, catId, catName),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.edit_rounded,
+                                      color: EnhancedTheme.primaryTeal, size: 16),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Delete button
+                              GestureDetector(
+                                onTap: () => _confirmDeleteCategory(
+                                    ctx, setSheet, catId, catName),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.delete_rounded,
+                                      color: EnhancedTheme.errorRed, size: 16),
+                                ),
+                              ),
+                            ]),
+                          );
+                        },
+                      ),
+                    ),
+                ]),
+              );
+            },
+          );
+        });
+      },
+    );
+  }
+
+  void _showAddCategoryDialog(BuildContext sheetCtx, StateSetter setSheet) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('New Category',
+            style: GoogleFonts.outfit(
+                color: context.labelColor, fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          style: TextStyle(color: context.labelColor),
+          decoration: InputDecoration(
+            hintText: 'Category name',
+            hintStyle: TextStyle(color: context.hintColor),
+            filled: true,
+            fillColor: context.cardColor,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                    color: EnhancedTheme.accentPurple, width: 2)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx),
+            child: Text('Cancel',
+                style: TextStyle(color: context.subLabelColor)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = ctrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(dCtx);
+              try {
+                await ref.read(posApiProvider).createExpenseCategory(name);
+                await _loadCategories();
+                setSheet(() {});
+                if (mounted) {
+                  _showSnack('Category "$name" created', EnhancedTheme.successGreen);
+                }
+              } catch (e) {
+                if (mounted) _showSnack('Failed: $e', EnhancedTheme.errorRed);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: EnhancedTheme.accentPurple,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditCategoryDialog(
+      BuildContext sheetCtx, StateSetter setSheet, int id, String currentName) {
+    final ctrl = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Edit Category',
+            style: GoogleFonts.outfit(
+                color: context.labelColor, fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          style: TextStyle(color: context.labelColor),
+          decoration: InputDecoration(
+            hintText: 'Category name',
+            hintStyle: TextStyle(color: context.hintColor),
+            filled: true,
+            fillColor: context.cardColor,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                    color: EnhancedTheme.primaryTeal, width: 2)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx),
+            child: Text('Cancel',
+                style: TextStyle(color: context.subLabelColor)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = ctrl.text.trim();
+              if (name.isEmpty || name == currentName) {
+                Navigator.pop(dCtx);
+                return;
+              }
+              Navigator.pop(dCtx);
+              try {
+                await ref.read(posApiProvider).updateExpenseCategory(id, name);
+                await _loadCategories();
+                setSheet(() {});
+                if (mounted) {
+                  _showSnack('Category updated', EnhancedTheme.successGreen);
+                }
+              } catch (e) {
+                if (mounted) _showSnack('Failed: $e', EnhancedTheme.errorRed);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: EnhancedTheme.primaryTeal,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteCategory(
+      BuildContext sheetCtx, StateSetter setSheet, int id, String name) {
+    showDialog(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Delete Category',
+            style: GoogleFonts.outfit(
+                color: context.labelColor, fontWeight: FontWeight.w700)),
+        content: RichText(
+          text: TextSpan(
+            style: TextStyle(color: context.subLabelColor, fontSize: 14),
+            children: [
+              const TextSpan(text: 'Delete '),
+              TextSpan(
+                  text: '"$name"',
+                  style: const TextStyle(
+                      color: EnhancedTheme.errorRed,
+                      fontWeight: FontWeight.w700)),
+              const TextSpan(
+                  text: '? Expenses using this category will be unlinked.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx),
+            child: Text('Cancel',
+                style: TextStyle(color: context.subLabelColor)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dCtx);
+              try {
+                await ref.read(posApiProvider).deleteExpenseCategory(id);
+                await _loadCategories();
+                setSheet(() {});
+                if (mounted) {
+                  _showSnack('Category deleted', EnhancedTheme.successGreen);
+                }
+              } catch (e) {
+                if (mounted) _showSnack('Failed: $e', EnhancedTheme.errorRed);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: EnhancedTheme.errorRed,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnack(String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: color.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: Row(children: [
+        Icon(
+          color == EnhancedTheme.successGreen
+              ? Icons.check_circle_rounded
+              : Icons.error_rounded,
+          color: Colors.black,
+          size: 20,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(msg,
+              style: const TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.w600)),
+        ),
+      ]),
+    ));
+  }
+
   void _showAddSheet() {
     int? selectedCategoryId;
     final amountCtrl = TextEditingController();
@@ -405,6 +783,30 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                     style: GoogleFonts.outfit(color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w800)),
                 Text('Track business expenses', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
               ])),
+              // Manage categories button
+              GestureDetector(
+                onTap: _showManageCategoriesSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.accentPurple.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: EnhancedTheme.accentPurple.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.category_rounded,
+                        color: EnhancedTheme.accentPurple, size: 16),
+                    const SizedBox(width: 6),
+                    Text('Categories',
+                        style: TextStyle(
+                            color: EnhancedTheme.accentPurple,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 8),
               // Total badge
               if (!_loading && _expenses.isNotEmpty)
                 Container(

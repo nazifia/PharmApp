@@ -114,7 +114,15 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     final status = (sale['status'] as String? ?? '').toLowerCase();
     // Offline records (pending or synced) are shown directly from local data.
     if (status == 'pending_sync' || status == 'synced') {
-      showReceiptSheet(context, sale);
+      // Inject active branch details so receipt shows branch-specific header
+      final branch = ref.read(activeBranchProvider);
+      final enriched = Map<String, dynamic>.from(sale);
+      if (branch != null && branch.id > 0) {
+        enriched['branchName']    = branch.name;
+        enriched['branchAddress'] = branch.address;
+        enriched['branchPhone']   = branch.phone;
+      }
+      showReceiptSheet(context, enriched);
       return;
     }
     final id = sale['id'];
@@ -856,7 +864,15 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
         SizedBox(width: double.infinity, child: ElevatedButton.icon(
           onPressed: () {
             Navigator.pop(context);
-            showReceiptSheet(context, data);
+            // Inject active branch details for the receipt header
+            final branch = ref.read(activeBranchProvider);
+            final enriched = Map<String, dynamic>.from(data);
+            if (branch != null && branch.id > 0) {
+              enriched['branchName']    = branch.name;
+              enriched['branchAddress'] = branch.address;
+              enriched['branchPhone']   = branch.phone;
+            }
+            showReceiptSheet(context, enriched);
           },
           icon: const Icon(Icons.receipt_long_rounded, size: 18),
           label: const Text('View & Print Receipt',

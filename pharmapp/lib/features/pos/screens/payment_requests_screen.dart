@@ -10,6 +10,7 @@ import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/shared/models/sale.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import '../../../features/branches/providers/branch_provider.dart';
 import '../providers/pos_api_provider.dart';
 import 'receipt_screen.dart';
 
@@ -218,7 +219,15 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
         _showSnack('Payment completed', EnhancedTheme.successGreen);
         setState(() => _selectedRequest = null);
         _loadRequests();
-        showReceiptSheet(context, saleData);
+        // Inject active branch details so the receipt shows branch info
+        final branch = ref.read(activeBranchProvider);
+        final enrichedSale = Map<String, dynamic>.from(saleData);
+        if (branch != null && branch.id > 0) {
+          enrichedSale['branchName']    = branch.name;
+          enrichedSale['branchAddress'] = branch.address;
+          enrichedSale['branchPhone']   = branch.phone;
+        }
+        showReceiptSheet(context, enrichedSale);
       } on DioException catch (e) {
         if (!mounted) return;
         if (e.response == null) {
@@ -342,6 +351,13 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
       'payment': result['payment'],
       'offline': true,
     };
+    // Inject active branch details for the receipt header
+    final branch = ref.read(activeBranchProvider);
+    if (branch != null && branch.id > 0) {
+      offlineReceiptData['branchName']    = branch.name;
+      offlineReceiptData['branchAddress'] = branch.address;
+      offlineReceiptData['branchPhone']   = branch.phone;
+    }
     showReceiptSheet(context, offlineReceiptData);
   }
 

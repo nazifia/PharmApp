@@ -10,6 +10,7 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/sale.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/offline/offline_queue.dart';
+import '../../../features/branches/providers/branch_provider.dart';
 import '../../../shared/models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../providers/pos_api_provider.dart';
@@ -165,6 +166,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     if (!mounted) return;
     setState(() => _processing = false);
 
+    final activeBranch = ref.read(activeBranchProvider);
+
     if (result != null && result['offline'] == true) {
       // No connection — sale queued for sync.
       // Capture the queue ID of the just-enqueued sale and build a local receipt
@@ -175,6 +178,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       // so it is guaranteed to be the value the user typed, regardless of
       // any subsequent widget rebuilds or controller state changes.
       final receiptData = _buildOfflineReceipt(cart, selected, queueId, buyerName);
+      // Inject selected branch details for the receipt header
+      if (activeBranch != null && activeBranch.id > 0) {
+        receiptData['branchName']    = activeBranch.name;
+        receiptData['branchAddress'] = activeBranch.address;
+        receiptData['branchPhone']   = activeBranch.phone;
+      }
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('offline_receipt_$queueId', jsonEncode(receiptData));
 
@@ -187,6 +196,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       // receipt shows the correct customer name. The backend may return the
       // sale without echoing back the patientName field.
       final enrichedResult = Map<String, dynamic>.from(result);
+      // Inject selected branch details for the receipt header
+      if (activeBranch != null && activeBranch.id > 0) {
+        enrichedResult['branchName']    = activeBranch.name;
+        enrichedResult['branchAddress'] = activeBranch.address;
+        enrichedResult['branchPhone']   = activeBranch.phone;
+      }
       if (buyerName.isNotEmpty) {
         enrichedResult['customerName'] = buyerName;
       } else if (selected != null &&

@@ -897,6 +897,17 @@ class LocalDb {
     return {'id': id, 'name': name};
   }
 
+  Future<Map<String, dynamic>> updateExpenseCategory(int id, String name) async {
+    await (await db).update('expense_categories', {'name': name},
+        where: 'id = ?', whereArgs: [id]);
+    return {'id': id, 'name': name};
+  }
+
+  Future<void> deleteExpenseCategory(int id) async {
+    await (await db)
+        .delete('expense_categories', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<List<Map<String, dynamic>>> getExpenses(
       {String? from, String? to}) async {
     final d = await db;

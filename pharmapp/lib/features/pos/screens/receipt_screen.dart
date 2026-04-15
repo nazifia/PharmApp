@@ -181,6 +181,13 @@ class _ReceiptCard extends StatelessWidget {
   String get orgAddress => saleData['organizationAddress'] as String? ?? '';
   String get orgPhone   => saleData['organizationPhone']   as String? ?? '';
   String get orgLogo    => saleData['organizationLogo']    as String? ?? '';
+  // Branch-specific overrides — injected at call site when a branch is selected
+  String get branchName    => saleData['branchName']    as String? ?? '';
+  String get branchAddress => saleData['branchAddress'] as String? ?? '';
+  String get branchPhone   => saleData['branchPhone']   as String? ?? '';
+  // Effective contact info: prefer branch details over org defaults
+  String get displayAddress => branchAddress.isNotEmpty ? branchAddress : orgAddress;
+  String get displayPhone   => branchPhone.isNotEmpty   ? branchPhone   : orgPhone;
   String get customerName =>
       saleData['customerName'] as String? ??
       saleData['customer_name'] as String? ??
@@ -339,15 +346,30 @@ class _ReceiptCard extends StatelessWidget {
                     style: TextStyle(
                         color: textDark, fontSize: 22,
                         fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                if (orgAddress.isNotEmpty) ...[
+                if (branchName.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25)),
+                    ),
+                    child: Text(branchName,
+                        style: const TextStyle(
+                            color: EnhancedTheme.primaryTeal,
+                            fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+                if (displayAddress.isNotEmpty) ...[
                   const SizedBox(height: 3),
-                  Text(orgAddress,
+                  Text(displayAddress,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: textMid, fontSize: 11)),
                 ],
-                if (orgPhone.isNotEmpty) ...[
+                if (displayPhone.isNotEmpty) ...[
                   const SizedBox(height: 2),
-                  Text(orgPhone,
+                  Text(displayPhone,
                       style: TextStyle(color: textHint, fontSize: 10)),
                 ],
                 const SizedBox(height: 12),
@@ -734,6 +756,11 @@ Future<Uint8List> buildReceiptPdf(
   final orgName    = data['organizationName']    as String? ?? 'PharmApp';
   final orgAddress = data['organizationAddress'] as String? ?? '';
   final orgPhone   = data['organizationPhone']   as String? ?? '';
+  final branchName    = data['branchName']    as String? ?? '';
+  final branchAddress = data['branchAddress'] as String? ?? '';
+  final branchPhone   = data['branchPhone']   as String? ?? '';
+  final displayAddress = branchAddress.isNotEmpty ? branchAddress : orgAddress;
+  final displayPhone   = branchPhone.isNotEmpty   ? branchPhone   : orgPhone;
   final customerName = data['customerName'] as String? ??
       data['customer_name'] as String? ??
       data['patientName'] as String? ??
@@ -810,11 +837,14 @@ Future<Uint8List> buildReceiptPdf(
         pw.Center(child: pw.Column(children: [
           pw.Text(orgName,
               style: pw.TextStyle(font: fontBold, fontSize: 18, color: teal)),
-          if (orgAddress.isNotEmpty)
-            pw.Text(orgAddress,
+          if (branchName.isNotEmpty)
+            pw.Text(branchName,
+                style: pw.TextStyle(font: fontBold, fontSize: 9, color: teal)),
+          if (displayAddress.isNotEmpty)
+            pw.Text(displayAddress,
                 style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          if (orgPhone.isNotEmpty)
-            pw.Text(orgPhone,
+          if (displayPhone.isNotEmpty)
+            pw.Text(displayPhone,
                 style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
           pw.SizedBox(height: 8),
           pw.Divider(color: light),

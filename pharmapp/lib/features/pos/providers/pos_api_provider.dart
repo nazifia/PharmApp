@@ -366,6 +366,38 @@ class PosApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> updateExpenseCategory(
+      int id, String name) async {
+    if (_isLocal) return LocalDb.instance.updateExpenseCategory(id, name);
+    try {
+      final res = await _dio!
+          .patch('/pos/expense-categories/$id/', data: {'name': name});
+      await _invalidateCategoriesCache();
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      if (e.response == null) rethrow;
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to update expense category');
+    }
+  }
+
+  Future<void> deleteExpenseCategory(int id) async {
+    if (_isLocal) return LocalDb.instance.deleteExpenseCategory(id);
+    try {
+      await _dio!.delete('/pos/expense-categories/$id/');
+      await _invalidateCategoriesCache();
+    } on DioException catch (e) {
+      if (e.response == null) rethrow;
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to delete expense category');
+    }
+  }
+
+  Future<void> _invalidateCategoriesCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('cache_expense_categories');
+  }
+
   Future<List<dynamic>> fetchExpenses({String? from, String? to}) async {
     if (_isLocal) return LocalDb.instance.getExpenses(from: from, to: to);
     final isCacheable = from == null && to == null;
@@ -1606,6 +1638,54 @@ class ExpenseNotifier extends StateNotifier<AsyncValue<void>> {
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> updateExpenseCategory(
+      int id, String name) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.updateExpenseCategory(id, name);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'PATCH', '/pos/expense-categories/$id/',
+          body: {'name': name},
+          description: 'Update expense category "$name"',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<bool> deleteExpenseCategory(int id, String name) async {
+    state = const AsyncValue.loading();
+    try {
+      await _api.deleteExpenseCategory(id);
+      state = const AsyncValue.data(null);
+      return true;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'DELETE', '/pos/expense-categories/$id/',
+          description: 'Delete expense category "$name"',
+        );
+        state = const AsyncValue.data(null);
+        return true;
+      }
+      state = AsyncValue.error(e, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
     }
   }
 

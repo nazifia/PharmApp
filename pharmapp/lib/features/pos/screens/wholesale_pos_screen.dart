@@ -593,6 +593,13 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
             : DateTime.now().microsecondsSinceEpoch.toString();
         final receiptData = _buildWholesaleOfflineReceipt(
             cartSnapshot, name, customerId, queueId, total, method, payments);
+        // Inject selected branch details for the receipt header
+        final activeBranch = ref.read(activeBranchProvider);
+        if (activeBranch != null && activeBranch.id > 0) {
+          receiptData['branchName']    = activeBranch.name;
+          receiptData['branchAddress'] = activeBranch.address;
+          receiptData['branchPhone']   = activeBranch.phone;
+        }
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('offline_receipt_$queueId', jsonEncode(receiptData));
         if (mounted) _showWholesaleOfflineSheet(receiptData);
