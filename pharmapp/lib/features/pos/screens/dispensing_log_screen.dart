@@ -11,20 +11,33 @@ import '../providers/pos_api_provider.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
 
+/// Resolves the active branch ID for dispensing queries.
+/// Priority:
+///   1. Explicitly selected branch (activeBranchProvider).
+///   2. Logged-in user's assigned branch — non-admin staff only.
+///   3. null → org-wide (admins with no specific branch selected).
+int? _dispensingBranchId(Ref ref) {
+  final branch = ref.watch(activeBranchProvider);
+  if (branch != null && branch.id > 0) return branch.id;
+
+  final user = ref.watch(currentUserProvider);
+  if (user != null && user.branchId > 0) {
+    const adminRoles = {'Admin', 'Manager', 'Wholesale Manager'};
+    if (!adminRoles.contains(user.role)) return user.branchId;
+  }
+  return null;
+}
+
 final dispensingStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
-  final branch   = ref.watch(activeBranchProvider);
-  final branchId = (branch != null && branch.id > 0) ? branch.id : null;
-  return ref.watch(posApiProvider).fetchDispensingStats(branchId: branchId);
+  return ref.watch(posApiProvider).fetchDispensingStats(branchId: _dispensingBranchId(ref));
 });
 
 final dispensingLogProvider = FutureProvider.autoDispose.family<List<dynamic>, DispensingLogParams>((ref, params) {
-  final branch   = ref.watch(activeBranchProvider);
-  final branchId = (branch != null && branch.id > 0) ? branch.id : null;
   return ref.watch(posApiProvider).fetchDispensingLog(
     search: params.search,
     from: params.from,
     to: params.to,
-    branchId: branchId,
+    branchId: _dispensingBranchId(ref),
   );
 });
 
