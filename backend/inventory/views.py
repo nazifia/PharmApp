@@ -22,7 +22,10 @@ def item_list(request):
         expiry_soon = (
             request.query_params.get("expiry_soon", "").strip().lower() == "true"
         )
+        branch_id_str = request.query_params.get("branch_id", "").strip()
         items = Item.objects.filter(organization=org).order_by("name")
+        if branch_id_str and branch_id_str.isdigit() and int(branch_id_str) > 0:
+            items = items.filter(branch_id=int(branch_id_str))
         if search:
             items = items.filter(name__icontains=search)
         if store in ("retail", "wholesale"):
@@ -62,8 +65,18 @@ def item_list(request):
             {"detail": "Price, cost, and stock must be non-negative"},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    branch_id = data.get("branch_id") or data.get("branchId")
+    branch = None
+    if branch_id:
+        try:
+            from branches.models import Branch
+            branch = Branch.objects.get(pk=int(branch_id), organization=org)
+        except (Branch.DoesNotExist, ValueError, TypeError):
+            branch = None
+
     item = Item.objects.create(
         organization=org,
+        branch=branch,
         name=name,
         brand=data.get("brand", ""),
         dosage_form=data.get("dosageForm", ""),

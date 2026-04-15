@@ -73,6 +73,11 @@ class Item(models.Model):
         'authapp.Organization', null=True, blank=True,
         on_delete=models.CASCADE, related_name='items'
     )
+    branch = models.ForeignKey(
+        'branches.Branch', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='items',
+        help_text='Branch this item belongs to. Null = org-wide / unassigned.'
+    )
     name = models.CharField(max_length=200)
     brand = models.CharField(max_length=200, blank=True, default="")
     dosage_form = models.CharField(
@@ -117,6 +122,7 @@ class Item(models.Model):
     def to_api_dict(self):
         return {
             "id": self.id,
+            "branch_id": self.branch_id or 0,
             "name": self.name,
             "brand": self.brand,
             "dosageForm": self.dosage_form,
