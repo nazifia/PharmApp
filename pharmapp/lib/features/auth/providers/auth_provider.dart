@@ -145,6 +145,13 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
           .read(authRepositoryProvider)
           .fetchCurrentUser(current);
       _ref.read(currentUserProvider.notifier).state = fresh;
+      // Re-enforce backend-assigned branch in case it changed server-side.
+      if (fresh.branchId != 0) {
+        _ref.read(activeBranchProvider.notifier).state = Branch(
+          id:   fresh.branchId,
+          name: fresh.branchName,
+        );
+      }
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('current_user', jsonEncode(fresh.toJson()));
     } catch (_) {

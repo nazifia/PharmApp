@@ -96,9 +96,13 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   }
 
   void _showBranchPicker(BuildContext context) {
+    final user = ref.read(currentUserProvider);
+    // Users with a backend-assigned branch are locked — cannot switch.
+    if ((user?.branchId ?? 0) != 0) return;
+
     final branches   = ref.read(branchListProvider);
     final active     = branches.where((b) => b.isActive).toList();
-    final userRole   = ref.read(currentUserProvider)?.role ?? '';
+    final userRole   = user?.role ?? '';
     final isAdmin    = const {'Admin', 'Manager', 'Wholesale Manager'}.contains(userRole);
     final current    = ref.read(activeBranchProvider);
 
