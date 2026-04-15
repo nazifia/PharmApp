@@ -12,6 +12,7 @@ import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/shared/models/branch.dart';
 import '../providers/inventory_provider.dart';
 
 class InventoryListScreen extends ConsumerStatefulWidget {
@@ -37,6 +38,23 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
     final isWholesale = ['Wholesale Manager', 'Wholesale Operator', 'Wholesale Salesperson']
         .contains(role);
     _tabCtrl = TabController(length: 2, vsync: this, initialIndex: isWholesale ? 1 : 0);
+
+    // Auto-select the user's assigned branch when no branch is active.
+    // Admins/Managers keep null (= all branches) unless they manually pick one.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      const adminRoles = {'Admin', 'Manager', 'Wholesale Manager'};
+      final user = ref.read(currentUserProvider);
+      if (user != null &&
+          user.branchId > 0 &&
+          !adminRoles.contains(user.role) &&
+          ref.read(activeBranchProvider) == null) {
+        ref.read(activeBranchProvider.notifier).state = Branch(
+          id: user.branchId,
+          name: user.branchName.isNotEmpty ? user.branchName : 'My Branch',
+        );
+      }
+    });
   }
 
   @override

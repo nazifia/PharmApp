@@ -6,6 +6,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/database/inventory_repository.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/offline_queue.dart';
+import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../../../shared/models/item.dart';
 import 'inventory_api_client.dart';
@@ -22,11 +23,20 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 });
 
 /// Returns the effective branch ID to scope inventory requests.
-/// Returns null for org-wide access (sentinel id == -1 means "All Branches").
+/// Priority:
+///   1. Explicitly selected branch (activeBranchProvider).
+///   2. Logged-in user's assigned branch — for non-admin staff only.
+///   3. null → org-wide (admins with no specific branch selected).
 int? _effectiveBranchId(Ref ref) {
   final branch = ref.watch(activeBranchProvider);
-  if (branch == null || branch.id <= 0) return null;
-  return branch.id;
+  if (branch != null && branch.id > 0) return branch.id;
+
+  final user = ref.watch(currentUserProvider);
+  if (user != null && user.branchId > 0) {
+    const adminRoles = {'Admin', 'Manager', 'Wholesale Manager'};
+    if (!adminRoles.contains(user.role)) return user.branchId;
+  }
+  return null;
 }
 
 /// Fetches the full inventory from the backend (all stores), scoped to active branch.
