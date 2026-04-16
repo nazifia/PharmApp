@@ -15,6 +15,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from inventory.models import Item
 from customers.models import Customer, WalletTransaction
 from authapp.models import PharmUser
+from branches.models import Branch
 from authapp.utils import require_org, log_activity
 from .models import (
     Cashier,
@@ -54,6 +55,7 @@ def checkout(request):
         return err
     customer_id = data.get("customerId")
     cashier_id = data.get("cashierId")
+    branch_id = data.get("branch_id") or data.get("branchId")
     is_wholesale = bool(data.get("isWholesale") or False)
     items_data = data.get("items", [])
     payment = data.get("payment", {})
@@ -175,10 +177,18 @@ def checkout(request):
             )
         # Wallet is allowed to go negative (credit/debt for registered customers)
 
+    branch = None
+    if branch_id:
+        try:
+            branch = Branch.objects.get(pk=int(branch_id), organization=org)
+        except (Branch.DoesNotExist, ValueError, TypeError):
+            pass
+
     try:
       with transaction.atomic():
         sale = Sale.objects.create(
             organization=org,
+            branch=branch,
             customer=customer,
             cashier=cashier,
             dispenser=request.user if request.user.is_authenticated else None,
@@ -662,6 +672,7 @@ def dispensing_log_list(request):
     search = request.query_params.get("search", "").strip()
     date_from = request.query_params.get("from")
     date_to = request.query_params.get("to")
+    branch_id_str = request.query_params.get("branch_id", "").strip()
 
     if search:
         logs = logs.filter(Q(name__icontains=search) | Q(brand__icontains=search))
@@ -669,6 +680,8 @@ def dispensing_log_list(request):
         logs = logs.filter(created_at__date__gte=date_from)
     if date_to:
         logs = logs.filter(created_at__date__lte=date_to)
+    if branch_id_str and branch_id_str.isdigit() and int(branch_id_str) > 0:
+        logs = logs.filter(sale__branch_id=int(branch_id_str))
 
     return Response([l.to_api_dict() for l in logs[:200]])
 
@@ -679,11 +692,18 @@ def dispensing_stats(request):
     if err:
         return err
     today = timezone.now().date()
-    daily = DispensingLog.objects.filter(sale__organization=org, created_at__date=today).aggregate(
-        count=Sum("quantity"), revenue=Sum("amount")
-    )
+    branch_id_str = request.query_params.get("branch_id", "").strip()
+    branch_filter = {}
+    if branch_id_str and branch_id_str.isdigit() and int(branch_id_str) > 0:
+        branch_filter['sale__branch_id'] = int(branch_id_str)
+    daily = DispensingLog.objects.filter(
+        sale__organization=org, created_at__date=today, **branch_filter
+    ).aggregate(count=Sum("quantity"), revenue=Sum("amount"))
     monthly = DispensingLog.objects.filter(
-        sale__organization=org, created_at__year=today.year, created_at__month=today.month
+        sale__organization=org,
+        created_at__year=today.year,
+        created_at__month=today.month,
+        **branch_filter,
     ).aggregate(count=Sum("quantity"), revenue=Sum("amount"))
     return Response(
         {

@@ -86,47 +86,47 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           // ── Base colour roles ──────────────────────────────────────────────
-          colorScheme: ColorScheme.dark(
+          colorScheme: ColorScheme.light(
             primary:           EnhancedTheme.primaryTeal,   // selected-date circles
-            onPrimary: Colors.black,
+            onPrimary: Colors.white,
             secondary:         EnhancedTheme.accentCyan,    // accent
-            onSecondary: Colors.black,
-            surface:           const Color(0xFF0F172A),     // dialog bg
-            onSurface: Colors.black,
-            onSurfaceVariant:  const Color(0xFF94A3B8),     // dim text
-            outline:           Colors.white.withValues(alpha: 0.08),
+            onSecondary: Colors.white,
+            surface:           const Color(0xFFF8FAFC),     // dialog bg
+            onSurface:         const Color(0xFF0F172A),
+            onSurfaceVariant:  const Color(0xFF64748B),     // dim text
+            outline:           const Color(0xFFCBD5E1),
           ),
           // ── Fine-grained picker styling ───────────────────────────────────
           datePickerTheme: DatePickerThemeData(
             // Dialog / sheet
-            backgroundColor:          const Color(0xFF0F172A),
-            elevation:                0,
+            backgroundColor:          const Color(0xFFF8FAFC),
+            elevation:                4,
             shape:                    RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(24)),
             surfaceTintColor:         Colors.transparent,
             // Full-screen range picker
-            rangePickerBackgroundColor:          const Color(0xFF0F172A),
+            rangePickerBackgroundColor:          const Color(0xFFF8FAFC),
             rangePickerElevation:                0,
             rangePickerSurfaceTintColor:         Colors.transparent,
             rangePickerHeaderBackgroundColor:    EnhancedTheme.primaryTeal,
-            rangePickerHeaderForegroundColor: Colors.black,
+            rangePickerHeaderForegroundColor: Colors.white,
             rangePickerHeaderHeadlineStyle: const TextStyle(
-              fontSize: 20, fontWeight: FontWeight.w800, color: Colors.black),
+              fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
             rangePickerHeaderHelpStyle: TextStyle(
               fontSize: 12, fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.7)),
+              color: Colors.white.withValues(alpha: 0.85)),
             // Weekday row  (Mon Tue Wed …)
-            weekdayStyle: const TextStyle(
-              color: EnhancedTheme.accentCyan,
+            weekdayStyle: TextStyle(
+              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.9),
               fontWeight: FontWeight.w700,
               fontSize: 11,
             ),
             // Day cells
             dayStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             dayForegroundColor: WidgetStateProperty.resolveWith((s) {
-              if (s.contains(WidgetState.selected))  return Colors.black;
-              if (s.contains(WidgetState.disabled))  return const Color(0xFF475569);
-              return Colors.black;
+              if (s.contains(WidgetState.selected))  return Colors.white;
+              if (s.contains(WidgetState.disabled))  return const Color(0xFFCBD5E1);
+              return const Color(0xFF0F172A);
             }),
             dayBackgroundColor: WidgetStateProperty.resolveWith((s) {
               if (s.contains(WidgetState.selected))  return EnhancedTheme.primaryTeal;
@@ -152,7 +152,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
                 fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: 0.4),
             ),
           ),
-          dividerColor: Colors.white.withValues(alpha: 0.06),
+          dividerColor: const Color(0xFFE2E8F0),
         ),
         child: child!,
       ),

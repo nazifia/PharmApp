@@ -90,6 +90,12 @@ class Sale(models.Model):
             ("partial_return", "Partial Return"),
         ],
     )
+    branch = models.ForeignKey(
+        'branches.Branch',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='sales',
+    )
     is_wholesale = models.BooleanField(default=False)
     receipt_id = models.CharField(max_length=50, unique=True, blank=True)
     buyer_name = models.CharField(max_length=200, blank=True, default="")
