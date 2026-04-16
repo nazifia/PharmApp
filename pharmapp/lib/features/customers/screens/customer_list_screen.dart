@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/shared/models/branch.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import '../providers/customer_provider.dart';

@@ -490,23 +490,27 @@ class PosApiClient {
   }
 
   // ── Suppliers ──────────────────────────────────────────────────────────────
-  Future<List<dynamic>> fetchSuppliers({String? search}) async {
+  Future<List<dynamic>> fetchSuppliers({String? search, int? branchId}) async {
     if (_isLocal) return LocalDb.instance.getSuppliers(search: search);
     final isCacheable = search == null || search.isEmpty;
+    final cacheKey = branchId != null && branchId > 0
+        ? 'cache_suppliers_b$branchId'
+        : 'cache_suppliers';
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       final res = await _dio!.get('/pos/suppliers/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
-      if (isCacheable) await _cacheStr('cache_suppliers', list);
+      if (isCacheable) await _cacheStr(cacheKey, list);
       return list;
     } on DioException catch (e) {
       if (e.response == null && isCacheable) {
-        final cached = await _getCache('cache_suppliers');
+        final cached = await _getCache(cacheKey);
         if (cached != null) return cached as List;
         throw Exception('Offline — no cached suppliers available');
       }
@@ -519,17 +523,20 @@ class PosApiClient {
     required String name,
     String phone = '',
     String contactInfo = '',
+    int? branchId,
   }) async {
     if (_isLocal) {
       return LocalDb.instance
           .createSupplier(name, phone: phone, contactInfo: contactInfo);
     }
     try {
-      final res = await _dio!.post('/pos/suppliers/', data: {
+      final body = <String, dynamic>{
         'name': name,
         'phone': phone,
         'contactInfo': contactInfo,
-      });
+      };
+      if (branchId != null && branchId > 0) body['branch_id'] = branchId;
+      final res = await _dio!.post('/pos/suppliers/', data: body);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       if (e.response == null) rethrow;
@@ -543,17 +550,20 @@ class PosApiClient {
     required String name,
     String phone = '',
     String contactInfo = '',
+    int? branchId,
   }) async {
     if (_isLocal) {
       return LocalDb.instance
           .updateSupplier(id, name: name, phone: phone, contactInfo: contactInfo);
     }
     try {
-      final res = await _dio!.put('/pos/suppliers/$id/', data: {
+      final body = <String, dynamic>{
         'name': name,
         'phone': phone,
         'contactInfo': contactInfo,
-      });
+      };
+      if (branchId != null && branchId > 0) body['branch_id'] = branchId;
+      final res = await _dio!.put('/pos/suppliers/$id/', data: body);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       if (e.response == null) rethrow;
@@ -574,23 +584,27 @@ class PosApiClient {
   }
 
   // ── Procurements ───────────────────────────────────────────────────────────
-  Future<List<dynamic>> fetchProcurements({String? search}) async {
+  Future<List<dynamic>> fetchProcurements({String? search, int? branchId}) async {
     if (_isLocal) return LocalDb.instance.getProcurements(search: search);
     final isCacheable = search == null || search.isEmpty;
+    final cacheKey = branchId != null && branchId > 0
+        ? 'cache_procurements_b$branchId'
+        : 'cache_procurements';
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       final res = await _dio!.get('/pos/procurements/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
-      if (isCacheable) await _cacheStr('cache_procurements', list);
+      if (isCacheable) await _cacheStr(cacheKey, list);
       return list;
     } on DioException catch (e) {
       if (e.response == null && isCacheable) {
-        final cached = await _getCache('cache_procurements');
+        final cached = await _getCache(cacheKey);
         if (cached != null) return cached as List;
         throw Exception('Offline — no cached procurements available');
       }
@@ -604,6 +618,7 @@ class PosApiClient {
     required List<Map<String, dynamic>> items,
     String status = 'draft',
     String destination = 'retail',
+    int? branchId,
   }) async {
     if (_isLocal) {
       return LocalDb.instance.createProcurement(
@@ -613,12 +628,14 @@ class PosApiClient {
           destination: destination);
     }
     try {
-      final res = await _dio!.post('/pos/procurements/', data: {
+      final body = <String, dynamic>{
         'supplierId': supplierId,
         'items': items,
         'status': status,
         'destination': destination,
-      });
+      };
+      if (branchId != null && branchId > 0) body['branch_id'] = branchId;
+      final res = await _dio!.post('/pos/procurements/', data: body);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       if (e.response == null) rethrow;

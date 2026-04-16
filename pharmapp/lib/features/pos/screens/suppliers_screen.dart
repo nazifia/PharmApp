@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
 
@@ -45,10 +46,15 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
     await Future.wait([_loadSuppliers(), _loadProcurements()]);
   }
 
+  int? get _branchId {
+    final b = ref.read(activeBranchProvider);
+    return (b != null && b.id > 0) ? b.id : null;
+  }
+
   Future<void> _loadSuppliers() async {
     setState(() => _loadingSuppliers = true);
     try {
-      final data = await ref.read(posApiProvider).fetchSuppliers();
+      final data = await ref.read(posApiProvider).fetchSuppliers(branchId: _branchId);
       if (mounted) setState(() { _suppliers = data; _loadingSuppliers = false; });
     } catch (_) {
       if (mounted) setState(() => _loadingSuppliers = false);
@@ -58,7 +64,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
   Future<void> _loadProcurements() async {
     setState(() => _loadingProcurements = true);
     try {
-      final data = await ref.read(posApiProvider).fetchProcurements();
+      final data = await ref.read(posApiProvider).fetchProcurements(branchId: _branchId);
       if (mounted) setState(() { _procurements = data; _loadingProcurements = false; });
     } catch (_) {
       if (mounted) setState(() => _loadingProcurements = false);
@@ -202,6 +208,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                       name: nameCtrl.text,
                       phone: phoneCtrl.text,
                       contactInfo: contactCtrl.text,
+                      branchId: _branchId,
                     );
                     if (ctx.mounted) Navigator.pop(ctx);
                     _loadSuppliers();
@@ -321,6 +328,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                       name: nameCtrl.text,
                       phone: phoneCtrl.text,
                       contactInfo: contactCtrl.text,
+                      branchId: _branchId,
                     );
                     if (ctx.mounted) Navigator.pop(ctx);
                     _loadSuppliers();
@@ -1135,11 +1143,14 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
     }
     setState(() => _submitting = true);
     try {
+      final branch = ref.read(activeBranchProvider);
+      final branchId = (branch != null && branch.id > 0) ? branch.id : null;
       await ref.read(posApiProvider).createProcurement(
         supplierId: _selectedSupplierId!,
         items: items.cast<Map<String, dynamic>>(),
         status: status,
         destination: _destination,
+        branchId: branchId,
       );
       if (mounted) {
         Navigator.pop(context);
