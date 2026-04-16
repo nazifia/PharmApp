@@ -103,9 +103,11 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
 
   Future<Customer?> createCustomer(Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
-    // Inject active branch_id so the backend assigns the customer to the correct branch.
-    final branchId = _ref.read(activeBranchProvider)?.id;
-    if (branchId != null && branchId > 0) data['branch_id'] = branchId;
+    // Inject active branch_id only if the caller has not already specified one.
+    if (!data.containsKey('branch_id') || data['branch_id'] == null) {
+      final branchId = _ref.read(activeBranchProvider)?.id;
+      if (branchId != null && branchId > 0) data['branch_id'] = branchId;
+    }
     try {
       final customer = await _api.createCustomer(data);
       _ref.invalidate(customerListProvider);

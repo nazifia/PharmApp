@@ -50,6 +50,18 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     String type     = 'Retail';
     final formKey   = GlobalKey<FormState>();
 
+    // Branch selection state (mutable, updated via setModal).
+    final user      = ref.read(currentUserProvider);
+    final userRole  = user?.role ?? '';
+    final isAdmin   = const {'Admin', 'Manager', 'Wholesale Manager'}.contains(userRole);
+    final isLocked  = (user?.branchId ?? 0) != 0;
+    final branches  = ref.read(branchListProvider).where((b) => b.isActive).toList();
+    // Pre-select: locked user → their assigned branch; admin → active branch (may be null).
+    Branch? selectedBranch = isLocked
+        ? branches.where((b) => b.id == user!.branchId).firstOrNull
+            ?? ref.read(activeBranchProvider)
+        : ref.read(activeBranchProvider);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -146,16 +158,113 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                         ),
                       ),
                     ))).toList()),
+
+                    // ── Branch selection ──────────────────────────────────────
+                    const SizedBox(height: 20),
+                    Text('Branch', style: TextStyle(
+                        color: context.subLabelColor, fontSize: 12,
+                        fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                    const SizedBox(height: 10),
+                    if (isLocked)
+                      // Non-admin locked to their assigned branch — read-only.
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: EnhancedTheme.primaryTeal.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(children: [
+                          const Icon(Icons.store_rounded,
+                              color: EnhancedTheme.primaryTeal, size: 18),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(
+                            selectedBranch?.name ?? 'Assigned branch',
+                            style: TextStyle(
+                                color: context.labelColor,
+                                fontSize: 14, fontWeight: FontWeight.w600),
+                          )),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text('Assigned',
+                                style: TextStyle(
+                                    color: EnhancedTheme.primaryTeal,
+                                    fontSize: 10, fontWeight: FontWeight.w700)),
+                          ),
+                        ]),
+                      )
+                    else
+                      // Admin/manager — show tappable selector.
+                      GestureDetector(
+                        onTap: () => _showBranchSelectorSheet(
+                          ctx,
+                          selected: selectedBranch,
+                          branches: branches,
+                          isAdmin: isAdmin,
+                          onSelect: (b) => setModal(() => selectedBranch = b),
+                        ),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: selectedBranch != null
+                                ? EnhancedTheme.primaryTeal.withValues(alpha: 0.06)
+                                : ctx.cardColor,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: selectedBranch != null
+                                  ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4)
+                                  : ctx.borderColor,
+                              width: selectedBranch != null ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(children: [
+                            Icon(Icons.store_rounded,
+                                color: selectedBranch != null
+                                    ? EnhancedTheme.primaryTeal
+                                    : ctx.hintColor,
+                                size: 18),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(
+                              selectedBranch?.name ?? 'Select branch (optional)',
+                              style: TextStyle(
+                                  color: selectedBranch != null
+                                      ? context.labelColor
+                                      : ctx.hintColor,
+                                  fontSize: 14,
+                                  fontWeight: selectedBranch != null
+                                      ? FontWeight.w600
+                                      : FontWeight.w400),
+                            )),
+                            Icon(Icons.expand_more_rounded,
+                                color: ctx.hintColor, size: 18),
+                          ]),
+                        ),
+                      ),
+
                     const SizedBox(height: 28),
                     SizedBox(width: double.infinity, child: ElevatedButton(
                       onPressed: () async {
                         if (!formKey.currentState!.validate()) return;
                         Navigator.of(ctx).pop();
-                        final result = await ref.read(customerNotifierProvider.notifier).createCustomer({
+                        final data = <String, dynamic>{
                           'name':         nameCtrl.text.trim(),
                           'phone':        phoneCtrl.text.trim(),
                           'is_wholesale': type == 'Wholesale',
-                        });
+                        };
+                        if (selectedBranch != null && selectedBranch!.id > 0) {
+                          data['branch_id'] = selectedBranch!.id;
+                        }
+                        final result = await ref
+                            .read(customerNotifierProvider.notifier)
+                            .createCustomer(data);
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           backgroundColor: (result != null ? EnhancedTheme.successGreen : EnhancedTheme.errorRed).withValues(alpha: 0.92),
@@ -182,6 +291,82 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Branch picker sheet shown inside the "Add Customer" flow.
+  void _showBranchSelectorSheet(
+    BuildContext ctx, {
+    required Branch? selected,
+    required List<Branch> branches,
+    required bool isAdmin,
+    required void Function(Branch?) onSelect,
+  }) {
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: Colors.transparent,
+      builder: (innerCtx) => Container(
+        decoration: BoxDecoration(
+          color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Center(child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                  color: context.dividerColor,
+                  borderRadius: BorderRadius.circular(2)),
+            )),
+            const SizedBox(height: 16),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.store_rounded,
+                    color: EnhancedTheme.primaryTeal, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Text('Select Branch',
+                  style: GoogleFonts.outfit(
+                      color: context.labelColor,
+                      fontSize: 18, fontWeight: FontWeight.w700)),
+            ]),
+            const SizedBox(height: 16),
+            // "No branch" option for admins.
+            if (isAdmin) _branchPickerTile(
+              ctx: innerCtx,
+              icon: Icons.business_rounded,
+              label: 'No specific branch',
+              subtitle: 'Customer not assigned to a branch',
+              isSelected: selected == null,
+              onTap: () { onSelect(null); Navigator.pop(innerCtx); },
+            ),
+            if (isAdmin && branches.isNotEmpty)
+              Divider(color: context.borderColor, height: 16),
+            ...branches.map((b) => _branchPickerTile(
+              ctx: innerCtx,
+              icon: b.isMain ? Icons.home_work_rounded : Icons.store_outlined,
+              label: b.name,
+              subtitle: b.address.isNotEmpty ? b.address : null,
+              badge: b.isMain ? 'Main' : null,
+              isSelected: selected?.id == b.id,
+              onTap: () { onSelect(b); Navigator.pop(innerCtx); },
+            )),
+            if (branches.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text('No active branches available.',
+                    style: TextStyle(
+                        color: context.subLabelColor, fontSize: 13)),
+              ),
+          ]),
         ),
       ),
     );
