@@ -84,7 +84,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
       lastDate: DateTime.now(),
       initialDateRange: _customRange,
       builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
+        data: ThemeData.light().copyWith(
           // ── Base colour roles ──────────────────────────────────────────────
           colorScheme: ColorScheme.light(
             primary:           EnhancedTheme.primaryTeal,   // selected-date circles
