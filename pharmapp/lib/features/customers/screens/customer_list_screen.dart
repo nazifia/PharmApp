@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import '../providers/customer_provider.dart';
@@ -185,6 +187,141 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     );
   }
 
+  void _showBranchPicker(BuildContext context) {
+    final user      = ref.read(currentUserProvider);
+    if ((user?.branchId ?? 0) != 0) return; // locked to assigned branch
+    final branches  = ref.read(branchListProvider);
+    final active    = branches.where((b) => b.isActive).toList();
+    final userRole  = user?.role ?? '';
+    final isAdmin   = const {'Admin', 'Manager', 'Wholesale Manager'}.contains(userRole);
+    final current   = ref.read(activeBranchProvider);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Center(child: Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(color: context.dividerColor, borderRadius: BorderRadius.circular(2)),
+          )),
+          const SizedBox(height: 16),
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.store_rounded, color: EnhancedTheme.primaryTeal, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Text('Select Branch',
+                style: GoogleFonts.outfit(
+                    color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+          ]),
+          const SizedBox(height: 16),
+          if (isAdmin) _branchPickerTile(
+            ctx: ctx,
+            icon: Icons.business_rounded,
+            label: 'All Branches',
+            subtitle: 'Show customers across all branches',
+            isSelected: current == null || current.id <= 0,
+            onTap: () {
+              ref.read(activeBranchProvider.notifier).state = null;
+              ref.invalidate(customerListProvider);
+              Navigator.pop(ctx);
+            },
+          ),
+          if (isAdmin && active.isNotEmpty) Divider(color: context.borderColor, height: 16),
+          ...active.map((b) => _branchPickerTile(
+            ctx: ctx,
+            icon: b.isMain ? Icons.home_work_rounded : Icons.store_outlined,
+            label: b.name,
+            subtitle: b.address.isNotEmpty ? b.address : null,
+            badge: b.isMain ? 'Main' : null,
+            isSelected: current?.id == b.id,
+            onTap: () {
+              ref.read(activeBranchProvider.notifier).state = b;
+              ref.invalidate(customerListProvider);
+              Navigator.pop(ctx);
+            },
+          )),
+          if (active.isEmpty && !isAdmin)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text('No branches available.',
+                  style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+            ),
+        ])),
+      ),
+    );
+  }
+
+  Widget _branchPickerTile({
+    required BuildContext ctx,
+    required IconData icon,
+    required String label,
+    String? subtitle,
+    String? badge,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(14),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isSelected ? EnhancedTheme.primaryTeal.withValues(alpha: 0.10) : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isSelected ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4) : ctx.borderColor,
+          width: isSelected ? 1.5 : 1,
+        ),
+      ),
+      child: Row(children: [
+        Icon(icon,
+            color: isSelected ? EnhancedTheme.primaryTeal : ctx.subLabelColor,
+            size: 20),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Text(label,
+                style: TextStyle(
+                    color: isSelected ? EnhancedTheme.primaryTeal : ctx.labelColor,
+                    fontSize: 14, fontWeight: FontWeight.w600)),
+            if (badge != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.accentOrange.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: EnhancedTheme.accentOrange.withValues(alpha: 0.4)),
+                ),
+                child: Text(badge,
+                    style: const TextStyle(
+                        color: EnhancedTheme.accentOrange, fontSize: 10, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ]),
+          if (subtitle != null)
+            Text(subtitle,
+                style: TextStyle(color: ctx.subLabelColor, fontSize: 12),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+        ])),
+        if (isSelected) const Icon(Icons.check_circle_rounded, color: EnhancedTheme.primaryTeal, size: 18),
+      ]),
+    ),
+  );
+
   Widget _sheetField(TextEditingController ctrl, String label,
       {TextInputType keyboardType = TextInputType.text, String? Function(String?)? validator}) {
     return TextFormField(
@@ -347,8 +484,47 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
           Text('Customers',
               style: GoogleFonts.outfit(
                   color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w800)),
-          Text('Manage your customer base',
-              style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+          Builder(builder: (ctx) {
+            final activeBranch = ref.watch(activeBranchProvider);
+            final label = (activeBranch != null && activeBranch.id > 0)
+                ? activeBranch.name
+                : 'All Branches';
+            final isSpecific = activeBranch != null && activeBranch.id > 0;
+            return GestureDetector(
+              onTap: () => _showBranchPicker(context),
+              child: Container(
+                margin: const EdgeInsets.only(top: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSpecific
+                      ? EnhancedTheme.primaryTeal.withValues(alpha: 0.12)
+                      : context.cardColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSpecific
+                        ? EnhancedTheme.primaryTeal.withValues(alpha: 0.3)
+                        : context.borderColor,
+                  ),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(
+                    isSpecific ? Icons.store_rounded : Icons.business_rounded,
+                    color: isSpecific ? EnhancedTheme.primaryTeal : context.subLabelColor,
+                    size: 10,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(label,
+                      style: TextStyle(
+                          color: isSpecific ? EnhancedTheme.primaryTeal : context.subLabelColor,
+                          fontSize: 10, fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 2),
+                  Icon(Icons.expand_more_rounded,
+                      color: isSpecific ? EnhancedTheme.primaryTeal : context.subLabelColor,
+                      size: 10),
+                ]),
+              ),
+            );
+          }),
         ])),
         if (count != null) Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
