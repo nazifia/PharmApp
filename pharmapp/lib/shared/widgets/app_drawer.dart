@@ -105,9 +105,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   const TrialBanner(),
 
                   // ── Branch switcher (Professional / Enterprise only) ─────────
-                  // Hidden for users with a backend-assigned branch (branchId != 0)
-                  // — they are locked to their branch and cannot switch.
-                  if (hasBranchFeature && branches.length > 1 && (user?.branchId ?? 0) == 0)
+                  // Only Admin / Manager roles may switch branches freely.
+                  // Non-admin staff are locked to their assigned / selected branch.
+                  if (hasBranchFeature && branches.length > 1 && isAdmin)
                     _BranchSwitcher(
                       branches:      branches,
                       activeBranch:  activeBranch,

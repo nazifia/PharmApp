@@ -32,8 +32,13 @@ final currentOrganizationProvider = Provider<Organization?>((ref) {
   );
 });
 
-/// Derived from the authenticated user — null if user has no branch (org-wide access).
+/// Derived from the active session branch — prefers activeBranchProvider (covers
+/// both backend-assigned and manually-selected branches), falls back to the
+/// user model's branchId (legacy / dev-mode fallback).
+/// Returns null for org-wide access (admin with no specific branch selected).
 final currentBranchProvider = Provider<({int id, String name})?> ((ref) {
+  final active = ref.watch(activeBranchProvider);
+  if (active != null && active.id > 0) return (id: active.id, name: active.name);
   final user = ref.watch(currentUserProvider);
   if (user == null || user.branchId == 0) return null;
   return (id: user.branchId, name: user.branchName);
@@ -176,13 +181,10 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
   /// [activeBranchProvider] so the router stops redirecting to /select-branch,
   /// and persists the choice for session restore.
   void selectBranch(Branch branch) {
-    final current = _ref.read(currentUserProvider);
-    if (current != null) {
-      _ref.read(currentUserProvider.notifier).state = current.copyWith(
-        branchId:   branch.id,
-        branchName: branch.name,
-      );
-    }
+    // Only update the session-level activeBranchProvider — do NOT write branchId
+    // into the user model. The user model must always reflect the backend truth
+    // (branchId = 0 means no backend-assigned branch). Writing here would cause
+    // refreshProfile() to reset it back to 0, re-showing the branch switcher.
     _ref.read(activeBranchProvider.notifier).state = branch;
     SharedPreferences.getInstance()
         .then((p) => p.setString('active_branch', jsonEncode(branch.toJson())));

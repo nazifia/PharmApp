@@ -1097,6 +1097,8 @@ class _UserManagementScreenState
     bool loading = true;
     bool saving = false;
     String? error;
+    int? selectedBranchId = user.branchId > 0 ? user.branchId : null;
+    final branches = ref.read(branchListProvider);
 
     showModalBottomSheet(
       context: context,
@@ -1219,6 +1221,122 @@ class _UserManagementScreenState
                         ),
                       ),
                       const Divider(height: 1),
+
+                      // ── Branch assignment ───────────────────────
+                      if (branches.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'BRANCH ACCESS',
+                                style: GoogleFonts.inter(
+                                  color: ctx.hintColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(children: [
+                                  // No-branch chip
+                                  GestureDetector(
+                                    onTap: () => setModal(() => selectedBranchId = null),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 150),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: selectedBranchId == null
+                                            ? EnhancedTheme.infoBlue
+                                            : ctx.cardColor,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: selectedBranchId == null
+                                              ? EnhancedTheme.infoBlue
+                                              : ctx.borderColor,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'No Branch',
+                                        style: GoogleFonts.inter(
+                                          color: selectedBranchId == null
+                                              ? Colors.black
+                                              : ctx.subLabelColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Branch chips
+                                  ...branches.map((b) => Padding(
+                                    padding: const EdgeInsets.only(left: 8),
+                                    child: GestureDetector(
+                                      onTap: () => setModal(() => selectedBranchId = b.id),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 150),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: selectedBranchId == b.id
+                                              ? EnhancedTheme.accentCyan
+                                              : ctx.cardColor,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: selectedBranchId == b.id
+                                                ? EnhancedTheme.accentCyan
+                                                : ctx.borderColor,
+                                          ),
+                                          boxShadow: selectedBranchId == b.id
+                                              ? [
+                                                  BoxShadow(
+                                                    color: EnhancedTheme.accentCyan
+                                                        .withValues(alpha: 0.30),
+                                                    blurRadius: 10,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ]
+                                              : null,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (b.isMain) ...[
+                                              Icon(
+                                                Icons.star_rounded,
+                                                size: 12,
+                                                color: selectedBranchId == b.id
+                                                    ? Colors.black
+                                                    : EnhancedTheme.warningAmber,
+                                              ),
+                                              const SizedBox(width: 4),
+                                            ],
+                                            Text(
+                                              b.name,
+                                              style: GoogleFonts.inter(
+                                                color: selectedBranchId == b.id
+                                                    ? Colors.black
+                                                    : ctx.subLabelColor,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  )),
+                                ]),
+                              ),
+                              const SizedBox(height: 12),
+                              const Divider(height: 1),
+                            ],
+                          ),
+                        ),
 
                       // ── Body ───────────────────────────────────
                       Flexible(
@@ -1354,6 +1472,16 @@ class _UserManagementScreenState
                                       try {
                                         await api.saveUserPermissions(
                                             user.id, overrides);
+                                        // Update branch assignment if changed
+                                        final origBranch = user.branchId > 0
+                                            ? user.branchId
+                                            : null;
+                                        if (selectedBranchId != origBranch) {
+                                          await api.updateUser(
+                                            user.id,
+                                            branchId: selectedBranchId ?? 0,
+                                          );
+                                        }
                                         // If the saved user is the currently
                                         // logged-in user, refresh their profile
                                         // so the new permissions take effect
