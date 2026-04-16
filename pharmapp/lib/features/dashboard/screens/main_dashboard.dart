@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -42,8 +43,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   void _showMoreSheet() {
     final user = ref.read(currentUserProvider);
-    final isAdmin     = user?.role == 'Admin' || user?.role == 'Manager';
-    final isWholesale = (user?.role.contains('Wholesale') ?? false) || (user?.isWholesaleOperator ?? false) || isAdmin;
+    final isAdmin     = Rbac.can(user, AppPermission.manageUsers);
+    final isWholesale = Rbac.can(user, AppPermission.viewWholesale);
 
     showModalBottomSheet(
       context: context,
@@ -95,7 +96,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   Widget _homeContent() {
     final user      = ref.watch(currentUserProvider);
     final role      = user?.role ?? '';
-    final isWsUser  = role.contains('Wholesale') || (user?.isWholesaleOperator ?? false) || role == 'Admin' || role == 'Manager';
+    final isWsUser  = Rbac.can(user, AppPermission.viewWholesale);
     final salesAsync = ref.watch(salesReportProvider('today'));
     final invAsync   = ref.watch(inventoryReportProvider);
     final custAsync  = ref.watch(customerReportProvider);
@@ -698,8 +699,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   Widget _quickAccessPanel(bool wide, {required bool hasReportsFeature}) {
     final user = ref.read(currentUserProvider);
-    final role = user?.role ?? '';
-    final isAdminUser = role == 'Admin' || role == 'Manager';
+    final isAdminUser = Rbac.can(user, AppPermission.viewReports);
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -953,8 +953,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   }
 
   Widget _buildProfileMenu(String role) {
-    final isAdmin     = role == 'Admin' || role == 'Manager';
-    final isWholesale = role.contains('Wholesale') || isAdmin;
+    final user        = ref.read(currentUserProvider);
+    final isAdmin     = Rbac.can(user, AppPermission.manageUsers);
+    final isWholesale = Rbac.can(user, AppPermission.viewWholesale);
     return PopupMenuButton<String>(
       offset: const Offset(0, 52),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

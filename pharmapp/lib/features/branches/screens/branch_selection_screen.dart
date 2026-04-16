@@ -180,7 +180,69 @@ class _BranchSelectionScreenState extends ConsumerState<BranchSelectionScreen>
                     ),
                   ),
 
-                  // Branch list
+                  // Non-admin users must have a backend-assigned branch.
+                  // If branchId == 0 and the role is not admin/manager, block
+                  // access and prompt the user to contact their administrator.
+                  if (!isAdminRole && (user?.branchId ?? 0) == 0)
+                    Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: EnhancedTheme.warningAmber.withValues(alpha: 0.10),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(
+                                  Icons.no_accounts_rounded,
+                                  color: EnhancedTheme.warningAmber,
+                                  size: 48,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              const Text(
+                                'No Branch Assigned',
+                                style: TextStyle(
+                                  color: _textDark,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'Your account has not been assigned to a branch yet. '
+                                'Please contact your administrator to get access.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: _textSub, fontSize: 13, height: 1.5),
+                              ),
+                              const SizedBox(height: 28),
+                              OutlinedButton.icon(
+                                onPressed: _logout,
+                                icon: const Icon(Icons.logout_rounded, size: 16),
+                                label: const Text('Sign Out'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: EnhancedTheme.errorRed,
+                                  side: const BorderSide(color: EnhancedTheme.errorRed),
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Branch list (admin / manager roles only, or users with an
+                  // assigned branch — the latter are routed past this screen
+                  // by the router so this list is effectively admin-only)
+                  if (isAdminRole || (user?.branchId ?? 0) != 0)
                   Expanded(
                     child: asyncBranches.when(
                       loading: () => const Center(

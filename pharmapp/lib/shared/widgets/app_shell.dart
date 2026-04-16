@@ -737,13 +737,15 @@ class _MoreSheet extends StatelessWidget {
     }
 
     final user = ref.read(currentUserProvider);
-    final canReports = Rbac.can(user, AppPermission.viewReports);
-    final canExpenses = Rbac.can(user, AppPermission.manageExpenses);
+    final canReports   = Rbac.can(user, AppPermission.viewReports);
+    final canExpenses  = Rbac.can(user, AppPermission.manageExpenses);
     final canSuppliers = Rbac.can(user, AppPermission.manageSuppliers);
-    final canPayments = Rbac.can(user, AppPermission.processPayments);
+    final canPayments  = Rbac.can(user, AppPermission.processPayments);
     final canTransfers = Rbac.can(user, AppPermission.manageTransfers);
     final canInventory = Rbac.can(user, AppPermission.readInventory);
-    final canPOS = Rbac.can(user, AppPermission.retailPOS);
+    final canPOS       = Rbac.can(user, AppPermission.retailPOS);
+    final canManage    = Rbac.can(user, AppPermission.manageUsers);
+    final canWholesale = Rbac.can(user, AppPermission.viewWholesale);
     final pendingSales = ref.read(offlineQueueProvider);
     final pendingMuts = ref.read(offlineMutationQueueProvider);
     final pendingTotal = pendingSales.length + pendingMuts.length;
@@ -752,7 +754,7 @@ class _MoreSheet extends StatelessWidget {
       if (canReports)
         _MoreTile(Icons.analytics_rounded, 'Reports',
             EnhancedTheme.accentPurple, () => nav('/dashboard/reports')),
-      if (canPOS || isWholesale)
+      if (canPOS || canWholesale)
         _MoreTile(Icons.receipt_long_rounded, 'Sales',
             EnhancedTheme.primaryTeal, () => nav('/dashboard/sales')),
       if (canExpenses)
@@ -767,7 +769,7 @@ class _MoreSheet extends StatelessWidget {
       if (canInventory)
         _MoreTile(Icons.fact_check_rounded, 'Stock Check',
             EnhancedTheme.warningAmber, () => nav('/dashboard/stock-check')),
-      if (isWholesale) ...[
+      if (canWholesale) ...[
         _MoreTile(Icons.store_rounded, 'WS Sales', EnhancedTheme.accentCyan,
             () => nav('/dashboard/wholesale-sales')),
         if (canTransfers)
@@ -776,7 +778,7 @@ class _MoreSheet extends StatelessWidget {
         _MoreTile(Icons.fact_check_rounded, 'WS Stock Check',
             EnhancedTheme.warningAmber, () => nav('/dashboard/ws-stock-check')),
       ],
-      if (isAdmin) ...[
+      if (canManage) ...[
         _MoreTile(Icons.people_alt_rounded, 'Users', EnhancedTheme.primaryTeal,
             () => nav('/dashboard/users')),
         _MoreTile(Icons.notifications_rounded, 'Alerts', EnhancedTheme.errorRed,
