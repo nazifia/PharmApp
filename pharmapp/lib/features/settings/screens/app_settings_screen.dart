@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -85,10 +85,10 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             margin: const EdgeInsets.all(16),
-                            content: Row(children: [
-                              const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                              const SizedBox(width: 10),
-                              const Expanded(child: Text('Cache cleared', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            content: const Row(children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Cache cleared', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                             ]),
                           )),
                         ),

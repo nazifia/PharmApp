@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,10 +81,10 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
-          content: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-            const SizedBox(width: 10),
-            const Expanded(child: Text('Supplier deleted', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+          content: const Row(children: [
+            Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+            SizedBox(width: 10),
+            Expanded(child: Text('Supplier deleted', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -112,10 +112,10 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-        content: Row(children: [
-          const Icon(Icons.info_rounded, color: Colors.black, size: 20),
-          const SizedBox(width: 10),
-          const Expanded(child: Text('Add at least one supplier first', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+        content: const Row(children: [
+          Icon(Icons.info_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('Add at least one supplier first', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
       return;
@@ -218,10 +218,10 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         margin: const EdgeInsets.all(16),
-                        content: Row(children: [
-                          const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                          const SizedBox(width: 10),
-                          const Expanded(child: Text('Supplier added', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                        content: const Row(children: [
+                          Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                          SizedBox(width: 10),
+                          Expanded(child: Text('Supplier added', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                         ]),
                       ));
                     }
@@ -338,10 +338,10 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         margin: const EdgeInsets.all(16),
-                        content: Row(children: [
-                          const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                          const SizedBox(width: 10),
-                          const Expanded(child: Text('Supplier updated', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                        content: const Row(children: [
+                          Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                          SizedBox(width: 10),
+                          Expanded(child: Text('Supplier updated', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                         ]),
                       ));
                     }
@@ -500,7 +500,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                     controller: _tabController,
                     onTap: (_) => setState(() {}),
                     indicator: BoxDecoration(
-                      gradient: LinearGradient(colors: [
+                      gradient: const LinearGradient(colors: [
                         EnhancedTheme.primaryTeal,
                         EnhancedTheme.accentCyan,
                       ]),
@@ -1106,10 +1106,10 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-        content: Row(children: [
-          const Icon(Icons.info_rounded, color: Colors.black, size: 20),
-          const SizedBox(width: 10),
-          const Expanded(child: Text('Please select a supplier', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+        content: const Row(children: [
+          Icon(Icons.info_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('Please select a supplier', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
       return;
@@ -1133,10 +1133,10 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-        content: Row(children: [
-          const Icon(Icons.info_rounded, color: Colors.black, size: 20),
-          const SizedBox(width: 10),
-          const Expanded(child: Text('Add at least one item', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+        content: const Row(children: [
+          Icon(Icons.info_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('Add at least one item', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
       return;

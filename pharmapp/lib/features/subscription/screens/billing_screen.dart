@@ -474,17 +474,17 @@ class _BillingContactCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               alignment: Alignment.center,
-              child: Column(
+              child: const Column(
                 children: [
-                  const Icon(Icons.notifications_off_outlined,
+                  Icon(Icons.notifications_off_outlined,
                       color: Colors.black26, size: 28),
-                  const SizedBox(height: 6),
-                  const Text(
+                  SizedBox(height: 6),
+                  Text(
                     'No billing contact set',
                     style: TextStyle(color: Colors.black38, fontSize: 12),
                   ),
-                  const SizedBox(height: 2),
-                  const Text(
+                  SizedBox(height: 2),
+                  Text(
                     'Add email & WhatsApp to receive payment notifications',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.black26, fontSize: 10),
@@ -667,8 +667,8 @@ class _BillingContactFormSheetState extends State<_BillingContactFormSheet> {
                 },
               ),
               const SizedBox(height: 8),
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.info_outline_rounded,
                       color: Colors.white38, size: 12),
                   SizedBox(width: 4),
@@ -868,8 +868,8 @@ class _PlatformAccountCard extends StatelessWidget {
               border: Border.all(
                   color: EnhancedTheme.warningAmber.withValues(alpha: 0.20)),
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 Icon(Icons.info_outline_rounded,
                     color: EnhancedTheme.warningAmber, size: 14),
                 SizedBox(width: 8),
@@ -1101,13 +1101,13 @@ class _PaymentMethodCard extends StatelessWidget {
                           style: BorderStyle.solid,
                         ),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.add_card_rounded,
                               color: EnhancedTheme.infoBlue, size: 18),
-                          const SizedBox(width: 8),
-                          const Text('Add a payment card',
+                          SizedBox(width: 8),
+                          Text('Add a payment card',
                               style: TextStyle(
                                   color: EnhancedTheme.infoBlue,
                                   fontSize: 13,
@@ -1198,9 +1198,9 @@ class _CardVisual extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 24),
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text('CVV',
                       style: TextStyle(
                           color: Colors.white38,
@@ -1437,8 +1437,8 @@ class _CardFormSheetState extends State<_CardFormSheet> {
               const SizedBox(height: 8),
 
               // Security note
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.lock_rounded, color: Colors.white38, size: 12),
                   SizedBox(width: 4),
                   Text(
@@ -1605,20 +1605,20 @@ class _LiveCardPreview extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: showCvv
-            ? Center(
+            ? const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.security_rounded,
+                    Icon(Icons.security_rounded,
                         color: Colors.white38, size: 28),
-                    const SizedBox(height: 8),
-                    const Text('CVV',
+                    SizedBox(height: 8),
+                    Text('CVV',
                         style: TextStyle(
                             color: Colors.white54,
                             fontSize: 12,
                             letterSpacing: 2)),
-                    const SizedBox(height: 4),
-                    const Text('•••',
+                    SizedBox(height: 4),
+                    Text('•••',
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 28,
@@ -2366,12 +2366,12 @@ class _InvoiceHistoryCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 20),
               alignment: Alignment.center,
-              child: Column(
+              child: const Column(
                 children: [
-                  const Icon(Icons.receipt_long_rounded,
+                  Icon(Icons.receipt_long_rounded,
                       color: Colors.black26, size: 32),
-                  const SizedBox(height: 8),
-                  const Text('No invoices yet',
+                  SizedBox(height: 8),
+                  Text('No invoices yet',
                       style: TextStyle(color: Colors.black38, fontSize: 12)),
                 ],
               ),

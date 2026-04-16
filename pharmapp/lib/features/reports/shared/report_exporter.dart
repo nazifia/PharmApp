@@ -57,8 +57,8 @@ class ReportExporter {
                         fontSize: 13,
                         fontWeight: pw.FontWeight.bold)),
                 pw.Text(subtitle,
-                    style: pw.TextStyle(
-                        color: const PdfColor(1, 1, 1, 0.54), fontSize: 9)),
+                    style: const pw.TextStyle(
+                        color: PdfColor(1, 1, 1, 0.54), fontSize: 9)),
               ],
             ),
             pw.Spacer(),
@@ -66,12 +66,12 @@ class ReportExporter {
               crossAxisAlignment: pw.CrossAxisAlignment.end,
               children: [
                 pw.Text('Generated',
-                    style: pw.TextStyle(
-                        color: const PdfColor(1, 1, 1, 0.38), fontSize: 8)),
+                    style: const pw.TextStyle(
+                        color: PdfColor(1, 1, 1, 0.38), fontSize: 8)),
                 pw.SizedBox(height: 2),
                 pw.Text(_generated(),
-                    style: pw.TextStyle(
-                        color: const PdfColor(1, 1, 1, 0.60), fontSize: 9)),
+                    style: const pw.TextStyle(
+                        color: PdfColor(1, 1, 1, 0.60), fontSize: 9)),
               ],
             ),
           ],

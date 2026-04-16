@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -1170,10 +1170,10 @@ class _ReturnDialogState extends ConsumerState<_ReturnDialog> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-        content: Row(children: [
-          const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-          const SizedBox(width: 10),
-          const Expanded(child: Text('Item returned successfully', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+        content: const Row(children: [
+          Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('Item returned successfully', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
     } catch (e) {

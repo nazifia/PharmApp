@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -128,7 +128,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // ══ OPERATIONS ════════════════════════════════════════
                         if (canPOS || isWholesale) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Operations'),
+                          const _SectionDivider(label: 'Operations'),
                           _ExpandableSection(
                             icon: Icons.medication_rounded, label: 'Dispensing',
                             isExpanded: _expanded.contains('dispensing'),
@@ -156,7 +156,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // ══ CUSTOMERS ════════════════════════════════════════
                         if ((canReadCust && hasCustFeature) || canPayments) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Customers'),
+                          const _SectionDivider(label: 'Customers'),
                           if (canReadCust && hasCustFeature)
                             _NavItem(icon: Icons.people_rounded, label: 'Customer List', route: '/dashboard/customers', onTap: navigate),
                           if (canPayments)
@@ -166,7 +166,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // ══ INVENTORY ════════════════════════════════════════
                         if (canReadInv) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Inventory'),
+                          const _SectionDivider(label: 'Inventory'),
                           _ExpandableSection(
                             icon: Icons.inventory_2_rounded, label: 'Inventory',
                             isExpanded: _expanded.contains('inventory'),
@@ -183,7 +183,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // ══ WHOLESALE ════════════════════════════════════════
                         if (isWholesale && hasWsFeature) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Wholesale'),
+                          const _SectionDivider(label: 'Wholesale'),
                           _NavItem(icon: Icons.dashboard_rounded, label: 'WS Dashboard', route: '/wholesale-dashboard', onTap: navigate),
                           _NavItem(icon: Icons.fact_check_rounded, label: 'WS Stock Check', route: '/dashboard/ws-stock-check', onTap: navigate),
                           if (canTransfers)
@@ -193,7 +193,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // ══ REPORTS & ANALYTICS ══════════════════════════════
                         if (canViewReports && hasReportsFeature) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Reports & Analytics'),
+                          const _SectionDivider(label: 'Reports & Analytics'),
                           _ExpandableSection(
                             icon: Icons.analytics_rounded, label: 'Reports',
                             isExpanded: _expanded.contains('reports'),
@@ -217,21 +217,21 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // ══ FINANCE ══════════════════════════════════════════
                         if (canExpenses) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Finance'),
+                          const _SectionDivider(label: 'Finance'),
                           _NavItem(icon: Icons.account_balance_wallet_rounded, label: 'Expenses', route: '/dashboard/expenses', onTap: navigate),
                         ],
 
                         // ══ PROCUREMENT ══════════════════════════════════════
                         if (canSuppliers) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Procurement'),
+                          const _SectionDivider(label: 'Procurement'),
                           _NavItem(icon: Icons.storefront_rounded, label: 'Suppliers', route: '/dashboard/suppliers', onTap: navigate),
                         ],
 
                         // ══ ADMINISTRATION ═══════════════════════════════════
                         if (isAdmin) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Administration'),
+                          const _SectionDivider(label: 'Administration'),
                           _ExpandableSection(
                             icon: Icons.admin_panel_settings_rounded, label: 'Admin',
                             isExpanded: _expanded.contains('admin'),
@@ -250,7 +250,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // ══ BILLING ══════════════════════════════════════════
                         if (isAdmin) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Billing'),
+                          const _SectionDivider(label: 'Billing'),
                           _NavItem(icon: Icons.workspace_premium_rounded, label: 'Subscription & Plans', route: '/subscription', onTap: navigate),
                           _NavItem(icon: Icons.receipt_long_rounded, label: 'Billing & Invoices', route: '/billing', onTap: navigate),
                         ],
@@ -258,7 +258,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // ══ PLATFORM ADMIN (superusers only) ══════════════════
                         if (user?.isSuperuser == true) ...[
                           const SizedBox(height: 4),
-                          _SectionDivider(label: 'Platform Admin'),
+                          const _SectionDivider(label: 'Platform Admin'),
                           _NavItem(icon: Icons.admin_panel_settings_rounded, label: 'Subscription Manager', route: '/superuser', onTap: navigate),
                         ],
 

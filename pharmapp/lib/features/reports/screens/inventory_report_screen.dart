@@ -253,7 +253,7 @@ class InventoryReportScreen extends ConsumerWidget {
                       Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Stock Valuation',
+                            const Text('Stock Valuation',
                                 style: TextStyle(
                                     color: Colors.black54,
                                     fontSize: 12,
@@ -354,7 +354,7 @@ class InventoryReportScreen extends ConsumerWidget {
                 color: color, fontSize: 14, fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
         Text(label,
-            style: TextStyle(color: Colors.black54, fontSize: 9),
+            style: const TextStyle(color: Colors.black54, fontSize: 9),
             textAlign: TextAlign.center),
       ]),
     );
@@ -462,14 +462,14 @@ class InventoryReportScreen extends ConsumerWidget {
                 child: Icon(icon, color: color, size: 36)),
             const SizedBox(height: 14),
             Text(message,
-                style: TextStyle(
+                style: const TextStyle(
                     color: Colors.black87,
                     fontSize: 14,
                     fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center),
             const SizedBox(height: 4),
-            Text('Your inventory levels look great!',
-                style: const TextStyle(color: Colors.black38, fontSize: 12),
+            const Text('Your inventory levels look great!',
+                style: TextStyle(color: Colors.black38, fontSize: 12),
                 textAlign: TextAlign.center),
           ]),
         ),

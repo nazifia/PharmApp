@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -173,7 +173,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         color: context.labelColor, fontSize: 19, fontWeight: FontWeight.w800),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 Row(children: [
-                  Icon(Icons.account_balance_wallet_rounded,
+                  const Icon(Icons.account_balance_wallet_rounded,
                       color: EnhancedTheme.primaryTeal, size: 12),
                   const SizedBox(width: 4),
                   Text('Wallet Management',

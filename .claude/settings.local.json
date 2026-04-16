@@ -89,7 +89,8 @@
       "Bash(find:*)",
       "Bash(wc -l /c/Users/Dell/Desktop/MY_PRODUCTS/PharmApp/pharmapp/lib/shared/models/*.dart)",
       "Bash(node:*)",
-      "Bash(findstr /V \"^$\")"
+      "Bash(findstr /V \"^$\")",
+      "Bash(flutter --version)"
     ]
   }
 }

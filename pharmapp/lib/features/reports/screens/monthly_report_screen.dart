@@ -200,7 +200,7 @@ class MonthlyReportScreen extends ConsumerWidget {
             ),
             const SizedBox(width: 16),
             Expanded(child: Column(children: [
-              Text('${_monthNames[selected.month - 1]}',
+              Text(_monthNames[selected.month - 1],
                   textAlign: TextAlign.center,
                   style: GoogleFonts.outfit(
                       color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
@@ -293,7 +293,7 @@ class MonthlyReportScreen extends ConsumerWidget {
         Container(
           width: 4, height: 20,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topCenter, end: Alignment.bottomCenter,
               colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
             ),
@@ -316,7 +316,7 @@ class MonthlyReportScreen extends ConsumerWidget {
           Container(
             width: 4, height: 20,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 begin: Alignment.topCenter, end: Alignment.bottomCenter,
                 colors: [EnhancedTheme.accentCyan, EnhancedTheme.accentPurple],
               ),

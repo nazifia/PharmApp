@@ -113,7 +113,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                       const SizedBox(height: 8),
 
                       // ── Billing shortcut ──────────────────────────────────
-                      _BillingShortcut(),
+                      const _BillingShortcut(),
                       const SizedBox(height: 8),
 
                       // ── Usage stats ───────────────────────────────────────
@@ -732,6 +732,9 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
     if (_loading) return;
     setState(() => _loading = true);
 
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       final url = await widget.ref
           .read(subscriptionNotifierProvider.notifier)
@@ -746,11 +749,11 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
       if (url != null && url.isNotEmpty) {
         // Backend returned a payment gateway URL — open it.
         // In prod: await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        context.push('/billing');
+        router.push('/billing');
       } else {
         // Manual billing flow: request is pending admin approval.
         // Show billing screen so the user can see bank-transfer instructions.
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               'Upgrade to ${widget.plan.displayName} (${widget.cycle.displayName}) '
@@ -760,12 +763,12 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
             duration: const Duration(seconds: 5),
           ),
         );
-        context.push('/billing');
+        router.push('/billing');
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Upgrade failed: $e'),
           backgroundColor: EnhancedTheme.errorRed,

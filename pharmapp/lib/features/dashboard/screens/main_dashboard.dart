@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -996,9 +996,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
       ],
       child: Container(
         padding: const EdgeInsets.all(2.5),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),

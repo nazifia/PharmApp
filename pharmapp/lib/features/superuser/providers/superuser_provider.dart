@@ -62,7 +62,9 @@ final filteredOrgListProvider =
     if (query.isNotEmpty &&
         !org.name.toLowerCase().contains(query) &&
         !org.slug.toLowerCase().contains(query) &&
-        !org.phone.toLowerCase().contains(query)) return false;
+        !org.phone.toLowerCase().contains(query)) {
+      return false;
+    }
     return true;
   }).toList();
 });

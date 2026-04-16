@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,15 +86,15 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
       builder: (ctx, child) => Theme(
         data: ThemeData.light().copyWith(
           // ── Base colour roles ──────────────────────────────────────────────
-          colorScheme: ColorScheme.light(
+          colorScheme: const ColorScheme.light(
             primary:           EnhancedTheme.primaryTeal,   // selected-date circles
             onPrimary: Colors.white,
             secondary:         EnhancedTheme.accentCyan,    // accent
             onSecondary: Colors.white,
-            surface:           const Color(0xFFF8FAFC),     // dialog bg
-            onSurface:         const Color(0xFF0F172A),
-            onSurfaceVariant:  const Color(0xFF64748B),     // dim text
-            outline:           const Color(0xFFCBD5E1),
+            surface:           Color(0xFFF8FAFC),     // dialog bg
+            onSurface:         Color(0xFF0F172A),
+            onSurfaceVariant:  Color(0xFF64748B),     // dim text
+            outline:           Color(0xFFCBD5E1),
           ),
           // ── Fine-grained picker styling ───────────────────────────────────
           datePickerTheme: DatePickerThemeData(

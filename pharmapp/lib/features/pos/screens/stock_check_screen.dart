@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -753,7 +753,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                         border: Border.all(
                             color: EnhancedTheme.accentPurple.withValues(alpha: 0.3)),
                       ),
-                      child: Icon(Icons.refresh_rounded,
+                      child: const Icon(Icons.refresh_rounded,
                           color: EnhancedTheme.accentPurple, size: 18),
                     ),
                   ),
@@ -1130,7 +1130,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                             color: EnhancedTheme.accentPurple.withValues(alpha: 0.3)),
                       ),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.bar_chart_rounded,
+                        const Icon(Icons.bar_chart_rounded,
                             color: EnhancedTheme.accentPurple, size: 14),
                         const SizedBox(width: 4),
                         Text('Report',

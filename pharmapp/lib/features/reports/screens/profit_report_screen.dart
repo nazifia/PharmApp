@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -276,7 +276,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
             Container(
               width: 4, height: 20,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   begin: Alignment.topCenter, end: Alignment.bottomCenter,
                   colors: [EnhancedTheme.errorRed, EnhancedTheme.successGreen],
                 ),

@@ -466,7 +466,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
             const Spacer(),
             GestureDetector(
               onTap: () => context.push('/dashboard/transfers'),
-              child: Text('View All',
+              child: const Text('View All',
                   style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.w600)),
             ),
           ]),

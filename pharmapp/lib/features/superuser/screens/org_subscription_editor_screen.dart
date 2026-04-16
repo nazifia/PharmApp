@@ -378,7 +378,7 @@ class _OrgSubscriptionEditorScreenState
                         padding: const EdgeInsets.all(16),
                         children: [
                           // ── Plan & Status ─────────────────────────────
-                          _SectionHeader(
+                          const _SectionHeader(
                               icon: Icons.workspace_premium_rounded,
                               title: 'Plan & Status'),
                           const SizedBox(height: 8),
@@ -426,7 +426,7 @@ class _OrgSubscriptionEditorScreenState
                           const SizedBox(height: 16),
 
                           // ── Trial ─────────────────────────────────────
-                          _SectionHeader(
+                          const _SectionHeader(
                               icon: Icons.hourglass_empty_rounded,
                               title: 'Trial Period'),
                           const SizedBox(height: 8),
@@ -492,7 +492,7 @@ class _OrgSubscriptionEditorScreenState
                           const SizedBox(height: 16),
 
                           // ── Feature Flags ─────────────────────────────
-                          _SectionHeader(
+                          const _SectionHeader(
                               icon: Icons.tune_rounded,
                               title: 'Feature Overrides'),
                           const SizedBox(height: 4),
@@ -514,15 +514,6 @@ class _OrgSubscriptionEditorScreenState
                                   final inPlan  = _isFeatureInPlan(key);
                                   final isExtra   = _extraFeatures.contains(key);
                                   final isRemoved = _removedFeatures.contains(key);
-
-                                  Color indicatorColor;
-                                  if (isExtra) {
-                                    indicatorColor = EnhancedTheme.primaryTeal;
-                                  } else if (isRemoved) {
-                                    indicatorColor = EnhancedTheme.errorRed;
-                                  } else {
-                                    indicatorColor = Colors.black26;
-                                  }
 
                                   return Column(
                                     children: [
@@ -555,15 +546,15 @@ class _OrgSubscriptionEditorScreenState
                                               ),
                                               // Plan default / override indicator
                                               if (inPlan && !isRemoved)
-                                                _FeatureTag(
+                                                const _FeatureTag(
                                                     label: 'plan',
                                                     color: Colors.black26)
                                               else if (isExtra)
-                                                _FeatureTag(
+                                                const _FeatureTag(
                                                     label: 'added',
                                                     color: EnhancedTheme.primaryTeal)
                                               else if (isRemoved)
-                                                _FeatureTag(
+                                                const _FeatureTag(
                                                     label: 'removed',
                                                     color: EnhancedTheme.errorRed)
                                               else
@@ -584,7 +575,7 @@ class _OrgSubscriptionEditorScreenState
                           const SizedBox(height: 16),
 
                           // ── Custom Limits ─────────────────────────────
-                          _SectionHeader(
+                          const _SectionHeader(
                               icon: Icons.speed_rounded,
                               title: 'Usage Limits Override'),
                           const SizedBox(height: 4),
@@ -652,7 +643,7 @@ class _OrgSubscriptionEditorScreenState
                           const SizedBox(height: 24),
 
                           // ── Usage Stats (read-only) ────────────────────
-                          _SectionHeader(
+                          const _SectionHeader(
                               icon: Icons.bar_chart_rounded,
                               title: 'Current Usage (read-only)'),
                           const SizedBox(height: 8),

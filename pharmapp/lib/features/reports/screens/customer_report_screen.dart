@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -189,7 +189,7 @@ class CustomerReportScreen extends ConsumerWidget {
                     child: const Icon(Icons.people_rounded, color: EnhancedTheme.accentPurple, size: 22)),
                   const SizedBox(width: 14),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Total Customers', style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.4)),
+                    const Text('Total Customers', style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.4)),
                     Text('${data.total}', style: GoogleFonts.outfit(
                       color: Colors.black, fontSize: 36, fontWeight: FontWeight.w800)),
                   ]),

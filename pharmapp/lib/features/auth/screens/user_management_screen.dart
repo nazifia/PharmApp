@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,7 +80,9 @@ class _UserManagementScreenState
       if (q.isNotEmpty &&
           !u.phoneNumber.contains(q) &&
           !u.username.toLowerCase().contains(q) &&
-          !u.fullname.toLowerCase().contains(q)) return false;
+          !u.fullname.toLowerCase().contains(q)) {
+        return false;
+      }
       if (_roleFilter != 'All' && u.role != _roleFilter) return false;
       if (_branchFilter != null) {
         if (_branchFilter == 0) {
@@ -457,10 +459,10 @@ class _UserManagementScreenState
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 margin: const EdgeInsets.all(16),
-                                content: Row(children: [
-                                  const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                                  const SizedBox(width: 10),
-                                  const Expanded(child: Text('User created', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                                content: const Row(children: [
+                                  Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                                  SizedBox(width: 10),
+                                  Expanded(child: Text('User created', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                                 ]),
                               ));
                             } catch (e) {

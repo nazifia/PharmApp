@@ -1,4 +1,4 @@
-﻿import 'dart:typed_data';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -381,10 +381,10 @@ class _ReceiptCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: EnhancedTheme.successGreen.withValues(alpha: 0.3)),
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.check_circle_rounded, color: EnhancedTheme.successGreen, size: 14),
-                    const SizedBox(width: 6),
-                    const Text('Sale Completed', style: TextStyle(
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.check_circle_rounded, color: EnhancedTheme.successGreen, size: 14),
+                    SizedBox(width: 6),
+                    Text('Sale Completed', style: TextStyle(
                         color: EnhancedTheme.successGreen, fontSize: 12, fontWeight: FontWeight.w700)),
                   ]),
                 ).animate().fadeIn(duration: 500.ms, delay: 200.ms),

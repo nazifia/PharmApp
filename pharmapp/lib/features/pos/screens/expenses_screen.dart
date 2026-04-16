@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -102,10 +102,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
-          content: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-            const SizedBox(width: 10),
-            Expanded(child: Text('Expense deleted', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+          content: const Row(children: [
+            Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+            SizedBox(width: 10),
+            Expanded(child: Text('Expense deleted', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
         ));
       }
@@ -184,10 +184,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                               border: Border.all(
                                   color: EnhancedTheme.accentPurple.withValues(alpha: 0.3)),
                             ),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              const Icon(Icons.add_rounded,
+                            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.add_rounded,
                                   color: EnhancedTheme.accentPurple, size: 16),
-                              const SizedBox(width: 4),
+                              SizedBox(width: 4),
                               Text('Add',
                                   style: TextStyle(
                                       color: EnhancedTheme.accentPurple,
@@ -657,7 +657,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                         style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500),
                       ),
                       const Spacer(),
-                      Text('Change', style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 12,
+                      const Text('Change', style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 12,
                           fontWeight: FontWeight.w600)),
                     ]),
                   ),
@@ -682,10 +682,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
-                          content: Row(children: [
-                            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                            const SizedBox(width: 10),
-                            const Expanded(child: Text('Expense added', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                          content: const Row(children: [
+                            Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                            SizedBox(width: 10),
+                            Expanded(child: Text('Expense added', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                       }
@@ -794,10 +794,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                     border: Border.all(
                         color: EnhancedTheme.accentPurple.withValues(alpha: 0.3)),
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.category_rounded,
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.category_rounded,
                         color: EnhancedTheme.accentPurple, size: 16),
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     Text('Categories',
                         style: TextStyle(
                             color: EnhancedTheme.accentPurple,
@@ -1039,10 +1039,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             ]),
             borderRadius: BorderRadius.circular(18),
           ),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.delete_rounded, color: EnhancedTheme.errorRed, size: 22),
-            const SizedBox(height: 2),
-            const Text('Delete', style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 10,
+          child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.delete_rounded, color: EnhancedTheme.errorRed, size: 22),
+            SizedBox(height: 2),
+            Text('Delete', style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 10,
                 fontWeight: FontWeight.w600)),
           ]),
         ),

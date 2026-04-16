@@ -389,13 +389,13 @@ class _MatrixBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final plans       = SubscriptionPlan.values;
+    const plans       = SubscriptionPlan.values;
     final featureKeys = matrix.featureOrder;
 
     return Column(
       children: [
         // ── Sticky header row (plan names) ─────────────────────────────────
-        _PlanHeaderRow(plans: plans),
+        const _PlanHeaderRow(plans: plans),
 
         // ── Reorderable feature rows ───────────────────────────────────────
         Expanded(

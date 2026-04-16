@@ -315,7 +315,7 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                                     }
                                     return TextButton(
                                       onPressed: () => notifier.loadMore(),
-                                      child: Text('Load more',
+                                      child: const Text('Load more',
                                           style: TextStyle(
                                               color: EnhancedTheme.accentPurple)),
                                     );

@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -946,12 +946,12 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                   Text('₦${totalAmount.toStringAsFixed(2)}',
                       style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal, fontSize: 20, fontWeight: FontWeight.w900)),
-                  Row(children: [
+                  const Row(children: [
                     Text('View details',
-                        style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12,
+                        style: TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12,
                             fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward_ios_rounded, color: EnhancedTheme.accentCyan, size: 12),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_ios_rounded, color: EnhancedTheme.accentCyan, size: 12),
                   ]),
                 ]),
               ]),

@@ -38,8 +38,11 @@ class _BranchManagementScreenState
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        if (context.canPop()) context.pop();
-        else context.go(AppShell.roleFallback(ref));
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(AppShell.roleFallback(ref));
+        }
       },
       child: Scaffold(
         backgroundColor: EnhancedTheme.primaryDark,
@@ -58,8 +61,11 @@ class _BranchManagementScreenState
                           icon: const Icon(Icons.arrow_back_ios_new_rounded,
                               color: Colors.black, size: 20),
                           onPressed: () {
-                            if (context.canPop()) context.pop();
-                            else context.go(AppShell.roleFallback(ref));
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go(AppShell.roleFallback(ref));
+                            }
                           },
                         ),
                         const Expanded(
@@ -259,7 +265,7 @@ class _LimitBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!hasBranchFeature) {
-      return _InfoCard(
+      return const _InfoCard(
         color: EnhancedTheme.warningAmber,
         icon:  Icons.lock_rounded,
         title: 'Multi-Branch requires Professional or Enterprise',

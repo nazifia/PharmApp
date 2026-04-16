@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -749,7 +749,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
           decoration: InputDecoration(
             hintText: 'Search by name, brand, barcode…',
             hintStyle: TextStyle(color: context.hintColor, fontSize: 14),
-            prefixIcon: Icon(Icons.search_rounded, color: EnhancedTheme.primaryTeal, size: 20),
+            prefixIcon: const Icon(Icons.search_rounded, color: EnhancedTheme.primaryTeal, size: 20),
             suffixIcon: _searchCtrl.text.isNotEmpty
                 ? IconButton(
                     icon: Icon(Icons.clear_rounded, color: context.hintColor, size: 18),

@@ -315,9 +315,9 @@ class _BranchSelectionScreenState extends ConsumerState<BranchSelectionScreen>
                               const Icon(Icons.cloud_off_outlined,
                                   color: _textHint, size: 48),
                               const SizedBox(height: 12),
-                              Text(
+                              const Text(
                                 'Could not load branches',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     color: _textDark,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600),

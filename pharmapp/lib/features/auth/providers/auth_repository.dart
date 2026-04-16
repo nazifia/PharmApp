@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+
 import 'package:image_picker/image_picker.dart';
 import '../../../core/database/local_db.dart';
 import '../../../shared/models/user.dart';
@@ -38,11 +38,7 @@ class AuthRepository {
     if (_isLocal) {
       final userData = await LocalDb.instance.authenticateUser(phoneNumber, password);
       if (userData == null) {
-        throw Exception(
-          kDebugMode
-              ? 'Invalid phone number or password.\n\nDefault admin:\n  Phone: 0000000000\n  Password: admin123'
-              : 'Invalid phone number or password.',
-        );
+        throw Exception('Invalid phone number or password.');
       }
       final user = User(
         id: userData['id'] as int,

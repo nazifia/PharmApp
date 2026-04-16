@@ -433,14 +433,14 @@ class _OrgCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.people_outline_rounded,
+                      const Icon(Icons.people_outline_rounded,
                           color: Colors.black38, size: 13),
                       const SizedBox(width: 4),
                       Text('${org.userCount} users',
                           style: const TextStyle(
                               color: Colors.black38, fontSize: 11)),
                       const SizedBox(width: 12),
-                      Icon(Icons.receipt_long_rounded,
+                      const Icon(Icons.receipt_long_rounded,
                           color: Colors.black38, size: 13),
                       const SizedBox(width: 4),
                       Text(
@@ -530,7 +530,7 @@ class _EmptyState extends StatelessWidget {
       child: Center(
         child: Column(
           children: [
-            Icon(Icons.domain_disabled_rounded,
+            const Icon(Icons.domain_disabled_rounded,
                 color: Colors.black26, size: 48),
             const SizedBox(height: 12),
             Text(

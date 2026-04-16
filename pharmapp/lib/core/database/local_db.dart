@@ -4,7 +4,6 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 
 /// Singleton SQLite database — replaces the Django REST backend entirely.
-/// Default admin credentials: phone 0000000000 / password admin123
 class LocalDb {
   static final LocalDb instance = LocalDb._();
   LocalDb._();
@@ -285,8 +284,9 @@ class LocalDb {
     if (isActive != null) u['is_active'] = isActive ? 1 : 0;
     if (username != null) u['username'] = username;
     if (fullname != null) u['fullname'] = fullname;
-    if (u.isNotEmpty)
+    if (u.isNotEmpty) {
       await d.update('users', u, where: 'id = ?', whereArgs: [id]);
+    }
     final rows = await d.query('users', where: 'id = ?', whereArgs: [id]);
     return rows.isEmpty ? {'id': id} : _userJson(rows.first);
   }
@@ -380,25 +380,32 @@ class LocalDb {
     if (data.containsKey('brandName')) u['brand'] = data['brandName'];
     if (data.containsKey('dosageForm')) u['dosage_form'] = data['dosageForm'];
     if (data.containsKey('dosage_form')) u['dosage_form'] = data['dosage_form'];
-    if (data.containsKey('price'))
+    if (data.containsKey('price')) {
       u['price'] = (data['price'] as num).toDouble();
-    if (data.containsKey('costPrice'))
+    }
+    if (data.containsKey('costPrice')) {
       u['cost_price'] = (data['costPrice'] as num).toDouble();
-    if (data.containsKey('cost_price'))
+    }
+    if (data.containsKey('cost_price')) {
       u['cost_price'] = (data['cost_price'] as num).toDouble();
-    if (data.containsKey('cost'))
+    }
+    if (data.containsKey('cost')) {
       u['cost_price'] = (data['cost'] as num).toDouble();
+    }
     if (data.containsKey('stock')) u['stock'] = data['stock'];
-    if (data.containsKey('lowStockThreshold'))
+    if (data.containsKey('lowStockThreshold')) {
       u['low_stock_threshold'] = data['lowStockThreshold'];
-    if (data.containsKey('low_stock_threshold'))
+    }
+    if (data.containsKey('low_stock_threshold')) {
       u['low_stock_threshold'] = data['low_stock_threshold'];
+    }
     if (data.containsKey('barcode')) u['barcode'] = data['barcode'];
     if (data.containsKey('expiryDate')) u['expiry_date'] = data['expiryDate'];
     if (data.containsKey('expiry_date')) u['expiry_date'] = data['expiry_date'];
     if (data.containsKey('store')) u['store'] = data['store'];
-    if (u.isNotEmpty)
+    if (u.isNotEmpty) {
       await d.update('items', u, where: 'id = ?', whereArgs: [id]);
+    }
     return (await getItemById(id))!;
   }
 
@@ -475,18 +482,23 @@ class LocalDb {
     final u = <String, dynamic>{};
     if (data.containsKey('name')) u['name'] = data['name'];
     if (data.containsKey('phone')) u['phone'] = data['phone'];
-    if (data.containsKey('isWholesale'))
+    if (data.containsKey('isWholesale')) {
       u['is_wholesale'] = data['isWholesale'] ? 1 : 0;
-    if (data.containsKey('is_wholesale'))
+    }
+    if (data.containsKey('is_wholesale')) {
       u['is_wholesale'] = data['is_wholesale'] ? 1 : 0;
+    }
     if (data.containsKey('email')) u['email'] = data['email'];
     if (data.containsKey('address')) u['address'] = data['address'];
-    if (data.containsKey('outstandingDebt'))
+    if (data.containsKey('outstandingDebt')) {
       u['outstanding_debt'] = (data['outstandingDebt'] as num).toDouble();
-    if (data.containsKey('outstanding_debt'))
+    }
+    if (data.containsKey('outstanding_debt')) {
       u['outstanding_debt'] = (data['outstanding_debt'] as num).toDouble();
-    if (u.isNotEmpty)
+    }
+    if (u.isNotEmpty) {
       await d.update('customers', u, where: 'id = ?', whereArgs: [id]);
+    }
     return (await getCustomerById(id))!;
   }
 
@@ -1464,13 +1476,18 @@ class LocalDb {
 
   // ── REPORTS ────────────────────────────────────────────────────────────────
 
+  static final _dateRe = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
   String _periodWhere(String period, {String table = ''}) {
     final col = table.isEmpty ? 'created_at' : '$table.created_at';
     if (period.startsWith('custom:')) {
       final parts = period.split(':');
-      if (parts.length >= 3) {
+      if (parts.length >= 3 &&
+          _dateRe.hasMatch(parts[1]) &&
+          _dateRe.hasMatch(parts[2])) {
         return "$col >= '${parts[1]}' AND $col <= '${parts[2]} 23:59:59'";
       }
+      // Invalid date format — fall through to default
     }
     switch (period) {
       case 'today':

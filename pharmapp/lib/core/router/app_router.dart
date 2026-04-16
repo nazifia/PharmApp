@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -355,9 +355,9 @@ class _ErrorScreen extends StatelessWidget {
               const Text('Something went wrong',
                   style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'An unexpected error occurred.',
-                style: const TextStyle(color: Colors.white54, fontSize: 14),
+                style: TextStyle(color: Colors.white54, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),

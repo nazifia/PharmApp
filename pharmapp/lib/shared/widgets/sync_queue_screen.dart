@@ -762,7 +762,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
           color: EnhancedTheme.errorRed.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(
+        child: const Icon(
           Icons.delete_outline_rounded,
           color: EnhancedTheme.errorRed,
           size: 24,
@@ -892,7 +892,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
           color: EnhancedTheme.errorRed.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(
+        child: const Icon(
           Icons.delete_outline_rounded,
           color: EnhancedTheme.errorRed,
           size: 24,

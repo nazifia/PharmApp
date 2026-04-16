@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -102,7 +102,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   _field(expiryCtrl, 'Expiry Date (YYYY-MM-DD)',
                       keyboardType: TextInputType.datetime,
                       suffixIcon: IconButton(
-                        icon: Icon(Icons.calendar_today_rounded, color: EnhancedTheme.primaryTeal, size: 18),
+                        icon: const Icon(Icons.calendar_today_rounded, color: EnhancedTheme.primaryTeal, size: 18),
                         onPressed: () async {
                           final picked = await showDatePicker(
                             context: context,
