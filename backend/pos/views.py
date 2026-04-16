@@ -1305,6 +1305,9 @@ def user_detail(request, pk):
     user.is_active = data.get("isActive", user.is_active)
     if "username" in data:
         user.full_name = data["username"].strip()
+    if "branch_id" in data:
+        branch_id = data["branch_id"]
+        user.branch_id = branch_id if branch_id else None
     user.save()
     return Response(user.to_api_dict())
 

@@ -21,6 +21,8 @@ class _BranchSelectionScreenState extends ConsumerState<BranchSelectionScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animCtrl;
   late final Animation<double> _fadeAnim;
+  bool _refreshing     = false;
+  bool _autoRefreshing = false;
 
   // ── Light-mode palette (matches LoginScreen) ─────────────────────────────
   static const _bg1      = Color(0xFFE0F2FE);
@@ -38,9 +40,18 @@ class _BranchSelectionScreenState extends ConsumerState<BranchSelectionScreen>
     _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
     _animCtrl.forward();
 
-    // Trigger branch list fetch
+    // Trigger branch list fetch + auto-check backend for assigned branch.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(branchNotifierProvider.notifier).load();
+
+      // Non-admin users with no cached branch: the session-restore background
+      // refresh may not have finished yet. Auto-trigger it so the user never
+      // has to manually press "Check Again" after a branch was assigned by admin.
+      final user      = ref.read(currentUserProvider);
+      final isAdmin   = const {'Admin', 'Manager', 'Wholesale Manager'}.contains(user?.role);
+      if (user != null && !isAdmin && user.branchId == 0) {
+        _triggerAutoRefresh();
+      }
     });
   }
 
@@ -63,6 +74,24 @@ class _BranchSelectionScreenState extends ConsumerState<BranchSelectionScreen>
   void _logout() {
     ref.read(authServiceProvider).logout();
     context.go('/login');
+  }
+
+  /// Silently refreshes the user profile on screen mount. Shows a loading
+  /// spinner instead of "No Branch Assigned" while waiting. If the backend
+  /// returns a non-zero branchId the router auto-redirects; if not, the
+  /// "No Branch Assigned" message is shown with the manual "Check Again" option.
+  Future<void> _triggerAutoRefresh() async {
+    if (!mounted) return;
+    setState(() => _autoRefreshing = true);
+    await ref.read(authFlowProvider.notifier).refreshProfile();
+    if (mounted) setState(() => _autoRefreshing = false);
+  }
+
+  Future<void> _refreshProfile() async {
+    setState(() => _refreshing = true);
+    await ref.read(authFlowProvider.notifier).refreshProfile();
+    if (mounted) setState(() => _refreshing = false);
+    // Router auto-redirects if branchId is now set (activeBranchProvider changed).
   }
 
   @override
@@ -181,62 +210,88 @@ class _BranchSelectionScreenState extends ConsumerState<BranchSelectionScreen>
                   ),
 
                   // Non-admin users must have a backend-assigned branch.
-                  // If branchId == 0 and the role is not admin/manager, block
-                  // access and prompt the user to contact their administrator.
+                  // Show a spinner while auto-checking; show the blocking UI
+                  // only after the backend confirms branchId is still 0.
                   if (!isAdminRole && (user?.branchId ?? 0) == 0)
                     Expanded(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: EnhancedTheme.warningAmber.withValues(alpha: 0.10),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Icon(
-                                  Icons.no_accounts_rounded,
-                                  color: EnhancedTheme.warningAmber,
-                                  size: 48,
+                      child: _autoRefreshing
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: EnhancedTheme.primaryTeal,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: EnhancedTheme.warningAmber.withValues(alpha: 0.10),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: const Icon(
+                                        Icons.no_accounts_rounded,
+                                        color: EnhancedTheme.warningAmber,
+                                        size: 48,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    const Text(
+                                      'No Branch Assigned',
+                                      style: TextStyle(
+                                        color: _textDark,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    const Text(
+                                      'Your account has not been assigned to a branch yet. '
+                                      'Please contact your administrator to get access.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: _textSub, fontSize: 13, height: 1.5),
+                                    ),
+                                    const SizedBox(height: 28),
+                                    FilledButton.icon(
+                                      onPressed: _refreshing ? null : _refreshProfile,
+                                      icon: _refreshing
+                                          ? const SizedBox(
+                                              width: 14,
+                                              height: 14,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2, color: Colors.white))
+                                          : const Icon(Icons.refresh_rounded, size: 16),
+                                      label: Text(_refreshing ? 'Checking…' : 'Check Again'),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: EnhancedTheme.primaryTeal,
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    OutlinedButton.icon(
+                                      onPressed: _logout,
+                                      icon: const Icon(Icons.logout_rounded, size: 16),
+                                      label: const Text('Sign Out'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: EnhancedTheme.errorRed,
+                                        side: const BorderSide(color: EnhancedTheme.errorRed),
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 20),
-                              const Text(
-                                'No Branch Assigned',
-                                style: TextStyle(
-                                  color: _textDark,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              const Text(
-                                'Your account has not been assigned to a branch yet. '
-                                'Please contact your administrator to get access.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: _textSub, fontSize: 13, height: 1.5),
-                              ),
-                              const SizedBox(height: 28),
-                              OutlinedButton.icon(
-                                onPressed: _logout,
-                                icon: const Icon(Icons.logout_rounded, size: 16),
-                                label: const Text('Sign Out'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: EnhancedTheme.errorRed,
-                                  side: const BorderSide(color: EnhancedTheme.errorRed),
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                            ),
                     ),
 
                   // Branch list (admin / manager roles only, or users with an

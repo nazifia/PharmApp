@@ -21,10 +21,15 @@ class AuthRepository {
   Future<User> fetchCurrentUser(User fallback) async {
     if (_isLocal) return fallback;
     try {
-      final res = await _dio!.get('/auth/me/');
+      // skipTokenClear: true — a 401 here (endpoint missing or transient)
+      // must NOT wipe the global auth token and silently log the user out.
+      final res = await _dio!.get(
+        '/auth/me/',
+        options: Options(extra: {'skipTokenClear': true}),
+      );
       return User.fromJson(res.data as Map<String, dynamic>);
     } catch (_) {
-      // Network unreachable — return the cached user unchanged
+      // Network unreachable or endpoint absent — return the cached user unchanged
       return fallback;
     }
   }

@@ -151,10 +151,18 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
           .fetchCurrentUser(current);
       _ref.read(currentUserProvider.notifier).state = fresh;
       // Re-enforce backend-assigned branch in case it changed server-side.
+      // Always write so the router (which listens to activeBranchProvider)
+      // triggers a redirect even when the branch id was already set to the
+      // same value in a previous session.
       if (fresh.branchId != 0) {
         _ref.read(activeBranchProvider.notifier).state = Branch(
           id:   fresh.branchId,
           name: fresh.branchName,
+        );
+        // Persist so the next session restore skips the branch selection screen.
+        SharedPreferences.getInstance().then(
+          (p) => p.setString('active_branch',
+              jsonEncode(Branch(id: fresh.branchId, name: fresh.branchName).toJson())),
         );
       }
       final prefs = await SharedPreferences.getInstance();

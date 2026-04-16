@@ -35,6 +35,7 @@ import 'package:pharmapp/features/pos/screens/stock_check_screen.dart';
 import 'package:pharmapp/features/pos/screens/payment_requests_screen.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/shared/models/user.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/features/auth/screens/user_management_screen.dart';
@@ -318,6 +319,10 @@ class _GoRouterNotifier extends ChangeNotifier {
     ref.listen<AuthFlowState>(authFlowProvider, (_, __) => notifyListeners());
     // Re-evaluate redirect when branch selection changes.
     ref.listen(activeBranchProvider, (_, __) => notifyListeners());
+    // Re-evaluate when user profile refreshes (e.g. branchId assigned by admin,
+    // permission overrides applied) so the router reacts without waiting for
+    // activeBranchProvider to change independently.
+    ref.listen<User?>(currentUserProvider, (_, __) => notifyListeners());
   }
 }
 

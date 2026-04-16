@@ -75,8 +75,13 @@ class AuthInterceptor extends Interceptor {
       // If the token was null when the request fired, this 401 is a
       // start-up race condition — do not wipe a valid token that may
       // have been restored by checkAuthStatus() in the meantime.
+      //
+      // Also skip clearing when the caller sets extra['skipTokenClear'] = true
+      // (used by background profile-refresh calls that should never log the
+      // user out if the endpoint is absent or transiently unavailable).
       final sentAuth = err.requestOptions.headers.containsKey('Authorization');
-      if (sentAuth) {
+      final skipClear = err.requestOptions.extra['skipTokenClear'] == true;
+      if (sentAuth && !skipClear) {
         _ref.read(authTokenProvider.notifier).state = null;
         SharedPreferences.getInstance().then((prefs) {
           prefs.remove('auth_token');
