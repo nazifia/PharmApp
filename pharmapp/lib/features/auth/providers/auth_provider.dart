@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/shared/models/user.dart';
@@ -8,12 +7,11 @@ import 'package:pharmapp/shared/models/organization.dart';
 import 'package:pharmapp/shared/models/branch.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/services/auth_storage.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import 'auth_repository.dart';
 
 export '../../../core/network/api_client.dart' show authTokenProvider;
-
-const _secureStorage = FlutterSecureStorage();
 
 // ── Token / User state ────────────────────────────────────────────────────────
 
@@ -89,8 +87,8 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
         );
       }
 
-      await _secureStorage.write(key: 'auth_token',   value: token);
-      await _secureStorage.write(key: 'current_user', value: jsonEncode(user.toJson()));
+      await AuthStorage.write('auth_token',   token);
+      await AuthStorage.write('current_user', jsonEncode(user.toJson()));
 
       state = AuthFlowState.authenticated;
     } catch (e) {
@@ -129,8 +127,8 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
       _ref.read(authTokenProvider.notifier).state = token;
       _ref.read(currentUserProvider.notifier).state = user;
 
-      await _secureStorage.write(key: 'auth_token',   value: token);
-      await _secureStorage.write(key: 'current_user', value: jsonEncode(user.toJson()));
+      await AuthStorage.write('auth_token',   token);
+      await AuthStorage.write('current_user', jsonEncode(user.toJson()));
 
       state = AuthFlowState.authenticated;
     } catch (e) {
@@ -166,7 +164,7 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
               jsonEncode(Branch(id: fresh.branchId, name: fresh.branchName).toJson())),
         );
       }
-      await _secureStorage.write(key: 'current_user', value: jsonEncode(fresh.toJson()));
+      await AuthStorage.write('current_user', jsonEncode(fresh.toJson()));
     } catch (_) {
       // Silently ignore — keep the cached user
     }
@@ -180,7 +178,7 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     if (current == null) return;
     final updated = current.copyWith(organizationLogo: newLogoUrl);
     _ref.read(currentUserProvider.notifier).state = updated;
-    await _secureStorage.write(key: 'current_user', value: jsonEncode(updated.toJson()));
+    await AuthStorage.write('current_user', jsonEncode(updated.toJson()));
   }
 
   /// Called from BranchSelectionScreen when user picks a branch.

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
+import 'package:pharmapp/core/services/auth_storage.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/branch.dart';
@@ -34,9 +34,8 @@ class AuthService {
   /// any permission changes made via Django admin or the UI are picked up.
   Future<bool> checkAuthStatus() async {
     try {
-      const storage  = FlutterSecureStorage();
-      final token    = await storage.read(key: 'auth_token');
-      final userData = await storage.read(key: 'current_user');
+      final token    = await AuthStorage.read('auth_token');
+      final userData = await AuthStorage.read('current_user');
 
       if (token != null && userData != null) {
         final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
@@ -71,9 +70,8 @@ class AuthService {
       _ref.read(authFlowProvider.notifier).refreshProfile();
 
   Future<void> logout() async {
-    const storage = FlutterSecureStorage();
-    await storage.delete(key: 'auth_token');
-    await storage.delete(key: 'current_user');
+    await AuthStorage.delete('auth_token');
+    await AuthStorage.delete('current_user');
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('active_branch');
     _ref.read(currentUserProvider.notifier).state  = null;
