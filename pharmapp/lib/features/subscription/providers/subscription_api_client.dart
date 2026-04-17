@@ -12,11 +12,14 @@ class SubscriptionApiClient {
   /// Falls back to a default trial if the endpoint is not yet deployed.
   Future<Subscription> getSubscription() async {
     try {
-      final res = await _dio.get('/subscription/');
+      final res = await _dio.get(
+        '/subscription/',
+        options: Options(extra: {'skipTokenClear': true}),
+      );
       return Subscription.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      // 404 means endpoint not deployed yet → return default trial
-      if (e.response?.statusCode == 404) {
+      // 404/401 mean endpoint not deployed or auth mismatch → fall back to trial
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 401) {
         return Subscription.defaultTrial();
       }
       rethrow;
