@@ -757,13 +757,18 @@ def expense_list(request):
         return Response([e.to_api_dict() for e in expenses])
 
     data = request.data
-    cat = get_object_or_404(ExpenseCategory, pk=data.get("categoryId"))
+    cat = get_object_or_404(ExpenseCategory, pk=data.get("category_id") or data.get("categoryId"))
+    raw_date = data.get("date")
+    try:
+        expense_date = _date.fromisoformat(raw_date) if isinstance(raw_date, str) else (raw_date or timezone.now().date())
+    except (ValueError, TypeError):
+        expense_date = timezone.now().date()
     expense = Expense.objects.create(
         organization=org,
         category=cat,
         amount=data.get("amount", 0),
         description=data.get("description", ""),
-        date=data.get("date", timezone.now().date()),
+        date=expense_date,
         created_by=request.user if request.user.is_authenticated else None,
     )
     return Response(expense.to_api_dict(), status=status.HTTP_201_CREATED)

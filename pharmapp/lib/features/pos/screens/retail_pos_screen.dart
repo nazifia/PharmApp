@@ -64,9 +64,9 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withValues(alpha: 0.95),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.5),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.10), width: 1.5),
                 ),
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -94,29 +94,29 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text('Send to Cashier',
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+                          style: GoogleFonts.outfit(color: Colors.black87, fontSize: 17, fontWeight: FontWeight.w700)),
                     ]),
                     const SizedBox(height: 16),
                     const Text('Patient / Customer name (optional)',
-                        style: TextStyle(color: Colors.white70, fontSize: 13)),
+                        style: TextStyle(color: Colors.black54, fontSize: 13)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: ctrl,
                       autofocus: true,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.black87),
                       decoration: InputDecoration(
                         hintText: 'e.g. John Doe',
-                        hintStyle: const TextStyle(color: Colors.white38),
-                        prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.white38, size: 18),
+                        hintStyle: const TextStyle(color: Colors.black38),
+                        prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.black38, size: 18),
                         filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.07),
+                        fillColor: Colors.black.withValues(alpha: 0.04),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -133,10 +133,10 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
-                            side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                            side: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
                           ),
                         ),
-                        child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
                       )),
                       const SizedBox(width: 12),
                       Expanded(child: Container(
@@ -258,7 +258,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF1E293B),
+          color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
@@ -266,7 +266,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Center(child: Container(
               width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
             )),
             const SizedBox(height: 16),
             Row(children: [
@@ -280,7 +280,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               ),
               const SizedBox(width: 12),
               Text('Select Branch',
-                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                  style: GoogleFonts.outfit(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.w700)),
             ]),
             const SizedBox(height: 16),
             if (isAdmin) _branchPickerTile(
@@ -295,7 +295,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                 Navigator.pop(ctx);
               },
             ),
-            if (isAdmin && active.isNotEmpty) const Divider(color: Colors.white12, height: 16),
+            if (isAdmin && active.isNotEmpty) const Divider(color: Colors.black12, height: 16),
             ...active.map((b) => _branchPickerTile(
               ctx: ctx,
               icon: b.isMain ? Icons.home_work_rounded : Icons.store_outlined,
@@ -312,7 +312,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
             if (active.isEmpty && !isAdmin)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
-                child: Text('No branches available.', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                child: Text('No branches available.', style: TextStyle(color: Colors.black45, fontSize: 13)),
               ),
           ]),
         ),
@@ -339,18 +339,18 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         color: isSelected ? EnhancedTheme.primaryTeal.withValues(alpha: 0.10) : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isSelected ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4) : Colors.white12,
+          color: isSelected ? EnhancedTheme.primaryTeal.withValues(alpha: 0.4) : Colors.black12,
           width: isSelected ? 1.5 : 1,
         ),
       ),
       child: Row(children: [
-        Icon(icon, color: isSelected ? EnhancedTheme.primaryTeal : Colors.white54, size: 20),
+        Icon(icon, color: isSelected ? EnhancedTheme.primaryTeal : Colors.black45, size: 20),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Text(label,
                 style: TextStyle(
-                    color: isSelected ? EnhancedTheme.primaryTeal : Colors.white,
+                    color: isSelected ? EnhancedTheme.primaryTeal : Colors.black87,
                     fontSize: 14, fontWeight: FontWeight.w600)),
             if (badge != null) ...[
               const SizedBox(width: 8),
@@ -366,7 +366,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
             ],
           ]),
           if (subtitle != null)
-            Text(subtitle, style: const TextStyle(color: Colors.white38, fontSize: 11),
+            Text(subtitle, style: const TextStyle(color: Colors.black38, fontSize: 11),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
         ])),
         if (isSelected)

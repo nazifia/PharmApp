@@ -413,9 +413,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                     if (filtered.isEmpty) {
                       return Center(child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 72, height: 72,
+                            width: 48, height: 48,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(colors: [
                                 EnhancedTheme.accentCyan.withValues(alpha: 0.15),
@@ -423,9 +424,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                               ]),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.people_outline_rounded, color: EnhancedTheme.accentCyan, size: 32),
+                            child: const Icon(Icons.people_outline_rounded, color: EnhancedTheme.accentCyan, size: 24),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           Text('No wholesale customers found',
                               style: GoogleFonts.inter(color: ctx.subLabelColor, fontSize: 14)),
                           const SizedBox(height: 4),
@@ -793,9 +794,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
               filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withValues(alpha: 0.95),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.5),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2), width: 1.5),
                 ),
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -837,14 +838,14 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                         hintStyle: const TextStyle(color: Colors.black38),
                         prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.black38, size: 18),
                         filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.07),
+                        fillColor: Colors.grey.withValues(alpha: 0.08),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -861,7 +862,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
-                            side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                            side: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
                           ),
                         ),
                         child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
