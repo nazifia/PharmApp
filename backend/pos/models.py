@@ -671,7 +671,7 @@ class StockCheckItem(models.Model):
             "actual": self.actual_quantity,
             "status": self.status,
             "discrepancy": discrepancy,
-            "costDifference": round(discrepancy * unit_price, 2),
+            "costDifference": round(float(discrepancy) * unit_price, 2),
         }
 
 
