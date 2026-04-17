@@ -249,6 +249,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
     final stockCtrl   = TextEditingController();
     final barcodeCtrl = TextEditingController();
     String form       = 'Tablet';
+    String unit       = 'Tablet';
     double markup     = 0.0;
     String store      = _currentStore;
     final formKey     = GlobalKey<FormState>();
@@ -417,21 +418,51 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                         ),
                       )).toList()),
                   ),
+                  const SizedBox(height: 20),
+                  // Unit of dispensing chips
+                  Text('Unit of Dispensing', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5)),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon'].map((u) =>
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () => setModal(() => unit = u),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: unit == u ? EnhancedTheme.accentCyan.withValues(alpha: 0.15) : ctx.cardColor,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: unit == u ? EnhancedTheme.accentCyan : ctx.borderColor,
+                                  width: unit == u ? 1.5 : 1),
+                            ),
+                            child: Text(u, style: TextStyle(
+                                color: unit == u ? EnhancedTheme.accentCyan : ctx.subLabelColor,
+                                fontSize: 12, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      )).toList()),
+                  ),
                   const SizedBox(height: 24),
                   SizedBox(width: double.infinity, child: ElevatedButton(
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
                       final data = {
-                        'name':              nameCtrl.text.trim(),
-                        'brand':             brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
-                        'dosageForm':        form,
-                        'costPrice':         double.tryParse(costCtrl.text) ?? 0.0,
-                        'markup':            markup,
-                        'price':             double.parse(priceCtrl.text),
-                        'stock':             int.parse(stockCtrl.text),
-                        'lowStockThreshold': 20,
-                        'barcode':           barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
-                        'store':             store,
+                        'name':                nameCtrl.text.trim(),
+                        'brand':               brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
+                        'dosage_form':         form,
+                        'cost_price':          double.tryParse(costCtrl.text) ?? 0.0,
+                        'markup':              markup,
+                        'price':               double.parse(priceCtrl.text),
+                        'stock':               int.parse(stockCtrl.text),
+                        'low_stock_threshold': 20,
+                        'barcode':             barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
+                        'store':               store,
+                        'unit_of_dispensing':  unit,
                       };
                       // Inject active branch_id so item is assigned to correct branch.
                       final branchId = ref.read(activeBranchProvider)?.id;

@@ -18,6 +18,7 @@ class Item with _$Item {
     required int lowStockThreshold,
     required String barcode,
     DateTime? expiryDate,
+    @Default('') String unitOfDispensing,
   }) = _Item;
 
   factory Item.fromJson(Map<String, dynamic> json) => _$ItemFromJson(json);

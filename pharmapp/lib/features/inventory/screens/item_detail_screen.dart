@@ -39,6 +39,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     );
 
     String dosageForm = item.dosageForm;
+    String unitOfDispensing = item.unitOfDispensing;
     double markup = item.markup;
     final formKey = GlobalKey<FormState>();
     bool saving = false;
@@ -157,6 +158,38 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
+
+                  Text('Unit of Dispensing', style: TextStyle(color: context.hintColor, fontSize: 12,
+                      fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon'].map((u) =>
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: GestureDetector(
+                            onTap: () => setModal(() => unitOfDispensing = u),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: unitOfDispensing == u ? EnhancedTheme.accentCyan.withValues(alpha: 0.15) : ctx.cardColor,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: unitOfDispensing == u ? EnhancedTheme.accentCyan : ctx.borderColor,
+                                    width: unitOfDispensing == u ? 1.5 : 1),
+                              ),
+                              child: Text(u, style: TextStyle(
+                                  color: unitOfDispensing == u ? EnhancedTheme.accentCyan : ctx.subLabelColor,
+                                  fontSize: 12, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                        ),
+                      ).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   // Markup selector
                   Text('Markup %', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                   const SizedBox(height: 8),
@@ -197,22 +230,26 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         if (!formKey.currentState!.validate()) return;
                         setModal(() => saving = true);
                         final payload = {
-                          'name':               nameCtrl.text.trim(),
-                          'brand':              brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
-                          'dosageForm':         dosageForm,
-                          'price':              double.parse(priceCtrl.text),
-                          'costPrice':          double.tryParse(costCtrl.text) ?? 0,
-                          'markup':             markup,
-                          'lowStockThreshold':  int.parse(thresholdCtrl.text),
-                          'barcode':            barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
-                          'expiryDate':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
+                          'name':                nameCtrl.text.trim(),
+                          'brand':               brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
+                          'dosage_form':         dosageForm,
+                          'price':               double.parse(priceCtrl.text),
+                          'cost_price':          double.tryParse(costCtrl.text) ?? 0,
+                          'markup':              markup,
+                          'low_stock_threshold': int.parse(thresholdCtrl.text),
+                          'barcode':             barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
+                          'expiry_date':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
+                          'unit_of_dispensing':  unitOfDispensing,
                         };
                         try {
                           final updated = await ref.read(inventoryApiProvider).updateItem(item.id, payload);
-                          ref.invalidate(itemDetailProvider(item.id));
                           ref.invalidate(retailInventoryProvider);
                           ref.invalidate(wholesaleInventoryProvider);
-                          setState(() => _itemOverride = updated);
+                          setState(() => _itemOverride = updated.copyWith(
+                            dosageForm: dosageForm,
+                            unitOfDispensing: unitOfDispensing,
+                            markup: markup,
+                          ));
                           if (!context.mounted) return;
                           Navigator.of(ctx).pop();
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -859,7 +896,6 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         try {
                           final updated = await ref.read(inventoryApiProvider).adjustStock(item.id, adjustment, reason);
                           setState(() => _itemOverride = updated);
-                          ref.invalidate(itemDetailProvider(item.id));
                           ref.invalidate(retailInventoryProvider);
                           ref.invalidate(wholesaleInventoryProvider);
                           if (mounted) {
@@ -1179,6 +1215,10 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 ),
                 child: Column(children: [
                   _detailRow('Dosage Form', item.dosageForm, Icons.medication_rounded, EnhancedTheme.accentPurple),
+                  _divider(),
+                  _detailRow('Dispensing Unit',
+                      item.unitOfDispensing.isNotEmpty ? item.unitOfDispensing : 'N/A',
+                      Icons.scale_rounded, EnhancedTheme.accentCyan),
                   _divider(),
                   _detailRow('Barcode', item.barcode, Icons.qr_code_rounded, EnhancedTheme.infoBlue),
                   _divider(),

@@ -26,6 +26,7 @@ class InventoryApiClient {
         'lowStockThreshold': j['low_stock_threshold'] ?? j['lowStockThreshold'] ?? 10,
         'barcode': j['barcode'] ?? '',
         'expiryDate': j['expiry_date'] ?? j['expiryDate'],
+        'unitOfDispensing': j['unit_of_dispensing'] ?? j['unitOfDispensing'] ?? '',
       };
 
   Future<List<Item>> fetchInventory({String? search, String? store, int? branchId}) async {
@@ -187,5 +188,6 @@ class InventoryApiClient {
         barcode: (r['barcode'] as String?) ?? '',
         expiryDate: r['expiryDate'] != null
             ? DateTime.tryParse(r['expiryDate'] as String) : null,
+        unitOfDispensing: (r['unitOfDispensing'] as String?) ?? '',
       );
 }

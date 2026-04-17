@@ -7,6 +7,7 @@ import '../../../core/database/local_db.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/connectivity_provider.dart';
 import '../../../core/offline/offline_queue.dart';
+import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../../../shared/models/sale.dart';
 
@@ -1440,7 +1441,14 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
 
     final branch = _ref.read(activeBranchProvider);
-    final branchId = (branch != null && branch.id > 0) ? branch.id : null;
+    int? branchId = (branch != null && branch.id > 0) ? branch.id : null;
+    if (branchId == null) {
+      final user = _ref.read(currentUserProvider);
+      if (user != null && user.branchId > 0) {
+        const adminRoles = {'Admin', 'Manager', 'Wholesale Manager'};
+        if (!adminRoles.contains(user.role)) branchId = user.branchId;
+      }
+    }
 
     // Short-circuit: if device is already offline, enqueue without a network call.
     final isOnline = _ref.read(isOnlineProvider);
@@ -1541,8 +1549,15 @@ class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
       {int? customerId, int? cashierId,
        String paymentType = 'retail', String? patientName}) async {
     state = const AsyncValue.loading();
-    final branch   = _ref.read(activeBranchProvider);
-    final branchId = (branch != null && branch.id > 0) ? branch.id : null;
+    final branch = _ref.read(activeBranchProvider);
+    int? branchId = (branch != null && branch.id > 0) ? branch.id : null;
+    if (branchId == null) {
+      final user = _ref.read(currentUserProvider);
+      if (user != null && user.branchId > 0) {
+        const adminRoles = {'Admin', 'Manager', 'Wholesale Manager'};
+        if (!adminRoles.contains(user.role)) branchId = user.branchId;
+      }
+    }
     try {
       final result = await _api.sendToCashier(items,
           customerId: customerId, cashierId: cashierId,

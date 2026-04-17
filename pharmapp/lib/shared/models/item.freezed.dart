@@ -32,6 +32,7 @@ mixin _$Item {
   int get lowStockThreshold => throw _privateConstructorUsedError;
   String get barcode => throw _privateConstructorUsedError;
   DateTime? get expiryDate => throw _privateConstructorUsedError;
+  String get unitOfDispensing => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -55,7 +56,8 @@ abstract class $ItemCopyWith<$Res> {
       int stock,
       int lowStockThreshold,
       String barcode,
-      DateTime? expiryDate});
+      DateTime? expiryDate,
+      String unitOfDispensing});
 }
 
 /// @nodoc
@@ -83,6 +85,7 @@ class _$ItemCopyWithImpl<$Res, $Val extends Item>
     Object? lowStockThreshold = null,
     Object? barcode = null,
     Object? expiryDate = freezed,
+    Object? unitOfDispensing = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -133,6 +136,10 @@ class _$ItemCopyWithImpl<$Res, $Val extends Item>
           ? _value.expiryDate
           : expiryDate // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      unitOfDispensing: null == unitOfDispensing
+          ? _value.unitOfDispensing
+          : unitOfDispensing // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 }
@@ -156,7 +163,8 @@ abstract class _$$ItemImplCopyWith<$Res> implements $ItemCopyWith<$Res> {
       int stock,
       int lowStockThreshold,
       String barcode,
-      DateTime? expiryDate});
+      DateTime? expiryDate,
+      String unitOfDispensing});
 }
 
 /// @nodoc
@@ -181,6 +189,7 @@ class __$$ItemImplCopyWithImpl<$Res>
     Object? lowStockThreshold = null,
     Object? barcode = null,
     Object? expiryDate = freezed,
+    Object? unitOfDispensing = null,
   }) {
     return _then(_$ItemImpl(
       id: null == id
@@ -231,6 +240,10 @@ class __$$ItemImplCopyWithImpl<$Res>
           ? _value.expiryDate
           : expiryDate // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      unitOfDispensing: null == unitOfDispensing
+          ? _value.unitOfDispensing
+          : unitOfDispensing // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -250,7 +263,8 @@ class _$ItemImpl implements _Item {
       required this.stock,
       required this.lowStockThreshold,
       required this.barcode,
-      this.expiryDate});
+      this.expiryDate,
+      this.unitOfDispensing = ''});
 
   factory _$ItemImpl.fromJson(Map<String, dynamic> json) =>
       _$$ItemImplFromJson(json);
@@ -282,10 +296,13 @@ class _$ItemImpl implements _Item {
   final String barcode;
   @override
   final DateTime? expiryDate;
+  @override
+  @JsonKey()
+  final String unitOfDispensing;
 
   @override
   String toString() {
-    return 'Item(id: $id, name: $name, brand: $brand, dosageForm: $dosageForm, price: $price, costPrice: $costPrice, markup: $markup, branchId: $branchId, stock: $stock, lowStockThreshold: $lowStockThreshold, barcode: $barcode, expiryDate: $expiryDate)';
+    return 'Item(id: $id, name: $name, brand: $brand, dosageForm: $dosageForm, price: $price, costPrice: $costPrice, markup: $markup, branchId: $branchId, stock: $stock, lowStockThreshold: $lowStockThreshold, barcode: $barcode, expiryDate: $expiryDate, unitOfDispensing: $unitOfDispensing)';
   }
 
   @override
@@ -308,13 +325,15 @@ class _$ItemImpl implements _Item {
                 other.lowStockThreshold == lowStockThreshold) &&
             (identical(other.barcode, barcode) || other.barcode == barcode) &&
             (identical(other.expiryDate, expiryDate) ||
-                other.expiryDate == expiryDate));
+                other.expiryDate == expiryDate) &&
+            (identical(other.unitOfDispensing, unitOfDispensing) ||
+                other.unitOfDispensing == unitOfDispensing));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, id, name, brand, dosageForm,
-      price, costPrice, markup, branchId, stock, lowStockThreshold, barcode, expiryDate);
+      price, costPrice, markup, branchId, stock, lowStockThreshold, barcode, expiryDate, unitOfDispensing);
 
   @JsonKey(ignore: true)
   @override
@@ -343,7 +362,8 @@ abstract class _Item implements Item {
       required final int stock,
       required final int lowStockThreshold,
       required final String barcode,
-      final DateTime? expiryDate}) = _$ItemImpl;
+      final DateTime? expiryDate,
+      final String unitOfDispensing}) = _$ItemImpl;
 
   factory _Item.fromJson(Map<String, dynamic> json) = _$ItemImpl.fromJson;
 
@@ -371,6 +391,8 @@ abstract class _Item implements Item {
   String get barcode;
   @override
   DateTime? get expiryDate;
+  @override
+  String get unitOfDispensing;
   @override
   @JsonKey(ignore: true)
   _$$ItemImplCopyWith<_$ItemImpl> get copyWith =>

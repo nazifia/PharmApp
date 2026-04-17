@@ -21,6 +21,7 @@ _$ItemImpl _$$ItemImplFromJson(Map<String, dynamic> json) => _$ItemImpl(
       expiryDate: json['expiryDate'] == null
           ? null
           : DateTime.parse(json['expiryDate'] as String),
+      unitOfDispensing: json['unitOfDispensing'] as String? ?? '',
     );
 
 Map<String, dynamic> _$$ItemImplToJson(_$ItemImpl instance) =>
@@ -37,4 +38,5 @@ Map<String, dynamic> _$$ItemImplToJson(_$ItemImpl instance) =>
       'lowStockThreshold': instance.lowStockThreshold,
       'barcode': instance.barcode,
       'expiryDate': instance.expiryDate?.toIso8601String(),
+      'unitOfDispensing': instance.unitOfDispensing,
     };
