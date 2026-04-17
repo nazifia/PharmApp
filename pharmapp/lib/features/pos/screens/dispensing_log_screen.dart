@@ -12,19 +12,13 @@ import '../providers/pos_api_provider.dart';
 // ── Providers ────────────────────────────────────────────────────────────────
 
 /// Resolves the active branch ID for dispensing queries.
-/// Priority:
-///   1. Explicitly selected branch (activeBranchProvider).
-///   2. Logged-in user's assigned branch — non-admin staff only.
-///   3. null → org-wide (admins with no specific branch selected).
+/// Only uses an explicitly selected branch (activeBranchProvider).
+/// Non-admin users rely on JWT-based backend scoping — sending branch_id
+/// on their behalf can cause 403 errors on backends that restrict branch
+/// filtering to admin roles.
 int? _dispensingBranchId(Ref ref) {
   final branch = ref.watch(activeBranchProvider);
   if (branch != null && branch.id > 0) return branch.id;
-
-  final user = ref.watch(currentUserProvider);
-  if (user != null && user.branchId > 0) {
-    const adminRoles = {'Admin', 'Manager', 'Wholesale Manager'};
-    if (!adminRoles.contains(user.role)) return user.branchId;
-  }
   return null;
 }
 
@@ -407,11 +401,13 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
         const SizedBox(height: 3),
         Builder(builder: (_) {
           final activeBranch = ref.watch(activeBranchProvider);
+          final user = ref.read(currentUserProvider);
           final label = (activeBranch != null && activeBranch.id > 0)
               ? activeBranch.name
-              : 'All Branches';
+              : ((user?.branchId ?? 0) > 0 && (user?.branchName.isNotEmpty ?? false))
+                  ? user!.branchName
+                  : 'All Branches';
           final isSpecific = activeBranch != null && activeBranch.id > 0;
-          final user = ref.read(currentUserProvider);
           if ((user?.branchId ?? 0) != 0) {
             // Locked to assigned branch — show static chip
             return Container(
@@ -519,8 +515,8 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
         ]),
         error: (e, _) => const SizedBox.shrink(),
         data: (stats) {
-          final daily   = stats['daily']   as Map<String, dynamic>? ?? {};
-          final monthly = stats['monthly'] as Map<String, dynamic>? ?? {};
+          final daily   = stats['daily']   is Map ? Map<String, dynamic>.from(stats['daily'] as Map) : <String, dynamic>{};
+          final monthly = stats['monthly'] is Map ? Map<String, dynamic>.from(stats['monthly'] as Map) : <String, dynamic>{};
           final dailyCount    = daily['count']     ?? 0;
           final dailyRevenue  = (daily['revenue']   as num?)?.toDouble() ?? 0;
           final monthlyCount  = monthly['count']   ?? 0;

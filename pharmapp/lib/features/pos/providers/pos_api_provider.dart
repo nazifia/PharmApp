@@ -327,6 +327,9 @@ class PosApiClient {
         if (cached != null) return cached as Map<String, dynamic>;
         throw Exception('Offline — no cached dispensing stats available');
       }
+      if (e.response?.statusCode == 404) {
+        return {'daily': {}, 'monthly': {}};
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load dispensing stats');
     }

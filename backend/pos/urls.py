@@ -28,6 +28,7 @@ urlpatterns = [
     ),
     # Dispensing Log
     path("dispensing-log/", views.dispensing_log_list, name="dispensing-log"),
+    path("dispensing-log/stats/", views.dispensing_stats, name="dispensing-log-stats"),
     path("dispensing-stats/", views.dispensing_stats, name="dispensing-stats"),
     # Expenses
     path("expense-categories/", views.expense_category_list, name="expense-cat-list"),
