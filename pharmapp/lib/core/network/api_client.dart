@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Base URL ─────────────────────────────────────────────────────────────────
@@ -83,6 +84,11 @@ class AuthInterceptor extends Interceptor {
       final skipClear = err.requestOptions.extra['skipTokenClear'] == true;
       if (sentAuth && !skipClear) {
         _ref.read(authTokenProvider.notifier).state = null;
+        // Clear from FlutterSecureStorage (where tokens are stored post-migration).
+        // Also clear SharedPreferences legacy keys so old entries don't linger.
+        const secureStorage = FlutterSecureStorage();
+        secureStorage.delete(key: 'auth_token').ignore();
+        secureStorage.delete(key: 'current_user').ignore();
         SharedPreferences.getInstance().then((prefs) {
           prefs.remove('auth_token');
           prefs.remove('current_user');

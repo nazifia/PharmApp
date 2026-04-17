@@ -60,7 +60,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: (context, state) {
       final authState       = ref.read(authFlowProvider);
-      final isAuthenticated = authState == AuthFlowState.authenticated;
+      final token           = ref.read(authTokenProvider);
+      // Treat session as unauthenticated if the interceptor wiped the token
+      // (e.g. 401 on subscription fetch) but authFlowProvider wasn't reset.
+      final isAuthenticated = authState == AuthFlowState.authenticated && token != null;
       final loc             = state.matchedLocation;
       final user            = ref.read(currentUserProvider);
 
@@ -317,6 +320,9 @@ String _getRoleRoute(String? role) {
 class _GoRouterNotifier extends ChangeNotifier {
   _GoRouterNotifier(Ref ref) {
     ref.listen<AuthFlowState>(authFlowProvider, (_, __) => notifyListeners());
+    // Re-evaluate when the token is cleared (e.g. 401 interceptor wipes it)
+    // so the router redirects to /login even if authFlowProvider wasn't reset.
+    ref.listen<String?>(authTokenProvider, (_, __) => notifyListeners());
     // Re-evaluate redirect when branch selection changes.
     ref.listen(activeBranchProvider, (_, __) => notifyListeners());
     // Re-evaluate when user profile refreshes (e.g. branchId assigned by admin,
