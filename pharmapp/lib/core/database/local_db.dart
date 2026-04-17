@@ -1478,48 +1478,52 @@ class LocalDb {
 
   static final _dateRe = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
-  String _periodWhere(String period, {String table = ''}) {
+  ({String clause, List<Object?> args}) _periodWhere(String period, {String table = ''}) {
     final col = table.isEmpty ? 'created_at' : '$table.created_at';
     if (period.startsWith('custom:')) {
       final parts = period.split(':');
       if (parts.length >= 3 &&
           _dateRe.hasMatch(parts[1]) &&
           _dateRe.hasMatch(parts[2])) {
-        return "$col >= '${parts[1]}' AND $col <= '${parts[2]} 23:59:59'";
+        return (
+          clause: '$col >= ? AND $col <= ?',
+          args: [parts[1], '${parts[2]} 23:59:59'],
+        );
       }
       // Invalid date format — fall through to default
     }
     switch (period) {
       case 'today':
-        return "date($col) = date('now')";
+        return (clause: "date($col) = date('now')", args: []);
       case 'week':
-        return "$col >= datetime('now', '-7 days')";
+        return (clause: "$col >= datetime('now', '-7 days')", args: []);
       case 'month':
-        return "$col >= datetime('now', '-1 month')";
+        return (clause: "$col >= datetime('now', '-1 month')", args: []);
       case 'quarter':
-        return "$col >= datetime('now', '-3 months')";
+        return (clause: "$col >= datetime('now', '-3 months')", args: []);
       case 'year':
-        return "$col >= datetime('now', '-1 year')";
+        return (clause: "$col >= datetime('now', '-1 year')", args: []);
       default:
-        return "$col >= datetime('now', '-30 days')";
+        return (clause: "$col >= datetime('now', '-30 days')", args: []);
     }
   }
 
   Future<Map<String, dynamic>> getSalesReport(String period) async {
     final d = await db;
-    final w = _periodWhere(period);
+    final w  = _periodWhere(period);
+    final wS = _periodWhere(period, table: 's');
     final rows = await d.rawQuery('''
       SELECT COALESCE(SUM(total_amount),0) as total,
              COALESCE(SUM(CASE WHEN is_wholesale=0 THEN total_amount ELSE 0 END),0) as retail,
              COALESCE(SUM(CASE WHEN is_wholesale=1 THEN total_amount ELSE 0 END),0) as wholesale,
              COUNT(*) as cnt
-      FROM sales WHERE $w AND status='completed' ''');
+      FROM sales WHERE ${w.clause} AND status='completed' ''', w.args);
     final top = await d.rawQuery('''
       SELECT si.item_name as name, SUM(si.quantity) as qty,
              SUM(si.price*si.quantity-si.discount) as revenue
       FROM sale_items si JOIN sales s ON s.id=si.sale_id
-      WHERE ${_periodWhere(period, table: 's')} AND s.status='completed'
-      GROUP BY si.item_name ORDER BY revenue DESC LIMIT 5''');
+      WHERE ${wS.clause} AND s.status='completed'
+      GROUP BY si.item_name ORDER BY revenue DESC LIMIT 5''', wS.args);
     final r = rows.first;
     return {
       'period': period,
@@ -1587,11 +1591,12 @@ class LocalDb {
 
   Future<Map<String, dynamic>> getProfitReport(String period) async {
     final d = await db;
+    final w = _periodWhere(period, table: 's');
     final rows = await d.rawQuery('''
       SELECT COALESCE(SUM(s.total_amount),0) as revenue,
              COALESCE(SUM(si.cost_price*si.quantity),0) as cost
       FROM sales s LEFT JOIN sale_items si ON si.sale_id=s.id
-      WHERE ${_periodWhere(period, table: 's')} AND s.status='completed' ''');
+      WHERE ${w.clause} AND s.status='completed' ''', w.args);
     final revenue = (rows.first['revenue'] as num? ?? 0).toDouble();
     final cost = (rows.first['cost'] as num? ?? 0).toDouble();
     final profit = revenue - cost;

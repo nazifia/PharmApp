@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -33,9 +34,9 @@ class AuthService {
   /// any permission changes made via Django admin or the UI are picked up.
   Future<bool> checkAuthStatus() async {
     try {
-      final prefs    = await SharedPreferences.getInstance().timeout(const Duration(seconds: 3));
-      final token    = prefs.getString('auth_token');
-      final userData = prefs.getString('current_user');
+      const storage  = FlutterSecureStorage();
+      final token    = await storage.read(key: 'auth_token');
+      final userData = await storage.read(key: 'current_user');
 
       if (token != null && userData != null) {
         final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
@@ -44,6 +45,7 @@ class AuthService {
         // 2. Restore active branch so user isn't re-prompted every app start.
         //    If the user has a backend-assigned branch (branchId != 0), use it
         //    directly — no manual selection ever needed for that account.
+        final prefs      = await SharedPreferences.getInstance();
         final branchData = prefs.getString('active_branch');
         if (user.branchId != 0) {
           _ref.read(activeBranchProvider.notifier).state = Branch(
@@ -69,9 +71,10 @@ class AuthService {
       _ref.read(authFlowProvider.notifier).refreshProfile();
 
   Future<void> logout() async {
+    const storage = FlutterSecureStorage();
+    await storage.delete(key: 'auth_token');
+    await storage.delete(key: 'current_user');
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
-    await prefs.remove('current_user');
     await prefs.remove('active_branch');
     _ref.read(currentUserProvider.notifier).state  = null;
     _ref.read(authTokenProvider.notifier).state    = null;

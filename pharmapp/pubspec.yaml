@@ -22,6 +22,8 @@ dependencies:
 
   # Auth persistence (shared_preferences works cross-platform: web, Windows, Android, iOS)
   shared_preferences: ^2.3.0
+  # Secure storage for JWT tokens (Keystore/Keychain on mobile+desktop; localStorage on web)
+  flutter_secure_storage: ^9.2.2
 
   # Models (annotations only, no generation needed at runtime)
   freezed_annotation: ^2.4.4
