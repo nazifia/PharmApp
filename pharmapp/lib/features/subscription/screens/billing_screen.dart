@@ -884,9 +884,68 @@ class _PlatformAccountCard extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () => _openSupportWhatsApp(context),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF25D366).withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: const Color(0xFF25D366).withValues(alpha: 0.30)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.chat_rounded,
+                      color: Color(0xFF25D366), size: 18),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Send Proof of Payment',
+                            style: TextStyle(
+                                color: Color(0xFF25D366),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700)),
+                        Text('+234 803 219 4090',
+                            style: TextStyle(
+                                color: Colors.black38, fontSize: 10)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.open_in_new_rounded,
+                      color: Color(0xFF25D366), size: 14),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  void _openSupportWhatsApp(BuildContext context) async {
+    const number  = '2348032194090';
+    const message = 'Hello, I have made a payment for my PharmApp subscription. '
+        'Please find proof of payment attached.';
+    final uri = Uri.parse(
+        'https://wa.me/$number?text=${Uri.encodeComponent(message)}');
+    if (await canLaunchUrl(uri)) {
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open WhatsApp.'),
+            backgroundColor: EnhancedTheme.errorRed,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _openPaymentLink(BuildContext context, String url) async {
