@@ -1,10 +1,4 @@
 
 {
-  // "env": {
-  //   "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
-  //   "ANTHROPIC_AUTH_TOKEN": "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",
-  //   "ANTHROPIC_API_KEY": "",
-  //   "ANTHROPIC_MODEL": "nvidia/nemotron-3-super-120b-a12b:free",
-  //   "CLAUDE_CODE_SUBAGENT_MODEL": "nvidia/nemotron-3-super-120b-a12b:free"
-  // }
+  
 }

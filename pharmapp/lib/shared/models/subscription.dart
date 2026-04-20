@@ -136,7 +136,7 @@ class UsageLimits {
   bool get unlimitedBranches     => maxBranches == -1;
 
   static UsageLimits forPlan(SubscriptionPlan plan) => switch (plan) {
-        SubscriptionPlan.trial        => const UsageLimits(maxUsers: 2,  maxItems: 50,  maxTransactionsPerMonth: 200,  maxBranches: 1),
+        SubscriptionPlan.trial        => const UsageLimits(maxUsers: 15, maxItems: -1,  maxTransactionsPerMonth: -1,   maxBranches: 3),
         SubscriptionPlan.starter      => const UsageLimits(maxUsers: 5,  maxItems: 500, maxTransactionsPerMonth: 2000, maxBranches: 1),
         SubscriptionPlan.professional => const UsageLimits(maxUsers: 15, maxItems: -1,  maxTransactionsPerMonth: -1,   maxBranches: 3),
         SubscriptionPlan.enterprise   => const UsageLimits(maxUsers: -1, maxItems: -1,  maxTransactionsPerMonth: -1,   maxBranches: -1),
@@ -179,13 +179,18 @@ class SaasFeature {
   static Set<String> forPlan(SubscriptionPlan plan) {
     final base = {pos, inventory};
 
-    if (plan.isAtLeast(SubscriptionPlan.starter)) {
+    // Trial gets full Professional feature set for 14-day evaluation.
+    final effectivePlan = plan == SubscriptionPlan.trial
+        ? SubscriptionPlan.professional
+        : plan;
+
+    if (effectivePlan.isAtLeast(SubscriptionPlan.starter)) {
       base.addAll({customers, userManagement, basicReports});
     }
-    if (plan.isAtLeast(SubscriptionPlan.professional)) {
+    if (effectivePlan.isAtLeast(SubscriptionPlan.professional)) {
       base.addAll({advancedReports, wholesale, exportData, multiBranch});
     }
-    if (plan.isAtLeast(SubscriptionPlan.enterprise)) {
+    if (effectivePlan.isAtLeast(SubscriptionPlan.enterprise)) {
       base.addAll({prioritySupport});
     }
 
@@ -532,11 +537,18 @@ class Subscription {
 
   bool hasFeature(String feature) => features.contains(feature);
 
-  bool get isAccessible =>
-      status == SubscriptionStatus.active   ||
-      status == SubscriptionStatus.trial    ||
-      status == SubscriptionStatus.expiring ||
-      status == SubscriptionStatus.pending;  // keep current plan features while awaiting approval
+  bool get isAccessible {
+    // Hard-block expired trials regardless of backend status.
+    if (plan == SubscriptionPlan.trial &&
+        trialEndsAt != null &&
+        DateTime.now().isAfter(trialEndsAt!)) {
+      return false;
+    }
+    return status == SubscriptionStatus.active   ||
+           status == SubscriptionStatus.trial    ||
+           status == SubscriptionStatus.expiring ||
+           status == SubscriptionStatus.pending;  // keep current plan features while awaiting approval
+  }
 
   int? get trialDaysRemaining {
     if (trialEndsAt == null) return null;

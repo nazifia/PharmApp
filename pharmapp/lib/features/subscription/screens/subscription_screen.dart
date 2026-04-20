@@ -287,6 +287,7 @@ class _CurrentPlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color planColor = _planColor(sub.plan);
     final days            = sub.trialDaysRemaining;
+    final isTrial         = sub.plan == SubscriptionPlan.trial;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -306,59 +307,112 @@ class _CurrentPlanCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: planColor.withValues(alpha: 0.4)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 52, height: 52,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: planColor.withValues(alpha: 0.15),
-                  border: Border.all(color: planColor.withValues(alpha: 0.5)),
-                ),
-                child: Icon(Icons.workspace_premium_rounded,
-                    color: planColor, size: 26),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      sub.plan.displayName,
-                      style: TextStyle(
-                          color: planColor,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800),
+              Row(
+                children: [
+                  Container(
+                    width: 52, height: 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: planColor.withValues(alpha: 0.15),
+                      border: Border.all(color: planColor.withValues(alpha: 0.5)),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _statusLabel(sub),
-                      style: TextStyle(
-                          color: planColor.withValues(alpha: 0.75),
-                          fontSize: 12),
-                    ),
-                    if (days != null && days >= 0) ...[
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: (14 - days) / 14,
-                          backgroundColor: planColor.withValues(alpha: 0.15),
-                          valueColor: AlwaysStoppedAnimation(planColor),
-                          minHeight: 5,
+                    child: Icon(Icons.workspace_premium_rounded,
+                        color: planColor, size: 26),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          sub.plan.displayName,
+                          style: TextStyle(
+                              color: planColor,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$days day${days == 1 ? '' : 's'} remaining',
-                        style: TextStyle(
-                            color: planColor.withValues(alpha: 0.65),
-                            fontSize: 10),
-                      ),
-                    ],
-                  ],
-                ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _statusLabel(sub),
+                          style: TextStyle(
+                              color: planColor.withValues(alpha: 0.75),
+                              fontSize: 12),
+                        ),
+                        if (days != null && days >= 0) ...[
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: (14 - days) / 14,
+                              backgroundColor: planColor.withValues(alpha: 0.15),
+                              valueColor: AlwaysStoppedAnimation(planColor),
+                              minHeight: 5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '$days day${days == 1 ? '' : 's'} remaining',
+                            style: TextStyle(
+                                color: planColor.withValues(alpha: 0.65),
+                                fontSize: 10),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
+
+              if (isTrial) ...[
+                const SizedBox(height: 14),
+                Divider(color: planColor.withValues(alpha: 0.2), height: 1),
+                const SizedBox(height: 12),
+                Text(
+                  'Included in your trial',
+                  style: TextStyle(
+                      color: planColor.withValues(alpha: 0.85),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: sub.features.map((f) {
+                    final label = sub.featureLabel(f);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: planColor.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: planColor.withValues(alpha: 0.25)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_rounded,
+                              size: 11,
+                              color: planColor.withValues(alpha: 0.9)),
+                          const SizedBox(width: 4),
+                          Text(
+                            label,
+                            style: TextStyle(
+                                color: planColor.withValues(alpha: 0.85),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         ),
