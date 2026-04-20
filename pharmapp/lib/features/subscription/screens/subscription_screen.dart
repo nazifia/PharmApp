@@ -139,7 +139,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                       const SizedBox(height: 12),
 
                       // ── Plan cards ────────────────────────────────────────
-                      ...SubscriptionPlan.values.map(
+                      ...SubscriptionPlan.values
+                        .where((p) => p != SubscriptionPlan.trial)
+                        .map(
                         (plan) => _PlanCard(
                           plan:      plan,
                           isCurrent: sub.plan == plan &&

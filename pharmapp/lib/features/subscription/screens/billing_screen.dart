@@ -1967,7 +1967,9 @@ class _PlansSection extends ConsumerWidget {
           const SizedBox(height: 14),
 
           // Plan rows
-          ...SubscriptionPlan.values.map(
+          ...SubscriptionPlan.values
+            .where((p) => p != SubscriptionPlan.trial)
+            .map(
             (plan) => _PlanRow(
               plan:      plan,
               cycle:     cycle,
