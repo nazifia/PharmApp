@@ -6,11 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import '../providers/inventory_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+
+const _kPermEditItems = 'can_edit_items';
 
 class ItemDetailScreen extends ConsumerStatefulWidget {
   const ItemDetailScreen({super.key});
@@ -22,6 +26,60 @@ class ItemDetailScreen extends ConsumerStatefulWidget {
 class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   // Local override updated after stock-adjust / edit saves.
   Item? _itemOverride;
+
+  static const _adminRoles = {'Admin', 'Manager'};
+
+  bool get _canEdit {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return false;
+    if (_adminRoles.contains(user.role)) return true;
+    return user.permissions[_kPermEditItems] == true;
+  }
+
+  bool get _canAdjustStock {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return false;
+    return Rbac.can(user, AppPermission.adjustStock);
+  }
+
+  bool get _canDelete {
+    final user = ref.read(currentUserProvider);
+    return _adminRoles.contains(user?.role);
+  }
+
+  void _showNoPermissionSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: const Row(children: [
+        Icon(Icons.lock_rounded, color: Colors.black, size: 20),
+        SizedBox(width: 10),
+        Expanded(child: Text(
+          'No permission to edit items. Ask an Admin or Manager.',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+        )),
+      ]),
+    ));
+  }
+
+  void _showNoAdjustStockPermissionSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: const Row(children: [
+        Icon(Icons.lock_rounded, color: Colors.black, size: 20),
+        SizedBox(width: 10),
+        Expanded(child: Text(
+          'No permission to adjust stock. Ask an Admin or Manager.',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+        )),
+      ]),
+    ));
+  }
 
   // ── Edit sheet ────────────────────────────────────────────────────────────
 
@@ -1065,18 +1123,32 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           Text(subtitle, style: TextStyle(color: context.hintColor, fontSize: 12)),
       ])),
       if (item != null) ...[
-        Container(
-          decoration: BoxDecoration(
-            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+        if (_canEdit)
+          Container(
+            decoration: BoxDecoration(
+              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.edit_rounded, color: EnhancedTheme.primaryTeal, size: 20),
+              tooltip: 'Edit',
+              onPressed: () => _showEditSheet(context, item),
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.borderColor),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.edit_off_rounded, color: context.hintColor, size: 20),
+              tooltip: 'No edit permission',
+              onPressed: _showNoPermissionSnackBar,
+            ),
           ),
-          child: IconButton(
-            icon: const Icon(Icons.edit_rounded, color: EnhancedTheme.primaryTeal, size: 20),
-            tooltip: 'Edit',
-            onPressed: () => _showEditSheet(context, item),
-          ),
-        ),
         const SizedBox(width: 8),
         Container(
           decoration: BoxDecoration(
@@ -1101,7 +1173,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   Text('Transfer to Branch', style: TextStyle(color: EnhancedTheme.accentPurple, fontSize: 13)),
                 ]),
               ),
-              const PopupMenuItem(
+              if (_canDelete) const PopupMenuItem(
                 value: 'delete',
                 child: Row(children: [
                   Icon(Icons.delete_outline_rounded, color: EnhancedTheme.errorRed, size: 18),
@@ -1274,7 +1346,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           Column(children: [
             Row(children: [
               Expanded(child: ElevatedButton.icon(
-                onPressed: () => _showEditSheet(context, item),
+                onPressed: _canEdit
+                    ? () => _showEditSheet(context, item)
+                    : _showNoPermissionSnackBar,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -1284,7 +1358,10 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 icon: const SizedBox.shrink(),
                 label: Ink(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                    gradient: _canEdit
+                        ? const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan])
+                        : null,
+                    color: _canEdit ? null : Colors.grey.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Container(
@@ -1292,23 +1369,39 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     alignment: Alignment.center,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const Icon(Icons.edit_rounded, size: 18, color: Colors.black),
+                      Icon(_canEdit ? Icons.edit_rounded : Icons.edit_off_rounded,
+                          size: 18,
+                          color: _canEdit ? Colors.black : context.hintColor),
                       const SizedBox(width: 8),
-                      Text('Edit', style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 15)),
+                      Text('Edit',
+                          style: GoogleFonts.outfit(
+                              color: _canEdit ? Colors.black : context.hintColor,
+                              fontWeight: FontWeight.w700, fontSize: 15)),
                     ]),
                   ),
                 ),
               )),
               const SizedBox(width: 14),
               Expanded(child: OutlinedButton.icon(
-                onPressed: () => _showAdjustStockDialog(item),
+                onPressed: _canAdjustStock
+                    ? () => _showAdjustStockDialog(item)
+                    : _showNoAdjustStockPermissionSnackBar,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: EnhancedTheme.accentCyan,
-                  side: const BorderSide(color: EnhancedTheme.accentCyan, width: 1.5),
+                  foregroundColor: _canAdjustStock
+                      ? EnhancedTheme.accentCyan
+                      : context.hintColor,
+                  side: BorderSide(
+                      color: _canAdjustStock
+                          ? EnhancedTheme.accentCyan
+                          : context.borderColor,
+                      width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                icon: const Icon(Icons.tune_rounded, size: 18),
-                label: Text('Adjust Stock', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
+                icon: Icon(
+                    _canAdjustStock ? Icons.tune_rounded : Icons.lock_rounded,
+                    size: 18),
+                label: Text('Adjust Stock',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
               )),
             ]),
             const SizedBox(height: 12),

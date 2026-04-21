@@ -32,6 +32,7 @@ abstract class AppPermission {
   // Inventory
   static const String writeInventory   = 'writeInventory';
   static const String readInventory    = 'readInventory';
+  static const String adjustStock      = 'adjust_stock';
 
   // POS
   static const String retailPOS        = 'retailPOS';
@@ -88,6 +89,7 @@ const Map<String, Set<String>> _matrix = {
   AppPermission.manageSuppliers:   _suppliersRoles,
   AppPermission.writeInventory:    _inventoryWrite,
   AppPermission.readInventory:     _inventoryRead,
+  AppPermission.adjustStock:       _seniorRoles,
   AppPermission.retailPOS:         _retailPOS,
   AppPermission.wholesalePOS:      _wholesalePOS,
   AppPermission.viewWholesale:     _wholesalePOS,
