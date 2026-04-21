@@ -651,9 +651,12 @@ class Subscription {
       final effectivePlanKey = plan == SubscriptionPlan.trial
           ? SubscriptionPlan.professional.name
           : plan.name;
+      // For trial: if backend didn't define 'professional' features, use
+      // hardcoded professional set — never fall back to trial's limited list.
       final backendBase = planFeatures[effectivePlanKey]
-          ?? planFeatures[plan.name]
-          ?? <String>{};
+          ?? (plan == SubscriptionPlan.trial
+              ? SaasFeature.forPlan(SubscriptionPlan.professional)
+              : planFeatures[plan.name] ?? <String>{});
       final recomputed  = Set<String>.from(backendBase)
         ..addAll(extraFeatures)
         ..removeAll(removedFeatures);
