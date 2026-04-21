@@ -409,7 +409,7 @@ class _CurrentPlanCard extends StatelessWidget {
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: sub.features.map((f) {
+                  children: (_planHighlights[SubscriptionPlan.trial] ?? []).map((f) {
                     final label = sub.featureLabel(f);
                     return Container(
                       padding: const EdgeInsets.symmetric(

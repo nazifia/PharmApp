@@ -660,6 +660,16 @@ class Subscription {
       final recomputed  = Set<String>.from(backendBase)
         ..addAll(extraFeatures)
         ..removeAll(removedFeatures);
+
+      // Trial always gets the full hardcoded professional baseline regardless
+      // of what the backend's plan_features says — an incomplete backend config
+      // must never silently remove report access from trial users.
+      if (plan == SubscriptionPlan.trial) {
+        for (final f in SaasFeature.forPlan(SubscriptionPlan.professional)) {
+          if (!removedFeatures.contains(f)) recomputed.add(f);
+        }
+      }
+
       effectiveFeatures
         ..clear()
         ..addAll(recomputed);
