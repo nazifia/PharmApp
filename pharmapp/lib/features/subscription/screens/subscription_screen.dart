@@ -329,12 +329,37 @@ class _CurrentPlanCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          sub.plan.displayName,
-                          style: TextStyle(
-                              color: planColor,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800),
+                        Row(
+                          children: [
+                            Text(
+                              sub.plan.displayName,
+                              style: TextStyle(
+                                  color: planColor,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800),
+                            ),
+                            if (isTrial) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: planColor.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: planColor.withValues(alpha: 0.45)),
+                                ),
+                                child: Text(
+                                  'FREE TRIAL',
+                                  style: TextStyle(
+                                      color: planColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
