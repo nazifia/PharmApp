@@ -578,6 +578,51 @@ class _UsageRow extends StatelessWidget {
   }
 }
 
+// ── Hardcoded feature highlights per plan ─────────────────────────────────────
+// Used by both the plan cards and the feature comparison matrix.
+
+const _planHighlights = <SubscriptionPlan, List<String>>{
+  SubscriptionPlan.trial: [
+    SaasFeature.pos,
+    SaasFeature.inventory,
+    SaasFeature.customers,
+    SaasFeature.userManagement,
+    SaasFeature.basicReports,
+    SaasFeature.advancedReports,
+    SaasFeature.wholesale,
+  ],
+  SubscriptionPlan.starter: [
+    SaasFeature.pos,
+    SaasFeature.inventory,
+    SaasFeature.customers,
+    SaasFeature.userManagement,
+    SaasFeature.basicReports,
+  ],
+  SubscriptionPlan.professional: [
+    SaasFeature.pos,
+    SaasFeature.inventory,
+    SaasFeature.customers,
+    SaasFeature.userManagement,
+    SaasFeature.basicReports,
+    SaasFeature.advancedReports,
+    SaasFeature.wholesale,
+    SaasFeature.exportData,
+    SaasFeature.multiBranch,
+  ],
+  SubscriptionPlan.enterprise: [
+    SaasFeature.pos,
+    SaasFeature.inventory,
+    SaasFeature.customers,
+    SaasFeature.userManagement,
+    SaasFeature.basicReports,
+    SaasFeature.advancedReports,
+    SaasFeature.wholesale,
+    SaasFeature.exportData,
+    SaasFeature.multiBranch,
+    SaasFeature.prioritySupport,
+  ],
+};
+
 // ── Plan Card ─────────────────────────────────────────────────────────────────
 
 class _PlanCard extends ConsumerStatefulWidget {
@@ -606,8 +651,7 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
   Widget build(BuildContext context) {
     final planColor = _planColor(widget.plan);
     final limits    = UsageLimits.forPlan(widget.plan);
-    // Use backend-driven features if available, else fall back to hardcoded
-    final features  = widget.sub.featuresForPlan(widget.plan);
+    final features  = _planHighlights[widget.plan] ?? [];
     final isAnnual  = widget.cycle == BillingCycle.annual;
     // Use backend-driven prices if available, else fall back to hardcoded
     final savings   = widget.sub.annualSavingsForPlan(widget.plan);
@@ -789,7 +833,7 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
 
                 const SizedBox(height: 10),
 
-                // Feature tags (labels from backend if available)
+                // Feature highlights — hardcoded per plan
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
@@ -1010,7 +1054,7 @@ class _FeatureMatrix extends StatelessWidget {
                         (p) => SizedBox(
                           width: 60,
                           child: Center(
-                            child: sub.featuresForPlan(p).contains(key)
+                            child: (_planHighlights[p] ?? []).contains(key)
                                 ? Icon(Icons.check_circle_rounded,
                                     color: _planColor(p), size: 16)
                                 : const Icon(Icons.remove_rounded,
