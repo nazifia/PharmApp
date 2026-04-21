@@ -479,7 +479,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 Text('Payment',
                     style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
                 Text('Complete the transaction',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
+                    style: TextStyle(color: Colors.black54, fontSize: 11)),
               ]),
             ]),
           ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0),
@@ -510,7 +510,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     ),
                     child: Column(children: [
                       Text('Total Amount',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12, letterSpacing: 0.8)),
+                          style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.8)),
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                         Text('₦',
@@ -528,13 +528,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 3),
                           child: Row(children: [
                             Expanded(child: Text(c.item.name,
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+                                style: const TextStyle(color: Colors.black54, fontSize: 12),
                                 overflow: TextOverflow.ellipsis)),
                             if (c.discount > 0)
                               Text('-₦${c.discount.toStringAsFixed(0)}  ',
                                   style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 11)),
                             Text('×${c.quantity}',
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
+                                style: const TextStyle(color: Colors.black45, fontSize: 11)),
                             const SizedBox(width: 12),
                             Text('₦${c.total.toStringAsFixed(0)}',
                                 style: const TextStyle(

@@ -152,7 +152,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-                          child: const Text('Send', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                          child: const Text('Send', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
                         ),
                       )),
                     ]),
