@@ -644,7 +644,16 @@ class Subscription {
     // If the backend sent plan_features, recompute effective features using
     // the backend-defined baseline for THIS plan (instead of the hardcoded one)
     if (planFeatures != null) {
-      final backendBase = planFeatures[plan.name] ?? <String>{};
+      // Trial gets the Professional feature baseline for evaluation — same
+      // escalation applied in SaasFeature.forPlan. Without this, a backend
+      // that defines plan_features.trial = [pos, inventory] would strip all
+      // the trial bonus features from the sidebar.
+      final effectivePlanKey = plan == SubscriptionPlan.trial
+          ? SubscriptionPlan.professional.name
+          : plan.name;
+      final backendBase = planFeatures[effectivePlanKey]
+          ?? planFeatures[plan.name]
+          ?? <String>{};
       final recomputed  = Set<String>.from(backendBase)
         ..addAll(extraFeatures)
         ..removeAll(removedFeatures);
