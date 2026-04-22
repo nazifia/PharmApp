@@ -5,8 +5,8 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 
-/// Displays a dismissible warning banner when the trial is expiring soon
-/// or has already expired. Place it near the top of key screens.
+/// Displays a dismissible warning banner when any subscription (trial or paid)
+/// is expiring within 7 days or has already expired.
 class TrialBanner extends ConsumerStatefulWidget {
   const TrialBanner({super.key});
 
@@ -23,32 +23,43 @@ class _TrialBannerState extends ConsumerState<TrialBanner> {
 
     final sub = ref.watch(currentSubscriptionProvider);
 
-    // Only show for trial / expiring / expired states
-    if (sub.status == SubscriptionStatus.active) return const SizedBox.shrink();
-
     final bool isExpired = sub.status == SubscriptionStatus.expired;
-    final days           = sub.trialDaysRemaining;
+    final bool isTrial   = sub.plan == SubscriptionPlan.trial;
 
-    final Color  bannerColor;
-    final String message;
+    // Show when expired or within 7-day expiry window for any plan.
+    if (!isExpired && !sub.isSubscriptionExpiring) {
+      return const SizedBox.shrink();
+    }
+
+    final days = sub.subscriptionDaysRemaining;
+
+    final Color    bannerColor;
+    final String   message;
     final IconData icon;
 
     if (isExpired) {
       bannerColor = EnhancedTheme.errorRed;
       icon        = Icons.lock_outline_rounded;
-      message     = 'Your trial has expired. Upgrade to continue using all features.';
+      message     = isTrial
+          ? 'Your free trial has expired. Upgrade to continue.'
+          : 'Your subscription has expired. Renew to restore access.';
     } else if (days != null && days <= 3) {
       bannerColor = EnhancedTheme.errorRed;
       icon        = Icons.timer_rounded;
-      message     = days == 0
-          ? 'Your trial expires today! Upgrade now to keep access.'
-          : 'Only $days day${days == 1 ? '' : 's'} left in your trial. Upgrade now.';
-    } else if (days != null && days <= 7) {
+      if (days == 0) {
+        message = isTrial
+            ? 'Trial expires today! Upgrade now to keep access.'
+            : 'Subscription expires today! Renew now.';
+      } else {
+        final label = isTrial ? 'trial' : 'subscription';
+        message = 'Only $days day${days == 1 ? '' : 's'} left on your $label. Act now.';
+      }
+    } else {
+      // 4–7 days
       bannerColor = EnhancedTheme.warningAmber;
       icon        = Icons.hourglass_bottom_rounded;
-      message     = '$days days left in your free trial. Upgrade to unlock all features.';
-    } else {
-      return const SizedBox.shrink();
+      final label = isTrial ? 'free trial' : 'subscription';
+      message     = '$days days left on your $label.';
     }
 
     return AnimatedSize(
@@ -84,9 +95,9 @@ class _TrialBannerState extends ConsumerState<TrialBanner> {
                   color: bannerColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  'Upgrade',
-                  style: TextStyle(
+                child: Text(
+                  isTrial ? 'Upgrade' : 'Renew',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,

@@ -151,6 +151,16 @@ final isTrialExpiringProvider = Provider<bool>((ref) {
   return ref.watch(currentSubscriptionProvider).isTrialExpiring;
 });
 
+/// Days remaining on the subscription (trial OR paid plan). Null = no end date.
+final subscriptionDaysRemainingProvider = Provider<int?>((ref) {
+  return ref.watch(currentSubscriptionProvider).subscriptionDaysRemaining;
+});
+
+/// True when any subscription (trial or paid) expires within 7 days.
+final isSubscriptionExpiringProvider = Provider<bool>((ref) {
+  return ref.watch(currentSubscriptionProvider).isSubscriptionExpiring;
+});
+
 /// Current usage stats.
 final currentUsageProvider = Provider<CurrentUsage>((ref) {
   return ref.watch(currentSubscriptionProvider).usage;

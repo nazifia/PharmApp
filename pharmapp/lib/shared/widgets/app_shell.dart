@@ -16,6 +16,7 @@ import 'package:pharmapp/features/customers/providers/customer_provider.dart';
 import 'package:pharmapp/features/pos/screens/sales_history_screen.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
+import 'package:pharmapp/features/subscription/widgets/trial_banner.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/core/inactivity/inactivity_provider.dart';
 
@@ -271,6 +272,7 @@ class _AppShellState extends ConsumerState<AppShell>
       drawer: const AppDrawer(),
       body: Column(children: [
         if (!isOnline || pending > 0) const _OfflineBanner(),
+        const TrialBanner(),
         Expanded(child: widget.child),
       ]),
       bottomNavigationBar: _AppBottomNav(

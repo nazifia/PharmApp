@@ -552,7 +552,10 @@ class Subscription {
 
   int? get trialDaysRemaining {
     if (trialEndsAt == null) return null;
-    final diff = trialEndsAt!.difference(DateTime.now()).inDays;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endDay = DateTime(trialEndsAt!.year, trialEndsAt!.month, trialEndsAt!.day);
+    final diff = endDay.difference(today).inDays;
     return diff < 0 ? 0 : diff;
   }
 
@@ -560,6 +563,27 @@ class Subscription {
       status == SubscriptionStatus.expiring ||
       (status == SubscriptionStatus.trial &&
        (trialDaysRemaining ?? 99) <= 7);
+
+  /// Days remaining on the subscription — trial uses [trialEndsAt],
+  /// paid plans use [currentPeriodEnd]. Null if no end date is known.
+  int? get subscriptionDaysRemaining {
+    final relevantDate =
+        plan == SubscriptionPlan.trial ? trialEndsAt : currentPeriodEnd;
+    if (relevantDate == null) return null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endDay = DateTime(
+        relevantDate.year, relevantDate.month, relevantDate.day);
+    final diff = endDay.difference(today).inDays;
+    return diff < 0 ? 0 : diff;
+  }
+
+  /// True when any subscription (trial or paid) expires within 7 days.
+  bool get isSubscriptionExpiring {
+    final days = subscriptionDaysRemaining;
+    if (days == null) return false;
+    return days <= 7;
+  }
 
   // ── Serialization ────────────────────────────────────────────────────────────
 
