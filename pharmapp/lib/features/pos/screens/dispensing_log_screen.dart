@@ -22,16 +22,24 @@ int? _dispensingBranchId(Ref ref) {
   return null;
 }
 
-final dispensingStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
-  return ref.watch(posApiProvider).fetchDispensingStats(branchId: _dispensingBranchId(ref));
+final dispensingStatsProvider =
+    FutureProvider.autoDispose.family<Map<String, dynamic>, bool>((ref, myOnly) {
+  final userId = myOnly ? ref.watch(currentUserProvider)?.id : null;
+  return ref.watch(posApiProvider).fetchDispensingStats(
+    branchId: _dispensingBranchId(ref),
+    userId: userId,
+  );
 });
 
-final dispensingLogProvider = FutureProvider.autoDispose.family<List<dynamic>, DispensingLogParams>((ref, params) {
+final dispensingLogProvider =
+    FutureProvider.autoDispose.family<List<dynamic>, DispensingLogParams>((ref, params) {
+  final userId = params.myOnly ? ref.watch(currentUserProvider)?.id : null;
   return ref.watch(posApiProvider).fetchDispensingLog(
     search: params.search,
     from: params.from,
     to: params.to,
     branchId: _dispensingBranchId(ref),
+    userId: userId,
   );
 });
 
@@ -39,15 +47,19 @@ class DispensingLogParams {
   final String? search;
   final String? from;
   final String? to;
-  const DispensingLogParams({this.search, this.from, this.to});
+  final bool myOnly;
+  const DispensingLogParams({this.search, this.from, this.to, this.myOnly = false});
 
   @override
   bool operator ==(Object other) =>
       other is DispensingLogParams &&
-      other.search == search && other.from == from && other.to == to;
+      other.search == search &&
+      other.from == from &&
+      other.to == to &&
+      other.myOnly == myOnly;
 
   @override
-  int get hashCode => Object.hash(search, from, to);
+  int get hashCode => Object.hash(search, from, to, myOnly);
 }
 
 // ── Screen ───────────────────────────────────────────────────────────────────
@@ -64,6 +76,16 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
   String _searchQuery = '';
   int _dateFilter = 0; // 0=Today, 1=Week, 2=Month, 3=All
   DateTimeRange? _customRange;
+  bool _myOnly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(dispensingStatsProvider);
+      ref.invalidate(dispensingLogProvider);
+    });
+  }
 
   @override
   void dispose() {
@@ -159,6 +181,12 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
     }
   }
 
+  // Returns the day after [d] as a date-only string.
+  // Used as an exclusive upper-bound so the backend's `__lte` comparison includes
+  // the full target day (Django parses bare date strings as midnight).
+  String _nextDayStr(DateTime d) =>
+      DateTime(d.year, d.month, d.day).add(const Duration(days: 1)).toIso8601String().split('T').first;
+
   DispensingLogParams get _params {
     final now = DateTime.now();
     String? from;
@@ -166,27 +194,31 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
     switch (_dateFilter) {
       case 0: // Today
         from = DateTime(now.year, now.month, now.day).toIso8601String().split('T').first;
-        to   = now.toIso8601String().split('T').first;
+        to   = _nextDayStr(now);
         break;
       case 1: // This Week
         final weekStart = now.subtract(Duration(days: now.weekday - 1));
         from = DateTime(weekStart.year, weekStart.month, weekStart.day).toIso8601String().split('T').first;
-        to   = now.toIso8601String().split('T').first;
+        to   = _nextDayStr(now);
         break;
       case 2: // This Month
         from = DateTime(now.year, now.month, 1).toIso8601String().split('T').first;
-        to   = now.toIso8601String().split('T').first;
+        to   = _nextDayStr(now);
         break;
       case 3: // All — no date filter
         break;
       case 4: // Custom date range
         if (_customRange != null) {
           from = _customRange!.start.toIso8601String().split('T').first;
-          to   = _customRange!.end.toIso8601String().split('T').first;
+          to   = _nextDayStr(_customRange!.end);
         }
         break;
     }
-    return DispensingLogParams(search: _searchQuery.isEmpty ? null : _searchQuery, from: from, to: to);
+    return DispensingLogParams(
+        search: _searchQuery.isEmpty ? null : _searchQuery,
+        from: from,
+        to: to,
+        myOnly: _myOnly);
   }
 
   // ── Branch Picker ──────────────────────────────────────────────────────────
@@ -239,7 +271,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
               isSelected: current == null || current.id <= 0,
               onTap: () {
                 ref.read(activeBranchProvider.notifier).state = null;
-                ref.invalidate(dispensingStatsProvider);
+                ref.invalidate(dispensingStatsProvider(_myOnly));
                 ref.invalidate(dispensingLogProvider(_params));
                 Navigator.pop(ctx);
               },
@@ -254,7 +286,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
               isSelected: current?.id == b.id,
               onTap: () {
                 ref.read(activeBranchProvider.notifier).state = b;
-                ref.invalidate(dispensingStatsProvider);
+                ref.invalidate(dispensingStatsProvider(_myOnly));
                 ref.invalidate(dispensingLogProvider(_params));
                 Navigator.pop(ctx);
               },
@@ -326,13 +358,13 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
   );
 
   Future<void> _refresh() async {
-    ref.invalidate(dispensingStatsProvider);
+    ref.invalidate(dispensingStatsProvider(_myOnly));
     ref.invalidate(dispensingLogProvider(_params));
   }
 
   @override
   Widget build(BuildContext context) {
-    final statsAsync = ref.watch(dispensingStatsProvider);
+    final statsAsync = ref.watch(dispensingStatsProvider(_myOnly));
     final logAsync = ref.watch(dispensingLogProvider(_params));
 
     return Scaffold(
@@ -461,6 +493,47 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
           );
         }),
       ])),
+      const SizedBox(width: 8),
+      GestureDetector(
+        onTap: () => setState(() {
+          _myOnly = !_myOnly;
+          ref.invalidate(dispensingStatsProvider(_myOnly));
+          ref.invalidate(dispensingLogProvider(_params));
+        }),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: _myOnly
+                ? EnhancedTheme.accentPurple.withValues(alpha: 0.18)
+                : Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _myOnly
+                  ? EnhancedTheme.accentPurple.withValues(alpha: 0.55)
+                  : Colors.white.withValues(alpha: 0.12),
+              width: _myOnly ? 1.5 : 1,
+            ),
+            boxShadow: _myOnly
+                ? [BoxShadow(
+                    color: EnhancedTheme.accentPurple.withValues(alpha: 0.25),
+                    blurRadius: 8)]
+                : null,
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.person_rounded,
+                color: _myOnly ? EnhancedTheme.accentPurple : context.subLabelColor,
+                size: 13),
+            const SizedBox(width: 4),
+            Text('Mine',
+                style: TextStyle(
+                    color: _myOnly ? EnhancedTheme.accentPurple : context.subLabelColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700)),
+          ]),
+        ),
+      ),
+      const SizedBox(width: 8),
       GestureDetector(
         onTap: _openDatePicker,
         child: Container(

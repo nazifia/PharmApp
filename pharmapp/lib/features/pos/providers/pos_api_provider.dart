@@ -276,20 +276,22 @@ class PosApiClient {
 
   // ── Dispensing Log ─────────────────────────────────────────────────────────
   Future<List<dynamic>> fetchDispensingLog(
-      {String? search, String? from, String? to, int? branchId}) async {
+      {String? search, String? from, String? to, int? branchId, int? userId}) async {
     if (_isLocal) {
       return LocalDb.instance
           .getDispensingLog(search: search, from: from, to: to);
     }
     final isCacheable = (search == null || search.isEmpty) && from == null && to == null;
     final bSeg = (branchId != null && branchId > 0) ? '_b$branchId' : '';
-    final cacheKey = 'cache_dispensing_log$bSeg';
+    final uSeg = (userId != null && userId > 0) ? '_u$userId' : '';
+    final cacheKey = 'cache_dispensing_log$bSeg$uSeg';
     try {
       final params = <String, dynamic>{};
       if (search != null && search.isNotEmpty) params['search'] = search;
       if (from != null) params['from'] = from;
       if (to != null) params['to'] = to;
       if (branchId != null && branchId > 0) params['branch_id'] = branchId;
+      if (userId != null && userId > 0) params['dispensed_by'] = userId;
       final res = await _dio!.get('/pos/dispensing-log/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
@@ -309,13 +311,15 @@ class PosApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> fetchDispensingStats({int? branchId}) async {
+  Future<Map<String, dynamic>> fetchDispensingStats({int? branchId, int? userId}) async {
     if (_isLocal) return LocalDb.instance.getDispensingStats();
     final bSeg = (branchId != null && branchId > 0) ? '_b$branchId' : '';
-    final cacheKey = 'cache_dispensing_stats$bSeg';
+    final uSeg = (userId != null && userId > 0) ? '_u$userId' : '';
+    final cacheKey = 'cache_dispensing_stats$bSeg$uSeg';
     try {
       final params = <String, dynamic>{};
       if (branchId != null && branchId > 0) params['branch_id'] = branchId;
+      if (userId != null && userId > 0) params['dispensed_by'] = userId;
       final res = await _dio!.get('/pos/dispensing-log/stats/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data as Map<String, dynamic>;
