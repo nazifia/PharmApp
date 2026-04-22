@@ -275,6 +275,189 @@ class PosApiClient {
   }
 
   // ── Dispensing Log ─────────────────────────────────────────────────────────
+  static const _kLocalDispLogKey = 'local_dispensing_log';
+
+  List<Map<String, dynamic>> _filterEntries(
+    List<Map<String, dynamic>> entries, {
+    String? search,
+    String? from,
+    String? to,
+  }) {
+    var result = entries;
+    if (search != null && search.isNotEmpty) {
+      final q = search.toLowerCase();
+      result = result.where((e) {
+        final name  = (e['name']  as String? ?? '').toLowerCase();
+        final brand = (e['brand'] as String? ?? '').toLowerCase();
+        return name.contains(q) || brand.contains(q);
+      }).toList();
+    }
+    if (from != null) {
+      final fromDt = DateTime.tryParse(from);
+      if (fromDt != null) {
+        result = result.where((e) {
+          final dt = DateTime.tryParse(e['createdAt'] as String? ?? '')?.toLocal();
+          return dt == null || !dt.isBefore(fromDt);
+        }).toList();
+      }
+    }
+    if (to != null) {
+      final toDt = DateTime.tryParse(to);
+      if (toDt != null) {
+        result = result.where((e) {
+          final dt = DateTime.tryParse(e['createdAt'] as String? ?? '')?.toLocal();
+          return dt == null || dt.isBefore(toDt);
+        }).toList();
+      }
+    }
+    return result;
+  }
+
+  Future<List<dynamic>> _getLocalDispensingEntries({
+    String? search, String? from, String? to,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kLocalDispLogKey);
+    if (raw == null) return [];
+    final all = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+    return _filterEntries(all, search: search, from: from, to: to);
+  }
+
+  /// Fetches sales from /pos/sales/ and expands each sale into per-item
+  /// dispensing entries by resolving sale details (cache-first, then live fetch
+  /// in parallel batches of 5). Local dispensing entries (from this device's
+  /// checkouts) are merged in for any sale IDs not in the API response.
+  Future<List<dynamic>> _fetchDispensingFromSales({
+    String? search, String? from, String? to, int? branchId,
+  }) async {
+    final dio = _dio;
+    if (dio == null) return _getLocalDispensingEntries(search: search, from: from, to: to);
+
+    // 1. Fetch sales list
+    final salesParams = <String, dynamic>{};
+    if (from   != null) salesParams['from']      = from;
+    if (to     != null) salesParams['to']        = to;
+    if (search != null && search.isNotEmpty) salesParams['search'] = search;
+    if (branchId != null && branchId > 0)   salesParams['branch_id'] = branchId;
+
+    final salesRes = await dio.get('/pos/sales/',
+        queryParameters: salesParams.isNotEmpty ? salesParams : null);
+    final salesData = salesRes.data;
+    final salesList = (salesData is Map && salesData.containsKey('results')
+        ? salesData['results'] as List
+        : salesData as List).cast<Map<String, dynamic>>();
+
+    // 2. Build a map: saleId → local item entries (from this device's checkouts)
+    final prefs = await SharedPreferences.getInstance();
+    final localRaw = prefs.getString(_kLocalDispLogKey);
+    final localAll = localRaw != null
+        ? (jsonDecode(localRaw) as List).cast<Map<String, dynamic>>()
+        : <Map<String, dynamic>>[];
+    final localBySaleId = <dynamic, List<Map<String, dynamic>>>{};
+    for (final e in localAll) {
+      final sid = e['_localSaleId'];
+      if (sid != null) (localBySaleId[sid] ??= []).add(e);
+    }
+
+    // 3. Resolve details for each sale (cache → live, batched)
+    final apiSaleIds = <dynamic>{};
+    final entries    = <Map<String, dynamic>>[];
+
+    Future<Map<String, dynamic>?> resolveDetail(Map<String, dynamic> sale) async {
+      final id = sale['id'];
+      if (id == null) return null;
+      final cached = await _getCache('cache_sale_$id');
+      if (cached != null) return cached as Map<String, dynamic>;
+      try {
+        final res = await dio.get('/pos/sales/$id/');
+        final data = res.data as Map<String, dynamic>;
+        await _cacheStr('cache_sale_$id', data);
+        return data;
+      } catch (_) {
+        return sale; // use list-level summary as last resort
+      }
+    }
+
+    const batchSize = 5;
+    for (int i = 0; i < salesList.length; i += batchSize) {
+      final batch  = salesList.skip(i).take(batchSize).toList();
+      final details = await Future.wait(batch.map(resolveDetail));
+
+      for (int j = 0; j < batch.length; j++) {
+        final sale   = batch[j];
+        final detail = details[j];
+        final id     = sale['id'];
+        apiSaleIds.add(id);
+
+        final createdAt = (detail?['createdAt'] as String?) ??
+            (detail?['created_at'] as String?) ?? '';
+        final dispenser  = (detail?['cashierName'] as String?) ??
+            (detail?['cashier_name'] as String?) ?? '';
+        final saleStatus = ((detail?['status'] as String?) ?? 'dispensed').toLowerCase();
+
+        // Prefer local item-level entries for this device's sale
+        if (localBySaleId.containsKey(id)) {
+          entries.addAll(localBySaleId[id]!);
+          continue;
+        }
+
+        final items = detail?['items'] as List<dynamic>? ?? [];
+        if (items.isEmpty) {
+          // No item data available — show sale-level entry
+          entries.add({
+            'name':      'Sale #${sale['receiptId'] ?? sale['receipt_id'] ?? id}',
+            'brand':     sale['customerName'] as String? ?? sale['customer_name'] as String? ?? '',
+            'quantity':  1,
+            'amount':    (sale['totalAmount'] as num?)?.toDouble() ??
+                         (sale['total_amount'] as num?)?.toDouble() ?? 0,
+            'status':    saleStatus,
+            'createdAt': createdAt,
+            'dispenser': dispenser,
+          });
+        } else {
+          for (final raw in items) {
+            final m   = raw as Map<String, dynamic>;
+            final qty = (m['quantity'] as num?)?.toDouble() ?? 1;
+            final prc = (m['price']    as num?)?.toDouble() ?? 0;
+            entries.add({
+              'name':      m['name']      as String? ?? m['itemName']  as String? ?? '',
+              'brand':     m['brand']     as String? ?? '',
+              'quantity':  qty,
+              'amount':    prc * qty,
+              'status':    saleStatus,
+              'createdAt': createdAt,
+              'dispenser': dispenser,
+            });
+          }
+        }
+      }
+    }
+
+    // 4. Append local entries whose sale ID is NOT in the API response
+    //    (offline / queued sales not yet synced)
+    for (final e in localAll) {
+      final sid = e['_localSaleId'];
+      if (sid != null && !apiSaleIds.contains(sid)) entries.add(e);
+    }
+    // Also include entries with no sale ID (very old local entries)
+    for (final e in localAll) {
+      if (e['_localSaleId'] == null) entries.add(e);
+    }
+
+    // 5. Apply search/date filter (sales endpoint already filtered by date/search,
+    //    but local extras need filtering too)
+    final filtered = _filterEntries(entries, search: search, from: from, to: to);
+
+    // 6. Sort newest first
+    filtered.sort((a, b) {
+      final aDate = a['createdAt'] as String? ?? '';
+      final bDate = b['createdAt'] as String? ?? '';
+      return bDate.compareTo(aDate);
+    });
+
+    return filtered;
+  }
+
   Future<List<dynamic>> fetchDispensingLog(
       {String? search, String? from, String? to, int? branchId, int? userId}) async {
     if (_isLocal) {
@@ -299,12 +482,19 @@ class PosApiClient {
           ? data['results'] as List
           : data as List;
       if (isCacheable) await _cacheStr(cacheKey, list);
-      return list;
+      // Proper dispensing-log endpoint has data — use it directly
+      if (list.isNotEmpty) return list;
+      // Backend endpoint empty — derive from sales
+      return _fetchDispensingFromSales(
+          search: search, from: from, to: to, branchId: branchId);
     } on DioException catch (e) {
-      if (e.response == null && isCacheable) {
-        final cached = await _getCache(cacheKey);
-        if (cached != null) return cached as List;
-        throw Exception('Offline — no cached dispensing log available');
+      if (e.response == null) {
+        if (isCacheable) {
+          final cached = await _getCache(cacheKey);
+          if (cached != null) return cached as List;
+        }
+        // Offline: serve local entries only
+        return _getLocalDispensingEntries(search: search, from: from, to: to);
       }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load dispensing log');
@@ -1444,6 +1634,40 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   CheckoutNotifier(this._ref) : super(const AsyncValue.data(null));
 
+  Future<void> _saveLocalDispensingEntries(Map<String, dynamic> result) async {
+    final items = result['items'] as List<dynamic>? ?? [];
+    if (items.isEmpty) return;
+    final createdAt = result['createdAt'] as String? ??
+        result['created_at'] as String? ??
+        DateTime.now().toIso8601String();
+    final saleId = result['id'];
+    final user = _ref.read(currentUserProvider);
+    final dispenserName = user?.username ?? '';
+
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString(PosApiClient._kLocalDispLogKey);
+    final List<dynamic> entries =
+        existing != null ? (jsonDecode(existing) as List) : [];
+
+    for (final raw in items.reversed) {
+      final m = raw as Map<String, dynamic>;
+      final qty = (m['quantity'] as num?)?.toDouble() ?? 1;
+      final price = (m['price'] as num?)?.toDouble() ?? 0;
+      entries.insert(0, {
+        'name': m['name'] ?? m['itemName'] ?? '',
+        'brand': m['brand'] ?? '',
+        'quantity': qty,
+        'amount': price * qty,
+        'status': 'dispensed',
+        'createdAt': createdAt,
+        'dispenser': dispenserName,
+        '_localSaleId': saleId,
+      });
+    }
+    final trimmed = entries.take(500).toList();
+    await prefs.setString(PosApiClient._kLocalDispLogKey, jsonEncode(trimmed));
+  }
+
   Future<Map<String, dynamic>?> processCheckout(CheckoutPayload payload) async {
     state = const AsyncValue.loading();
 
@@ -1470,6 +1694,7 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
         payload,
         branchId: branchId,
       );
+      await _saveLocalDispensingEntries(result);
       state = const AsyncValue.data(null);
       return result;
     } on DioException catch (e, st) {

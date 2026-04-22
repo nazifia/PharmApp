@@ -74,17 +74,13 @@ class DispensingLogScreen extends ConsumerStatefulWidget {
 class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
-  int _dateFilter = 0; // 0=Today, 1=Week, 2=Month, 3=All
+  int _dateFilter = 3; // 0=Today, 1=Week, 2=Month, 3=All
   DateTimeRange? _customRange;
   bool _myOnly = false;
 
   @override
   void initState() {
     super.initState();
-    final user = ref.read(currentUserProvider);
-    final userRole = user?.role ?? '';
-    final isAdmin = const {'Admin', 'Manager', 'Wholesale Manager'}.contains(userRole);
-    if (!isAdmin) _myOnly = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(dispensingStatsProvider);
       ref.invalidate(dispensingLogProvider);
