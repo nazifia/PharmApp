@@ -309,9 +309,12 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
     final pendingMuts = ref.watch(offlineMutationQueueProvider);
     final pending = pendingSales.length + pendingMuts.length;
 
+    // Always attempt sync on tap — even when isOnlineProvider shows offline,
+    // connectivity_plus can be stale on Windows/web. Let syncAll() decide.
+    final tappable = pending > 0 || isOnline;
+
     return GestureDetector(
-      onTap:
-          isOnline ? _triggerSync : () => context.go('/dashboard/sync-queue'),
+      onTap: tappable ? _triggerSync : null,
       child: Container(
         width: double.infinity,
         color:
@@ -328,7 +331,7 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
               child: Text(
             !isOnline
                 ? pending > 0
-                    ? 'Offline — $pending operation${pending == 1 ? '' : 's'} queued for sync'
+                    ? 'Offline — $pending operation${pending == 1 ? '' : 's'} queued — tap to retry sync'
                     : 'Offline — changes will sync when connected'
                 : _syncing
                     ? 'Syncing $pending operation${pending == 1 ? '' : 's'}...'
@@ -345,13 +348,9 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
                 color: Colors.black,
               ),
             )
-          else if (isOnline && pending > 0) ...[
+          else if (pending > 0) ...[
             const SizedBox(width: 6),
             const Icon(Icons.sync_rounded, color: Colors.black, size: 16),
-          ] else if (!isOnline && pending > 0) ...[
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded,
-                color: Colors.black, size: 16),
           ],
         ]),
       ),

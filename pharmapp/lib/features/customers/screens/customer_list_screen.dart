@@ -69,7 +69,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                  MediaQuery.of(ctx).viewPadding.bottom),
           child: ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             child: BackdropFilter(
@@ -85,7 +87,8 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
                 child: Form(
                   key: formKey,
-                  child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  child: SingleChildScrollView(
+                    child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Center(child: Container(
                       width: 44, height: 5,
                       decoration: BoxDecoration(
@@ -288,6 +291,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                           style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
                     )),
                   ]),
+                  ),
                 ),
               ),
             ),
