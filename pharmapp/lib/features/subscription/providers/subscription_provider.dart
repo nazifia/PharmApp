@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
@@ -14,10 +15,18 @@ final subscriptionProvider = FutureProvider<Subscription>((ref) async {
 
 // ── Sync notifier (for upgrade / cancel mutations) ────────────────────────────
 
-class SubscriptionNotifier extends StateNotifier<AsyncValue<Subscription>> {
+class SubscriptionNotifier extends StateNotifier<AsyncValue<Subscription>>
+    with WidgetsBindingObserver {
   final Ref _ref;
 
   SubscriptionNotifier(this._ref) : super(const AsyncValue.loading()) {
+    WidgetsBinding.instance.addObserver(this);
+
+    // Refresh when org access is revoked (403 received while authenticated).
+    _ref.listen<int>(orgAccessRevokedProvider, (_, __) {
+      if (_ref.read(authTokenProvider) != null) _load();
+    });
+
     // Listen for token changes so we fetch as soon as auth is restored,
     // and reset to trial on logout.
     _ref.listen<String?>(authTokenProvider, (_, token) {
@@ -32,6 +41,22 @@ class SubscriptionNotifier extends StateNotifier<AsyncValue<Subscription>> {
       }
     });
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Re-validate subscription whenever user returns to the app so that
+    // superuser-initiated suspension/cancellation propagates to active sessions.
+    if (state == AppLifecycleState.resumed &&
+        _ref.read(authTokenProvider) != null) {
+      _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   static const _cacheKey = 'cached_subscription';

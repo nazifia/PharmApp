@@ -56,6 +56,20 @@ class SuperuserApiClient {
     return OrgSubscriptionSummary.fromJson(res.data as Map<String, dynamic>);
   }
 
+  /// GET /superuser/organizations/{id}/impact/
+  /// Returns record counts that would be deleted if the org is deleted.
+  Future<Map<String, int>> getOrgDeletionImpact(int orgId) async {
+    final res = await _dio.get('/superuser/organizations/$orgId/impact/');
+    final data = res.data as Map<String, dynamic>;
+    return data.map((k, v) => MapEntry(k, (v as num).toInt()));
+  }
+
+  /// DELETE /superuser/organizations/{id}/
+  /// Permanently deletes the organization and all associated data.
+  Future<void> deleteOrganization(int orgId) async {
+    await _dio.delete('/superuser/organizations/$orgId/');
+  }
+
   // ── Plan Feature Matrix ────────────────────────────────────────────────────
 
   /// GET /superuser/plan-features/

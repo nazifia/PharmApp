@@ -12,9 +12,21 @@ Or as a helper:
     if err: return err
 """
 
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework import status
+
+# Paths exempt from subscription enforcement.
+# Auth and subscription endpoints must remain reachable even when suspended.
+_SUBSCRIPTION_EXEMPT_PREFIXES = (
+    '/api/auth/',
+    '/api/subscription/',
+    '/admin/',
+)
+
+# Subscription statuses that block all data API access.
+_BLOCKED_STATUSES = {'suspended', 'cancelled', 'expired'}
 
 # ── Role sets ──────────────────────────────────────────────────────────────────
 
@@ -82,6 +94,65 @@ PERMISSION_LABELS = [
 
 
 # ── DRF Permission classes ─────────────────────────────────────────────────────
+
+
+class OrgSubscriptionPermission(BasePermission):
+    """
+    Blocks all data API calls when the org's subscription is suspended,
+    cancelled, or expired.
+
+    Exempt paths (auth + subscription endpoints) are always allowed so that:
+    - Users can still log in / out.
+    - The Flutter app can fetch the current subscription status to show the
+      correct blocked-state UI in SubscriptionScreen.
+
+    Superusers bypass this check entirely (they can manage any org).
+
+    How it integrates with the Flutter app:
+    - Suspended/cancelled/expired → 403 with {"code": "org_suspended" | "org_cancelled" | "org_expired"}
+    - Flutter AuthInterceptor increments orgAccessRevokedProvider on 403
+    - SubscriptionNotifier refreshes → subscriptionAccessibleProvider = false
+    - Router guard redirects to /subscription → user sees blocked-state banner
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        # Anonymous requests — let IsAuthenticated handle this.
+        if not user or not user.is_authenticated:
+            return True
+
+        # Superusers are never blocked.
+        if user.is_superuser:
+            return True
+
+        # Exempt auth and subscription endpoints.
+        path = request.path
+        if any(path.startswith(prefix) for prefix in _SUBSCRIPTION_EXEMPT_PREFIXES):
+            return True
+
+        # Check org subscription status.
+        org = getattr(user, 'organization', None)
+        if org is None:
+            return True  # no org → other checks handle this
+
+        try:
+            sub = org.subscription
+        except Exception:
+            return True  # no subscription record → allow (trial not yet created)
+
+        if sub.status in _BLOCKED_STATUSES:
+            _status_map = {
+                'suspended': ('org_suspended',  'Organization subscription is suspended.'),
+                'cancelled': ('org_cancelled',  'Organization subscription has been cancelled.'),
+                'expired':   ('org_expired',    'Organization subscription has expired.'),
+            }
+            code, detail = _status_map.get(sub.status, ('org_blocked', 'Organization access blocked.'))
+            # Raise PermissionDenied directly so the response body includes `code`
+            # alongside `detail`, giving the Flutter app a machine-readable signal.
+            raise PermissionDenied({'detail': detail, 'code': code})
+
+        return True
 
 
 def _role(request) -> str:

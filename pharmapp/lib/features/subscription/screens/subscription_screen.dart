@@ -104,6 +104,38 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
+                      // ── Access-blocked banners (shown before plan cards) ──
+                      if (sub.status == SubscriptionStatus.suspended) ...[
+                        _AccessBlockedBanner(
+                          icon: Icons.block_rounded,
+                          color: const Color(0xFFEF4444),
+                          title: 'Account Suspended',
+                          body: 'Your organization\'s access has been suspended. '
+                              'Please contact support to resolve any outstanding issues '
+                              'and restore your access.',
+                        ),
+                        const SizedBox(height: 12),
+                      ] else if (sub.status == SubscriptionStatus.cancelled) ...[
+                        _AccessBlockedBanner(
+                          icon: Icons.cancel_rounded,
+                          color: const Color(0xFFF59E0B),
+                          title: 'Subscription Cancelled',
+                          body: 'Your subscription has been cancelled. '
+                              'Select a plan below to reactivate your account '
+                              'and regain access to all features.',
+                        ),
+                        const SizedBox(height: 12),
+                      ] else if (sub.status == SubscriptionStatus.expired) ...[
+                        _AccessBlockedBanner(
+                          icon: Icons.timer_off_rounded,
+                          color: const Color(0xFFF59E0B),
+                          title: 'Subscription Expired',
+                          body: 'Your subscription period has ended. '
+                              'Renew or upgrade below to restore full access.',
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
                       // ── Current plan card ─────────────────────────────────
                       _CurrentPlanCard(sub: sub),
                       if (sub.status == SubscriptionStatus.pending) ...[
@@ -1188,6 +1220,59 @@ class _PendingApprovalBanner extends StatelessWidget {
             ),
             child: const Text('Pay now',
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Access-blocked banner (suspended / cancelled / expired) ──────────────────
+
+class _AccessBlockedBanner extends StatelessWidget {
+  final IconData icon;
+  final Color    color;
+  final String   title;
+  final String   body;
+
+  const _AccessBlockedBanner({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.40)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(body,
+                    style: TextStyle(
+                        color: color.withValues(alpha: 0.80),
+                        fontSize: 12,
+                        height: 1.4)),
+              ],
+            ),
           ),
         ],
       ),

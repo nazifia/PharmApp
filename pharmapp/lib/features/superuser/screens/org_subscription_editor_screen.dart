@@ -217,6 +217,163 @@ class _OrgSubscriptionEditorScreenState
 
   // ── Reset dialog ──────────────────────────────────────────────────────────
 
+  Future<void> _confirmDeleteOrg(OrgSubscriptionSummary org) async {
+    // Step 1: fetch impact counts, show preview
+    setState(() => _saving = true);
+    final impact = await ref
+        .read(orgEditorProvider(widget.orgId).notifier)
+        .getDeletionImpact();
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    final step1 = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded,
+                color: Color(0xFFEF4444), size: 20),
+            const SizedBox(width: 8),
+            const Text('Delete Organization',
+                style: TextStyle(color: Color(0xFFEF4444), fontSize: 16,
+                    fontWeight: FontWeight.w700)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Permanently delete "${org.name}" and all its data?',
+                style: const TextStyle(color: Colors.white, fontSize: 13)),
+            const SizedBox(height: 12),
+            if (impact != null) ...[
+              const Text('This will delete:',
+                  style: TextStyle(color: Colors.white54, fontSize: 12)),
+              const SizedBox(height: 6),
+              ...impact.entries.map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Row(
+                  children: [
+                    const Icon(Icons.remove_circle_outlined,
+                        color: Color(0xFFEF4444), size: 12),
+                    const SizedBox(width: 6),
+                    Text('${e.value} ${e.key}',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12)),
+                  ],
+                ),
+              )),
+            ],
+            const SizedBox(height: 12),
+            const Text('This action cannot be undone.',
+                style: TextStyle(
+                    color: Color(0xFFEF4444),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEF4444)),
+              child: const Text('Continue')),
+        ],
+      ),
+    );
+    if (step1 != true || !mounted) return;
+
+    // Step 2: type org name to confirm
+    final nameCtrl = TextEditingController();
+    final step2 = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Text('Confirm Deletion',
+              style: TextStyle(color: Colors.white, fontSize: 16,
+                  fontWeight: FontWeight.w700)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  children: [
+                    const TextSpan(text: 'Type '),
+                    TextSpan(text: org.name,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700)),
+                    const TextSpan(text: ' to confirm:'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.06),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none),
+                  hintText: org.name,
+                  hintStyle: const TextStyle(color: Colors.white24),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                ),
+                onChanged: (_) => setS(() {}),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel',
+                    style: TextStyle(color: Colors.white54))),
+            ElevatedButton(
+                onPressed: nameCtrl.text.trim() == org.name
+                    ? () => Navigator.pop(ctx, true)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444)),
+                child: const Text('Delete Forever')),
+          ],
+        ),
+      ),
+    );
+    nameCtrl.dispose();
+    if (step2 != true || !mounted) return;
+
+    setState(() => _saving = true);
+    final error = await ref
+        .read(orgEditorProvider(widget.orgId).notifier)
+        .delete();
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $error'),
+          backgroundColor: EnhancedTheme.errorRed));
+    } else {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/superuser');
+      }
+    }
+  }
+
   Future<void> _confirmReset() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -713,6 +870,56 @@ class _OrgSubscriptionEditorScreenState
                                                   fontWeight: FontWeight.w600)),
                                           Text(
                                               'Remove all feature & limit overrides',
+                                              style: TextStyle(
+                                                  color: Colors.black38,
+                                                  fontSize: 11)),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right_rounded,
+                                        color: Colors.black26, size: 18),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // ── Delete org ─────────────────────────────────
+                          _GlassCard(
+                            child: InkWell(
+                              onTap: () => _confirmDeleteOrg(org),
+                              borderRadius: BorderRadius.circular(14),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: EnhancedTheme.errorRed
+                                            .withValues(alpha: 0.18),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                          Icons.delete_forever_rounded,
+                                          color: EnhancedTheme.errorRed,
+                                          size: 16),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Delete Organization',
+                                              style: TextStyle(
+                                                  color: EnhancedTheme.errorRed,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600)),
+                                          Text(
+                                              'Permanently delete org and all data',
                                               style: TextStyle(
                                                   color: Colors.black38,
                                                   fontSize: 11)),

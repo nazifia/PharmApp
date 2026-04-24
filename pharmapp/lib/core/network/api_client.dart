@@ -47,6 +47,11 @@ String resolvedMediaUrl(String path, {String? mediaBase}) {
 /// Single source of truth — imported by both api_client and auth_provider.
 final authTokenProvider = StateProvider<String?>((ref) => null);
 
+/// Incremented whenever a 403 is received while authenticated.
+/// SubscriptionNotifier watches this to trigger an immediate refresh so that
+/// org suspension is reflected without waiting for the next app resume.
+final orgAccessRevokedProvider = StateProvider<int>((ref) => 0);
+
 // ── Auth interceptor ──────────────────────────────────────────────────────────
 
 class AuthInterceptor extends Interceptor {
@@ -70,6 +75,14 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
+    if (err.response?.statusCode == 403) {
+      // 403 while authenticated = org suspended or access revoked by superuser.
+      // Signal SubscriptionNotifier to refresh so the router guard fires.
+      final sentAuth = err.requestOptions.headers.containsKey('Authorization');
+      if (sentAuth) {
+        _ref.read(orgAccessRevokedProvider.notifier).update((n) => n + 1);
+      }
+    }
     if (err.response?.statusCode == 401) {
       // Only invalidate the session if we actually sent a Bearer token.
       // If the token was null when the request fired, this 401 is a

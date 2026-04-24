@@ -272,8 +272,9 @@ class OrganizationAdmin(admin.ModelAdmin):
         self.message_user(
             request,
             (
-                f"Organisation '{org_name}' deleted. "
-                f"{deactivated} user(s) deactivated. "
+                f"Organisation '{org_name}' permanently deleted. "
+                f"{deactivated} user(s) deactivated — their JWT tokens will return 401 "
+                f"on the next API call, immediately logging them out of the app. "
                 f"Cascaded: {impact['items']} items, {impact['customers']} customers, "
                 f"{impact['sales']} sales, {impact['branches']} branches."
             ),

@@ -228,6 +228,10 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
+        # Blocks all data API calls when org subscription is suspended/cancelled/expired.
+        # Auth and subscription endpoints are exempt so the Flutter app can still
+        # fetch the subscription status and show the appropriate blocked-state UI.
+        "authapp.permissions.OrgSubscriptionPermission",
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,

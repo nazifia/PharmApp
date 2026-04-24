@@ -34,6 +34,12 @@ class OrgListNotifier
         if (org.id == updated.id) updated else org,
     ]);
   }
+
+  /// Remove a deleted org from the list.
+  void removeOrg(int orgId) {
+    final current = state.valueOrNull ?? [];
+    state = AsyncValue.data(current.where((o) => o.id != orgId).toList());
+  }
 }
 
 final orgListProvider =
@@ -154,6 +160,29 @@ class OrgEditorNotifier extends StateNotifier<AsyncValue<OrgSubscriptionSummary?
           await _ref.read(superuserApiClientProvider).resetToDefaults(orgId);
       state = AsyncValue.data(updated);
       _ref.read(orgListProvider.notifier).updateOrg(updated);
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Fetch deletion impact counts without deleting.
+  Future<Map<String, int>?> getDeletionImpact() async {
+    try {
+      return await _ref
+          .read(superuserApiClientProvider)
+          .getOrgDeletionImpact(orgId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Permanently delete this organization.
+  /// Returns null on success or an error message on failure.
+  Future<String?> delete() async {
+    try {
+      await _ref.read(superuserApiClientProvider).deleteOrganization(orgId);
+      _ref.read(orgListProvider.notifier).removeOrg(orgId);
       return null;
     } catch (e) {
       return e.toString();

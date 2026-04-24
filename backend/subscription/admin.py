@@ -271,6 +271,7 @@ def reset_to_trial(modeladmin, request, queryset):
 
 @admin.action(description='⚠️  Suspend subscriptions')
 def suspend_subscriptions(modeladmin, request, queryset):
+    n = 0
     for sub in queryset:
         old = sub.status
         sub.status = 'suspended'
@@ -280,7 +281,16 @@ def suspend_subscriptions(modeladmin, request, queryset):
             old_value=old, new_value='suspended',
             performed_by=request.user.phone_number,
         )
-    modeladmin.message_user(request, f'{queryset.count()} subscription(s) suspended.', messages.WARNING)
+        n += 1
+    modeladmin.message_user(
+        request,
+        mark_safe(
+            f'<strong>{n} subscription(s) suspended.</strong> '
+            f'All API calls from these organizations will now return 403 until reactivated. '
+            f'Active sessions will be blocked on the next API call or app resume.'
+        ),
+        messages.WARNING,
+    )
 
 
 @admin.action(description='✅  Reactivate suspended subscriptions')
@@ -734,7 +744,9 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 performed_by=actor, note=note,
             )
             return _redirect(
-                f"Subscription for {obj.organization.name} suspended.",
+                f"Subscription for {obj.organization.name} suspended. "
+                f"All API calls from this organization will return 403 until reactivated. "
+                f"Active sessions will be blocked on the next API call or app resume.",
                 messages.WARNING,
             )
 
