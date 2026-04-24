@@ -2,6 +2,7 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import conditional_escape, format_html, mark_safe
 from django.urls import reverse
+from django.db import transaction
 
 from .admin_mixins import OrgScopedAdminMixin
 from .models import Organization, PharmUser, SiteConfig, UserPermissionOverride
@@ -85,6 +86,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     readonly_fields = ["slug", "created_at", "user_count"]
     ordering = ["name"]
     inlines  = []   # populated in get_inlines()
+    actions  = ["show_delete_impact"]
 
     def get_inlines(self, request, obj):
         inlines = list(_subscription_inline())
@@ -188,6 +190,100 @@ class OrganizationAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
+
+    # ── Deletion logic ────────────────────────────────────────────────────
+
+    @admin.action(description="⚠️ Show deletion impact for selected organisations")
+    def show_delete_impact(self, request, queryset):
+        """Displays a warning message summarising what would be deleted."""
+        if not request.user.is_superuser:
+            self.message_user(request, "Only superusers can delete organisations.", messages.ERROR)
+            return
+        lines = []
+        for org in queryset:
+            impact = self._org_impact(org)
+            lines.append(
+                f"'{org.name}': {impact['users']} users (will be deactivated), "
+                f"{impact['items']} items, {impact['customers']} customers, "
+                f"{impact['sales']} sales, {impact['expenses']} expenses, "
+                f"{impact['suppliers']} suppliers, {impact['branches']} branches — "
+                f"ALL will be permanently deleted."
+            )
+        self.message_user(
+            request,
+            mark_safe(
+                "<strong>Deletion impact (use the default 'Delete' action to confirm):</strong><br>"
+                + "<br>".join(lines)
+            ),
+            messages.WARNING,
+        )
+
+    def _org_impact(self, org):
+        """Return a dict of record counts affected by deleting this org."""
+        from inventory.models import Item
+        from customers.models import Customer
+        from pos.models import Sale, Expense, Supplier
+        from branches.models import Branch
+
+        return {
+            'users':     PharmUser.objects.filter(organization=org).count(),
+            'items':     Item.objects.filter(organization=org).count(),
+            'customers': Customer.objects.filter(organization=org).count(),
+            'sales':     Sale.objects.filter(organization=org).count(),
+            'expenses':  Expense.objects.filter(organization=org).count(),
+            'suppliers': Supplier.objects.filter(organization=org).count(),
+            'branches':  Branch.objects.filter(organization=org).count(),
+        }
+
+    def delete_model(self, request, obj):
+        """
+        Custom delete: deactivate orphaned users and log the event,
+        then delete the org (CASCADE handles all related data).
+        """
+        from .models import ActivityLog
+
+        org_name = str(obj)
+        impact = self._org_impact(obj)
+
+        with transaction.atomic():
+            # Deactivate users before SET_NULL leaves them orphaned
+            deactivated = PharmUser.objects.filter(organization=obj).update(
+                is_active=False, is_staff=False
+            )
+
+            # Log before delete (FK goes to NULL after, so capture now)
+            ActivityLog.objects.create(
+                organization=None,
+                user=request.user,
+                username=request.user.get_full_name() or request.user.phone_number,
+                role=request.user.role,
+                action='delete_organization',
+                category='settings',
+                description=(
+                    f"Superuser deleted org '{org_name}'. "
+                    f"Impact: {impact['users']} users deactivated, "
+                    f"{impact['items']} items, {impact['customers']} customers, "
+                    f"{impact['sales']} sales, {impact['branches']} branches deleted."
+                ),
+            )
+
+            obj.delete()
+
+        self.message_user(
+            request,
+            (
+                f"Organisation '{org_name}' deleted. "
+                f"{deactivated} user(s) deactivated. "
+                f"Cascaded: {impact['items']} items, {impact['customers']} customers, "
+                f"{impact['sales']} sales, {impact['branches']} branches."
+            ),
+            messages.SUCCESS,
+        )
+
+    def delete_queryset(self, request, queryset):
+        """Bulk delete — apply same deactivation + logging logic per org."""
+        for org in queryset:
+            self.delete_model(request, org)
 
 
 # ── PharmUser ─────────────────────────────────────────────────────────────────
