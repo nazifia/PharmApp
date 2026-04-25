@@ -248,6 +248,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
     final priceCtrl   = TextEditingController();
     final stockCtrl   = TextEditingController();
     final barcodeCtrl = TextEditingController();
+    final expiryCtrl  = TextEditingController();
     String form       = 'Tablet';
     String unit       = 'Tablet';
     double markup     = 0.0;
@@ -353,6 +354,35 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                   ]),
                   const SizedBox(height: 12),
                   _sheetField(barcodeCtrl, 'Barcode (optional)', keyboardType: TextInputType.number),
+                  const SizedBox(height: 12),
+                  _sheetField(expiryCtrl, 'Expiry Date (YYYY-MM-DD)',
+                      keyboardType: TextInputType.datetime,
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.calendar_today_rounded, color: EnhancedTheme.primaryTeal, size: 18),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now().add(const Duration(days: 365)),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2035),
+                            builder: (ctx, child) => Theme(
+                              data: ThemeData.light().copyWith(
+                                colorScheme: const ColorScheme.light(
+                                  primary: EnhancedTheme.primaryTeal,
+                                  onPrimary: Colors.white,
+                                  surface: Color(0xFFF8FAFC),
+                                  onSurface: Color(0xFF0F172A),
+                                ),
+                              ),
+                              child: child!,
+                            ),
+                          );
+                          if (picked != null) {
+                            expiryCtrl.text = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+                            setModal(() {});
+                          }
+                        },
+                      )),
                   const SizedBox(height: 20),
                   // Store selector
                   Text('Store', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w700,
@@ -461,6 +491,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                         'stock':               int.parse(stockCtrl.text),
                         'low_stock_threshold': 20,
                         'barcode':             barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
+                        'expiry_date':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
                         'store':               store,
                         'unit_of_dispensing':  unit,
                       };
@@ -558,7 +589,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   }
 
   Widget _sheetField(TextEditingController ctrl, String label,
-      {TextInputType keyboardType = TextInputType.text, String? Function(String?)? validator, void Function(String)? onChanged}) {
+      {TextInputType keyboardType = TextInputType.text, String? Function(String?)? validator, void Function(String)? onChanged, Widget? suffixIcon}) {
     return TextFormField(
       controller: ctrl, keyboardType: keyboardType, validator: validator, onChanged: onChanged,
       style: TextStyle(color: context.labelColor, fontSize: 14),
@@ -566,6 +597,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
         labelText: label,
         labelStyle: TextStyle(color: context.hintColor, fontSize: 13),
         filled: true, fillColor: context.cardColor,
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(color: context.borderColor)),
