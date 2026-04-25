@@ -499,7 +499,6 @@ class Subscription {
     SaasFeature.advancedReports,
     SaasFeature.wholesale,
     SaasFeature.exportData,
-    SaasFeature.multiBranch,
     SaasFeature.prioritySupport,
   ];
 

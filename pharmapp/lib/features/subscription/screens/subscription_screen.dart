@@ -639,7 +639,6 @@ const _planHighlights = <SubscriptionPlan, List<String>>{
     SaasFeature.advancedReports,
     SaasFeature.wholesale,
     SaasFeature.exportData,
-    SaasFeature.multiBranch,
   ],
   SubscriptionPlan.enterprise: [
     SaasFeature.pos,
