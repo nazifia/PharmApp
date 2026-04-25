@@ -63,31 +63,33 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       lastDate: DateTime.now(),
       initialDateRange: _customRange,
       builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: ColorScheme.dark(
+        data: ThemeData.light().copyWith(
+          colorScheme: ColorScheme.light(
             primary: EnhancedTheme.primaryTeal,
-            onPrimary: Colors.black,
+            onPrimary: Colors.white,
             secondary: EnhancedTheme.accentCyan,
-            surface: const Color(0xFF0F172A),
-            onSurface: Colors.black,
-            onSurfaceVariant: const Color(0xFF94A3B8),
-            outline: Colors.white.withValues(alpha: 0.08),
+            surface: const Color(0xFFF8FAFC),
+            onSurface: const Color(0xFF0F172A),
+            onSurfaceVariant: const Color(0xFF64748B),
+            outline: const Color(0xFFCBD5E1),
           ),
           datePickerTheme: DatePickerThemeData(
-            backgroundColor: const Color(0xFF0F172A),
-            elevation: 0,
+            backgroundColor: const Color(0xFFF8FAFC),
+            elevation: 4,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             surfaceTintColor: Colors.transparent,
-            rangePickerBackgroundColor: const Color(0xFF0F172A),
+            rangePickerBackgroundColor: const Color(0xFFF8FAFC),
+            rangePickerElevation: 0,
+            rangePickerSurfaceTintColor: Colors.transparent,
             rangePickerHeaderBackgroundColor: EnhancedTheme.primaryTeal,
-            rangePickerHeaderForegroundColor: Colors.black,
-            rangePickerHeaderHeadlineStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-            weekdayStyle: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700, fontSize: 11),
+            rangePickerHeaderForegroundColor: Colors.white,
+            rangePickerHeaderHeadlineStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
+            weekdayStyle: TextStyle(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.9), fontWeight: FontWeight.w700, fontSize: 11),
             dayStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             dayForegroundColor: WidgetStateProperty.resolveWith((s) {
-              if (s.contains(WidgetState.selected)) return Colors.black;
-              if (s.contains(WidgetState.disabled)) return const Color(0xFF475569);
-              return Colors.black;
+              if (s.contains(WidgetState.selected)) return Colors.white;
+              if (s.contains(WidgetState.disabled)) return const Color(0xFFCBD5E1);
+              return const Color(0xFF0F172A);
             }),
             dayBackgroundColor: WidgetStateProperty.resolveWith((s) {
               if (s.contains(WidgetState.selected)) return EnhancedTheme.primaryTeal;
@@ -106,7 +108,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
               textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: 0.4),
             ),
           ),
-          dividerColor: Colors.white.withValues(alpha: 0.06),
+          dividerColor: const Color(0xFFE2E8F0),
         ),
         child: child!,
       ),

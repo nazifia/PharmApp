@@ -602,6 +602,17 @@ class _OrgSubscriptionEditorScreenState
                                       firstDate: DateTime.now(),
                                       lastDate: DateTime.now()
                                           .add(const Duration(days: 365)),
+                                      builder: (ctx, child) => Theme(
+                                        data: ThemeData.light().copyWith(
+                                          colorScheme: const ColorScheme.light(
+                                            primary: Color(0xFF0D9488),
+                                            onPrimary: Colors.white,
+                                            surface: Color(0xFFF8FAFC),
+                                            onSurface: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                        child: child!,
+                                      ),
                                     );
                                     if (picked != null) {
                                       setState(() => _trialEndsAt = picked);

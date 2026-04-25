@@ -1526,9 +1526,13 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
                       firstDate: DateTime.now(),
                       lastDate: DateTime(2040),
                       builder: (ctx, child) => Theme(
-                        data: Theme.of(ctx).copyWith(
-                          colorScheme: const ColorScheme.dark(
-                              primary: EnhancedTheme.primaryTeal),
+                        data: ThemeData.light().copyWith(
+                          colorScheme: const ColorScheme.light(
+                            primary: EnhancedTheme.primaryTeal,
+                            onPrimary: Colors.white,
+                            surface: Color(0xFFF8FAFC),
+                            onSurface: Color(0xFF0F172A),
+                          ),
                         ),
                         child: child!,
                       ),
