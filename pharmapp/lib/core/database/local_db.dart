@@ -26,7 +26,7 @@ class LocalDb {
   Future<Database> _open() async {
     final dir = await getDatabasesPath();
     return openDatabase(p.join(dir, 'pharmapp.db'),
-        version: 4, onCreate: _create, onUpgrade: _upgrade);
+        version: 5, onCreate: _create, onUpgrade: _upgrade);
   }
 
   Future<void> _upgrade(Database db, int oldVersion, int newVersion) async {
@@ -41,6 +41,12 @@ class LocalDb {
     if (oldVersion < 4) {
       await db.execute(
           "ALTER TABLE payment_requests ADD COLUMN patient_name TEXT NOT NULL DEFAULT ''");
+    }
+    if (oldVersion < 5) {
+      await db.execute(
+          "ALTER TABLE items ADD COLUMN unit_of_dispensing TEXT NOT NULL DEFAULT ''");
+      await db.execute(
+          "ALTER TABLE items ADD COLUMN markup REAL NOT NULL DEFAULT 0");
     }
   }
 
@@ -65,7 +71,9 @@ class LocalDb {
       low_stock_threshold INTEGER NOT NULL DEFAULT 10,
       barcode TEXT NOT NULL DEFAULT '',
       expiry_date TEXT,
-      store TEXT NOT NULL DEFAULT 'retail')''');
+      store TEXT NOT NULL DEFAULT 'retail',
+      unit_of_dispensing TEXT NOT NULL DEFAULT '',
+      markup REAL NOT NULL DEFAULT 0)''');
 
     await db.execute('''CREATE TABLE customers(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -342,11 +350,13 @@ class LocalDb {
         'dosageForm': r['dosage_form'] ?? '',
         'price': (r['price'] as num).toDouble(),
         'costPrice': (r['cost_price'] as num).toDouble(),
+        'markup': (r['markup'] as num? ?? 0).toDouble(),
         'stock': r['stock'],
         'lowStockThreshold': r['low_stock_threshold'],
         'barcode': r['barcode'] ?? '',
         'expiryDate': r['expiry_date'],
         'store': r['store'] ?? 'retail',
+        'unitOfDispensing': r['unit_of_dispensing'] ?? '',
       };
 
   Future<Map<String, dynamic>> createItem(Map<String, dynamic> data) async {
@@ -361,12 +371,15 @@ class LocalDb {
               data['cost'] ??
               0) as num)
           .toDouble(),
+      'markup': ((data['markup'] ?? 0) as num).toDouble(),
       'stock': data['stock'] ?? 0,
       'low_stock_threshold':
           data['lowStockThreshold'] ?? data['low_stock_threshold'] ?? 10,
       'barcode': data['barcode'] ?? '',
       'expiry_date': data['expiryDate'] ?? data['expiry_date'],
       'store': data['store'] ?? 'retail',
+      'unit_of_dispensing':
+          data['unitOfDispensing'] ?? data['unit_of_dispensing'] ?? '',
     });
     return (await getItemById(id))!;
   }
@@ -403,6 +416,15 @@ class LocalDb {
     if (data.containsKey('expiryDate')) u['expiry_date'] = data['expiryDate'];
     if (data.containsKey('expiry_date')) u['expiry_date'] = data['expiry_date'];
     if (data.containsKey('store')) u['store'] = data['store'];
+    if (data.containsKey('markup')) {
+      u['markup'] = (data['markup'] as num).toDouble();
+    }
+    if (data.containsKey('unitOfDispensing')) {
+      u['unit_of_dispensing'] = data['unitOfDispensing'];
+    }
+    if (data.containsKey('unit_of_dispensing')) {
+      u['unit_of_dispensing'] = data['unit_of_dispensing'];
+    }
     if (u.isNotEmpty) {
       await d.update('items', u, where: 'id = ?', whereArgs: [id]);
     }
