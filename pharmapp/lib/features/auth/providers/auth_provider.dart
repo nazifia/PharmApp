@@ -55,7 +55,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 // ── Auth flow state ───────────────────────────────────────────────────────────
 
-enum AuthFlowState { initial, loggingIn, registering, authenticated, error }
+enum AuthFlowState { initial, loggingIn, registering, registered, authenticated, error }
 
 class AuthNotifier extends StateNotifier<AuthFlowState> {
   final Ref _ref;
@@ -121,16 +121,9 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
             password: password,
             address: address,
           );
-      final String token = result['token'] as String;
-      final User user = result['user'] as User;
-
-      _ref.read(authTokenProvider.notifier).state = token;
-      _ref.read(currentUserProvider.notifier).state = user;
-
-      await AuthStorage.write('auth_token',   token);
-      await AuthStorage.write('current_user', jsonEncode(user.toJson()));
-
-      state = AuthFlowState.authenticated;
+      // Registration succeeded — do NOT log the user in automatically.
+      // Redirect to login so they authenticate explicitly.
+      state = AuthFlowState.registered;
     } catch (e) {
       _errorMessage = _friendly(e);
       state = AuthFlowState.error;

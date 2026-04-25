@@ -75,8 +75,15 @@ class _RegisterOrgScreenState extends ConsumerState<RegisterOrgScreen>
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthFlowState>(authFlowProvider, (prev, next) {
-      if (next == AuthFlowState.authenticated) {
-        context.go('/admin-dashboard');
+      if (next == AuthFlowState.registered) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pharmacy registered! Please sign in.'),
+            backgroundColor: EnhancedTheme.successGreen,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        context.go('/login');
       }
       if (next == AuthFlowState.error) {
         final msg = ref.read(authFlowProvider.notifier).errorMessage ??
