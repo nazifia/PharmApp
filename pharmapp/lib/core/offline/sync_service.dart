@@ -186,19 +186,18 @@ class SyncService {
   /// was already applied (e.g. when the response was lost mid-flight).
   Future<void> _syncMutation(PendingMutation mut) async {
     final dio = ref.read(dioProvider);
-    final options = Options(headers: {'Idempotency-Key': mut.id});
     switch (mut.method) {
       case 'POST':
-        await dio.post(mut.path, data: mut.body, options: options);
+        await dio.post(mut.path, data: mut.body);
         break;
       case 'PATCH':
-        await dio.patch(mut.path, data: mut.body, options: options);
+        await dio.patch(mut.path, data: mut.body);
         break;
       case 'PUT':
-        await dio.put(mut.path, data: mut.body, options: options);
+        await dio.put(mut.path, data: mut.body);
         break;
       case 'DELETE':
-        await dio.delete(mut.path, options: options);
+        await dio.delete(mut.path);
         break;
       default:
         throw UnsupportedError('Unsupported HTTP method: ${mut.method}');

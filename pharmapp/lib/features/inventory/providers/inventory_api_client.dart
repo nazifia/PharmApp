@@ -27,6 +27,7 @@ class InventoryApiClient {
         'lowStockThreshold': j['low_stock_threshold'] ?? j['lowStockThreshold'] ?? 10,
         'barcode': j['barcode'] ?? '',
         'expiryDate': j['expiry_date'] ?? j['expiryDate'],
+        'store': j['store'] ?? '',
         'unitOfDispensing': j['unit_of_dispensing'] ?? j['unitOfDispensing'] ?? '',
       };
 

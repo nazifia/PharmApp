@@ -40,21 +40,20 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
     _tabCtrl = TabController(length: 2, vsync: this, initialIndex: isWholesale ? 1 : 0);
 
     // Auto-select the user's assigned branch when no branch is active.
-    // Admins/Managers keep null (= all branches) unless they manually pick one.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      const adminRoles = {'Admin', 'Manager', 'Wholesale Manager'};
-      final user = ref.read(currentUserProvider);
-      if (user != null &&
-          user.branchId > 0 &&
-          !adminRoles.contains(user.role) &&
-          ref.read(activeBranchProvider) == null) {
-        ref.read(activeBranchProvider.notifier).state = Branch(
-          id: user.branchId,
-          name: user.branchName.isNotEmpty ? user.branchName : 'My Branch',
-        );
-      }
-    });
+    // Done in initState (not addPostFrameCallback) so branch is set before
+    // inventoryListProvider is first watched — avoids cancelling the in-flight
+    // Dio request when the branch state changes after the first frame.
+    const adminRoles = {'Admin', 'Manager', 'Wholesale Manager'};
+    final user = ref.read(currentUserProvider);
+    if (user != null &&
+        user.branchId > 0 &&
+        !adminRoles.contains(user.role) &&
+        ref.read(activeBranchProvider) == null) {
+      ref.read(activeBranchProvider.notifier).state = Branch(
+        id: user.branchId,
+        name: user.branchName.isNotEmpty ? user.branchName : 'My Branch',
+      );
+    }
   }
 
   @override
