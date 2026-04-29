@@ -1971,10 +1971,11 @@ class _PlansSection extends ConsumerWidget {
             .where((p) => p != SubscriptionPlan.trial)
             .map(
             (plan) => _PlanRow(
-              plan:      plan,
-              cycle:     cycle,
-              isCurrent: currentSub.plan == plan,
-              ref:       ref,
+              plan:       plan,
+              cycle:      cycle,
+              isCurrent:  currentSub.plan == plan,
+              ref:        ref,
+              currentSub: currentSub,
             ),
           ),
         ],
@@ -2083,12 +2084,14 @@ class _PlanRow extends ConsumerStatefulWidget {
   final BillingCycle     cycle;
   final bool             isCurrent;
   final WidgetRef        ref;
+  final Subscription     currentSub;
 
   const _PlanRow({
     required this.plan,
     required this.cycle,
     required this.isCurrent,
     required this.ref,
+    required this.currentSub,
   });
 
   @override
@@ -2102,7 +2105,7 @@ class _PlanRowState extends ConsumerState<_PlanRow> {
   Widget build(BuildContext context) {
     final planColor = _planColor(widget.plan);
     final isAnnual  = widget.cycle == BillingCycle.annual;
-    final savings   = widget.plan.annualSavings;
+    final savings   = widget.currentSub.annualSavingsForPlan(widget.plan);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -2168,7 +2171,7 @@ class _PlanRowState extends ConsumerState<_PlanRow> {
                   Row(
                     children: [
                       Text(
-                        widget.plan.priceLabel(widget.cycle),
+                        widget.currentSub.priceLabelForPlan(widget.plan, widget.cycle),
                         style: TextStyle(
                             color: planColor.withValues(alpha: 0.75),
                             fontSize: 11),
@@ -2184,7 +2187,7 @@ class _PlanRowState extends ConsumerState<_PlanRow> {
                             borderRadius: BorderRadius.circular(5),
                           ),
                           child: Text(
-                            'Save \$${savings.toStringAsFixed(0)}',
+                            'Save ₦${savings.toStringAsFixed(0)}/yr',
                             style: const TextStyle(
                                 color: EnhancedTheme.successGreen,
                                 fontSize: 9,
