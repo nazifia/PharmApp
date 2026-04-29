@@ -11,6 +11,7 @@ import '../../../shared/models/user.dart';
 const _kCredHash       = 'offline_cred_hash';
 const _kCredPhone      = 'offline_cred_phone';
 const _kCredSalt       = 'offline_cred_salt';       // 32-byte random per-install salt (base64)
+const _kOfflineUser    = 'offline_user_cache';      // user JSON, NOT wiped by 401 interceptor
 const _kLoginAttempts  = 'offline_login_attempts';  // consecutive wrong-password count
 const _kLoginLockUntil = 'offline_login_lock_until'; // epoch-ms lockout expiry
 const _kMaxAttempts    = 5;
@@ -83,6 +84,9 @@ class AuthRepository {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_kCredHash,  hash);
       await prefs.setString(_kCredPhone, phoneNumber);
+      // Store user separately — this key is NOT wiped by the 401 interceptor,
+      // so offline login can reconstruct the session even after token expiry.
+      await prefs.setString(_kOfflineUser, jsonEncode(user.toJson()));
       // Successful online login clears any previous lockout state.
       await prefs.remove(_kLoginAttempts);
       await prefs.remove(_kLoginLockUntil);
@@ -143,18 +147,27 @@ class AuthRepository {
         );
       }
       await prefs.setInt(_kLoginAttempts, attempts);
-      return null; // wrong password — caller shows generic "offline" error
+      final remaining = _kMaxAttempts - attempts;
+      throw Exception('Incorrect password. $remaining offline attempt(s) remaining.');
     }
 
     // ── Correct credentials — restore cached session ──────────────────────
     await prefs.remove(_kLoginAttempts);
     await prefs.remove(_kLoginLockUntil);
 
-    final token    = await AuthStorage.read('auth_token');
-    final userData = await AuthStorage.read('current_user');
-    if (token == null || userData == null) return null;
+    // Read user from the dedicated offline cache (not wiped by the 401 interceptor).
+    // Fall back to the main auth storage in case of a pre-fix install.
+    final offlineUserData = prefs.getString(_kOfflineUser)
+        ?? await AuthStorage.read('current_user');
+    if (offlineUserData == null) return null;
 
-    final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
+    final user = User.fromJson(jsonDecode(offlineUserData) as Map<String, dynamic>);
+
+    // Reuse the stored token if still present; otherwise issue a temporary
+    // offline token so navigation works. The real token will be refreshed
+    // on the next successful online login.
+    final token = await AuthStorage.read('auth_token')
+        ?? 'offline_${DateTime.now().millisecondsSinceEpoch}';
     return {'token': token, 'user': user};
   }
 
