@@ -160,7 +160,8 @@ def adjust_stock(request, pk):
         return err
     item = get_object_or_404(Item, pk=pk, organization=org)
     try:
-        adjustment = float(request.data.get("adjustment", 0))
+        from decimal import Decimal
+        adjustment = Decimal(str(request.data.get("adjustment", 0)))
     except (ValueError, TypeError):
         return Response(
             {"detail": "Invalid adjustment value"}, status=status.HTTP_400_BAD_REQUEST
