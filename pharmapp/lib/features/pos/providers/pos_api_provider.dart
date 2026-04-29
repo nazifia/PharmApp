@@ -277,6 +277,34 @@ class PosApiClient {
   // ── Dispensing Log ─────────────────────────────────────────────────────────
   static const _kLocalDispLogKey = 'local_dispensing_log';
 
+  /// Fetches ALL pages from a DRF paginated endpoint and returns the combined list.
+  Future<List<Map<String, dynamic>>> _fetchAllPages(
+      String path, Map<String, dynamic>? params) async {
+    final dio = _dio!;
+    final all = <Map<String, dynamic>>[];
+    String? url = path;
+    Map<String, dynamic>? qp = params;
+    while (url != null) {
+      final res = await dio.get(url, queryParameters: qp);
+      final data = res.data;
+      if (data is Map && data.containsKey('results')) {
+        all.addAll((data['results'] as List).cast<Map<String, dynamic>>());
+        final next = data['next'] as String?;
+        if (next != null && next.isNotEmpty) {
+          final uri = Uri.parse(next);
+          url = uri.path;
+          qp  = Map<String, dynamic>.from(uri.queryParameters);
+        } else {
+          url = null;
+        }
+      } else {
+        all.addAll((data as List).cast<Map<String, dynamic>>());
+        url = null;
+      }
+    }
+    return all;
+  }
+
   List<Map<String, dynamic>> _filterEntries(
     List<Map<String, dynamic>> entries, {
     String? search,
@@ -340,12 +368,8 @@ class PosApiClient {
     if (search != null && search.isNotEmpty) salesParams['search'] = search;
     if (branchId != null && branchId > 0)   salesParams['branch_id'] = branchId;
 
-    final salesRes = await dio.get('/pos/sales/',
-        queryParameters: salesParams.isNotEmpty ? salesParams : null);
-    final salesData = salesRes.data;
-    final salesList = (salesData is Map && salesData.containsKey('results')
-        ? salesData['results'] as List
-        : salesData as List).cast<Map<String, dynamic>>();
+    final salesList = await _fetchAllPages(
+        '/pos/sales/', salesParams.isNotEmpty ? salesParams : null);
 
     // 2. Build a map: saleId → local item entries (from this device's checkouts)
     final prefs = await SharedPreferences.getInstance();
@@ -475,12 +499,8 @@ class PosApiClient {
       if (to != null) params['to'] = to;
       if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       if (userId != null && userId > 0) params['dispensed_by'] = userId;
-      final res = await _dio!.get('/pos/dispensing-log/',
-          queryParameters: params.isNotEmpty ? params : null);
-      final data = res.data;
-      final list = data is Map && data.containsKey('results')
-          ? data['results'] as List
-          : data as List;
+      final list = await _fetchAllPages(
+          '/pos/dispensing-log/', params.isNotEmpty ? params : null);
       if (isCacheable) await _cacheStr(cacheKey, list);
       // Proper dispensing-log endpoint has data — use it directly
       if (list.isNotEmpty) return list;
