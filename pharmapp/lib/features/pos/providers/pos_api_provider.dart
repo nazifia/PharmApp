@@ -1648,11 +1648,110 @@ final paymentRequestsPreloadProvider =
 bool isOfflineResult(Map<String, dynamic>? result) =>
     result != null && result['offline'] == true;
 
+// ── Dispensing log providers (exported so sync_service can invalidate them) ────
+
+class DispensingLogParams {
+  final String? search;
+  final String? from;
+  final String? to;
+  final bool myOnly;
+  const DispensingLogParams({this.search, this.from, this.to, this.myOnly = false});
+
+  @override
+  bool operator ==(Object other) =>
+      other is DispensingLogParams &&
+      other.search == search &&
+      other.from == from &&
+      other.to == to &&
+      other.myOnly == myOnly;
+
+  @override
+  int get hashCode => Object.hash(search, from, to, myOnly);
+}
+
+int? _dispensingBranchId(Ref ref) {
+  final branch = ref.watch(activeBranchProvider);
+  if (branch != null && branch.id > 0) return branch.id;
+  return null;
+}
+
+final dispensingStatsProvider =
+    FutureProvider.autoDispose.family<Map<String, dynamic>, bool>((ref, myOnly) {
+  final userId = myOnly ? ref.watch(currentUserProvider)?.id : null;
+  return ref.watch(posApiProvider).fetchDispensingStats(
+    branchId: _dispensingBranchId(ref),
+    userId: userId,
+  );
+});
+
+final dispensingLogProvider =
+    FutureProvider.autoDispose.family<List<dynamic>, DispensingLogParams>((ref, params) {
+  final userId = params.myOnly ? ref.watch(currentUserProvider)?.id : null;
+  return ref.watch(posApiProvider).fetchDispensingLog(
+    search: params.search,
+    from: params.from,
+    to: params.to,
+    branchId: _dispensingBranchId(ref),
+    userId: userId,
+  );
+});
+
 // ── Checkout notifier ──────────────────────────────────────────────────────────
 
 class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   CheckoutNotifier(this._ref) : super(const AsyncValue.data(null));
+
+  Future<void> _saveLocalDispensingEntriesFromPayload(CheckoutPayload payload) async {
+    final prefs = await SharedPreferences.getInstance();
+    // Best-effort: resolve item names from any cached inventory list.
+    final Map<int, Map<String, String>> itemMeta = {};
+    for (final key in [
+      'cache_inventory',
+      'cache_inventory_retail',
+      'cache_inventory_wholesale',
+    ]) {
+      final raw = prefs.getString(key);
+      if (raw == null) continue;
+      final list = jsonDecode(raw) as List?;
+      if (list == null) continue;
+      for (final item in list) {
+        if (item is Map<String, dynamic>) {
+          final id = (item['id'] as num?)?.toInt();
+          if (id != null && !itemMeta.containsKey(id)) {
+            itemMeta[id] = {
+              'name': item['name'] as String? ?? '',
+              'brand': item['brand'] as String? ?? '',
+            };
+          }
+        }
+      }
+      if (itemMeta.isNotEmpty) break;
+    }
+
+    final user = _ref.read(currentUserProvider);
+    final dispenserName = user?.username ?? '';
+    final createdAt = DateTime.now().toIso8601String();
+
+    final existing = prefs.getString(PosApiClient._kLocalDispLogKey);
+    final List<dynamic> entries = existing != null ? (jsonDecode(existing) as List) : [];
+
+    for (final item in payload.items.reversed) {
+      final meta = item.itemId != null ? itemMeta[item.itemId] : null;
+      entries.insert(0, {
+        'name': meta?['name']?.isNotEmpty == true ? meta!['name'] : item.barcode,
+        'brand': meta?['brand'] ?? '',
+        'quantity': item.quantity,
+        'amount': item.price * item.quantity,
+        'status': 'dispensed',
+        'createdAt': createdAt,
+        'dispenser': dispenserName,
+        '_offline': true,
+      });
+    }
+    await prefs.setString(
+        PosApiClient._kLocalDispLogKey, jsonEncode(entries.take(500).toList()));
+  }
 
   Future<void> _saveLocalDispensingEntries(Map<String, dynamic> result) async {
     final items = result['items'] as List<dynamic>? ?? [];
@@ -1705,6 +1804,7 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
     final isOnline = _ref.read(isOnlineProvider);
     if (!isOnline) {
       await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
+      await _saveLocalDispensingEntriesFromPayload(payload);
       state = const AsyncValue.data(null);
       return {'offline': true};
     }
@@ -1723,6 +1823,7 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
       // "Queued for sync" sheet rather than a generic error.
       if (e.response == null) {
         await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
+        await _saveLocalDispensingEntriesFromPayload(payload);
         state = const AsyncValue.data(null);
         return {'offline': true};
       }

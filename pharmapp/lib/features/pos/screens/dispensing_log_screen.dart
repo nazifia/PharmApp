@@ -9,59 +9,6 @@ import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
 
-// ── Providers ────────────────────────────────────────────────────────────────
-
-/// Resolves the active branch ID for dispensing queries.
-/// Only uses an explicitly selected branch (activeBranchProvider).
-/// Non-admin users rely on JWT-based backend scoping — sending branch_id
-/// on their behalf can cause 403 errors on backends that restrict branch
-/// filtering to admin roles.
-int? _dispensingBranchId(Ref ref) {
-  final branch = ref.watch(activeBranchProvider);
-  if (branch != null && branch.id > 0) return branch.id;
-  return null;
-}
-
-final dispensingStatsProvider =
-    FutureProvider.autoDispose.family<Map<String, dynamic>, bool>((ref, myOnly) {
-  final userId = myOnly ? ref.watch(currentUserProvider)?.id : null;
-  return ref.watch(posApiProvider).fetchDispensingStats(
-    branchId: _dispensingBranchId(ref),
-    userId: userId,
-  );
-});
-
-final dispensingLogProvider =
-    FutureProvider.autoDispose.family<List<dynamic>, DispensingLogParams>((ref, params) {
-  final userId = params.myOnly ? ref.watch(currentUserProvider)?.id : null;
-  return ref.watch(posApiProvider).fetchDispensingLog(
-    search: params.search,
-    from: params.from,
-    to: params.to,
-    branchId: _dispensingBranchId(ref),
-    userId: userId,
-  );
-});
-
-class DispensingLogParams {
-  final String? search;
-  final String? from;
-  final String? to;
-  final bool myOnly;
-  const DispensingLogParams({this.search, this.from, this.to, this.myOnly = false});
-
-  @override
-  bool operator ==(Object other) =>
-      other is DispensingLogParams &&
-      other.search == search &&
-      other.from == from &&
-      other.to == to &&
-      other.myOnly == myOnly;
-
-  @override
-  int get hashCode => Object.hash(search, from, to, myOnly);
-}
-
 // ── Screen ───────────────────────────────────────────────────────────────────
 
 class DispensingLogScreen extends ConsumerStatefulWidget {

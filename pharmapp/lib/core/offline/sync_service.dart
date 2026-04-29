@@ -23,7 +23,8 @@ const _kSyncCacheKeys = [
   'cache_stock_checks',
   'cache_transfers',
   'cache_payment_requests',
-  'cache_dispensing',
+  'cache_dispensing_log',
+  'cache_dispensing_stats',
   'cache_notifications',
 ];
 
@@ -243,8 +244,8 @@ class SyncService {
     ref.invalidate(retailInventoryProvider);
     ref.invalidate(wholesaleInventoryProvider);
     ref.invalidate(customerListProvider);
-    // Other providers are auto-dispose and will refetch when next accessed.
-    // Clearing SharedPreferences caches above is sufficient for offline reads.
+    ref.invalidate(dispensingLogProvider);
+    ref.invalidate(dispensingStatsProvider);
   }
 }
 
