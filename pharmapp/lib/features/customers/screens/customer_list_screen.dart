@@ -270,15 +270,32 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                             .read(customerNotifierProvider.notifier)
                             .createCustomer(data);
                         if (!context.mounted) return;
+                        final notifierState = ref.read(customerNotifierProvider);
+                        Color snackColor;
+                        IconData snackIcon;
+                        String snackMsg;
+                        if (notifierState.hasError) {
+                          snackColor = EnhancedTheme.errorRed;
+                          snackIcon  = Icons.error_rounded;
+                          snackMsg   = 'Error: ${notifierState.error}';
+                        } else if (result != null) {
+                          snackColor = EnhancedTheme.successGreen;
+                          snackIcon  = Icons.check_circle_rounded;
+                          snackMsg   = '${result.name} added successfully';
+                        } else {
+                          snackColor = EnhancedTheme.warningAmber;
+                          snackIcon  = Icons.cloud_off_rounded;
+                          snackMsg   = 'Offline — customer queued for sync';
+                        }
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          backgroundColor: (result != null ? EnhancedTheme.successGreen : EnhancedTheme.errorRed).withValues(alpha: 0.92),
+                          backgroundColor: snackColor.withValues(alpha: 0.92),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           content: Row(children: [
-                            Icon(result != null ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.black, size: 20),
+                            Icon(snackIcon, color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            Expanded(child: Text(result != null ? '${result.name} added successfully' : 'Failed to add customer', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            Expanded(child: Text(snackMsg, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                       },

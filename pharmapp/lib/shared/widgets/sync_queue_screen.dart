@@ -36,7 +36,10 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
     final IconData icon;
 
     if (result.connectionFailed) {
-      msg   = 'Cannot reach server — items remain queued';
+      final detail = result.connectionErrorDetail;
+      msg   = detail != null
+          ? 'Cannot reach server — will retry\n$detail'
+          : 'Cannot reach server — items remain queued. Will retry automatically.';
       color = EnhancedTheme.errorRed;
       icon  = Icons.cloud_off_rounded;
     } else if (result.synced == 0 && result.failed == 0) {
@@ -58,7 +61,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 4),
+      duration: Duration(seconds: result.connectionFailed ? 6 : 4),
       content: Row(children: [
         Icon(icon, color: result.connectionFailed ? Colors.white : Colors.black, size: 20),
         const SizedBox(width: 10),
@@ -68,6 +71,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
             style: TextStyle(
               color: result.connectionFailed ? Colors.white : Colors.black,
               fontWeight: FontWeight.w600,
+              fontSize: 12,
             ),
           ),
         ),

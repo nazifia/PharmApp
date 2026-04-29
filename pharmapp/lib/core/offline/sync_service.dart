@@ -39,6 +39,8 @@ class SyncResult {
   /// (DioException with no response). Distinct from [failed], which counts
   /// items that received a server-level error response.
   final bool connectionFailed;
+  /// Human-readable detail about the connection failure (Dio error type + URL).
+  final String? connectionErrorDetail;
 
   const SyncResult({
     this.salesSynced = 0,
@@ -48,6 +50,7 @@ class SyncResult {
     this.error,
     this.authExpired = false,
     this.connectionFailed = false,
+    this.connectionErrorDetail,
   });
 
   /// Total successful syncs (sales + mutations).
@@ -79,6 +82,7 @@ class SyncService {
     String? error;
     bool authExpired = false;
     bool connectionFailed = false;
+    String? connectionErrorDetail;
 
     try {
       // ── 1. Sync pending sales ────────────────────────────────────────────
@@ -99,9 +103,9 @@ class SyncService {
           // is just temporarily unavailable. Only server errors (response != null)
           // count as genuine failures. Also stop the loop immediately so we don't
           // hammer a dead connection for every queued item.
-          final isConnectionError = e is DioException && e.response == null;
-          if (isConnectionError) {
+          if (e is DioException && e.response == null) {
             connectionFailed = true;
+            connectionErrorDetail = _describeConnectionError(e);
             break; // network down — stop here, try again next sync cycle
           }
           await ref.read(offlineQueueProvider.notifier).markAttempt(sale.id);
@@ -121,9 +125,9 @@ class SyncService {
             if (e is DioException && e.response?.statusCode == 401) {
               authExpired = true;
             }
-            final isConnectionError = e is DioException && e.response == null;
-            if (isConnectionError) {
+            if (e is DioException && e.response == null) {
               connectionFailed = true;
+              connectionErrorDetail ??= _describeConnectionError(e);
               break; // network down — stop here
             }
             await ref
@@ -151,7 +155,26 @@ class SyncService {
       error: error,
       authExpired: authExpired,
       connectionFailed: connectionFailed,
+      connectionErrorDetail: connectionErrorDetail,
     );
+  }
+
+  /// Returns a human-readable string describing why a connection-level DioException failed.
+  String _describeConnectionError(DioException e) {
+    final url = e.requestOptions.uri.toString();
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+        return 'Connection timed out — server may be sleeping\n$url';
+      case DioExceptionType.receiveTimeout:
+        return 'Response timed out — server is slow or unreachable\n$url';
+      case DioExceptionType.sendTimeout:
+        return 'Request send timed out\n$url';
+      case DioExceptionType.connectionError:
+        return 'Cannot connect — check backend is running\n$url';
+      default:
+        final msg = e.message ?? e.error?.toString() ?? 'unknown';
+        return '$msg\n$url';
+    }
   }
 
   /// Replay a single mutation against the backend.

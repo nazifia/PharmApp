@@ -233,7 +233,7 @@ class _AppShellState extends ConsumerState<AppShell>
     ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) {
       if (!nowOnline || wasOnline == true) return;
       // Wait 1.5 s for the connection to stabilise before attempting sync.
-      _syncIfNeeded(delayMs: 1500);
+      _syncIfNeeded(delayMs: 3000);
     });
 
     // Trigger sync when the offline queues finish loading from SharedPreferences
@@ -393,19 +393,22 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
 
     if (result.connectionFailed) {
       // Server was unreachable — nothing was synced, items remain queued.
+      final detail = result.connectionErrorDetail;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
-        content: const Row(children: [
-          Icon(Icons.cloud_off_rounded, color: Colors.white, size: 20),
-          SizedBox(width: 10),
+        duration: const Duration(seconds: 6),
+        content: Row(children: [
+          const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
           Expanded(
               child: Text(
-            'Cannot reach server — items remain queued',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            detail != null
+                ? 'Cannot reach server — will retry\n$detail'
+                : 'Cannot reach server — items remain queued. Will retry automatically.',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
           )),
         ]),
       ));
