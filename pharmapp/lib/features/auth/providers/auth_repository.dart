@@ -1,8 +1,14 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
-
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
+import '../../../core/services/auth_storage.dart';
 import '../../../shared/models/user.dart';
+
+const _kCredHash  = 'offline_cred_hash';
+const _kCredPhone = 'offline_cred_phone';
 
 class AuthRepository {
   final Dio? _dio;
@@ -60,13 +66,51 @@ class AuthRepository {
         options: Options(headers: {'skip_auth': true}),
       );
       final data = res.data as Map<String, dynamic>;
-      return {'token': data['access'] as String, 'user': User.fromJson(data['user'] as Map<String, dynamic>)};
+      final token = data['access'] as String;
+      final user  = User.fromJson(data['user'] as Map<String, dynamic>);
+
+      // Persist credential hash so offline login can verify later sessions.
+      final hash  = sha256.convert(utf8.encode('$phoneNumber:$password')).toString();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kCredHash,  hash);
+      await prefs.setString(_kCredPhone, phoneNumber);
+
+      return {'token': token, 'user': user};
     } on DioException catch (e) {
+      // Connection-level failure (no response) — attempt offline credential check.
+      if (e.response == null) {
+        final result = await _tryOfflineLogin(phoneNumber, password);
+        if (result != null) return result;
+        throw Exception('You are offline. Connect to the internet and try again.');
+      }
       final body = e.response?.data;
       if (body is Map) {
         throw Exception(body['detail'] ?? body['error'] ?? 'Invalid credentials');
       }
       throw Exception('Network error — check server connection');
+    }
+  }
+
+  /// Verifies [phoneNumber]+[password] against the locally stored credential hash.
+  /// Returns a login result map if valid and a cached session exists, else null.
+  Future<Map<String, dynamic>?> _tryOfflineLogin(String phoneNumber, String password) async {
+    try {
+      final prefs      = await SharedPreferences.getInstance();
+      final storedHash = prefs.getString(_kCredHash);
+      final storedPhone = prefs.getString(_kCredPhone);
+      if (storedHash == null || storedPhone != phoneNumber) return null;
+
+      final inputHash = sha256.convert(utf8.encode('$phoneNumber:$password')).toString();
+      if (inputHash != storedHash) return null;
+
+      final token    = await AuthStorage.read('auth_token');
+      final userData = await AuthStorage.read('current_user');
+      if (token == null || userData == null) return null;
+
+      final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
+      return {'token': token, 'user': user};
+    } catch (_) {
+      return null;
     }
   }
 

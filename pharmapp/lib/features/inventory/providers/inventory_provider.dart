@@ -333,14 +333,12 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/inventory/items/$id/adjust-stock/',
           body: {'adjustment': adjustment, 'reason': reason},
-          description: 'Adjust stock for "$id" (${adjustment > 0 ? '+' : ''}$adjustment)',
+          description: 'Adjust stock for item #$id (${adjustment > 0 ? '+' : ''}$adjustment)',
         );
-        // Optimistically apply the stock adjustment in the cache.
-        await _updateAllInventoryCaches(id, {
-          'status': 'pending_sync',
-          // Note: we can't compute the new absolute stock here without knowing
-          // the current value — the server will apply the delta on sync.
-        });
+        // Optimistically apply the stock delta to all caches so the UI reflects
+        // the change immediately without waiting for sync.
+        final updates = await _computeStockDelta(id, adjustment);
+        await _updateAllInventoryCaches(id, updates);
         _ref.invalidate(retailInventoryProvider);
         _ref.invalidate(wholesaleInventoryProvider);
         _ref.invalidate(inventoryListProvider);
@@ -354,6 +352,47 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
       state = AsyncValue.error(e, st);
       return null;
     }
+  }
+
+  /// Reads the current cached stock for [id] and returns an update map with
+  /// the post-adjustment value (or just {status} if stock is not cached yet).
+  Future<Map<String, dynamic>> _computeStockDelta(int id, int adjustment) async {
+    final prefs = await SharedPreferences.getInstance();
+    int? current;
+
+    // Prefer detail cache (normalized camelCase: 'stock').
+    final detailRaw = prefs.getString('cache_inventory_item_$id');
+    if (detailRaw != null) {
+      final m = jsonDecode(detailRaw) as Map<String, dynamic>;
+      current = (m['stock'] as num?)?.toInt();
+    }
+
+    // Fallback: scan list caches (raw API snake_case, 'stock' key is the same).
+    if (current == null) {
+      final bs = _branchSegment();
+      for (final key in [
+        'cache_inventory$bs',
+        'cache_inventory${bs}_retail',
+        'cache_inventory${bs}_wholesale',
+      ]) {
+        final raw = prefs.getString(key);
+        if (raw == null) continue;
+        final list = jsonDecode(raw) as List;
+        for (final e in list) {
+          final m = e as Map<String, dynamic>;
+          if (m['id'] == id) {
+            current = (m['stock'] as num?)?.toInt();
+            break;
+          }
+        }
+        if (current != null) break;
+      }
+    }
+
+    return {
+      if (current != null) 'stock': current + adjustment,
+      'status': 'pending_sync',
+    };
   }
 }
 
