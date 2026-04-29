@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -301,17 +300,17 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           'expiry_date':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
                           'unit_of_dispensing':  unitOfDispensing,
                         };
-                        try {
-                          final updated = await ref.read(inventoryApiProvider).updateItem(item.id, payload);
-                          ref.invalidate(retailInventoryProvider);
-                          ref.invalidate(wholesaleInventoryProvider);
+                        final updated = await ref.read(inventoryNotifierProvider.notifier)
+                            .updateItem(item.id, payload);
+                        final notifierState = ref.read(inventoryNotifierProvider);
+                        if (!context.mounted) return;
+                        if (updated != null) {
                           setState(() => _itemOverride = updated.copyWith(
                             dosageForm: dosageForm,
                             unitOfDispensing: unitOfDispensing,
                             markup: markup,
                           ));
-                          if (!context.mounted) return;
-                          Navigator.of(ctx).pop();
+                          if (ctx.mounted) Navigator.of(ctx).pop();
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
                             behavior: SnackBarBehavior.floating,
@@ -320,47 +319,40 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             content: Row(children: [
                               const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                               const SizedBox(width: 10),
-                              Expanded(child: Text('${updated.name} updated successfully', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                              Expanded(child: Text('${payload['name']} updated successfully', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                             ]),
                           ));
-                        } on DioException catch (e) {
+                        } else if (notifierState is AsyncData) {
+                          // Offline — queued; apply changes optimistically
+                          setState(() => _itemOverride = item.copyWith(
+                            name: payload['name'] as String,
+                            brand: payload['brand'] as String,
+                            dosageForm: dosageForm,
+                            price: payload['price'] as double,
+                            costPrice: payload['cost_price'] as double,
+                            markup: markup,
+                            lowStockThreshold: payload['low_stock_threshold'] as int,
+                            barcode: payload['barcode'] as String,
+                            expiryDate: (payload['expiry_date'] as String?) != null
+                                ? DateTime.tryParse(payload['expiry_date'] as String)
+                                : null,
+                            unitOfDispensing: unitOfDispensing,
+                          ));
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: const Row(children: [
+                              Icon(Icons.cloud_off_rounded, color: Colors.black, size: 20),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Offline — changes queued for sync', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } else {
                           setModal(() => saving = false);
-                          if (!context.mounted) return;
-                          if (e.response == null) {
-                            await ref.read(offlineMutationQueueProvider.notifier).enqueue(
-                              'PATCH', '/inventory/items/${item.id}/',
-                              body: payload,
-                              description: 'Update item "${payload['name'] ?? item.name}"',
-                            );
-                            if (!context.mounted) return;
-                            if (ctx.mounted) Navigator.of(ctx).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.all(16),
-                              content: const Row(children: [
-                                Icon(Icons.cloud_off_rounded, color: Colors.black, size: 20),
-                                SizedBox(width: 10),
-                                Expanded(child: Text('Offline — changes queued for sync', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                              ]),
-                            ));
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.all(16),
-                              content: Row(children: [
-                                const Icon(Icons.error_rounded, color: Colors.black, size: 20),
-                                const SizedBox(width: 10),
-                                Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                              ]),
-                            ));
-                          }
-                        } catch (e) {
-                          setModal(() => saving = false);
-                          if (!context.mounted) return;
+                          final errMsg = notifierState is AsyncError ? '${notifierState.error}' : 'Update failed';
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
                             behavior: SnackBarBehavior.floating,
@@ -369,7 +361,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             content: Row(children: [
                               const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                               const SizedBox(width: 10),
-                              Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                              Expanded(child: Text('Error: $errMsg', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                             ]),
                           ));
                         }
@@ -464,58 +456,32 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   Expanded(child: ElevatedButton(
                     onPressed: () async {
                       Navigator.of(ctx).pop();
-                      try {
-                        await ref.read(inventoryApiProvider).deleteItem(item.id);
-                        ref.invalidate(retailInventoryProvider);
-                        ref.invalidate(wholesaleInventoryProvider);
-                        if (!context.mounted) return;
+                      final success = await ref.read(inventoryNotifierProvider.notifier)
+                          .deleteItem(item.id);
+                      if (!context.mounted) return;
+                      if (success) {
+                        final isQueued = ref.read(offlineMutationQueueProvider).any(
+                          (m) => m.method == 'DELETE' && m.path == '/inventory/items/${item.id}/');
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+                          backgroundColor: (isQueued
+                              ? EnhancedTheme.warningAmber
+                              : EnhancedTheme.successGreen).withValues(alpha: 0.92),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           content: Row(children: [
-                            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                            Icon(isQueued ? Icons.cloud_off_rounded : Icons.check_circle_rounded,
+                                color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            Expanded(child: Text('${item.name} deleted', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            Expanded(child: Text(
+                              isQueued ? 'Offline — deletion queued for sync' : '${item.name} deleted',
+                              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                         context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref));
-                      } on DioException catch (e) {
-                        if (!context.mounted) return;
-                        if (e.response == null) {
-                          await ref.read(offlineMutationQueueProvider.notifier).enqueue(
-                            'DELETE', '/inventory/items/${item.id}/',
-                            description: 'Delete item "${item.name}"',
-                          );
-                          if (!context.mounted) return;
-                          context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref));
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            margin: const EdgeInsets.all(16),
-                            content: const Row(children: [
-                              Icon(Icons.cloud_off_rounded, color: Colors.black, size: 20),
-                              SizedBox(width: 10),
-                              Expanded(child: Text('Offline — deletion queued for sync', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                            ]),
-                          ));
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            margin: const EdgeInsets.all(16),
-                            content: Row(children: [
-                              const Icon(Icons.error_rounded, color: Colors.black, size: 20),
-                              const SizedBox(width: 10),
-                              Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                            ]),
-                          ));
-                        }
-                      } catch (e) {
-                        if (!context.mounted) return;
+                      } else {
+                        final errState = ref.read(inventoryNotifierProvider);
+                        final errMsg = errState is AsyncError ? '${errState.error}' : 'Delete failed';
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
                           behavior: SnackBarBehavior.floating,
@@ -524,7 +490,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           content: Row(children: [
                             const Icon(Icons.error_rounded, color: Colors.black, size: 20),
                             const SizedBox(width: 10),
-                            Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            Expanded(child: Text('Error: $errMsg', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                           ]),
                         ));
                       }
@@ -953,73 +919,52 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     Expanded(child: ElevatedButton(
                       onPressed: () async {
                         Navigator.of(ctx).pop();
-                        try {
-                          final updated = await ref.read(inventoryApiProvider).adjustStock(item.id, adjustment, reason);
+                        final updated = await ref.read(inventoryNotifierProvider.notifier)
+                            .adjustStock(item.id, adjustment, reason);
+                        final notifierState = ref.read(inventoryNotifierProvider);
+                        if (!mounted) return;
+                        if (updated != null) {
                           setState(() => _itemOverride = updated);
-                          ref.invalidate(retailInventoryProvider);
-                          ref.invalidate(wholesaleInventoryProvider);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.all(16),
-                              content: Row(children: [
-                                const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                                const SizedBox(width: 10),
-                                Expanded(child: Text('Stock updated to ${updated.stock} units ($reason)', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                              ]),
-                            ));
-                          }
-                        } on DioException catch (e) {
-                          if (mounted) {
-                            if (e.response == null) {
-                              final messenger = ScaffoldMessenger.of(context);
-                              await ref.read(offlineMutationQueueProvider.notifier).enqueue(
-                                'POST', '/inventory/items/${item.id}/adjust-stock/',
-                                body: {'adjustment': adjustment, 'reason': reason},
-                                description: 'Adjust stock for "${item.name}" ($reason)',
-                              );
-                              if (!context.mounted) return;
-                              messenger.showSnackBar(SnackBar(
-                                backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                margin: const EdgeInsets.all(16),
-                                content: const Row(children: [
-                                  Icon(Icons.cloud_off_rounded, color: Colors.black, size: 20),
-                                  SizedBox(width: 10),
-                                  Expanded(child: Text('Offline — stock adjustment queued for sync', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                                ]),
-                              ));
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                margin: const EdgeInsets.all(16),
-                                content: Row(children: [
-                                  const Icon(Icons.error_rounded, color: Colors.black, size: 20),
-                                  const SizedBox(width: 10),
-                                  Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                                ]),
-                              ));
-                            }
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.all(16),
-                              content: Row(children: [
-                                const Icon(Icons.error_rounded, color: Colors.black, size: 20),
-                                const SizedBox(width: 10),
-                                Expanded(child: Text('Error: $e', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                              ]),
-                            ));
-                          }
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('Stock updated to ${updated.stock} units ($reason)', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } else if (notifierState is AsyncData) {
+                          // Offline — queued; apply adjustment optimistically
+                          final before = (_itemOverride ?? item).stock;
+                          setState(() => _itemOverride = (_itemOverride ?? item)
+                              .copyWith(stock: before + adjustment));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: const Row(children: [
+                              Icon(Icons.cloud_off_rounded, color: Colors.black, size: 20),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Offline — stock adjustment queued for sync', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } else {
+                          final errMsg = notifierState is AsyncError ? '${notifierState.error}' : 'Adjustment failed';
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.error_rounded, color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('Error: $errMsg', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
                         }
                       },
                       style: ElevatedButton.styleFrom(

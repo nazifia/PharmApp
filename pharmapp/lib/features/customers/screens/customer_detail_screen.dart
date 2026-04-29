@@ -465,17 +465,34 @@ class CustomerDetailScreen extends ConsumerWidget {
                           };
                           final updated = await ref.read(customerNotifierProvider.notifier)
                               .updateCustomer(customer.id, data);
+                          final notifierState = ref.read(customerNotifierProvider);
                           if (context.mounted) {
                             Navigator.pop(ctx);
+                            final Color bg;
+                            final IconData ic;
+                            final String msg;
+                            if (updated != null) {
+                              bg = EnhancedTheme.successGreen;
+                              ic = Icons.check_circle_rounded;
+                              msg = 'Customer updated';
+                            } else if (notifierState is AsyncData) {
+                              bg = EnhancedTheme.warningAmber;
+                              ic = Icons.cloud_off_rounded;
+                              msg = 'Offline — changes queued for sync';
+                            } else {
+                              bg = EnhancedTheme.errorRed;
+                              ic = Icons.error_rounded;
+                              msg = 'Update failed';
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              backgroundColor: (updated != null ? EnhancedTheme.successGreen : EnhancedTheme.errorRed).withValues(alpha: 0.92),
+                              backgroundColor: bg.withValues(alpha: 0.92),
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               margin: const EdgeInsets.all(16),
                               content: Row(children: [
-                                Icon(updated != null ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.black, size: 20),
+                                Icon(ic, color: Colors.black, size: 20),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text(updated != null ? 'Customer updated' : 'Update failed', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                                Expanded(child: Text(msg, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                               ]),
                             ));
                           }
