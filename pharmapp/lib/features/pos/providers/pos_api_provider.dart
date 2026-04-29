@@ -1672,6 +1672,12 @@ class DispensingLogParams {
 int? _dispensingBranchId(Ref ref) {
   final branch = ref.watch(activeBranchProvider);
   if (branch != null && branch.id > 0) return branch.id;
+  // Non-admin users assigned to a branch → scope to their branch automatically
+  final user = ref.watch(currentUserProvider);
+  if (user != null && user.branchId > 0) {
+    const adminRoles = {'Admin', 'Manager', 'Wholesale Manager'};
+    if (!adminRoles.contains(user.role)) return user.branchId;
+  }
   return null;
 }
 
