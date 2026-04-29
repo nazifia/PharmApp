@@ -7,6 +7,7 @@ import 'package:pharmapp/core/offline/connectivity_provider.dart'
     show isOnlineProvider;
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
+import 'package:pharmapp/core/offline/eager_sync_service.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -277,6 +278,7 @@ class _AppShellState extends ConsumerState<AppShell>
       drawer: const AppDrawer(),
       body: Column(children: [
         if (!isOnline || pending > 0) const _OfflineBanner(),
+        const _EagerSyncBanner(),
         const TrialBanner(),
         Expanded(child: widget.child),
       ]),
@@ -292,6 +294,36 @@ class _AppShellState extends ConsumerState<AppShell>
             AppShell._showMoreSheet(context, ref, isAdmin, isWholesale),
       ),
     ));
+  }
+}
+
+// ── Eager sync progress banner ────────────────────────────────────────────────
+
+class _EagerSyncBanner extends ConsumerWidget {
+  const _EagerSyncBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final phase = ref.watch(eagerSyncProvider).phase;
+    if (phase != EagerSyncPhase.syncing) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.85),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: const Row(children: [
+        SizedBox(
+          width: 14, height: 14,
+          child: CircularProgressIndicator(
+            strokeWidth: 2, color: Colors.white,
+          ),
+        ),
+        SizedBox(width: 10),
+        Text(
+          'Syncing offline data…',
+          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ]),
+    );
   }
 }
 

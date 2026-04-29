@@ -446,6 +446,67 @@ class LocalDb {
     return item;
   }
 
+  /// Bulk-upsert items from the backend API response.
+  /// Uses INSERT OR REPLACE so existing rows (matched by id) are overwritten.
+  Future<void> upsertItems(List<Map<String, dynamic>> items) async {
+    if (items.isEmpty) return;
+    final d = await db;
+    final batch = d.batch();
+    for (final item in items) {
+      batch.rawInsert(
+        '''INSERT OR REPLACE INTO items
+           (id, name, brand, dosage_form, price, cost_price, markup, stock,
+            low_stock_threshold, barcode, expiry_date, store, unit_of_dispensing)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+        [
+          item['id'],
+          item['name'] ?? '',
+          item['brand'] ?? '',
+          item['dosage_form'] ?? item['dosageForm'] ?? '',
+          ((item['price'] ?? 0) as num).toDouble(),
+          ((item['cost_price'] ?? item['costPrice'] ?? item['cost'] ?? 0) as num).toDouble(),
+          ((item['markup'] ?? 0) as num).toDouble(),
+          item['stock'] ?? 0,
+          item['low_stock_threshold'] ?? item['lowStockThreshold'] ?? 10,
+          item['barcode'] ?? '',
+          item['expiry_date'] ?? item['expiryDate'],
+          item['store'] ?? 'retail',
+          item['unit_of_dispensing'] ?? item['unitOfDispensing'] ?? '',
+        ],
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  /// Bulk-upsert customers from the backend API response.
+  Future<void> upsertCustomers(List<Map<String, dynamic>> customers) async {
+    if (customers.isEmpty) return;
+    final d = await db;
+    final batch = d.batch();
+    for (final c in customers) {
+      batch.rawInsert(
+        '''INSERT OR REPLACE INTO customers
+           (id, name, phone, is_wholesale, wallet_balance, total_purchases,
+            outstanding_debt, email, address, join_date, last_visit)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
+        [
+          c['id'],
+          c['name'] ?? '',
+          c['phone'] ?? '',
+          ((c['isWholesale'] ?? c['is_wholesale'] ?? false) == true) ? 1 : 0,
+          ((c['walletBalance'] ?? c['wallet_balance'] ?? 0) as num).toDouble(),
+          ((c['totalPurchases'] ?? c['total_purchases'] ?? 0) as num).toDouble(),
+          ((c['outstandingDebt'] ?? c['outstanding_debt'] ?? 0) as num).toDouble(),
+          c['email'],
+          c['address'],
+          c['joinDate'] ?? c['join_date'],
+          c['lastVisit'] ?? c['last_visit'],
+        ],
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
   // ── CUSTOMERS ──────────────────────────────────────────────────────────────
 
   Future<List<Map<String, dynamic>>> getCustomers() async {

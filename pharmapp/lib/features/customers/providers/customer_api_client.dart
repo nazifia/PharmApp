@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
 import '../../../shared/models/customer.dart';
@@ -182,6 +183,13 @@ class CustomerApiClient {
       // Persist for offline access.
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(cacheKey, jsonEncode(list));
+      // Also write to SQLite for more reliable offline fallback.
+      if (!kIsWeb) {
+        try {
+          await LocalDb.instance.upsertCustomers(
+              list.cast<Map<String, dynamic>>());
+        } catch (_) {}
+      }
 
       return customers;
     } on DioException catch (e) {
@@ -192,6 +200,15 @@ class CustomerApiClient {
         if (raw != null && raw.isNotEmpty) {
           final list = jsonDecode(raw) as List;
           return list.map((e) => Customer.fromJson(e as Map<String, dynamic>)).toList();
+        }
+        // SP cache empty — fall back to SQLite.
+        if (!kIsWeb) {
+          try {
+            final rows = await LocalDb.instance.getCustomers();
+            if (rows.isNotEmpty) {
+              return rows.map((r) => Customer.fromJson(r)).toList();
+            }
+          } catch (_) {}
         }
         throw Exception('You are offline and no cached customer data is available yet.');
       }

@@ -7,6 +7,7 @@ import 'package:pharmapp/shared/models/organization.dart';
 import 'package:pharmapp/shared/models/branch.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/eager_sync_service.dart';
 import '../../../core/services/auth_storage.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import 'auth_repository.dart';
@@ -91,6 +92,9 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
       await AuthStorage.write('current_user', jsonEncode(user.toJson()));
 
       state = AuthFlowState.authenticated;
+
+      // Warm the offline cache in the background — don't block login.
+      _ref.read(eagerSyncProvider.notifier).warmCache();
     } catch (e) {
       _errorMessage = _friendly(e);
       state = AuthFlowState.error;
