@@ -81,6 +81,10 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
   @override
   void initState() {
     super.initState();
+    final user = ref.read(currentUserProvider);
+    final userRole = user?.role ?? '';
+    final isAdmin = const {'Admin', 'Manager', 'Wholesale Manager'}.contains(userRole);
+    if (!isAdmin) _myOnly = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(dispensingStatsProvider);
       ref.invalidate(dispensingLogProvider);
