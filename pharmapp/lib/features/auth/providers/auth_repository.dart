@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,8 +8,13 @@ import '../../../core/database/local_db.dart';
 import '../../../core/services/auth_storage.dart';
 import '../../../shared/models/user.dart';
 
-const _kCredHash  = 'offline_cred_hash';
-const _kCredPhone = 'offline_cred_phone';
+const _kCredHash       = 'offline_cred_hash';
+const _kCredPhone      = 'offline_cred_phone';
+const _kCredSalt       = 'offline_cred_salt';       // 32-byte random per-install salt (base64)
+const _kLoginAttempts  = 'offline_login_attempts';  // consecutive wrong-password count
+const _kLoginLockUntil = 'offline_login_lock_until'; // epoch-ms lockout expiry
+const _kMaxAttempts    = 5;
+const _kLockMinutes    = 15;
 
 class AuthRepository {
   final Dio? _dio;
@@ -69,11 +75,17 @@ class AuthRepository {
       final token = data['access'] as String;
       final user  = User.fromJson(data['user'] as Map<String, dynamic>);
 
-      // Persist credential hash so offline login can verify later sessions.
-      final hash  = sha256.convert(utf8.encode('$phoneNumber:$password')).toString();
+      // Persist HMAC-SHA256 credential fingerprint for offline login.
+      // Uses a per-install random salt so the hash is unique to this device
+      // and cannot be attacked with precomputed rainbow tables.
+      final salt  = await _getOrCreateSalt();
+      final hash  = Hmac(sha256, salt).convert(utf8.encode('$phoneNumber:$password')).toString();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_kCredHash,  hash);
       await prefs.setString(_kCredPhone, phoneNumber);
+      // Successful online login clears any previous lockout state.
+      await prefs.remove(_kLoginAttempts);
+      await prefs.remove(_kLoginLockUntil);
 
       return {'token': token, 'user': user};
     } on DioException catch (e) {
@@ -91,27 +103,71 @@ class AuthRepository {
     }
   }
 
-  /// Verifies [phoneNumber]+[password] against the locally stored credential hash.
-  /// Returns a login result map if valid and a cached session exists, else null.
+  /// Verifies [phoneNumber]+[password] against the locally stored HMAC-SHA256
+  /// credential fingerprint. Enforces a lockout after [_kMaxAttempts] failures.
+  ///
+  /// Returns a login result map on success.
+  /// Returns null if no offline credentials exist for this phone.
+  /// Throws [Exception] on lockout or too many attempts (message shown to user).
   Future<Map<String, dynamic>?> _tryOfflineLogin(String phoneNumber, String password) async {
-    try {
-      final prefs      = await SharedPreferences.getInstance();
-      final storedHash = prefs.getString(_kCredHash);
-      final storedPhone = prefs.getString(_kCredPhone);
-      if (storedHash == null || storedPhone != phoneNumber) return null;
+    final prefs = await SharedPreferences.getInstance();
 
-      final inputHash = sha256.convert(utf8.encode('$phoneNumber:$password')).toString();
-      if (inputHash != storedHash) return null;
-
-      final token    = await AuthStorage.read('auth_token');
-      final userData = await AuthStorage.read('current_user');
-      if (token == null || userData == null) return null;
-
-      final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
-      return {'token': token, 'user': user};
-    } catch (_) {
-      return null;
+    // ── Lockout check ────────────────────────────────────────────────────────
+    final lockUntilMs = prefs.getInt(_kLoginLockUntil) ?? 0;
+    final nowMs       = DateTime.now().millisecondsSinceEpoch;
+    if (nowMs < lockUntilMs) {
+      final remainingMin = ((lockUntilMs - nowMs) / 60000).ceil();
+      throw Exception(
+        'Too many failed attempts. Offline login locked for $remainingMin more minute(s).\n'
+        'Connect to the internet to reset.',
+      );
     }
+
+    // ── Credential check ─────────────────────────────────────────────────────
+    final storedHash  = prefs.getString(_kCredHash);
+    final storedPhone = prefs.getString(_kCredPhone);
+    if (storedHash == null || storedPhone != phoneNumber) return null;
+
+    final salt      = await _getOrCreateSalt();
+    final inputHash = Hmac(sha256, salt).convert(utf8.encode('$phoneNumber:$password')).toString();
+
+    if (inputHash != storedHash) {
+      // Wrong password — increment attempt counter; lock if threshold reached.
+      final attempts = (prefs.getInt(_kLoginAttempts) ?? 0) + 1;
+      if (attempts >= _kMaxAttempts) {
+        await prefs.setInt(_kLoginLockUntil, nowMs + _kLockMinutes * 60 * 1000);
+        await prefs.remove(_kLoginAttempts);
+        throw Exception(
+          'Too many failed attempts. Offline login locked for $_kLockMinutes minutes.\n'
+          'Connect to the internet to reset.',
+        );
+      }
+      await prefs.setInt(_kLoginAttempts, attempts);
+      return null; // wrong password — caller shows generic "offline" error
+    }
+
+    // ── Correct credentials — restore cached session ──────────────────────
+    await prefs.remove(_kLoginAttempts);
+    await prefs.remove(_kLoginLockUntil);
+
+    final token    = await AuthStorage.read('auth_token');
+    final userData = await AuthStorage.read('current_user');
+    if (token == null || userData == null) return null;
+
+    final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
+    return {'token': token, 'user': user};
+  }
+
+  /// Returns the per-install HMAC key (32 random bytes), generating it once
+  /// on first call and persisting it in SharedPreferences.
+  Future<List<int>> _getOrCreateSalt() async {
+    final prefs  = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_kCredSalt);
+    if (stored != null) return base64.decode(stored);
+    final rng  = Random.secure();
+    final salt = List<int>.generate(32, (_) => rng.nextInt(256));
+    await prefs.setString(_kCredSalt, base64.encode(salt));
+    return salt;
   }
 
   /// Uploads a new logo for the caller's organisation.
