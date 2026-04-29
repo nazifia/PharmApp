@@ -97,6 +97,7 @@ class SyncService {
         } catch (e) {
           if (e is DioException && e.response?.statusCode == 401) {
             authExpired = true;
+            break; // auth expired — stop, don't mark attempts (not the sale's fault)
           }
           // Connection-level failures (no internet / server unreachable) must NOT
           // increment the attempt counter — the sale is not at fault, the network
@@ -114,7 +115,7 @@ class SyncService {
       }
 
       // ── 2. Sync generic mutations ────────────────────────────────────────
-      if (!connectionFailed) {
+      if (!connectionFailed && !authExpired) {
         final mutationQueue = ref.read(offlineMutationQueueProvider);
         for (final mut in List<PendingMutation>.from(mutationQueue)) {
           try {
@@ -124,6 +125,7 @@ class SyncService {
           } catch (e) {
             if (e is DioException && e.response?.statusCode == 401) {
               authExpired = true;
+              break; // auth expired — stop, don't mark attempts (not the mutation's fault)
             }
             if (e is DioException && e.response == null) {
               connectionFailed = true;

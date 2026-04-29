@@ -154,19 +154,24 @@ class _AppShellState extends ConsumerState<AppShell>
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 6),
+        duration: const Duration(seconds: 4),
         content: const Row(children: [
           Icon(Icons.lock_reset_rounded, color: Colors.white, size: 20),
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Session expired — please log in again to sync offline data.',
+              'Session expired — logging out. Queued items preserved.',
               style:
                   TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
           ),
         ]),
       ));
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      await ref.read(authServiceProvider).logout();
+      if (!mounted) return;
+      context.go('/login');
       return;
     }
 
@@ -390,6 +395,32 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
     }
 
     if (!mounted) return;
+
+    if (result.authExpired) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        content: const Row(children: [
+          Icon(Icons.lock_reset_rounded, color: Colors.white, size: 20),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Session expired — logging out. Queued items preserved.',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ]),
+      ));
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      await ref.read(authServiceProvider).logout();
+      if (!mounted) return;
+      context.go('/login');
+      return;
+    }
 
     if (result.connectionFailed) {
       // Server was unreachable — nothing was synced, items remain queued.
