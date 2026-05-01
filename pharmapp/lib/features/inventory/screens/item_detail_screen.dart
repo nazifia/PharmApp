@@ -295,7 +295,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           'price':               double.parse(priceCtrl.text),
                           'cost_price':          double.tryParse(costCtrl.text) ?? 0,
                           'markup':              markup,
-                          'low_stock_threshold': int.parse(thresholdCtrl.text),
+                          'lowStockThreshold': int.parse(thresholdCtrl.text),
                           'barcode':             barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
                           'expiry_date':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
                           'unit_of_dispensing':  unitOfDispensing,
