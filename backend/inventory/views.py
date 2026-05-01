@@ -6,10 +6,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Item
 from authapp.utils import require_org, log_activity
+from authapp.permissions import IsInventoryEditor, LOW_STOCK_ALERT_ROLES, require_role
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsInventoryEditor])
 def item_list(request):
     org, err = require_org(request)
     if err:
@@ -65,6 +66,11 @@ def item_list(request):
             {"detail": "Price, cost, and stock must be non-negative"},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    if "lowStockThreshold" in data:
+        err = require_role(request, LOW_STOCK_ALERT_ROLES,
+                           "Only Admin or Manager can set the low stock alert threshold.")
+        if err:
+            return err
     branch_id = data.get("branch_id") or data.get("branchId")
     branch = None
     if branch_id:
@@ -94,7 +100,7 @@ def item_list(request):
 
 
 @api_view(["GET", "PUT", "PATCH", "DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsInventoryEditor])
 def item_detail(request, pk):
     org, err = require_org(request)
     if err:
@@ -127,6 +133,11 @@ def item_detail(request, pk):
                 {"detail": "Price, cost, and stock must be non-negative"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if "lowStockThreshold" in data and low_stock_threshold != item.low_stock_threshold:
+            err = require_role(request, LOW_STOCK_ALERT_ROLES,
+                               "Only Admin or Manager can change the low stock alert threshold.")
+            if err:
+                return err
         item.name = name
         item.brand = data.get("brand", item.brand)
         item.dosage_form = data.get("dosageForm", item.dosage_form)
@@ -153,7 +164,7 @@ def item_detail(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsInventoryEditor])
 def adjust_stock(request, pk):
     org, err = require_org(request)
     if err:

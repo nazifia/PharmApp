@@ -71,6 +71,7 @@ TRANSFERS_ROLES = {
 }
 NOTIFICATIONS_ROLES = SENIOR_ROLES
 SUBSCRIPTION_ROLES = SENIOR_ROLES
+LOW_STOCK_ALERT_ROLES = SENIOR_ROLES
 
 # Human-readable labels ordered for display (matches Flutter AppPermission keys)
 PERMISSION_LABELS = [
@@ -90,6 +91,7 @@ PERMISSION_LABELS = [
     ("Manage Suppliers", "manageSuppliers"),
     ("Process Payments", "processPayments"),
     ("Manage Transfers", "manageTransfers"),
+    ("Edit Low Stock Alert", "editLowStockAlert"),
 ]
 
 
@@ -252,6 +254,7 @@ _PERMISSION_ROLE_MAP: dict[str, set] = {
     "manageSuppliers": SUPPLIERS_ROLES,
     "processPayments": PAYMENTS_ROLES,
     "manageTransfers": TRANSFERS_ROLES,
+    "editLowStockAlert": LOW_STOCK_ALERT_ROLES,
 }
 
 
