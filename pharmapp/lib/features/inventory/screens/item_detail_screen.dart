@@ -291,14 +291,12 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         final payload = {
                           'name':                nameCtrl.text.trim(),
                           'brand':               brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
-                          'dosage_form':         dosageForm,
+                          'dosageForm':          dosageForm,
                           'price':               double.parse(priceCtrl.text),
-                          'cost_price':          double.tryParse(costCtrl.text) ?? 0,
-                          'markup':              markup,
-                          'lowStockThreshold': int.parse(thresholdCtrl.text),
+                          'costPrice':           double.tryParse(costCtrl.text) ?? 0,
+                          'lowStockThreshold':   int.parse(thresholdCtrl.text),
                           'barcode':             barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
-                          'expiry_date':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
-                          'unit_of_dispensing':  unitOfDispensing,
+                          'expiryDate':          expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
                         };
                         final updated = await ref.read(inventoryNotifierProvider.notifier)
                             .updateItem(item.id, payload);
