@@ -292,6 +292,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           'name':                nameCtrl.text.trim(),
                           'brand':               brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
                           'dosageForm':          dosageForm,
+                          'unitOfDispensing':    unitOfDispensing,
                           'price':               double.parse(priceCtrl.text),
                           'costPrice':           double.tryParse(costCtrl.text) ?? 0,
                           'lowStockThreshold':   int.parse(thresholdCtrl.text),

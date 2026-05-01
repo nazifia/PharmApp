@@ -126,7 +126,7 @@ class Item(models.Model):
             "name": self.name,
             "brand": self.brand,
             "dosageForm": self.dosage_form,
-            "unit": self.unit,
+            "unitOfDispensing": self.unit,
             "cost": float(self.cost),
             "price": float(self.price),
             "markup": float(self.markup),

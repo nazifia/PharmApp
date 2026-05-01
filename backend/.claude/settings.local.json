@@ -15,7 +15,8 @@
       "Bash(python -c \"from pharmapi.storage import RelaxedManifestStaticFilesStorage; print\\('OK, manifest_strict =', RelaxedManifestStaticFilesStorage.manifest_strict\\)\")",
       "Bash(python -c \"from pharmapi.storage import CompressedNoManifestStorage; print\\('OK:', CompressedNoManifestStorage.__mro__\\)\")",
       "Bash(python manage.py makemigrations pos --name add_store_type_to_stock_check)",
-      "Bash(python manage.py migrate)"
+      "Bash(python manage.py migrate)",
+      "Bash(xargs grep *)"
     ]
   }
 }

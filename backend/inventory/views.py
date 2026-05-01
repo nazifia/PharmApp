@@ -86,6 +86,7 @@ def item_list(request):
         name=name,
         brand=data.get("brand", ""),
         dosage_form=data.get("dosageForm", ""),
+        unit=data.get("unitOfDispensing", "Pcs"),
         price=price,
         cost=cost,
         stock=stock,
@@ -141,6 +142,7 @@ def item_detail(request, pk):
         item.name = name
         item.brand = data.get("brand", item.brand)
         item.dosage_form = data.get("dosageForm", item.dosage_form)
+        item.unit = data.get("unitOfDispensing", item.unit)
         item.price = price
         item.cost = cost
         item.stock = stock
