@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:ui';
+import 'package:bonsoir/bonsoir.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +27,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   bool _notificationsEnabled = true;
   String _language           = 'English';
   bool _logoUploading        = false;
+  bool _discovering          = false;
 
   @override
   void initState() {
@@ -336,6 +340,112 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
     );
   }
 
+  Future<void> _discoverLanServer() async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: const Row(children: [
+          Icon(Icons.warning_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('Auto-discover not supported on web',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+        ]),
+      ));
+      return;
+    }
+
+    setState(() => _discovering = true);
+
+    final discovery = BonsoirDiscovery(type: '_pharmapp._tcp');
+    String? foundUrl;
+
+    try {
+      await discovery.ready;
+      await discovery.start();
+
+      final completer = Completer<String?>();
+      late StreamSubscription<BonsoirDiscoveryEvent> sub;
+
+      sub = discovery.eventStream!.listen((event) {
+        if (event.type == BonsoirDiscoveryEventType.discoveryServiceFound) {
+          event.service!.resolve(discovery.serviceResolver);
+        } else if (event.type == BonsoirDiscoveryEventType.discoveryServiceResolved) {
+          final svc = event.service as ResolvedBonsoirService;
+          final host = svc.host ?? '';
+          final port = svc.port;
+          final path = svc.attributes['path'] ?? '/api';
+          if (host.isNotEmpty && !completer.isCompleted) {
+            completer.complete('http://$host:$port$path');
+          }
+        }
+      });
+
+      foundUrl = await completer.future.timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => null,
+      );
+
+      await sub.cancel();
+      await discovery.stop();
+
+      if (!mounted) return;
+
+      if (foundUrl != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('api_base_url', foundUrl);
+        ref.read(baseUrlProvider.notifier).state = foundUrl;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            content: Row(children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+              const SizedBox(width: 10),
+              Expanded(child: Text('Found: $foundUrl',
+                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+            ]),
+          ));
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: const Row(children: [
+            Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 10),
+            Expanded(child: Text('No PharmApp server found on LAN',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
+        ));
+      }
+    } catch (e) {
+      await discovery.stop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Row(children: [
+            const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Discovery error: $e',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          ]),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _discovering = false);
+    }
+  }
+
   Widget _serverUrlCard() {
     final currentUrl = ref.watch(baseUrlProvider);
     return ClipRRect(
@@ -370,6 +480,31 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                         overflow: TextOverflow.ellipsis),
                   ])),
                   Icon(Icons.edit_outlined, color: context.hintColor, size: 18),
+                ]),
+              ),
+            ),
+            _divider(),
+            InkWell(
+              onTap: _discovering ? null : _discoverLanServer,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(children: [
+                  _tileIcon(Icons.wifi_find_outlined, EnhancedTheme.accentCyan),
+                  const SizedBox(width: 14),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Auto-discover',
+                        style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
+                    Text('Find LAN server automatically',
+                        style: TextStyle(color: context.hintColor, fontSize: 12)),
+                  ])),
+                  if (_discovering)
+                    SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: EnhancedTheme.accentCyan),
+                    )
+                  else
+                    Icon(Icons.search_rounded, color: context.hintColor, size: 18),
                 ]),
               ),
             ),
