@@ -8,6 +8,8 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/features/customers/providers/customer_provider.dart';
+import 'package:pharmapp/shared/models/customer.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
 import '../shared/report_exporter.dart';
@@ -24,6 +26,7 @@ class CustomerReportScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reportAsync = ref.watch(customerReportProvider);
+    final negGroups   = ref.watch(negativeWalletGroupsProvider);
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -146,14 +149,18 @@ class CustomerReportScreen extends ConsumerWidget {
                 ),
               ]),
             )),
-            data: (data) => _buildBody(context, data),
+            data: (data) => _buildBody(context, data, negGroups),
           )),
         ])),
       ]),
     );
   }
 
-  Widget _buildBody(BuildContext context, CustomerReportData data) {
+  Widget _buildBody(
+    BuildContext context,
+    CustomerReportData data,
+    AsyncValue<({List<Customer> retail, List<Customer> wholesale})> negGroups,
+  ) {
     final total = data.total > 0 ? data.total : 1;
 
     return SingleChildScrollView(
@@ -327,8 +334,119 @@ class CustomerReportScreen extends ConsumerWidget {
               ),
             ),
           ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
+        const SizedBox(height: 24),
+
+        // ── Negative Wallet Balances ──────────────────────────────────────────
+        _sectionHeader(context, 'Negative Wallet Balances', Icons.account_balance_wallet_rounded, EnhancedTheme.errorRed),
+        const SizedBox(height: 12),
+        negGroups.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 3),
+            ),
+          ),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (groups) {
+            if (groups.retail.isEmpty && groups.wholesale.isEmpty) {
+              return _emptyState(
+                Icons.account_balance_wallet_rounded,
+                'No customers with negative wallet balance',
+                EnhancedTheme.successGreen,
+              );
+            }
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (groups.retail.isNotEmpty) ...[
+                _negGroupCard(context, 'Retail', groups.retail, EnhancedTheme.primaryTeal, Icons.storefront_rounded),
+                const SizedBox(height: 12),
+              ],
+              if (groups.wholesale.isNotEmpty)
+                _negGroupCard(context, 'Wholesale', groups.wholesale, EnhancedTheme.accentCyan, Icons.store_rounded),
+            ]);
+          },
+        ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
         const SizedBox(height: 32),
       ]),
+    );
+  }
+
+  Widget _negGroupCard(BuildContext context, String label, List<Customer> customers, Color color, IconData icon) {
+    final total = customers.fold(0.0, (sum, c) => sum + c.walletBalance);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.2))),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Group header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(9)),
+                  child: Icon(icon, color: color, size: 14)),
+                const SizedBox(width: 10),
+                Text('$label Customers',
+                    style: GoogleFonts.outfit(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.25))),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text('${customers.length} customers',
+                        style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 10, fontWeight: FontWeight.w700)),
+                    Text(_fmt(total.abs()),
+                        style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 12, fontWeight: FontWeight.w800)),
+                  ]),
+                ),
+              ]),
+            ),
+            Divider(height: 1, color: context.dividerColor),
+            // Customer rows
+            ...customers.asMap().entries.map((e) => Column(children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: color.withValues(alpha: 0.1),
+                    child: Text(
+                      e.value.name.isNotEmpty ? e.value.name[0].toUpperCase() : '?',
+                      style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.w700))),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(e.value.name,
+                        style: GoogleFonts.outfit(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text(e.value.phone,
+                        style: TextStyle(color: context.hintColor, fontSize: 11)),
+                  ])),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.errorRed.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(7)),
+                    child: Text(
+                      '−${_fmt(e.value.walletBalance.abs())}',
+                      style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 12, fontWeight: FontWeight.w800)),
+                  ),
+                ]),
+              ),
+              if (e.key < customers.length - 1)
+                Divider(height: 1, color: context.dividerColor),
+            ])),
+          ]),
+        ),
+      ),
     );
   }
 

@@ -326,3 +326,19 @@ final walletNotifierProvider =
         (ref, id) {
   return WalletNotifier(ref.watch(customerApiProvider), ref, id);
 });
+
+// ── Negative wallet balance groups ────────────────────────────────────────────
+
+/// Customers with walletBalance < 0, split into retail / wholesale groups.
+/// Each list sorted by balance ascending (most negative first).
+final negativeWalletGroupsProvider = Provider.autoDispose<
+    AsyncValue<({List<Customer> retail, List<Customer> wholesale})>>((ref) {
+  return ref.watch(customerListProvider).whenData((customers) {
+    final neg = customers.where((c) => c.walletBalance < 0).toList()
+      ..sort((a, b) => a.walletBalance.compareTo(b.walletBalance));
+    return (
+      retail: neg.where((c) => !c.isWholesale).toList(),
+      wholesale: neg.where((c) => c.isWholesale).toList(),
+    );
+  });
+});
