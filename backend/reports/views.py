@@ -388,7 +388,7 @@ def cashier_sales_report(request):
         created__date__gte=start,
         created__date__lte=end,
         status__in=['completed', 'partial_return'],
-        cashier__isnull=False,
+        dispenser__isnull=False,
     )
 
     if is_senior:
@@ -396,7 +396,7 @@ def cashier_sales_report(request):
         if user_id_param:
             try:
                 uid = int(user_id_param)
-                sales_qs = base_qs.filter(cashier__user_id=uid)
+                sales_qs = base_qs.filter(dispenser_id=uid)
                 is_admin_view = False
             except (ValueError, TypeError):
                 sales_qs = base_qs
@@ -405,17 +405,16 @@ def cashier_sales_report(request):
             sales_qs = base_qs
             is_admin_view = True
     else:
-        sales_qs = base_qs.filter(cashier__user=request.user)
+        sales_qs = base_qs.filter(dispenser=request.user)
         is_admin_view = False
 
     user_stats = (
         sales_qs
         .values(
-            'cashier__id',
-            'cashier__cashier_id',
-            'cashier__name',
-            'cashier__user__id',
-            'cashier__user__role',
+            'dispenser__id',
+            'dispenser__full_name',
+            'dispenser__phone_number',
+            'dispenser__role',
         )
         .annotate(
             total_amount=db_models.Sum('total_amount'),
@@ -438,10 +437,10 @@ def cashier_sales_report(request):
         grand_total += amt
         grand_count += cnt
         users.append({
-            'cashierId':      u['cashier__cashier_id'] or '',
-            'cashierName':    u['cashier__name'] or '',
-            'userId':         u['cashier__user__id'],
-            'role':           u['cashier__user__role'] or '',
+            'cashierId':      '',
+            'cashierName':    u['dispenser__full_name'] or u['dispenser__phone_number'] or '',
+            'userId':         u['dispenser__id'],
+            'role':           u['dispenser__role'] or '',
             'totalAmount':    round(amt, 2),
             'totalSales':     cnt,
             'cashAmount':     round(float(u['cash_amount'] or 0), 2),
