@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/rbac/rbac_provider.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
@@ -75,6 +77,11 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                           (v) { if (v != null) setState(() => _language = v); },
                         ),
                       ]),
+                      const SizedBox(height: 16),
+                      if (isAdmin) ...[
+                        const SizedBox(height: 16),
+                        _serverUrlCard(),
+                      ],
                       const SizedBox(height: 16),
                       _sectionCard('System', [
                         _tapTile(
@@ -327,6 +334,115 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
       child: Text(initial,
           style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 24, fontWeight: FontWeight.bold)),
     );
+  }
+
+  Widget _serverUrlCard() {
+    final currentUrl = ref.watch(baseUrlProvider);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('Network', style: TextStyle(
+                  color: context.subLabelColor, fontSize: 11,
+                  fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+            ),
+            InkWell(
+              onTap: () => _showServerUrlDialog(currentUrl),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(children: [
+                  _tileIcon(Icons.dns_outlined, EnhancedTheme.accentPurple),
+                  const SizedBox(width: 14),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Server URL',
+                        style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
+                    Text(currentUrl,
+                        style: TextStyle(color: context.hintColor, fontSize: 11),
+                        overflow: TextOverflow.ellipsis),
+                  ])),
+                  Icon(Icons.edit_outlined, color: context.hintColor, size: 18),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 4),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showServerUrlDialog(String current) async {
+    final controller = TextEditingController(text: current);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text('Server URL', style: TextStyle(color: context.labelColor)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Enter the IP address of your local Django server.',
+              style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: controller,
+            autofocus: true,
+            style: TextStyle(color: context.labelColor, fontSize: 13),
+            decoration: InputDecoration(
+              hintText: 'http://192.168.1.10:8000/api',
+              hintStyle: TextStyle(color: context.hintColor, fontSize: 12),
+              filled: true,
+              fillColor: context.isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.04),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: context.borderColor)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: context.borderColor)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: EnhancedTheme.primaryTeal)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel', style: TextStyle(color: context.hintColor))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Save', style: TextStyle(color: EnhancedTheme.primaryTeal))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final url = controller.text.trim();
+    if (url.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('api_base_url', url);
+    ref.read(baseUrlProvider.notifier).state = url;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: const Row(children: [
+        Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+        SizedBox(width: 10),
+        Expanded(child: Text('Server URL saved', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+      ]),
+    ));
   }
 
   Widget _sectionCard(String title, List<Widget> children) {
