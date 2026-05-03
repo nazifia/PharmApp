@@ -24,6 +24,7 @@ import 'package:pharmapp/features/reports/screens/inventory_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/customer_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/profit_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/monthly_report_screen.dart';
+import 'package:pharmapp/features/reports/screens/cashier_sales_screen.dart';
 import 'package:pharmapp/features/settings/screens/app_settings_screen.dart';
 import 'package:pharmapp/features/inventory/screens/item_detail_screen.dart';
 import 'package:pharmapp/features/pos/screens/payment_screen.dart';
@@ -100,8 +101,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/select-branch';
       }
 
-      // Reports — Admin / Manager only
-      if (loc.startsWith('/dashboard/reports') && !Rbac.can(user, AppPermission.viewReports)) {
+      // Reports — Admin / Manager only (cashier-sales is self-service for all)
+      if (loc.startsWith('/dashboard/reports') &&
+          loc != '/dashboard/reports/cashier-sales' &&
+          !Rbac.can(user, AppPermission.viewReports)) {
         return '/dashboard';
       }
 
@@ -184,8 +187,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/subscription';
       }
 
-      // Reports — Starter plan and above
+      // Reports — Starter plan and above (cashier-sales is always accessible)
       if (loc.startsWith('/dashboard/reports') &&
+          loc != '/dashboard/reports/cashier-sales' &&
           !ref.read(hasFeatureProvider(SaasFeature.basicReports))) {
         return '/subscription';
       }
@@ -256,7 +260,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'reports/inventory',name: 'inventory_report',builder: (_, __) => const InventoryReportScreen()),
               GoRoute(path: 'reports/customers',name: 'customer_report', builder: (_, __) => const CustomerReportScreen()),
               GoRoute(path: 'reports/profit',  name: 'profit_report',   builder: (_, __) => const ProfitReportScreen()),
-              GoRoute(path: 'reports/monthly', name: 'monthly_report',  builder: (_, __) => const MonthlyReportScreen()),
+              GoRoute(path: 'reports/monthly',       name: 'monthly_report',        builder: (_, __) => const MonthlyReportScreen()),
+              GoRoute(path: 'reports/cashier-sales', name: 'cashier_sales_report',  builder: (_, __) => const CashierSalesScreen()),
               GoRoute(path: 'settings',        name: 'settings',        builder: (_, __) => const AppSettingsScreen()),
               GoRoute(path: 'users',           name: 'users',           builder: (_, __) => const UserManagementScreen()),
               GoRoute(path: 'notifications',   name: 'notifications',   builder: (_, __) => const NotificationsScreen()),

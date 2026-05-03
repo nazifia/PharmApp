@@ -52,6 +52,15 @@ class ReportsHubScreen extends ConsumerWidget {
       'route':    '/dashboard/reports/monthly',
       'advanced': true,
     },
+    {
+      'title':      'Staff Daily Sales',
+      'sub':        'Payments processed by each cashier today',
+      'icon':       Icons.point_of_sale_rounded,
+      'color':      EnhancedTheme.accentOrange,
+      'route':      '/dashboard/reports/cashier-sales',
+      'advanced':   false,
+      'allRoles':   true,
+    },
   ];
 
   String _fmt(double v) {
@@ -148,7 +157,8 @@ class ReportsHubScreen extends ConsumerWidget {
                 // Report cards
                 ..._reports.map((r) {
                   final isAdvanced = r['advanced'] as bool;
-                  final locked = isAdvanced && !hasAdvancedReports;
+                  final isAllRoles = (r['allRoles'] as bool?) ?? false;
+                  final locked = isAdvanced && !hasAdvancedReports && !isAllRoles;
                   return _ReportCard(
                     title: r['title'] as String,
                     subtitle: r['sub'] as String,

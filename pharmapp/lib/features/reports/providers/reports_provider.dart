@@ -44,3 +44,14 @@ final profitReportProvider =
     period, branchId: _reportBranchId(ref),
   );
 });
+
+/// Cashier/staff daily sales — keyed by period string.
+/// Optional user_id suffix: 'today:5' to filter by user 5 (admin use).
+/// Plain 'today' → backend uses auth to scope (own data or all).
+final cashierSalesReportProvider =
+    FutureProvider.family<CashierSalesData, String>((ref, key) {
+  final parts = key.split(':');
+  final period = parts[0];
+  final userId = parts.length > 1 ? int.tryParse(parts[1]) : null;
+  return ref.watch(reportsApiProvider).fetchCashierSalesReport(period, userId: userId);
+});

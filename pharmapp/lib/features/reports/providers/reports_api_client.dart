@@ -3,10 +3,11 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
 
-const _kSalesReportPrefix    = 'cache_report_sales_';
-const _kInventoryReportKey   = 'cache_report_inventory';
-const _kCustomerReportKey    = 'cache_report_customers';
-const _kProfitReportPrefix   = 'cache_report_profit_';
+const _kSalesReportPrefix        = 'cache_report_sales_';
+const _kInventoryReportKey       = 'cache_report_inventory';
+const _kCustomerReportKey        = 'cache_report_customers';
+const _kProfitReportPrefix       = 'cache_report_profit_';
+const _kCashierSalesReportPrefix = 'cache_report_cashier_sales_';
 
 // ── Data models (unchanged) ────────────────────────────────────────────────────
 
@@ -89,6 +90,67 @@ class ProfitReportData {
         revenue: (j['revenue'] as num?)?.toDouble() ?? 0,
         profit: (j['profit'] as num?)?.toDouble() ?? 0,
         margin: (j['margin'] as num?)?.toDouble() ?? 0);
+}
+
+class CashierUserSummary {
+  final String cashierId;
+  final String cashierName;
+  final int userId;
+  final String role;
+  final double totalAmount;
+  final int totalSales;
+  final double cashAmount;
+  final double posAmount;
+  final double transferAmount;
+  final double walletAmount;
+
+  CashierUserSummary({
+    required this.cashierId, required this.cashierName,
+    required this.userId, required this.role,
+    required this.totalAmount, required this.totalSales,
+    required this.cashAmount, required this.posAmount,
+    required this.transferAmount, required this.walletAmount,
+  });
+
+  factory CashierUserSummary.fromJson(Map<String, dynamic> j) => CashierUserSummary(
+    cashierId:      (j['cashierId'] as String?) ?? '',
+    cashierName:    (j['cashierName'] as String?) ?? '',
+    userId:         (j['userId'] as num?)?.toInt() ?? 0,
+    role:           (j['role'] as String?) ?? '',
+    totalAmount:    (j['totalAmount'] as num?)?.toDouble() ?? 0,
+    totalSales:     (j['totalSales'] as num?)?.toInt() ?? 0,
+    cashAmount:     (j['cashAmount'] as num?)?.toDouble() ?? 0,
+    posAmount:      (j['posAmount'] as num?)?.toDouble() ?? 0,
+    transferAmount: (j['transferAmount'] as num?)?.toDouble() ?? 0,
+    walletAmount:   (j['walletAmount'] as num?)?.toDouble() ?? 0,
+  );
+}
+
+class CashierSalesData {
+  final String period;
+  final String dateFrom;
+  final String dateTo;
+  final bool isAdminView;
+  final double totalAmount;
+  final int totalSales;
+  final List<CashierUserSummary> users;
+
+  CashierSalesData({
+    required this.period, required this.dateFrom, required this.dateTo,
+    required this.isAdminView, required this.totalAmount,
+    required this.totalSales, required this.users,
+  });
+
+  factory CashierSalesData.fromJson(Map<String, dynamic> j) => CashierSalesData(
+    period:      (j['period'] as String?) ?? 'today',
+    dateFrom:    (j['dateFrom'] as String?) ?? '',
+    dateTo:      (j['dateTo'] as String?) ?? '',
+    isAdminView: (j['isAdminView'] as bool?) ?? false,
+    totalAmount: (j['totalAmount'] as num?)?.toDouble() ?? 0,
+    totalSales:  (j['totalSales'] as num?)?.toInt() ?? 0,
+    users:       (j['users'] as List? ?? [])
+        .map((e) => CashierUserSummary.fromJson(e as Map<String, dynamic>)).toList(),
+  );
 }
 
 // ── API client ────────────────────────────────────────────────────────────────
@@ -198,6 +260,33 @@ class ReportsApiClient {
         throw Exception('Offline — no cached profit report available');
       }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load profit report');
+    }
+  }
+
+  Future<CashierSalesData> fetchCashierSalesReport(String period, {int? userId}) async {
+    if (_isLocal) {
+      return CashierSalesData(
+        period: period, dateFrom: '', dateTo: '', isAdminView: false,
+        totalAmount: 0, totalSales: 0, users: [],
+      );
+    }
+    final userSeg = userId != null ? '_u$userId' : '';
+    final cacheKey = '$_kCashierSalesReportPrefix$period$userSeg';
+    try {
+      final params = <String, dynamic>{'period': period};
+      if (userId != null) params['user_id'] = userId;
+      final res = await _dio!.get('/reports/cashier-sales/', queryParameters: params);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(cacheKey, jsonEncode(res.data));
+      return CashierSalesData.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(cacheKey);
+        if (raw != null) return CashierSalesData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        throw Exception('Offline — no cached cashier sales report');
+      }
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to load cashier sales report');
     }
   }
 }

@@ -9,7 +9,7 @@ from authapp.permissions import IsAdminOrManager
 from authapp.utils import require_org
 from customers.models import Customer
 from inventory.models import Item
-from pos.models import Sale, SaleItem
+from pos.models import Cashier, Sale, SaleItem
 
 
 # ── Date range helper ─────────────────────────────────────────────────────────
@@ -360,4 +360,102 @@ def monthly_report(request):
         'totalRevenue': round(float(sales.aggregate(t=db_models.Sum('total_amount'))['t'] or 0), 2),
         'totalSales':   sales.count(),
         'dailySeries':  full_series,
+    })
+
+
+# ── Cashier / staff daily sales ───────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def cashier_sales_report(request):
+    """
+    Daily sales processed by cashier/staff.
+    - Any authenticated user sees their own data.
+    - Admin / Manager / Wholesale Manager can see all users (is_admin_view=true)
+      or filter by ?user_id=<id>.
+    """
+    org, err = require_org(request)
+    if err:
+        return err
+
+    period = request.query_params.get('period', 'today')
+    start, end = _date_range(period)
+
+    is_senior = request.user.role in ('Admin', 'Manager', 'Wholesale Manager')
+
+    base_qs = Sale.objects.filter(
+        organization=org,
+        created__date__gte=start,
+        created__date__lte=end,
+        status__in=['completed', 'partial_return'],
+        cashier__isnull=False,
+    )
+
+    if is_senior:
+        user_id_param = request.query_params.get('user_id')
+        if user_id_param:
+            try:
+                uid = int(user_id_param)
+                sales_qs = base_qs.filter(cashier__user_id=uid)
+                is_admin_view = False
+            except (ValueError, TypeError):
+                sales_qs = base_qs
+                is_admin_view = True
+        else:
+            sales_qs = base_qs
+            is_admin_view = True
+    else:
+        sales_qs = base_qs.filter(cashier__user=request.user)
+        is_admin_view = False
+
+    user_stats = (
+        sales_qs
+        .values(
+            'cashier__id',
+            'cashier__cashier_id',
+            'cashier__name',
+            'cashier__user__id',
+            'cashier__user__role',
+        )
+        .annotate(
+            total_amount=db_models.Sum('total_amount'),
+            total_sales=db_models.Count('id'),
+            cash_amount=db_models.Sum('payment_cash'),
+            pos_amount=db_models.Sum('payment_pos'),
+            transfer_amount=db_models.Sum('payment_transfer'),
+            wallet_amount=db_models.Sum('payment_wallet'),
+        )
+        .order_by('-total_amount')
+    )
+
+    users = []
+    grand_total = 0.0
+    grand_count = 0
+
+    for u in user_stats:
+        amt = float(u['total_amount'] or 0)
+        cnt = u['total_sales'] or 0
+        grand_total += amt
+        grand_count += cnt
+        users.append({
+            'cashierId':      u['cashier__cashier_id'] or '',
+            'cashierName':    u['cashier__name'] or '',
+            'userId':         u['cashier__user__id'],
+            'role':           u['cashier__user__role'] or '',
+            'totalAmount':    round(amt, 2),
+            'totalSales':     cnt,
+            'cashAmount':     round(float(u['cash_amount'] or 0), 2),
+            'posAmount':      round(float(u['pos_amount'] or 0), 2),
+            'transferAmount': round(float(u['transfer_amount'] or 0), 2),
+            'walletAmount':   round(float(u['wallet_amount'] or 0), 2),
+        })
+
+    return Response({
+        'period':      period,
+        'dateFrom':    str(start),
+        'dateTo':      str(end),
+        'isAdminView': is_admin_view,
+        'totalAmount': round(grand_total, 2),
+        'totalSales':  grand_count,
+        'users':       users,
     })

@@ -190,6 +190,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             _NavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
                         ],
 
+                        // ══ MY DAILY SALES (all roles) ═══════════════════════
+                        if (canPOS) ...[
+                          const SizedBox(height: 4),
+                          const _SectionDivider(label: 'My Activity'),
+                          _NavItem(icon: Icons.point_of_sale_rounded, label: 'My Daily Sales', route: '/dashboard/reports/cashier-sales', onTap: navigate),
+                        ],
+
                         // ══ REPORTS & ANALYTICS ══════════════════════════════
                         if (canViewReports && hasReportsFeature) ...[
                           const SizedBox(height: 4),
@@ -206,6 +213,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                 _SubNavItem(icon: Icons.trending_up_rounded, label: 'Profit Report', route: '/dashboard/reports/profit', onTap: navigate),
                                 _SubNavItem(icon: Icons.calendar_month_rounded, label: 'Monthly Report', route: '/dashboard/reports/monthly', onTap: navigate),
                               ],
+                              _SubNavItem(icon: Icons.point_of_sale_rounded, label: 'Staff Daily Sales', route: '/dashboard/reports/cashier-sales', onTap: navigate),
                               if (canReadInv)
                                 _SubNavItem(icon: Icons.fact_check_rounded, label: 'Stock Check Report', route: '/dashboard/stock-check-report', onTap: navigate),
                               if (canReadInv && isWholesale && hasWsFeature)
