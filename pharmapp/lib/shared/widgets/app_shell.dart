@@ -100,10 +100,25 @@ class _AppShellState extends ConsumerState<AppShell>
     }
   }
 
+  void _invalidateAllDataProviders() {
+    ref.invalidate(salesListProvider);
+    ref.invalidate(offlineSalesProvider);
+    ref.invalidate(salesReportProvider);
+    ref.invalidate(profitReportProvider);
+    ref.invalidate(inventoryReportProvider);
+    ref.invalidate(customerReportProvider);
+    ref.invalidate(inventoryListProvider);
+    ref.invalidate(retailInventoryProvider);
+    ref.invalidate(wholesaleInventoryProvider);
+    ref.invalidate(customerListProvider);
+  }
+
   /// Sync pending offline items if the device is online.
   /// [delayMs] adds a stabilisation pause so the connection is ready.
+  /// [forceRefresh] invalidates all data providers even when the queue was
+  /// empty — used on reconnect so screens always reload fresh data from the backend.
   /// Guarded by [_autoSyncing] so concurrent automatic triggers don't overlap.
-  Future<void> _syncIfNeeded({int delayMs = 0}) async {
+  Future<void> _syncIfNeeded({int delayMs = 0, bool forceRefresh = false}) async {
     if (_autoSyncing) return;
     if (delayMs > 0) {
       await Future.delayed(Duration(milliseconds: delayMs));
@@ -136,17 +151,8 @@ class _AppShellState extends ConsumerState<AppShell>
     }
     if (!mounted) return;
 
-    if (result.synced > 0) {
-      ref.invalidate(salesListProvider);
-      ref.invalidate(offlineSalesProvider);
-      ref.invalidate(salesReportProvider);
-      ref.invalidate(profitReportProvider);
-      ref.invalidate(inventoryReportProvider);
-      ref.invalidate(customerReportProvider);
-      ref.invalidate(inventoryListProvider);
-      ref.invalidate(retailInventoryProvider);
-      ref.invalidate(wholesaleInventoryProvider);
-      ref.invalidate(customerListProvider);
+    if (result.synced > 0 || (forceRefresh && !result.connectionFailed)) {
+      _invalidateAllDataProviders();
     }
 
     if (result.authExpired) {
@@ -238,8 +244,10 @@ class _AppShellState extends ConsumerState<AppShell>
     // lifecycle observer and initState post-frame callback above.
     ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) {
       if (!nowOnline || wasOnline == true) return;
-      // Wait 1.5 s for the connection to stabilise before attempting sync.
-      _syncIfNeeded(delayMs: 3000);
+      // Wait 3 s for the connection to stabilise, then sync + force-refresh all
+      // data providers so screens reload fresh backend data even when the offline
+      // queue was empty (previously screens stayed stale after reconnect).
+      _syncIfNeeded(delayMs: 3000, forceRefresh: true);
     });
 
     // Trigger sync when the offline queues finish loading from SharedPreferences
