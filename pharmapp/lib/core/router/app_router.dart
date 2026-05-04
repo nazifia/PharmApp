@@ -119,10 +119,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/dashboard';
       }
 
-      // Settings — Admin / Manager only
-      if (loc == '/dashboard/settings' && !Rbac.can(user, AppPermission.manageSettings)) {
-        return '/dashboard';
-      }
+      // Settings screen is open to all roles; admin-only sections gated in-screen.
 
       // Notifications — Admin / Manager only
       if (loc == '/dashboard/notifications' && !Rbac.can(user, AppPermission.viewNotifications)) {

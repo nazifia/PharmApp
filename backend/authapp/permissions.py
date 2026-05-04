@@ -58,7 +58,7 @@ CUSTOMERS_READ = ALL_STAFF
 EXPENSES_ROLES = {"Admin", "Manager", "Wholesale Manager"}
 SUPPLIERS_ROLES = {"Admin", "Manager", "Pharmacist", "Wholesale Manager"}
 PAYMENTS_ROLES = {"Admin", "Manager", "Pharmacist", "Wholesale Manager"}
-REPORTS_ROLES = SENIOR_ROLES
+REPORTS_ROLES = SENIOR_ROLES | {"Wholesale Manager"}
 TRANSFERS_ROLES = {
     "Admin",
     "Manager",
@@ -173,6 +173,13 @@ class IsAdminOrManager(BasePermission):
 
     def has_permission(self, request, view):
         return _role(request) in SENIOR_ROLES
+
+
+class IsReportsUser(BasePermission):
+    message = "Only Admin, Manager, or Wholesale Manager can access reports."
+
+    def has_permission(self, request, view):
+        return _role(request) in REPORTS_ROLES
 
 
 class IsRetailStaff(BasePermission):

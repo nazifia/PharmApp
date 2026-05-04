@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from authapp.permissions import IsAdminOrManager
+from authapp.permissions import IsAdminOrManager, IsReportsUser
 from authapp.utils import require_org
 from customers.models import Customer
 from inventory.models import Item
@@ -46,7 +46,7 @@ def _date_range(period: str):
 # ── Sales report ──────────────────────────────────────────────────────────────
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminOrManager])
+@permission_classes([IsAuthenticated, IsReportsUser])
 def sales_report(request):
     """Aggregate sales for the given period. Admin / Manager only."""
     org, err = require_org(request)
@@ -129,7 +129,7 @@ def sales_report(request):
 # ── Inventory report ──────────────────────────────────────────────────────────
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminOrManager])
+@permission_classes([IsAuthenticated, IsReportsUser])
 def inventory_report(request):
     """Stock overview — Admin / Manager only."""
     org, err = require_org(request)
@@ -203,7 +203,7 @@ def inventory_report(request):
 # ── Customer report ───────────────────────────────────────────────────────────
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminOrManager])
+@permission_classes([IsAuthenticated, IsReportsUser])
 def customer_report(request):
     """Customer analytics — Admin / Manager only."""
     org, err = require_org(request)
@@ -245,7 +245,7 @@ def customer_report(request):
 # ── Profit report ─────────────────────────────────────────────────────────────
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminOrManager])
+@permission_classes([IsAuthenticated, IsReportsUser])
 def profit_report(request):
     """Profit & margin analytics — Admin / Manager only."""
     org, err = require_org(request)
@@ -302,7 +302,7 @@ def profit_report(request):
 # ── Monthly summary ───────────────────────────────────────────────────────────
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminOrManager])
+@permission_classes([IsAuthenticated, IsReportsUser])
 def monthly_report(request):
     """
     Full-month sales grouped by day for chart rendering.

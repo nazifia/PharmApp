@@ -858,12 +858,12 @@ class _MoreSheet extends StatelessWidget {
             () => nav('/dashboard/users')),
         _MoreTile(Icons.notifications_rounded, 'Alerts', EnhancedTheme.errorRed,
             () => nav('/dashboard/notifications')),
-        _MoreTile(
-            Icons.settings_rounded,
-            'Settings',
-            isDark ? Colors.white54 : Colors.black54,
-            () => nav('/dashboard/settings')),
       ],
+      _MoreTile(
+          Icons.settings_rounded,
+          'Settings',
+          isDark ? Colors.white54 : Colors.black54,
+          () => nav('/dashboard/settings')),
       if (pendingTotal > 0)
         _MoreTile(Icons.cloud_sync_rounded, 'Sync ($pendingTotal)',
             EnhancedTheme.warningAmber, () => nav('/dashboard/sync-queue')),
