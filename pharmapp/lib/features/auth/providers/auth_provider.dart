@@ -119,7 +119,7 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     _errorMessage = null;
     state = AuthFlowState.registering;
     try {
-      final result = await _ref.read(authRepositoryProvider).registerOrg(
+      await _ref.read(authRepositoryProvider).registerOrg(
             orgName: orgName,
             phone: phone,
             password: password,
@@ -165,6 +165,20 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     } catch (_) {
       // Silently ignore — keep the cached user
     }
+  }
+
+  /// Patches the current user's profile (username, fullname) via PATCH /auth/me/.
+  /// Updates in-memory state and persists to AuthStorage on success.
+  Future<void> updateProfile({String? username, String? fullname}) async {
+    final current = _ref.read(currentUserProvider);
+    if (current == null) return;
+    final updated = await _ref.read(authRepositoryProvider).updateProfile(
+          current: current,
+          username: username,
+          fullname: fullname,
+        );
+    _ref.read(currentUserProvider.notifier).state = updated;
+    await AuthStorage.write('current_user', jsonEncode(updated.toJson()));
   }
 
   /// Uploads a new logo for the org and patches the cached user so the

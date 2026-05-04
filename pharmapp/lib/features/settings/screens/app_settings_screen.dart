@@ -173,7 +173,11 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text((user?.username.isNotEmpty == true ? user!.username : user?.phoneNumber) ?? '—',
                   style: TextStyle(color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w600)),
-              if ((user?.username ?? '').isEmpty && (user?.phoneNumber ?? '').isNotEmpty) ...[
+              if ((user?.fullname ?? '').isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(user!.fullname,
+                    style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+              ] else if ((user?.username ?? '').isEmpty && (user?.phoneNumber ?? '').isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(user!.phoneNumber,
                     style: TextStyle(color: context.subLabelColor, fontSize: 12)),
@@ -190,6 +194,11 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                     style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
               ),
             ])),
+            IconButton(
+              tooltip: 'Edit profile',
+              icon: Icon(Icons.edit_outlined, color: context.hintColor, size: 20),
+              onPressed: () => context.push('/dashboard/settings/edit-profile'),
+            ),
           ]),
         ),
       ),

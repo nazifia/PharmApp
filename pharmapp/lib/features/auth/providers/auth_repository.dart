@@ -183,6 +183,34 @@ class AuthRepository {
     return salt;
   }
 
+  /// Updates the current user's own profile fields (username, fullname).
+  /// Calls PATCH /auth/me/ and returns the updated [User].
+  Future<User> updateProfile({
+    required User current,
+    String? username,
+    String? fullname,
+  }) async {
+    if (_isLocal) {
+      // Local dev: apply the changes to the in-memory model only.
+      return current.copyWith(
+        username: username ?? current.username,
+        fullname: fullname ?? current.fullname,
+      );
+    }
+    try {
+      final body = <String, dynamic>{
+        if (username != null) 'username': username,
+        if (fullname != null) 'fullname': fullname,
+      };
+      final res = await _dio!.patch('/auth/me/', data: body);
+      return User.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final body = e.response?.data;
+      if (body is Map) throw Exception(body['detail'] ?? body['error'] ?? 'Update failed');
+      throw Exception('Network error — check server connection');
+    }
+  }
+
   /// Uploads a new logo for the caller's organisation.
   /// Returns the absolute URL of the uploaded logo.
   Future<String> uploadOrgLogo(XFile imageFile) async {
