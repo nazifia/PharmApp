@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart'
-    show isOnlineProvider;
+    show isOnlineProvider, checkConnectivityNow;
 import 'package:pharmapp/core/offline/web_online_listener.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
@@ -73,6 +73,10 @@ class _AppShellState extends ConsumerState<AppShell>
   /// sync run so the data refresh is never silently dropped.
   bool _pendingForceRefresh = false;
 
+  /// Last online state seen by the retry timer — used to detect offline→online
+  /// transitions when connectivity_plus stream events are missed (Windows/Android).
+  bool _wasOnlinePrev = true;
+
   /// Cancels the browser-native online/offline event subscriptions (web only;
   /// no-op on native platforms via conditional import).
   late final void Function() _cancelWebListener;
@@ -95,8 +99,14 @@ class _AppShellState extends ConsumerState<AppShell>
 
   void _startRetryTimer() {
     _retryTimer?.cancel();
-    _retryTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      _syncIfNeeded();
+    _retryTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      // Poll actual OS connectivity rather than the cached stream value so that
+      // offline→online transitions are detected even when connectivity_plus misses
+      // the change event (known issue on Windows and some Android setups).
+      final isOnlineNow = await checkConnectivityNow();
+      final justReconnected = isOnlineNow && !_wasOnlinePrev;
+      _wasOnlinePrev = isOnlineNow;
+      _syncIfNeeded(forceRefresh: justReconnected);
     });
   }
 
@@ -200,6 +210,10 @@ class _AppShellState extends ConsumerState<AppShell>
       _invalidateAllDataProviders();
       // Re-warm the offline cache so the app is ready for the next disconnection.
       ref.read(eagerSyncProvider.notifier).warmCache();
+    } else if (effectiveForceRefresh && result.connectionFailed) {
+      // Network wasn't stable when we tried to force-refresh on reconnect.
+      // Re-arm the flag so the next sync cycle (timer or listener) picks it up.
+      _pendingForceRefresh = true;
     }
 
     if (result.authExpired) {
