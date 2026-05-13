@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -52,6 +53,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
   }
 
   Future<void> _loadSuppliers() async {
+    ref.read(appRefreshTriggerProvider.notifier).state++;
     setState(() => _loadingSuppliers = true);
     try {
       final data = await ref.read(posApiProvider).fetchSuppliers(branchId: _branchId);

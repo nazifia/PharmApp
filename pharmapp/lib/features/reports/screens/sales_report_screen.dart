@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
@@ -58,6 +59,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
 
   Future<void> _refresh() async {
     ref.invalidate(salesReportProvider(_apiPeriod));
+    ref.read(appRefreshTriggerProvider.notifier).state++;
   }
 
   Future<void> _openDatePicker() async {

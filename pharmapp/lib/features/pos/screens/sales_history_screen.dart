@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -138,6 +139,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
   Future<void> _refresh() async {
     ref.invalidate(salesListProvider(_params));
     ref.invalidate(offlineSalesProvider);
+    ref.read(appRefreshTriggerProvider.notifier).state++;
   }
 
   @override

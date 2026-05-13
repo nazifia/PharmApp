@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
@@ -311,6 +312,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
   Future<void> _refresh() async {
     ref.invalidate(dispensingStatsProvider(_myOnly));
     ref.invalidate(dispensingLogProvider(_params));
+    ref.read(appRefreshTriggerProvider.notifier).state++;
   }
 
   @override

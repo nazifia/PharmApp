@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -39,6 +40,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
 
   Future<void> _refresh() async {
     ref.invalidate(cashierSalesReportProvider(_apiPeriod));
+    ref.read(appRefreshTriggerProvider.notifier).state++;
   }
 
   Color _roleColor(String role) {

@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
@@ -51,6 +52,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
   }
 
   Future<void> _loadChecks() async {
+    ref.read(appRefreshTriggerProvider.notifier).state++;
     setState(() { _loading = true; _error = null; });
     try {
       final checks = await ref.read(posApiProvider)

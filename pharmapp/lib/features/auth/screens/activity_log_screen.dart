@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/activity_log.dart';
 import '../providers/activity_log_provider.dart';
@@ -293,7 +294,10 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                           ? _EmptyView(category: _category)
                           : RefreshIndicator(
                               color: EnhancedTheme.accentPurple,
-                              onRefresh: () => notifier.fetch(),
+                              onRefresh: () async {
+                                await notifier.fetch();
+                                ref.read(appRefreshTriggerProvider.notifier).state++;
+                              },
                               child: ListView.builder(
                                 controller: _scrollCtrl,
                                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),

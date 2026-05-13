@@ -4,8 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pharmapp/core/offline/connectivity_provider.dart';
-import 'package:pharmapp/core/offline/sync_service.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -679,11 +678,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                if (ref.read(isOnlineProvider)) {
-                  await ref.read(syncServiceProvider).syncAll();
-                }
                 ref.invalidate(retailInventoryProvider);
                 ref.invalidate(wholesaleInventoryProvider);
+                ref.read(appRefreshTriggerProvider.notifier).state++;
               },
               child: TabBarView(
                 controller: _tabCtrl,

@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/shared/models/sale.dart';
@@ -53,6 +54,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
   }
 
   Future<void> _loadRequests() async {
+    ref.read(appRefreshTriggerProvider.notifier).state++;
     setState(() { _loading = true; _error = null; });
     String? error;
     List<dynamic> reqs = [];

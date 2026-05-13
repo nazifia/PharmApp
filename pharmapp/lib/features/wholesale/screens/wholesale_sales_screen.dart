@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
@@ -119,6 +120,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
   Future<void> _refresh() async {
     ref.invalidate(wholesaleSalesListProvider(_params));
     ref.invalidate(wholesaleSalesByUserProvider(_byUserParams));
+    ref.read(appRefreshTriggerProvider.notifier).state++;
   }
 
   void _showSaleDetail(int saleId) {

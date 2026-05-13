@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -96,6 +97,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     ref.invalidate(inventoryReportProvider);
     ref.invalidate(customerReportProvider);
     ref.invalidate(_wholesaleDashProvider);
+    ref.read(appRefreshTriggerProvider.notifier).state++;
   }
 
   Widget _content() => _homeContent();

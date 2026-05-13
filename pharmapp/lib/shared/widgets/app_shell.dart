@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart'
     show isOnlineProvider;
 import 'package:pharmapp/core/offline/web_online_listener.dart';
@@ -67,6 +68,11 @@ class _AppShellState extends ConsumerState<AppShell>
   /// _OfflineBanner bypass this guard and use their own _syncing flag.
   bool _autoSyncing = false;
 
+  /// Accumulates forceRefresh intent when _syncIfNeeded(forceRefresh:true) is
+  /// called while a sync is already running. Consumed at the start of the next
+  /// sync run so the data refresh is never silently dropped.
+  bool _pendingForceRefresh = false;
+
   /// Cancels the browser-native online/offline event subscriptions (web only;
   /// no-op on native platforms via conditional import).
   late final void Function() _cancelWebListener;
@@ -108,7 +114,9 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _syncIfNeeded();
+      // Force-refresh data on resume — connectivity may have changed while
+      // the app was backgrounded and no stream event will fire.
+      _syncIfNeeded(forceRefresh: true);
     }
   }
 
@@ -134,7 +142,14 @@ class _AppShellState extends ConsumerState<AppShell>
   /// [forceRefresh] invalidates all data providers even when the queue was
   /// empty — used on reconnect so screens always reload fresh data from the backend.
   /// Guarded by [_autoSyncing] so concurrent automatic triggers don't overlap.
+  ///
+  /// If [forceRefresh] is true but [_autoSyncing] is already running, the
+  /// intent is saved in [_pendingForceRefresh] and consumed by the running sync
+  /// once it completes, so the data refresh is never silently dropped.
   Future<void> _syncIfNeeded({int delayMs = 0, bool forceRefresh = false}) async {
+    // Always accumulate the intent even if blocked — it will be consumed
+    // by the currently-running sync when it finishes.
+    if (forceRefresh) _pendingForceRefresh = true;
     if (_autoSyncing) return;
     if (delayMs > 0) {
       await Future.delayed(Duration(milliseconds: delayMs));
@@ -161,16 +176,26 @@ class _AppShellState extends ConsumerState<AppShell>
     // Checking hasPending here would cause a race-condition false-negative that
     // silently skips the sync until the 30-second timer fires.
 
+    // Consume the accumulated flag. Also absorb any forceRefresh that arrives
+    // DURING the sync (set in finally block below).
+    var effectiveForceRefresh = _pendingForceRefresh;
+    _pendingForceRefresh = false;
+
     _autoSyncing = true;
     SyncResult result;
     try {
       result = await ref.read(syncServiceProvider).syncAll();
     } finally {
+      // Absorb any forceRefresh that was requested while we were syncing.
+      if (_pendingForceRefresh) {
+        effectiveForceRefresh = true;
+        _pendingForceRefresh = false;
+      }
       _autoSyncing = false;
     }
     if (!mounted) return;
 
-    final didRefresh = result.synced > 0 || (forceRefresh && !result.connectionFailed);
+    final didRefresh = result.synced > 0 || (effectiveForceRefresh && !result.connectionFailed);
     if (didRefresh) {
       _invalidateAllDataProviders();
       // Re-warm the offline cache so the app is ready for the next disconnection.
@@ -235,7 +260,7 @@ class _AppShellState extends ConsumerState<AppShell>
           ),
         ]),
       ));
-    } else if (forceRefresh && didRefresh) {
+    } else if (effectiveForceRefresh && didRefresh) {
       // Back online with no pending queue — show a brief confirmation.
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
@@ -279,6 +304,13 @@ class _AppShellState extends ConsumerState<AppShell>
     final pendingSales = ref.watch(offlineQueueProvider);
     final pendingMuts = ref.watch(offlineMutationQueueProvider);
     final pending = pendingSales.length + pendingMuts.length;
+
+    // Trigger full sync + refresh when any screen increments the trigger counter
+    // (e.g. from a pull-to-refresh gesture). This keeps sync coordination
+    // centralised in AppShell rather than scattered across individual screens.
+    ref.listen<int>(appRefreshTriggerProvider, (_, __) {
+      _syncIfNeeded(forceRefresh: true);
+    });
 
     // Auto-sync and data refresh on offline→online transition at runtime.
     // Startup and resume cases are handled by _syncIfNeeded() via the
