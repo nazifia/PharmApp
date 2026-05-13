@@ -78,7 +78,7 @@ class _AppShellState extends ConsumerState<AppShell>
 
   void _startRetryTimer() {
     _retryTimer?.cancel();
-    _retryTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _retryTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _syncIfNeeded();
     });
   }
@@ -124,6 +124,9 @@ class _AppShellState extends ConsumerState<AppShell>
       await Future.delayed(Duration(milliseconds: delayMs));
     }
     if (!mounted) return;
+    // Re-check after the delay — a timer or queue-change sync may have started
+    // and completed during the wait window, leaving _autoSyncing already set.
+    if (_autoSyncing) return;
 
     // We intentionally do NOT gate on isOnlineProvider here.
     //
@@ -244,10 +247,10 @@ class _AppShellState extends ConsumerState<AppShell>
     // lifecycle observer and initState post-frame callback above.
     ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) {
       if (!nowOnline || wasOnline == true) return;
-      // Wait 3 s for the connection to stabilise, then sync + force-refresh all
-      // data providers so screens reload fresh backend data even when the offline
-      // queue was empty (previously screens stayed stale after reconnect).
-      _syncIfNeeded(delayMs: 3000, forceRefresh: true);
+      // Wait 1 s for the connection to stabilise before syncing. syncAll()
+      // handles connection-level failures gracefully (no attempt counter
+      // increments), so failing fast on a briefly-flapping network is safe.
+      _syncIfNeeded(delayMs: 1000, forceRefresh: true);
     });
 
     // Trigger sync when the offline queues finish loading from SharedPreferences
