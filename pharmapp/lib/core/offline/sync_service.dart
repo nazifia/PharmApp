@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/pos/providers/pos_api_provider.dart';
 import '../../features/inventory/providers/inventory_provider.dart';
 import '../../features/customers/providers/customer_provider.dart';
+import '../../features/reports/providers/reports_provider.dart';
 import '../../shared/models/sale.dart';
 import 'offline_queue.dart';
 import '../network/api_client.dart';
@@ -244,8 +245,14 @@ class SyncService {
     ref.invalidate(retailInventoryProvider);
     ref.invalidate(wholesaleInventoryProvider);
     ref.invalidate(customerListProvider);
+    ref.invalidate(paymentRequestsPreloadProvider);
     ref.invalidate(dispensingLogProvider);
     ref.invalidate(dispensingStatsProvider);
+    ref.invalidate(salesReportProvider);
+    ref.invalidate(profitReportProvider);
+    ref.invalidate(cashierSalesReportProvider);
+    ref.invalidate(inventoryReportProvider);
+    ref.invalidate(customerReportProvider);
   }
 }
 

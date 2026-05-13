@@ -17,7 +17,9 @@
       "Bash(python manage.py makemigrations pos --name add_store_type_to_stock_check)",
       "Bash(python manage.py migrate)",
       "Bash(xargs grep *)",
-      "Bash(flutter pub *)"
+      "Bash(flutter pub *)",
+      "Bash(Get-ChildItem -Recurse \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\" -Filter \"*provider*\" -File)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }

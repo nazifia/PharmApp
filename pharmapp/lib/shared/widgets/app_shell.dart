@@ -105,12 +105,16 @@ class _AppShellState extends ConsumerState<AppShell>
     ref.invalidate(offlineSalesProvider);
     ref.invalidate(salesReportProvider);
     ref.invalidate(profitReportProvider);
+    ref.invalidate(cashierSalesReportProvider);
     ref.invalidate(inventoryReportProvider);
     ref.invalidate(customerReportProvider);
     ref.invalidate(inventoryListProvider);
     ref.invalidate(retailInventoryProvider);
     ref.invalidate(wholesaleInventoryProvider);
     ref.invalidate(customerListProvider);
+    ref.invalidate(paymentRequestsPreloadProvider);
+    ref.invalidate(dispensingLogProvider);
+    ref.invalidate(dispensingStatsProvider);
   }
 
   /// Sync pending offline items if the device is online.
@@ -154,8 +158,11 @@ class _AppShellState extends ConsumerState<AppShell>
     }
     if (!mounted) return;
 
-    if (result.synced > 0 || (forceRefresh && !result.connectionFailed)) {
+    final didRefresh = result.synced > 0 || (forceRefresh && !result.connectionFailed);
+    if (didRefresh) {
       _invalidateAllDataProviders();
+      // Re-warm the offline cache so the app is ready for the next disconnection.
+      ref.read(eagerSyncProvider.notifier).warmCache();
     }
 
     if (result.authExpired) {
@@ -212,6 +219,25 @@ class _AppShellState extends ConsumerState<AppShell>
                   : '${result.synced} synced, ${result.failed} still pending',
               style: const TextStyle(
                   color: Colors.black, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ]),
+      ));
+    } else if (forceRefresh && didRefresh) {
+      // Back online with no pending queue — show a brief confirmation.
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+        content: const Row(children: [
+          Icon(Icons.wifi_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Back online — data refreshed',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
             ),
           ),
         ]),
@@ -429,12 +455,17 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
       ref.invalidate(offlineSalesProvider);
       ref.invalidate(salesReportProvider);
       ref.invalidate(profitReportProvider);
+      ref.invalidate(cashierSalesReportProvider);
       ref.invalidate(inventoryReportProvider);
       ref.invalidate(customerReportProvider);
       ref.invalidate(inventoryListProvider);
       ref.invalidate(retailInventoryProvider);
       ref.invalidate(wholesaleInventoryProvider);
       ref.invalidate(customerListProvider);
+      ref.invalidate(paymentRequestsPreloadProvider);
+      ref.invalidate(dispensingLogProvider);
+      ref.invalidate(dispensingStatsProvider);
+      ref.read(eagerSyncProvider.notifier).warmCache();
     }
 
     if (!mounted) return;
