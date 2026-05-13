@@ -37,6 +37,10 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
     return '₦${v.toStringAsFixed(0)}';
   }
 
+  Future<void> _refresh() async {
+    ref.invalidate(cashierSalesReportProvider(_apiPeriod));
+  }
+
   Color _roleColor(String role) {
     if (role == 'Admin' || role == 'Manager') return EnhancedTheme.accentPurple;
     if (role == 'Cashier') return EnhancedTheme.primaryTeal;
@@ -67,10 +71,14 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
           const SizedBox(height: 8),
           _periodSelector(),
           const SizedBox(height: 4),
-          Expanded(child: reportAsync.when(
-            loading: () => _loadingState(),
-            error: (e, _) => _errorState(e),
-            data: (data) => _buildBody(context, data, isSenior),
+          Expanded(child: RefreshIndicator(
+            onRefresh: _refresh,
+            color: EnhancedTheme.primaryTeal,
+            child: reportAsync.when(
+              loading: () => _loadingState(),
+              error: (e, _) => _errorState(e),
+              data: (data) => _buildBody(context, data, isSenior),
+            ),
           )),
         ])),
       ]),
@@ -207,6 +215,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
 
   Widget _buildBody(BuildContext context, CashierSalesData data, bool isSenior) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 

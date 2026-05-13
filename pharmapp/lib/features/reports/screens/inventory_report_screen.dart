@@ -129,7 +129,10 @@ class InventoryReportScreen extends ConsumerWidget {
           const SizedBox(height: 12),
 
           Expanded(
-              child: reportAsync.when(
+              child: RefreshIndicator(
+                onRefresh: () async => ref.invalidate(inventoryReportProvider),
+                color: EnhancedTheme.primaryTeal,
+                child: reportAsync.when(
             loading: () => Center(
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -206,6 +209,7 @@ class InventoryReportScreen extends ConsumerWidget {
                   ]),
             )),
             data: (data) => _buildBody(context, data),
+          ),
           )),
         ])),
       ]),
@@ -214,6 +218,7 @@ class InventoryReportScreen extends ConsumerWidget {
 
   Widget _buildBody(BuildContext context, InventoryReportData data) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // ── KPI Hero Banner ───────────────────────────────────────────────────

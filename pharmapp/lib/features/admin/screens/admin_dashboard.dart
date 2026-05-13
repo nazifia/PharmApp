@@ -31,6 +31,14 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     return '₦${v.toStringAsFixed(0)}';
   }
 
+  Future<void> _refresh() async {
+    ref.invalidate(salesReportProvider('today'));
+    ref.invalidate(inventoryReportProvider);
+    ref.invalidate(customerReportProvider);
+    ref.invalidate(retailInventoryProvider);
+    ref.invalidate(wholesaleInventoryProvider);
+  }
+
   void _logout() {
     ref.read(authServiceProvider).logout();
     context.go('/login');
@@ -260,8 +268,12 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
             ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
 
             Expanded(
-                child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                child: RefreshIndicator(
+              onRefresh: _refresh,
+              color: EnhancedTheme.primaryTeal,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -628,6 +640,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                     const SizedBox(height: 16),
                   ]),
             )),
+            ),
           ])),
         ],
       ),

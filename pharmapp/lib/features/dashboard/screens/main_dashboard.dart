@@ -91,6 +91,13 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     );
   }
 
+  Future<void> _refresh() async {
+    ref.invalidate(salesReportProvider('today'));
+    ref.invalidate(inventoryReportProvider);
+    ref.invalidate(customerReportProvider);
+    ref.invalidate(_wholesaleDashProvider);
+  }
+
   Widget _content() => _homeContent();
 
   Widget _homeContent() {
@@ -121,8 +128,12 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         DashboardCard(title: 'Outstanding Debt', value: loading ? '…' : _fmt(debt),    subtitle: 'Total owed',          icon: Icons.money_off,        color: EnhancedTheme.errorRed),
     ];
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      color: EnhancedTheme.primaryTeal,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -270,6 +281,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           if (_showWholesale)
             _wholesaleBody(wide2),
         ],
+      ),
       ),
     );
   }

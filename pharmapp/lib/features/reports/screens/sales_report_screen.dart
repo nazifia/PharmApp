@@ -56,6 +56,10 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
 
   // -- Date range picker -------------------------------------------------------
 
+  Future<void> _refresh() async {
+    ref.invalidate(salesReportProvider(_apiPeriod));
+  }
+
   Future<void> _openDatePicker() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -142,10 +146,14 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           _periodSelector(),
           _customRangeBanner(),
           const SizedBox(height: 4),
-          Expanded(child: reportAsync.when(
-            loading: () => _loadingState(),
-            error: (e, _) => _errorState(e),
-            data: (data) => _buildBody(context, data),
+          Expanded(child: RefreshIndicator(
+            onRefresh: _refresh,
+            color: EnhancedTheme.primaryTeal,
+            child: reportAsync.when(
+              loading: () => _loadingState(),
+              error: (e, _) => _errorState(e),
+              data: (data) => _buildBody(context, data),
+            ),
           )),
         ])),
       ]),
@@ -371,6 +379,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     final grand = data.totalRevenue;
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 

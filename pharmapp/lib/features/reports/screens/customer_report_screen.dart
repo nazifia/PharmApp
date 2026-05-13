@@ -104,7 +104,13 @@ class CustomerReportScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
 
-          Expanded(child: reportAsync.when(
+          Expanded(child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(customerReportProvider);
+              ref.invalidate(negativeWalletGroupsProvider);
+            },
+            color: EnhancedTheme.primaryTeal,
+            child: reportAsync.when(
             loading: () => Center(
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Container(
@@ -150,6 +156,7 @@ class CustomerReportScreen extends ConsumerWidget {
               ]),
             )),
             data: (data) => _buildBody(context, data, negGroups),
+          ),
           )),
         ])),
       ]),
@@ -164,6 +171,7 @@ class CustomerReportScreen extends ConsumerWidget {
     final total = data.total > 0 ? data.total : 1;
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 

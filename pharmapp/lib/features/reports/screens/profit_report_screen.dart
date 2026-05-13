@@ -32,6 +32,10 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    ref.invalidate(profitReportProvider(_apiPeriod));
+  }
+
   String _fmt(double v) {
     if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
     if (v >= 100000)   return '₦${(v / 100000).toStringAsFixed(1)}L';
@@ -79,7 +83,10 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
           // ── Period pill selector ───────────────────────────────────────────
           _buildPeriodSelector(),
 
-          Expanded(child: reportAsync.when(
+          Expanded(child: RefreshIndicator(
+            onRefresh: _refresh,
+            color: EnhancedTheme.primaryTeal,
+            child: reportAsync.when(
             loading: () => Padding(
               padding: const EdgeInsets.all(16),
               child: Column(children: [
@@ -117,6 +124,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
               ),
             ])),
             data: (data) => _buildBody(context, data),
+          ),
           )),
         ])),
       ]),
@@ -247,6 +255,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
     final cost = data.revenue > 0 ? data.revenue - data.profit : 0.0;
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 

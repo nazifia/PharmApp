@@ -591,7 +591,10 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
           _buildHeader(context, customersAsync.value?.length),
           _buildSearchBar(),
           _buildFilterChips(),
-          Expanded(child: customersAsync.when(
+          Expanded(child: RefreshIndicator(
+            onRefresh: () async => ref.invalidate(customerListProvider),
+            color: EnhancedTheme.primaryTeal,
+            child: customersAsync.when(
             loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               SizedBox(
                 width: 48, height: 48,
@@ -660,6 +663,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                 ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9)));
               }
               return ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
                 itemCount: filtered.length,
                 itemBuilder: (_, i) => _customerCard(filtered[i])
@@ -668,6 +672,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                     .slideY(begin: 0.2, end: 0),
               );
             },
+          ),
           )),
         ])),
       ]),
