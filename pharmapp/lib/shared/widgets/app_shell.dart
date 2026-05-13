@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart'
     show isOnlineProvider;
+import 'package:pharmapp/core/offline/web_online_listener.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
 import 'package:pharmapp/core/offline/eager_sync_service.dart';
@@ -66,11 +67,21 @@ class _AppShellState extends ConsumerState<AppShell>
   /// _OfflineBanner bypass this guard and use their own _syncing flag.
   bool _autoSyncing = false;
 
+  /// Cancels the browser-native online/offline event subscriptions (web only;
+  /// no-op on native platforms via conditional import).
+  late final void Function() _cancelWebListener;
+
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Browser-native online/offline events — more reliable than connectivity_plus
+    // on web where OS-level network events may be missed.
+    _cancelWebListener = listenBrowserNetwork(
+      onOnline: () => _syncIfNeeded(delayMs: 1000, forceRefresh: true),
+      onOffline: () {}, // offline state is handled by isOnlineProvider
+    );
     // Sync on startup: runs after the first frame so providers are ready.
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncIfNeeded());
     _startRetryTimer();
@@ -86,6 +97,7 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   void dispose() {
     _retryTimer?.cancel();
+    _cancelWebListener();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
