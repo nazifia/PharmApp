@@ -72,7 +72,7 @@ class _PrescriptionListScreenState
         ref.watch(prescriptionListProvider(_filter));
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
+      backgroundColor: context.scaffoldBg,
       drawer: const AppDrawer(),
       floatingActionButton: canWrite
           ? FloatingActionButton.extended(
@@ -84,32 +84,37 @@ class _PrescriptionListScreenState
                       color: Colors.white, fontWeight: FontWeight.w600)),
             )
           : null,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            _buildSearchBar(),
-            _buildTabs(),
-            Expanded(
-              child: prescriptionsAsync.when(
-                loading: () => const Center(
-                    child: CircularProgressIndicator(
-                        color: EnhancedTheme.primaryTeal)),
-                error: (e, _) => _ErrorView(
-                    message: e.toString(),
-                    onRetry: () =>
-                        ref.invalidate(prescriptionListProvider(_filter))),
-                data: (list) => list.isEmpty
-                    ? _EmptyView(tabIndex: _tabIndex)
-                    : _PrescriptionGrid(
-                        prescriptions: list,
-                        statusColor: _statusColor,
-                        statusLabel: _statusLabel,
-                      ),
-              ),
+      body: Stack(
+        children: [
+          Container(decoration: context.bgGradient),
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(context),
+                _buildSearchBar(),
+                _buildTabs(),
+                Expanded(
+                  child: prescriptionsAsync.when(
+                    loading: () => const Center(
+                        child: CircularProgressIndicator(
+                            color: EnhancedTheme.primaryTeal)),
+                    error: (e, _) => _ErrorView(
+                        message: e.toString(),
+                        onRetry: () =>
+                            ref.invalidate(prescriptionListProvider(_filter))),
+                    data: (list) => list.isEmpty
+                        ? _EmptyView(tabIndex: _tabIndex)
+                        : _PrescriptionGrid(
+                            prescriptions: list,
+                            statusColor: _statusColor,
+                            statusLabel: _statusLabel,
+                          ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

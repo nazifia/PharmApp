@@ -230,12 +230,12 @@ class _OrgSubscriptionEditorScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.warning_amber_rounded,
+            Icon(Icons.warning_amber_rounded,
                 color: Color(0xFFEF4444), size: 20),
-            const SizedBox(width: 8),
-            const Text('Delete Organization',
+            SizedBox(width: 8),
+            Text('Delete Organization',
                 style: TextStyle(color: Color(0xFFEF4444), fontSize: 16,
                     fontWeight: FontWeight.w700)),
           ],

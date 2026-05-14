@@ -507,7 +507,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                         style: TextStyle(color: context.hintColor, fontSize: 12)),
                   ])),
                   if (_discovering)
-                    SizedBox(
+                    const SizedBox(
                       width: 18, height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: EnhancedTheme.accentCyan),

@@ -102,7 +102,12 @@
       "PowerShell(Get-Content *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\" -Recurse -Directory)",
       "Bash(Select-Object -First 30)",
-      "Bash(xargs cat)"
+      "Bash(xargs cat)",
+      "PowerShell(dir \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\" -Recurse | Where-Object { -not $_.PSIsContainer -and $_.Extension -eq \".py\" -and $_.FullName -notmatch \"venv\" -and $_.FullName -notmatch \"migrations\" } | Select-Object -ExpandProperty FullName)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\branches\\\\\" -Recurse | Where-Object { $_.Extension -eq \".py\" } | Select-Object -ExpandProperty FullName)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\customers\\\\migrations\\\\\" | Where-Object { $_.Extension -eq \".py\" } | Select-Object -ExpandProperty Name)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\inventory\\\\migrations\\\\\" | Where-Object { $_.Extension -eq \".py\" } | Select-Object -ExpandProperty Name)",
+      "PowerShell(flutter analyze *)"
     ]
   }
 }

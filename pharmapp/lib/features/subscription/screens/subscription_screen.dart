@@ -106,9 +106,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     children: [
                       // ── Access-blocked banners (shown before plan cards) ──
                       if (sub.status == SubscriptionStatus.suspended) ...[
-                        _AccessBlockedBanner(
+                        const _AccessBlockedBanner(
                           icon: Icons.block_rounded,
-                          color: const Color(0xFFEF4444),
+                          color: Color(0xFFEF4444),
                           title: 'Account Suspended',
                           body: 'Your organization\'s access has been suspended. '
                               'Please contact support to resolve any outstanding issues '
@@ -116,9 +116,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                         ),
                         const SizedBox(height: 12),
                       ] else if (sub.status == SubscriptionStatus.cancelled) ...[
-                        _AccessBlockedBanner(
+                        const _AccessBlockedBanner(
                           icon: Icons.cancel_rounded,
-                          color: const Color(0xFFF59E0B),
+                          color: Color(0xFFF59E0B),
                           title: 'Subscription Cancelled',
                           body: 'Your subscription has been cancelled. '
                               'Select a plan below to reactivate your account '
@@ -126,9 +126,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                         ),
                         const SizedBox(height: 12),
                       ] else if (sub.status == SubscriptionStatus.expired) ...[
-                        _AccessBlockedBanner(
+                        const _AccessBlockedBanner(
                           icon: Icons.timer_off_rounded,
-                          color: const Color(0xFFF59E0B),
+                          color: Color(0xFFF59E0B),
                           title: 'Subscription Expired',
                           body: 'Your subscription period has ended. '
                               'Renew or upgrade below to restore full access.',

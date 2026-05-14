@@ -70,14 +70,14 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       initialDateRange: _customRange,
       builder: (ctx, child) => Theme(
         data: ThemeData.light().copyWith(
-          colorScheme: ColorScheme.light(
+          colorScheme: const ColorScheme.light(
             primary: EnhancedTheme.primaryTeal,
             onPrimary: Colors.white,
             secondary: EnhancedTheme.accentCyan,
-            surface: const Color(0xFFF8FAFC),
-            onSurface: const Color(0xFF0F172A),
-            onSurfaceVariant: const Color(0xFF64748B),
-            outline: const Color(0xFFCBD5E1),
+            surface: Color(0xFFF8FAFC),
+            onSurface: Color(0xFF0F172A),
+            onSurfaceVariant: Color(0xFF64748B),
+            outline: Color(0xFFCBD5E1),
           ),
           datePickerTheme: DatePickerThemeData(
             backgroundColor: const Color(0xFFF8FAFC),

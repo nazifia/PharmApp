@@ -478,7 +478,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Payment',
                     style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
-                Text('Complete the transaction',
+                const Text('Complete the transaction',
                     style: TextStyle(color: Colors.black54, fontSize: 11)),
               ]),
             ]),
@@ -509,7 +509,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
                     ),
                     child: Column(children: [
-                      Text('Total Amount',
+                      const Text('Total Amount',
                           style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.8)),
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.center, children: [

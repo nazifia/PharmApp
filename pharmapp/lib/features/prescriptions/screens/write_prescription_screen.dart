@@ -389,12 +389,12 @@ class _WritePrescriptionScreenState
             )
           else ...[
             // Initial hint
-            _HintCard(
+            const _HintCard(
               icon: Icons.phone_rounded,
               text: 'Enter a phone number to search',
             ),
             const SizedBox(height: 8),
-            _HintCard(
+            const _HintCard(
               icon: Icons.person_search_rounded,
               text: 'Or search by patient name',
             ),
@@ -510,7 +510,7 @@ class _WritePrescriptionScreenState
           const SizedBox(height: 16),
 
           // Doctor / Diagnosis / Notes
-          _SectionLabel('Prescription Info'),
+          const _SectionLabel('Prescription Info'),
           const SizedBox(height: 8),
           _DarkTextField(
             controller: _doctorCtrl,
