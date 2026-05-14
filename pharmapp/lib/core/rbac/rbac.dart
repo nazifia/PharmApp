@@ -102,6 +102,55 @@ const Map<String, Set<String>> _matrix = {
 
 // ── Rbac helper ──────────────────────────────────────────────────────────────
 
+// ── Ordered list of all permissions (used for local permission sheet) ────────
+
+const List<String> allPermissions = [
+  AppPermission.viewReports,
+  AppPermission.manageUsers,
+  AppPermission.manageSettings,
+  AppPermission.viewNotifications,
+  AppPermission.viewSubscription,
+  AppPermission.viewActivityLog,
+  AppPermission.manageExpenses,
+  AppPermission.processPayments,
+  AppPermission.manageSuppliers,
+  AppPermission.createInventory,
+  AppPermission.writeInventory,
+  AppPermission.readInventory,
+  AppPermission.adjustStock,
+  AppPermission.retailPOS,
+  AppPermission.wholesalePOS,
+  AppPermission.writeCustomers,
+  AppPermission.readCustomers,
+  AppPermission.viewWholesale,
+  AppPermission.manageTransfers,
+];
+
+// ── Human-readable labels for each permission ────────────────────────────────
+
+const Map<String, String> permissionLabels = {
+  AppPermission.platformAdmin:     'Platform Admin',
+  AppPermission.viewReports:       'View Reports',
+  AppPermission.manageUsers:       'Manage Users',
+  AppPermission.manageSettings:    'Manage Settings',
+  AppPermission.viewNotifications: 'View Notifications',
+  AppPermission.viewSubscription:  'View Subscription',
+  AppPermission.viewActivityLog:   'View Activity Log',
+  AppPermission.manageExpenses:    'Manage Expenses',
+  AppPermission.processPayments:   'Process Payments',
+  AppPermission.manageSuppliers:   'Manage Suppliers',
+  AppPermission.createInventory:   'Create Inventory',
+  AppPermission.writeInventory:    'Edit Inventory',
+  AppPermission.readInventory:     'View Inventory',
+  AppPermission.adjustStock:       'Adjust Stock',
+  AppPermission.retailPOS:         'Retail POS',
+  AppPermission.wholesalePOS:      'Wholesale POS',
+  AppPermission.writeCustomers:    'Edit Customers',
+  AppPermission.readCustomers:     'View Customers',
+  AppPermission.viewWholesale:     'Wholesale Access',
+  AppPermission.manageTransfers:   'Manage Transfers',
+};
+
 class Rbac {
   const Rbac._();
 
@@ -121,6 +170,34 @@ class Rbac {
     final allowed = _matrix[permission];
     if (allowed == null) return false;
     return allowed.contains(role);
+  }
+
+  /// Returns the role-matrix default for [permission] (ignoring individual overrides).
+  static bool roleDefault(User? user, String permission) {
+    if (user == null) return false;
+    return roleDefaultForRole(user.role, permission);
+  }
+
+  /// Returns the role-matrix default for [role] string (no User object needed).
+  static bool roleDefaultForRole(String role, String permission) {
+    final allowed = _matrix[permission];
+    if (allowed == null) return false;
+    return allowed.contains(role);
+  }
+
+  /// Returns true if the user has any individual permission overrides set.
+  static bool hasOverrides(User? user) => user != null && user.permissions.isNotEmpty;
+
+  /// Returns the count of permissions explicitly overridden (granted or revoked)
+  /// relative to role defaults.
+  static int overrideCount(User? user) {
+    if (user == null || user.permissions.isEmpty) return 0;
+    int count = 0;
+    for (final entry in user.permissions.entries) {
+      final matrixDefault = roleDefault(user, entry.key);
+      if (entry.value != matrixDefault) count++;
+    }
+    return count;
   }
 
   /// Convenience: true when role is Admin or Manager.

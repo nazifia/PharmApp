@@ -102,6 +102,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/select-branch';
       }
 
+      // Retail POS — retailPOS permission required
+      if (loc == '/dashboard/pos' && !Rbac.can(user, AppPermission.retailPOS)) {
+        return '/dashboard';
+      }
+
+      // Customers — readCustomers permission required
+      if ((loc.startsWith('/dashboard/customers') || loc.startsWith('/customer/')) &&
+          !Rbac.can(user, AppPermission.readCustomers)) {
+        return '/dashboard';
+      }
+
       // Reports — Admin / Manager only (cashier-sales is self-service for all)
       if (loc.startsWith('/dashboard/reports') &&
           loc != '/dashboard/reports/cashier-sales' &&

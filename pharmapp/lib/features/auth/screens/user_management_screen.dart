@@ -11,6 +11,7 @@ import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/shared/models/user.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
@@ -2329,6 +2330,8 @@ class _UserManagementScreenState
                                       ? user.branchName
                                       : 'Branch #${user.branchId}',
                                 ),
+                              if (Rbac.overrideCount(user) > 0)
+                                _overrideBadge(Rbac.overrideCount(user)),
                             ],
                           ),
                           const SizedBox(height: 6),
@@ -2395,6 +2398,27 @@ class _UserManagementScreenState
           ),
         ),
       ),
+    );
+  }
+
+  Widget _overrideBadge(int count) {
+    const color = EnhancedTheme.accentOrange;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.tune_rounded, color: color, size: 9),
+        const SizedBox(width: 3),
+        Text(
+          '$count override${count == 1 ? '' : 's'}',
+          style: GoogleFonts.inter(
+              color: color, fontSize: 10, fontWeight: FontWeight.w700),
+        ),
+      ]),
     );
   }
 

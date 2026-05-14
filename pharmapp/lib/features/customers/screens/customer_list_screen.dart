@@ -9,6 +9,7 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/branch.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import '../providers/customer_provider.dart';
@@ -47,6 +48,25 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   }
 
   void _showAddCustomerSheet(BuildContext context) {
+    // Guard: writeCustomers permission required
+    if (!Rbac.can(ref.read(currentUserProvider), AppPermission.writeCustomers)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: const Row(children: [
+          Icon(Icons.lock_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text(
+            'No permission to add customers.',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          )),
+        ]),
+      ));
+      return;
+    }
+
     final nameCtrl  = TextEditingController();
     final phoneCtrl = TextEditingController();
     String type     = 'Retail';
@@ -551,18 +571,21 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final customersAsync = ref.watch(customerListProvider);
+    final customersAsync  = ref.watch(customerListProvider);
+    final canWriteCustomers = Rbac.can(ref.watch(currentUserProvider), AppPermission.writeCustomers);
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       drawer: const AppDrawer(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddCustomerSheet(context),
-        backgroundColor: EnhancedTheme.primaryTeal,
-        elevation: 4,
-        icon: const Icon(Icons.person_add_rounded),
-        label: Text('Add Customer', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-      ),
+      floatingActionButton: canWriteCustomers
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddCustomerSheet(context),
+              backgroundColor: EnhancedTheme.primaryTeal,
+              elevation: 4,
+              icon: const Icon(Icons.person_add_rounded),
+              label: Text('Add Customer', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+            )
+          : null,
       body: Stack(children: [
         Container(decoration: context.bgGradient),
 

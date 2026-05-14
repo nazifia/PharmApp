@@ -7,6 +7,7 @@ import '../../../core/database/local_db.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/connectivity_provider.dart';
 import '../../../core/offline/offline_queue.dart';
+import '../../../core/rbac/rbac.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../../../shared/models/sale.dart';
@@ -1235,10 +1236,26 @@ class PosApiClient {
     }
   }
 
+  /// Builds local permission rows from the RBAC matrix for a given user role.
+  Map<String, dynamic> _localPermissionRows(int userId, String role) {
+    final rows = allPermissions.map((key) => {
+      'key': key,
+      'label': permissionLabels[key] ?? key,
+      'role_default': Rbac.roleDefaultForRole(role, key),
+      'override_state': 'inherit',
+    }).toList();
+    return {'user_id': userId, 'role': role, 'rows': rows};
+  }
+
   /// Returns permission matrix from GET /auth/users/<id>/permissions/
   Future<Map<String, dynamic>> fetchUserPermissions(int userId) async {
     if (_isLocal) {
-      return {'user_id': userId, 'role': '', 'rows': []};
+      final users = await LocalDb.instance.getAllUsers();
+      final found = users.firstWhere(
+        (u) => u['id'] == userId,
+        orElse: () => <String, dynamic>{},
+      );
+      return _localPermissionRows(userId, found['role'] as String? ?? '');
     }
     try {
       final res = await _dio!.get('/auth/users/$userId/permissions/');

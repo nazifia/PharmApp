@@ -98,7 +98,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\inventory\" -Recurse -File -Filter \"*.dart\")",
-      "Bash(Get-ChildItem -Recurse -Directory)"
+      "Bash(Get-ChildItem -Recurse -Directory)",
+      "PowerShell(Get-Content *)"
     ]
   }
 }

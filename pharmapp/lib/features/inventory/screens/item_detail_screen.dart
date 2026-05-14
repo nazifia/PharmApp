@@ -13,8 +13,6 @@ import 'package:pharmapp/shared/models/item.dart';
 import '../providers/inventory_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
-const _kPermEditItems = 'can_edit_items';
-
 class ItemDetailScreen extends ConsumerStatefulWidget {
   const ItemDetailScreen({super.key});
 
@@ -26,25 +24,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   // Local override updated after stock-adjust / edit saves.
   Item? _itemOverride;
 
-  static const _adminRoles = {'Admin', 'Manager'};
-
-  bool get _canEdit {
-    final user = ref.read(currentUserProvider);
-    if (user == null) return false;
-    if (_adminRoles.contains(user.role)) return true;
-    return user.permissions[_kPermEditItems] == true;
-  }
-
-  bool get _canAdjustStock {
-    final user = ref.read(currentUserProvider);
-    if (user == null) return false;
-    return Rbac.can(user, AppPermission.adjustStock);
-  }
-
-  bool get _canDelete {
-    final user = ref.read(currentUserProvider);
-    return _adminRoles.contains(user?.role);
-  }
+  bool get _canEdit        => Rbac.can(ref.read(currentUserProvider), AppPermission.writeInventory);
+  bool get _canAdjustStock => Rbac.can(ref.read(currentUserProvider), AppPermission.adjustStock);
+  bool get _canDelete      => Rbac.can(ref.read(currentUserProvider), AppPermission.writeInventory);
 
   void _showNoPermissionSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
