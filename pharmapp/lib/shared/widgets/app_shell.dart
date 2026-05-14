@@ -25,6 +25,10 @@ import 'package:pharmapp/features/subscription/widgets/trial_banner.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/core/inactivity/inactivity_provider.dart';
 
+/// Tracks whether an automatic sync is in flight so the offline banner can
+/// reflect real state without polling [_AppShellState]'s private fields.
+final autoSyncingProvider = StateProvider<bool>((ref) => false);
+
 // ── Shell ─────────────────────────────────────────────────────────────────────
 
 class AppShell extends ConsumerStatefulWidget {
@@ -228,6 +232,7 @@ class _AppShellState extends ConsumerState<AppShell>
     _pendingForceRefresh = false;
 
     _autoSyncing = true;
+    if (mounted) ref.read(autoSyncingProvider.notifier).state = true;
     SyncResult result;
     try {
       result = await ref.read(syncServiceProvider).syncAll();
@@ -238,6 +243,7 @@ class _AppShellState extends ConsumerState<AppShell>
         _pendingForceRefresh = false;
       }
       _autoSyncing = false;
+      if (mounted) ref.read(autoSyncingProvider.notifier).state = false;
     }
     if (!mounted) return;
 
@@ -475,10 +481,12 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
     final pendingSales = ref.watch(offlineQueueProvider);
     final pendingMuts = ref.watch(offlineMutationQueueProvider);
     final pending = pendingSales.length + pendingMuts.length;
+    // True when _AppShellState's auto-sync loop is running.
+    final isAutoSyncing = ref.watch(autoSyncingProvider);
 
-    // Always attempt sync on tap — even when isOnlineProvider shows offline,
-    // connectivity_plus can be stale on Windows/web. Let syncAll() decide.
+    // Tap still works as a manual override but is no longer advertised.
     final tappable = pending > 0 || isOnline;
+    final showSpinner = isAutoSyncing || _syncing;
 
     return GestureDetector(
       onTap: tappable ? _triggerSync : null,
@@ -498,15 +506,15 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
               child: Text(
             !isOnline
                 ? pending > 0
-                    ? 'Offline — $pending operation${pending == 1 ? '' : 's'} queued — tap to retry sync'
+                    ? 'Offline — $pending operation${pending == 1 ? '' : 's'} queued'
                     : 'Offline — changes will sync when connected'
-                : _syncing
+                : showSpinner
                     ? 'Syncing $pending operation${pending == 1 ? '' : 's'}...'
-                    : '$pending operation${pending == 1 ? '' : 's'} pending — tap to sync now',
+                    : '$pending operation${pending == 1 ? '' : 's'} pending — syncing automatically',
             style: const TextStyle(
                 color: Colors.black, fontSize: 12, fontWeight: FontWeight.w600),
           )),
-          if (_syncing)
+          if (showSpinner)
             const SizedBox(
               width: 14,
               height: 14,
