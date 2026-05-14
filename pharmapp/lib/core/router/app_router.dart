@@ -53,6 +53,9 @@ import 'package:pharmapp/features/branches/screens/branch_management_screen.dart
 import 'package:pharmapp/features/branches/screens/branch_selection_screen.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/auth/screens/activity_log_screen.dart';
+import 'package:pharmapp/features/prescriptions/screens/prescription_list_screen.dart';
+import 'package:pharmapp/features/prescriptions/screens/prescription_detail_screen.dart';
+import 'package:pharmapp/features/prescriptions/screens/write_prescription_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -127,6 +130,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Activity log — Admin / Manager only
       if (loc == '/dashboard/activity-log' && !Rbac.can(user, AppPermission.viewActivityLog)) {
+        return '/dashboard';
+      }
+
+      // Prescriptions — readPrescriptions required
+      if ((loc == '/dashboard/prescriptions' ||
+              loc.startsWith('/dashboard/prescriptions/')) &&
+          !Rbac.can(user, AppPermission.readPrescriptions)) {
         return '/dashboard';
       }
 
@@ -299,6 +309,19 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'sync-queue',      name: 'sync_queue',      builder: (_, __) => const SyncQueueScreen()),
               GoRoute(path: 'branches',        name: 'branches',        builder: (_, __) => const BranchManagementScreen()),
               GoRoute(path: 'activity-log',    name: 'activity_log',    builder: (_, __) => const ActivityLogScreen()),
+              GoRoute(path: 'prescriptions',   name: 'prescriptions',   builder: (_, __) => const PrescriptionListScreen()),
+              GoRoute(
+                path: 'prescriptions/write',
+                name: 'write_prescription',
+                builder: (_, __) => const WritePrescriptionScreen(),
+              ),
+              GoRoute(
+                path: 'prescriptions/:id',
+                name: 'prescription_detail',
+                builder: (_, state) => PrescriptionDetailScreen(
+                  prescriptionId: int.parse(state.pathParameters['id']!),
+                ),
+              ),
             ],
           ),
 

@@ -230,6 +230,54 @@ def wallet_reset(request, pk):
     return Response({"walletBalance": 0.0})
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_customers_global(request):
+    """
+    GET /api/customers/search/?q=<term>[&global=true]
+    Searches customers by name or phone number.
+    With global=true: searches across ALL active organizations in the system
+    (for the prescription "find patient from any pharmacy" use-case).
+    Without global or global=false: searches only within the caller's org.
+    Results include pharmacy_name and pharmacy_id so the caller knows the source.
+    """
+    q = request.query_params.get('q', '').strip()
+    if len(q) < 2:
+        return Response([])
+
+    from django.db.models import Q as _Q
+    from customers.models import Customer
+
+    is_global = request.query_params.get('global', '').lower() in ('1', 'true')
+
+    if is_global:
+        # Search all orgs — phone is the most reliable identifier across pharmacies
+        qs = Customer.objects.filter(
+            _Q(name__icontains=q) | _Q(phone__icontains=q)
+        ).select_related('organization').order_by('name')[:40]
+    else:
+        org = getattr(request.user, 'organization', None)
+        if org is None:
+            return Response([])
+        qs = Customer.objects.filter(
+            organization=org
+        ).filter(
+            _Q(name__icontains=q) | _Q(phone__icontains=q)
+        ).order_by('name')[:40]
+
+    results = []
+    for c in qs:
+        results.append({
+            'id':            c.id,
+            'name':          c.name,
+            'phone':         c.phone,
+            'is_wholesale':  c.is_wholesale,
+            'pharmacy_name': c.organization.name if c.organization_id else None,
+            'pharmacy_id':   c.organization_id,
+        })
+    return Response(results)
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsCustomerEditor])
 @throttle_classes([ScopedRateThrottle])

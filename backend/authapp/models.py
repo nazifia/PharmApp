@@ -127,6 +127,7 @@ ALL_PERMISSIONS = [
     'viewSubscription', 'retailPOS', 'wholesalePOS', 'viewWholesale',
     'readInventory', 'writeInventory', 'readCustomers', 'writeCustomers',
     'manageExpenses', 'manageSuppliers', 'processPayments', 'manageTransfers',
+    'readPrescriptions', 'writePrescriptions',
 ]
 
 

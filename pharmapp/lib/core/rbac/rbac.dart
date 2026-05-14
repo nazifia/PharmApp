@@ -43,6 +43,10 @@ abstract class AppPermission {
   static const String writeCustomers   = 'writeCustomers';
   static const String readCustomers    = 'readCustomers';
 
+  // Prescriptions
+  static const String writePrescriptions = 'writePrescriptions';
+  static const String readPrescriptions  = 'readPrescriptions';
+
   // Wholesale section visibility
   static const String viewWholesale    = 'viewWholesale';
 
@@ -70,6 +74,10 @@ const _allStaff = {
   'Wholesale Manager', 'Wholesale Operator', 'Wholesale Salesperson',
 };
 const _customersWrite = {'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech', 'Wholesale Manager'};
+const _prescriptionsWrite = {'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech'};
+const _prescriptionsRead  = {
+  'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech', 'Salesperson', 'Cashier',
+};
 const _expensesRoles  = {'Admin', 'Manager', 'Wholesale Manager'};
 const _suppliersRoles = {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager'};
 const _paymentsRoles  = {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager', 'Cashier'};
@@ -95,9 +103,11 @@ const Map<String, Set<String>> _matrix = {
   AppPermission.retailPOS:         _retailPOS,
   AppPermission.wholesalePOS:      _wholesalePOS,
   AppPermission.viewWholesale:     _wholesalePOS,
-  AppPermission.writeCustomers:    _customersWrite,
-  AppPermission.readCustomers:     _allStaff,
-  AppPermission.manageTransfers:   _transfersRoles,
+  AppPermission.writeCustomers:      _customersWrite,
+  AppPermission.readCustomers:       _allStaff,
+  AppPermission.manageTransfers:     _transfersRoles,
+  AppPermission.writePrescriptions:  _prescriptionsWrite,
+  AppPermission.readPrescriptions:   _prescriptionsRead,
 };
 
 // ── Rbac helper ──────────────────────────────────────────────────────────────
@@ -124,6 +134,8 @@ const List<String> allPermissions = [
   AppPermission.readCustomers,
   AppPermission.viewWholesale,
   AppPermission.manageTransfers,
+  AppPermission.writePrescriptions,
+  AppPermission.readPrescriptions,
 ];
 
 // ── Human-readable labels for each permission ────────────────────────────────
@@ -145,10 +157,12 @@ const Map<String, String> permissionLabels = {
   AppPermission.adjustStock:       'Adjust Stock',
   AppPermission.retailPOS:         'Retail POS',
   AppPermission.wholesalePOS:      'Wholesale POS',
-  AppPermission.writeCustomers:    'Edit Customers',
-  AppPermission.readCustomers:     'View Customers',
-  AppPermission.viewWholesale:     'Wholesale Access',
-  AppPermission.manageTransfers:   'Manage Transfers',
+  AppPermission.writeCustomers:      'Edit Customers',
+  AppPermission.readCustomers:       'View Customers',
+  AppPermission.viewWholesale:       'Wholesale Access',
+  AppPermission.manageTransfers:     'Manage Transfers',
+  AppPermission.writePrescriptions:  'Write Prescriptions',
+  AppPermission.readPrescriptions:   'View Prescriptions',
 };
 
 class Rbac {

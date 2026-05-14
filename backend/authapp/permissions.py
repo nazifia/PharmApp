@@ -55,6 +55,8 @@ WHOLESALE_POS = {
 ALL_STAFF = RETAIL_POS | WHOLESALE_POS  # every non-anonymous role
 CUSTOMERS_WRITE = {"Admin", "Manager", "Pharmacist", "Pharm-Tech", "Wholesale Manager"}
 CUSTOMERS_READ = ALL_STAFF
+PRESCRIPTIONS_WRITE = {"Admin", "Manager", "Pharmacist", "Pharm-Tech"}
+PRESCRIPTIONS_READ  = {"Admin", "Manager", "Pharmacist", "Pharm-Tech", "Salesperson", "Cashier"}
 EXPENSES_ROLES = {"Admin", "Manager", "Wholesale Manager"}
 SUPPLIERS_ROLES = {"Admin", "Manager", "Pharmacist", "Wholesale Manager"}
 PAYMENTS_ROLES = {"Admin", "Manager", "Pharmacist", "Wholesale Manager"}
@@ -87,6 +89,8 @@ PERMISSION_LABELS = [
     ("Write Inventory", "writeInventory"),
     ("Read Customers", "readCustomers"),
     ("Write Customers", "writeCustomers"),
+    ("View Prescriptions", "readPrescriptions"),
+    ("Write Prescriptions", "writePrescriptions"),
     ("Manage Expenses", "manageExpenses"),
     ("Manage Suppliers", "manageSuppliers"),
     ("Process Payments", "processPayments"),
@@ -243,6 +247,24 @@ class IsCustomerEditor(BasePermission):
         return perms.get("writeCustomers", False)
 
 
+class IsPrescriptionUser(BasePermission):
+    """
+    Read (GET/HEAD/OPTIONS): requires readPrescriptions effective permission.
+    Write (POST/PUT/PATCH/DELETE): requires writePrescriptions effective permission.
+    """
+
+    message = "You do not have permission to access prescriptions."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if getattr(user, 'is_superuser', False):
+            return True
+        perms = get_effective_permissions(user)
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return perms.get("readPrescriptions", False)
+        return perms.get("writePrescriptions", False)
+
+
 # ── Effective-permission factory ───────────────────────────────────────────────
 
 
@@ -325,9 +347,11 @@ _PERMISSION_ROLE_MAP: dict[str, set] = {
     "viewWholesale": WHOLESALE_POS,
     "readInventory": INVENTORY_READ,
     "writeInventory": INVENTORY_WRITE,
-    "readCustomers": ALL_STAFF,
-    "writeCustomers": CUSTOMERS_WRITE,
-    "manageExpenses": EXPENSES_ROLES,
+    "readCustomers":      ALL_STAFF,
+    "writeCustomers":     CUSTOMERS_WRITE,
+    "readPrescriptions":  PRESCRIPTIONS_READ,
+    "writePrescriptions": PRESCRIPTIONS_WRITE,
+    "manageExpenses":     EXPENSES_ROLES,
     "manageSuppliers": SUPPLIERS_ROLES,
     "processPayments": PAYMENTS_ROLES,
     "manageTransfers": TRANSFERS_ROLES,

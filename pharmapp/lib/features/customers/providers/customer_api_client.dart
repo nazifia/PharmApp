@@ -342,6 +342,53 @@ class CustomerApiClient {
     }
   }
 
+  // ── Global customer search ─────────────────────────────────────────────────
+
+  /// Search customers across ALL subscribed pharmacies.
+  /// Returns raw maps; each may include a 'pharmacyName' field from the backend.
+  Future<List<Map<String, dynamic>>> searchCustomersGlobal(String query) async {
+    if (_isLocal) {
+      // Local mode: filter from SQLite by name or phone
+      final all = await LocalDb.instance.getCustomers();
+      final q = query.toLowerCase();
+      return all
+          .where((m) =>
+              ((m['name'] as String?) ?? '').toLowerCase().contains(q) ||
+              ((m['phone'] as String?) ?? '').contains(q))
+          .toList();
+    }
+    try {
+      final res = await _dio!.get('/customers/search/', queryParameters: {
+        'q': query,
+        'global': true,
+      });
+      final data = res.data;
+      final list = data is Map && data.containsKey('results')
+          ? data['results'] as List
+          : data as List;
+      return list.cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      if (e.response == null) {
+        // Offline fallback: search local SharedPreferences cache
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kCustomersCachePrefix);
+        if (raw != null) {
+          final allList = jsonDecode(raw) as List;
+          final q = query.toLowerCase();
+          return allList
+              .cast<Map<String, dynamic>>()
+              .where((m) =>
+                  ((m['name'] as String?) ?? '').toLowerCase().contains(q) ||
+                  ((m['phone'] as String?) ?? '').contains(q))
+              .toList();
+        }
+        return [];
+      }
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to search customers');
+    }
+  }
+
   // ── Sales history ──────────────────────────────────────────────────────────
 
   Future<List<CustomerSale>> fetchCustomerSales(int id) async {

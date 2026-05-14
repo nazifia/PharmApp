@@ -201,6 +201,7 @@ INSTALLED_APPS = [
     "reports",
     "subscription",
     "branches",
+    "prescriptions",
 ]
 
 MIDDLEWARE = [
