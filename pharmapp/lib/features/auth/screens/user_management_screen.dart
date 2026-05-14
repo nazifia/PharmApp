@@ -1570,6 +1570,16 @@ class _UserManagementScreenState
     );
   }
 
+  // ─── User dispensing log sheet ────────────────────────────────────────────
+  void _showUserDispensingLog(User user) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _UserDispensingLogSheet(user: user),
+    );
+  }
+
   // ─── Delete confirmation dialog ───────────────────────────────────────────
   void _showDeleteConfirmation(User user) {
     showDialog(
@@ -2360,6 +2370,12 @@ class _UserManagementScreenState
                         ),
                         const SizedBox(height: 6),
                         _iconButton(
+                          Icons.history_rounded,
+                          EnhancedTheme.primaryTeal,
+                          () => _showUserDispensingLog(user),
+                        ),
+                        const SizedBox(height: 6),
+                        _iconButton(
                           Icons.lock_reset_rounded,
                           EnhancedTheme.accentCyan,
                           () => _showChangePasswordDialog(user),
@@ -2455,6 +2471,581 @@ class _UserManagementScreenState
           border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
         child: Icon(icon, color: color, size: 18),
+      ),
+    );
+  }
+}
+
+// ── Per-user dispensing log bottom sheet ──────────────────────────────────────
+
+class _UserDispensingLogSheet extends ConsumerStatefulWidget {
+  final User user;
+  const _UserDispensingLogSheet({required this.user});
+
+  @override
+  ConsumerState<_UserDispensingLogSheet> createState() =>
+      _UserDispensingLogSheetState();
+}
+
+class _UserDispensingLogSheetState
+    extends ConsumerState<_UserDispensingLogSheet> {
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+  int _dateFilter = 3; // 0=Today 1=Week 2=Month 3=All
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  DispensingLogParams get _params {
+    final now = DateTime.now();
+    String? from;
+    String? to;
+    String nextDay(DateTime d) =>
+        DateTime(d.year, d.month, d.day)
+            .add(const Duration(days: 1))
+            .toIso8601String()
+            .split('T')
+            .first;
+    switch (_dateFilter) {
+      case 0:
+        from = DateTime(now.year, now.month, now.day)
+            .toIso8601String()
+            .split('T')
+            .first;
+        to = nextDay(now);
+        break;
+      case 1:
+        final ws = now.subtract(Duration(days: now.weekday - 1));
+        from = DateTime(ws.year, ws.month, ws.day)
+            .toIso8601String()
+            .split('T')
+            .first;
+        to = nextDay(now);
+        break;
+      case 2:
+        from = DateTime(now.year, now.month, 1)
+            .toIso8601String()
+            .split('T')
+            .first;
+        to = nextDay(now);
+        break;
+    }
+    return DispensingLogParams(
+      search: _searchQuery.isEmpty ? null : _searchQuery,
+      from: from,
+      to: to,
+      targetUserId: widget.user.id,
+    );
+  }
+
+  Color get _roleColor {
+    switch (widget.user.role) {
+      case 'Admin': return EnhancedTheme.errorRed;
+      case 'Manager': return EnhancedTheme.warningAmber;
+      case 'Pharmacist': return EnhancedTheme.primaryTeal;
+      case 'Pharm-Tech': return EnhancedTheme.successGreen;
+      case 'Cashier': return EnhancedTheme.accentCyan;
+      case 'Salesperson': return EnhancedTheme.accentPurple;
+      default: return EnhancedTheme.infoBlue;
+    }
+  }
+
+  String _fmtNaira(double v) {
+    if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(1)}K';
+    return '₦${v.toStringAsFixed(0)}';
+  }
+
+  String _fmtTs(String raw) {
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      const m = ['Jan','Feb','Mar','Apr','May','Jun',
+                  'Jul','Aug','Sep','Oct','Nov','Dec'];
+      final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final min = dt.minute.toString().padLeft(2, '0');
+      final ap = dt.hour < 12 ? 'AM' : 'PM';
+      return '${m[dt.month - 1]} ${dt.day}, $h:$min $ap';
+    } catch (_) {
+      return raw.length > 16 ? raw.substring(0, 16) : raw;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statsAsync = ref.watch(userDispensingStatsProvider(widget.user.id));
+    final logAsync   = ref.watch(dispensingLogProvider(_params));
+    final roleColor  = _roleColor;
+    final displayName = widget.user.username.isNotEmpty
+        ? widget.user.username
+        : widget.user.phoneNumber;
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.88),
+          decoration: BoxDecoration(
+            color: context.isDark
+                ? const Color(0xFF1E293B)
+                : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(
+                top: BorderSide(
+                    color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3),
+                    width: 1.5)),
+          ),
+          child: Column(children: [
+            // Handle
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 44, height: 4,
+                decoration: BoxDecoration(
+                    color: context.dividerColor,
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // ── User header ──────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(children: [
+                Container(
+                  width: 46, height: 46,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [
+                      roleColor.withValues(alpha: 0.22),
+                      roleColor.withValues(alpha: 0.10),
+                    ]),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: roleColor.withValues(alpha: 0.35)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                      style: TextStyle(color: roleColor, fontSize: 20,
+                          fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(displayName,
+                        style: TextStyle(color: context.labelColor,
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 3),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: roleColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                            color: roleColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(widget.user.role,
+                          style: TextStyle(color: roleColor,
+                              fontSize: 10, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                )),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [EnhancedTheme.accentPurple, EnhancedTheme.infoBlue]),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.medical_services_rounded,
+                        color: Colors.black, size: 11),
+                    SizedBox(width: 4),
+                    Text('Rx Log',
+                        style: TextStyle(color: Colors.black,
+                            fontSize: 10, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Stats row ────────────────────────────────────────────
+            statsAsync.when(
+              loading: () => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(children: [
+                  Expanded(child: EnhancedTheme.loadingShimmer(height: 64, radius: 14)),
+                  const SizedBox(width: 10),
+                  Expanded(child: EnhancedTheme.loadingShimmer(height: 64, radius: 14)),
+                  const SizedBox(width: 10),
+                  Expanded(child: EnhancedTheme.loadingShimmer(height: 64, radius: 14)),
+                  const SizedBox(width: 10),
+                  Expanded(child: EnhancedTheme.loadingShimmer(height: 64, radius: 14)),
+                ]),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (stats) {
+                final daily = stats['daily'] is Map
+                    ? Map<String, dynamic>.from(stats['daily'] as Map)
+                    : <String, dynamic>{};
+                final monthly = stats['monthly'] is Map
+                    ? Map<String, dynamic>.from(stats['monthly'] as Map)
+                    : <String, dynamic>{};
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(children: [
+                    _miniStat('${daily['count'] ?? 0}', 'Today', EnhancedTheme.primaryTeal),
+                    const SizedBox(width: 8),
+                    _miniStat(_fmtNaira((daily['revenue'] as num?)?.toDouble() ?? 0),
+                        'Day Rev', EnhancedTheme.accentCyan),
+                    const SizedBox(width: 8),
+                    _miniStat('${monthly['count'] ?? 0}', 'Month', EnhancedTheme.accentPurple),
+                    const SizedBox(width: 8),
+                    _miniStat(_fmtNaira((monthly['revenue'] as num?)?.toDouble() ?? 0),
+                        'Mon Rev', EnhancedTheme.successGreen),
+                  ]),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // ── Search ───────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                style: TextStyle(color: context.labelColor, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Search by item or brand…',
+                  hintStyle: TextStyle(color: context.hintColor, fontSize: 12),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: context.hintColor, size: 18),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.close_rounded,
+                              color: context.hintColor, size: 16),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: context.cardColor,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: context.borderColor)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: context.borderColor)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                          color: EnhancedTheme.primaryTeal, width: 1.5)),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // ── Date filter chips ────────────────────────────────────
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: ['Today', 'This Week', 'This Month', 'All']
+                    .asMap()
+                    .entries
+                    .map((e) {
+                  final active = e.key == _dateFilter;
+                  return GestureDetector(
+                    onTap: () => setState(() => _dateFilter = e.key),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: active
+                            ? EnhancedTheme.primaryTeal
+                            : context.cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: active
+                                ? EnhancedTheme.primaryTeal
+                                : context.borderColor),
+                      ),
+                      child: Text(e.value,
+                          style: TextStyle(
+                              color: active
+                                  ? Colors.black
+                                  : context.subLabelColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            const Divider(height: 1),
+
+            // ── Log list ─────────────────────────────────────────────
+            Expanded(
+              child: logAsync.when(
+                loading: () => ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: 5,
+                  itemBuilder: (_, __) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: EnhancedTheme.loadingShimmer(height: 80, radius: 16),
+                  ),
+                ),
+                error: (e, _) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.cloud_off_rounded,
+                          color: EnhancedTheme.errorRed, size: 36),
+                      const SizedBox(height: 10),
+                      Text('Failed to load',
+                          style: TextStyle(
+                              color: context.labelColor,
+                              fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text('$e',
+                          style: TextStyle(
+                              color: context.subLabelColor, fontSize: 11),
+                          textAlign: TextAlign.center),
+                    ],
+                  ),
+                ),
+                data: (entries) {
+                  if (entries.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: EnhancedTheme.accentPurple
+                                  .withValues(alpha: 0.08),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.medication_rounded,
+                                color: EnhancedTheme.accentPurple, size: 36),
+                          ),
+                          const SizedBox(height: 12),
+                          Text('No dispensing records',
+                              style: TextStyle(
+                                  color: context.labelColor,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 4),
+                          Text('for this period',
+                              style: TextStyle(
+                                  color: context.subLabelColor,
+                                  fontSize: 12)),
+                        ],
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    padding:
+                        const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    itemCount: entries.length,
+                    itemBuilder: (_, i) =>
+                        _logCard(entries[i] as Map<String, dynamic>),
+                  );
+                },
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _miniStat(String value, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(children: [
+          Text(value,
+              style: TextStyle(
+                  color: color, fontSize: 13, fontWeight: FontWeight.w800),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(color: context.hintColor, fontSize: 9),
+              textAlign: TextAlign.center),
+        ]),
+      ),
+    );
+  }
+
+  Widget _logCard(Map<String, dynamic> entry) {
+    final name = entry['name'] as String? ?? entry['itemName'] as String? ?? 'Unknown';
+    final brand = entry['brand'] as String? ?? '';
+    final qty = entry['quantity'] ?? 0;
+    final amount = (entry['amount'] as num?)?.toDouble() ?? 0;
+    final status = (entry['status'] as String? ?? 'dispensed').toLowerCase();
+    final dateStr = entry['createdAt'] as String? ??
+        entry['date'] as String? ?? '';
+
+    Color statusColor;
+    String statusLabel;
+    IconData statusIcon;
+    switch (status) {
+      case 'returned':
+        statusColor = EnhancedTheme.errorRed;
+        statusLabel = 'Returned';
+        statusIcon = Icons.undo_rounded;
+        break;
+      case 'partially_returned':
+      case 'partial':
+        statusColor = EnhancedTheme.warningAmber;
+        statusLabel = 'Partial';
+        statusIcon = Icons.remove_circle_outline_rounded;
+        break;
+      default:
+        statusColor = EnhancedTheme.successGreen;
+        statusLabel = 'Dispensed';
+        statusIcon = Icons.check_circle_rounded;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.borderColor),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Column(children: [
+          Container(
+            height: 3,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [
+                statusColor.withValues(alpha: 0.8),
+                statusColor.withValues(alpha: 0.2),
+              ]),
+              borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: statusColor.withValues(alpha: 0.25)),
+                ),
+                child: Icon(Icons.medication_rounded,
+                    color: statusColor, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name,
+                      style: TextStyle(
+                          color: context.labelColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  if (brand.isNotEmpty)
+                    Text(brand,
+                        style: TextStyle(
+                            color: context.subLabelColor,
+                            fontSize: 11)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Icon(Icons.shopping_bag_outlined,
+                        color: context.hintColor, size: 11),
+                    const SizedBox(width: 3),
+                    Text('Qty: $qty',
+                        style: TextStyle(
+                            color: context.hintColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600)),
+                    if (dateStr.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Icon(Icons.access_time_rounded,
+                          color: context.hintColor, size: 11),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(_fmtTs(dateStr),
+                            style: TextStyle(
+                                color: context.hintColor,
+                                fontSize: 10),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ]),
+                ],
+              )),
+              const SizedBox(width: 8),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(_fmtNaira(amount),
+                    style: const TextStyle(
+                        color: EnhancedTheme.primaryTeal,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                        color: statusColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(statusIcon, color: statusColor, size: 9),
+                    const SizedBox(width: 3),
+                    Text(statusLabel,
+                        style: TextStyle(
+                            color: statusColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ]),
+            ]),
+          ),
+        ]),
       ),
     );
   }

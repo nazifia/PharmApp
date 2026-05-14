@@ -1655,7 +1655,15 @@ class DispensingLogParams {
   final String? from;
   final String? to;
   final bool myOnly;
-  const DispensingLogParams({this.search, this.from, this.to, this.myOnly = false});
+  // When set by an admin viewing another user's log, takes priority over myOnly.
+  final int? targetUserId;
+  const DispensingLogParams({
+    this.search,
+    this.from,
+    this.to,
+    this.myOnly = false,
+    this.targetUserId,
+  });
 
   @override
   bool operator ==(Object other) =>
@@ -1663,10 +1671,11 @@ class DispensingLogParams {
       other.search == search &&
       other.from == from &&
       other.to == to &&
-      other.myOnly == myOnly;
+      other.myOnly == myOnly &&
+      other.targetUserId == targetUserId;
 
   @override
-  int get hashCode => Object.hash(search, from, to, myOnly);
+  int get hashCode => Object.hash(search, from, to, myOnly, targetUserId);
 }
 
 int? _dispensingBranchId(Ref ref) {
@@ -1690,9 +1699,17 @@ final dispensingStatsProvider =
   );
 });
 
+// Provider for admin to pull stats for a specific user by their ID.
+final userDispensingStatsProvider =
+    FutureProvider.autoDispose.family<Map<String, dynamic>, int>((ref, userId) {
+  return ref.watch(posApiProvider).fetchDispensingStats(userId: userId);
+});
+
 final dispensingLogProvider =
     FutureProvider.autoDispose.family<List<dynamic>, DispensingLogParams>((ref, params) {
-  final userId = params.myOnly ? ref.watch(currentUserProvider)?.id : null;
+  // targetUserId (admin viewing another user) takes priority over myOnly.
+  final userId = params.targetUserId ??
+      (params.myOnly ? ref.watch(currentUserProvider)?.id : null);
   return ref.watch(posApiProvider).fetchDispensingLog(
     search: params.search,
     from: params.from,
