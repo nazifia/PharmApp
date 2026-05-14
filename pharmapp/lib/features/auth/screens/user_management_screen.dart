@@ -1037,6 +1037,13 @@ class _UserManagementScreenState
                               fullname: fullnameCtrl.text.trim(),
                               branchId: branchId ?? 0,
                             );
+                            // If the current user edited their own record, refresh
+                            // the profile immediately so new role/permissions take
+                            // effect without requiring a re-login.
+                            final currentUser = ref.read(currentUserProvider);
+                            if (currentUser?.id == user.id) {
+                              await ref.read(authFlowProvider.notifier).refreshProfile();
+                            }
                             if (!context.mounted) return;
                             setState(() {});
                             messenger.showSnackBar(SnackBar(

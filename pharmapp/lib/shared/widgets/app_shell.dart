@@ -69,6 +69,10 @@ class _AppShellState extends ConsumerState<AppShell>
   /// platforms where OS-level network events are unreliable such as web/Windows).
   Timer? _retryTimer;
 
+  /// Polls /auth/me/ every 60 s so that role/permission changes made by an
+  /// admin on any user take effect without requiring a re-login.
+  Timer? _profilePollTimer;
+
   /// Guards automatic sync triggers (timer, connectivity change, queue load,
   /// lifecycle resume) from running concurrently. Manual taps from the
   /// _OfflineBanner bypass this guard and use their own _syncing flag.
@@ -104,6 +108,7 @@ class _AppShellState extends ConsumerState<AppShell>
     // Sync on startup: runs after the first frame so providers are ready.
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncIfNeeded());
     _startRetryTimer();
+    _startProfilePollTimer();
   }
 
   /// Called when the network comes back (browser online event / retry timer).
@@ -150,9 +155,18 @@ class _AppShellState extends ConsumerState<AppShell>
     });
   }
 
+  void _startProfilePollTimer() {
+    _profilePollTimer?.cancel();
+    _profilePollTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (!mounted) return;
+      ref.read(authFlowProvider.notifier).refreshProfile();
+    });
+  }
+
   @override
   void dispose() {
     _retryTimer?.cancel();
+    _profilePollTimer?.cancel();
     _cancelWebListener();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
