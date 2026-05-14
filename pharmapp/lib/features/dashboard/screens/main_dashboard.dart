@@ -768,6 +768,14 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                         [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
                          (Icons.show_chart_rounded, 'Sales Report', '/dashboard/reports/sales')],
                       )),
+                    ] else ...[
+                      const SizedBox(width: 10),
+                      Expanded(child: _quickAccessCard(
+                        'My Daily Sales', 'Your transactions',
+                        Icons.receipt_long_rounded, EnhancedTheme.accentOrange,
+                        [(Icons.today_rounded, 'View My Sales', '/dashboard/reports/cashier-sales'),
+                         (Icons.history_rounded, 'Sale History', '/dashboard/sales')],
+                      )),
                     ],
                   ])
                 : Column(children: [
@@ -791,6 +799,14 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                         Icons.analytics_rounded, EnhancedTheme.accentCyan,
                         [(Icons.today_rounded, 'Daily Sales', '/dashboard/reports/sales'),
                          (Icons.show_chart_rounded, 'Sales Report', '/dashboard/reports/sales')],
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 10),
+                      _quickAccessCard(
+                        'My Daily Sales', 'Your transactions',
+                        Icons.receipt_long_rounded, EnhancedTheme.accentOrange,
+                        [(Icons.today_rounded, 'View My Sales', '/dashboard/reports/cashier-sales'),
+                         (Icons.history_rounded, 'Sale History', '/dashboard/sales')],
                       ),
                     ],
                   ]),
@@ -1186,6 +1202,19 @@ class _MoreFeaturesSheet extends ConsumerWidget {
                   const SizedBox(width: 10),
                   _featureCard(context, Icons.trending_up,        'Profit',    EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
                 ],
+              ]),
+              const SizedBox(height: 20),
+            ],
+
+            if (!isAdmin) ...[
+              _sectionLabel(context, 'My Sales'),
+              const SizedBox(height: 10),
+              Row(children: [
+                _featureCard(context, Icons.today_rounded,        'Daily Sales', EnhancedTheme.accentOrange,  '/dashboard/reports/cashier-sales'),
+                const SizedBox(width: 10),
+                _featureCard(context, Icons.history_rounded,      'Sale History', EnhancedTheme.successGreen, '/dashboard/sales'),
+                const SizedBox(width: 10),
+                _featureCard(context, Icons.list_alt_rounded,     'Disp. Log',   EnhancedTheme.primaryTeal,  '/dashboard/dispensing-log'),
               ]),
               const SizedBox(height: 20),
             ],
