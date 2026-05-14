@@ -173,16 +173,34 @@ def user_permissions_view(request, user_id):
                             status=status.HTTP_400_BAD_REQUEST)
 
         valid_keys = {key for _, key in PERMISSION_LABELS}
+        changed = []
         for perm_key, state in overrides_input.items():
             if perm_key not in valid_keys:
                 continue
             if state == 'inherit':
-                UserPermissionOverride.objects.filter(user=target, permission=perm_key).delete()
+                deleted, _ = UserPermissionOverride.objects.filter(
+                    user=target, permission=perm_key
+                ).delete()
+                if deleted:
+                    changed.append(f"{perm_key}=inherit")
             elif state in ('grant', 'revoke'):
-                UserPermissionOverride.objects.update_or_create(
+                _, created = UserPermissionOverride.objects.update_or_create(
                     user=target, permission=perm_key,
                     defaults={'granted': state == 'grant'},
                 )
+                changed.append(f"{perm_key}={state}")
+
+        if changed:
+            target_name = target.full_name or target.phone_number
+            log_activity(
+                request,
+                action='Permission Override',
+                category='users',
+                description=(
+                    f"Permissions updated for {target_name} ({target.role}): "
+                    + ", ".join(changed)
+                ),
+            )
 
     # Build response matrix
     role = target.role or ''

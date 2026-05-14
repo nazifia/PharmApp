@@ -17,6 +17,7 @@ from customers.models import Customer, WalletTransaction
 from authapp.models import PharmUser
 from branches.models import Branch
 from authapp.utils import require_org, log_activity
+from authapp.permissions import require_permission
 from .models import (
     Cashier,
     Sale,
@@ -57,6 +58,12 @@ def checkout(request):
     cashier_id = data.get("cashierId")
     branch_id = data.get("branch_id") or data.get("branchId")
     is_wholesale = bool(data.get("isWholesale") or False)
+
+    # Enforce POS permission (honors individual overrides)
+    perm_key = 'wholesalePOS' if is_wholesale else 'retailPOS'
+    err = require_permission(request, perm_key)
+    if err:
+        return err
     items_data = data.get("items", [])
     payment = data.get("payment", {})
     payment_method = data.get("paymentMethod") or "cash"

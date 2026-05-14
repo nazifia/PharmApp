@@ -176,52 +176,103 @@ class IsAdminOrManager(BasePermission):
 
 
 class IsReportsUser(BasePermission):
-    message = "Only Admin, Manager, or Wholesale Manager can access reports."
+    message = "You do not have permission to access reports."
 
     def has_permission(self, request, view):
-        return _role(request) in REPORTS_ROLES
+        user = request.user
+        if getattr(user, 'is_superuser', False):
+            return True
+        return get_effective_permissions(user).get("viewReports", False)
 
 
 class IsRetailStaff(BasePermission):
-    message = "Your role does not have access to the retail module."
+    message = "You do not have access to the retail POS module."
 
     def has_permission(self, request, view):
-        return _role(request) in RETAIL_POS
+        user = request.user
+        if getattr(user, 'is_superuser', False):
+            return True
+        return get_effective_permissions(user).get("retailPOS", False)
 
 
 class IsWholesaleStaff(BasePermission):
-    message = "Your role does not have access to the wholesale module."
+    message = "You do not have access to the wholesale POS module."
 
     def has_permission(self, request, view):
-        return _role(request) in WHOLESALE_POS
+        user = request.user
+        if getattr(user, 'is_superuser', False):
+            return True
+        return get_effective_permissions(user).get("wholesalePOS", False)
 
 
 class IsInventoryEditor(BasePermission):
     """
-    Read (GET/HEAD/OPTIONS): any authenticated user.
-    Write (POST/PUT/PATCH/DELETE): Admin, Manager, Pharmacist, Wholesale Manager.
+    Read (GET/HEAD/OPTIONS): requires readInventory effective permission.
+    Write (POST/PUT/PATCH/DELETE): requires writeInventory effective permission.
+    Individual overrides take precedence over role defaults.
     """
 
     message = "Your role cannot modify inventory."
 
     def has_permission(self, request, view):
+        user = request.user
+        if getattr(user, 'is_superuser', False):
+            return True
+        perms = get_effective_permissions(user)
         if request.method in ("GET", "HEAD", "OPTIONS"):
-            return _role(request) in INVENTORY_READ
-        return _role(request) in INVENTORY_WRITE
+            return perms.get("readInventory", False)
+        return perms.get("writeInventory", False)
 
 
 class IsCustomerEditor(BasePermission):
-    """Read: all staff.  Write: Admin, Manager, Pharmacist, Pharm-Tech, WS Manager."""
+    """
+    Read: requires readCustomers effective permission.
+    Write: requires writeCustomers effective permission.
+    Individual overrides take precedence over role defaults.
+    """
 
     message = "Your role cannot modify customer records."
 
     def has_permission(self, request, view):
+        user = request.user
+        if getattr(user, 'is_superuser', False):
+            return True
+        perms = get_effective_permissions(user)
         if request.method in ("GET", "HEAD", "OPTIONS"):
-            return _role(request) in CUSTOMERS_READ
-        return _role(request) in CUSTOMERS_WRITE
+            return perms.get("readCustomers", False)
+        return perms.get("writeCustomers", False)
 
 
-# ── Functional helper (use when you need an inline check) ─────────────────────
+# ── Effective-permission factory ───────────────────────────────────────────────
+
+
+def HasEffectivePermission(perm_key: str) -> type:
+    """
+    Returns a DRF permission class that checks a single effective permission
+    (role default merged with individual UserPermissionOverride records).
+
+    Usage:
+        @permission_classes([IsAuthenticated, HasEffectivePermission('viewReports')])
+        def my_view(request): ...
+    """
+    class _HasEffPerm(BasePermission):
+        message = f"You do not have the '{perm_key}' permission."
+
+        def has_permission(self, request, view):
+            user = request.user
+            if not user or not user.is_authenticated:
+                return False
+            if getattr(user, 'is_superuser', False):
+                return True
+            perms = get_effective_permissions(user)
+            return perms.get(perm_key, False)
+
+    _HasEffPerm.__name__ = f"HasPerm_{perm_key}"
+    _HasEffPerm.__qualname__ = f"HasPerm_{perm_key}"
+    return _HasEffPerm
+
+
+# ── Functional helpers (use when you need an inline check) ────────────────────
 
 
 def require_role(request, allowed_roles: set, message: str = None):
@@ -238,6 +289,25 @@ def require_role(request, allowed_roles: set, message: str = None):
             f"Your role ({_role(request) or 'unknown'}) does not have "
             f"permission to perform this action."
         )
+        return Response({"detail": detail}, status=status.HTTP_403_FORBIDDEN)
+    return None
+
+
+def require_permission(request, perm_key: str, message: str = None):
+    """
+    Return None if the user's effective permission for `perm_key` is True,
+    or a 403 Response otherwise.  Honors individual UserPermissionOverride records.
+
+    Example:
+        err = require_permission(request, 'manageTransfers')
+        if err: return err
+    """
+    user = request.user
+    if getattr(user, 'is_superuser', False):
+        return None
+    perms = get_effective_permissions(user)
+    if not perms.get(perm_key, False):
+        detail = message or f"You do not have the '{perm_key}' permission."
         return Response({"detail": detail}, status=status.HTTP_403_FORBIDDEN)
     return None
 

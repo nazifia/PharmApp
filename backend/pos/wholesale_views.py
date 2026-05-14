@@ -13,7 +13,7 @@ from inventory.models import Item
 from customers.models import Customer
 from .models import Sale, SaleItem, TransferRequest, ReturnRecord, DispensingLog
 from authapp.utils import require_org
-from authapp.permissions import require_role, TRANSFERS_ROLES
+from authapp.permissions import require_role, require_permission, TRANSFERS_ROLES
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -209,7 +209,7 @@ def transfer_list(request):
     if err:
         return err
 
-    err = require_role(request, TRANSFERS_ROLES)
+    err = require_permission(request, 'manageTransfers')
     if err:
         return err
 
@@ -248,7 +248,7 @@ def transfer_detail(request, pk):
     if err:
         return err
 
-    err = require_role(request, TRANSFERS_ROLES)
+    err = require_permission(request, 'manageTransfers')
     if err:
         return err
 
@@ -264,7 +264,7 @@ def transfer_approve(request, pk):
     if err:
         return err
 
-    err = require_role(request, TRANSFERS_ROLES)
+    err = require_permission(request, 'manageTransfers')
     if err:
         return err
 
@@ -307,7 +307,7 @@ def transfer_reject(request, pk):
     if err:
         return err
 
-    err = require_role(request, TRANSFERS_ROLES)
+    err = require_permission(request, 'manageTransfers')
     if err:
         return err
 
@@ -327,7 +327,7 @@ def transfer_receive(request, pk):
     if err:
         return err
 
-    err = require_role(request, TRANSFERS_ROLES)
+    err = require_permission(request, 'manageTransfers')
     if err:
         return err
 

@@ -1525,6 +1525,7 @@ class _UserManagementScreenState
                                         }
                                         if (ctx.mounted) Navigator.pop(ctx);
                                         if (context.mounted) {
+                                          setState(() {}); // refresh user list to update override badge
                                           messenger
                                               .showSnackBar(SnackBar(
                                             content: Text(

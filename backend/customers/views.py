@@ -8,10 +8,11 @@ from rest_framework import status
 from rest_framework.throttling import ScopedRateThrottle
 from .models import Customer, WalletTransaction
 from authapp.utils import require_org, log_activity
+from authapp.permissions import IsCustomerEditor
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsCustomerEditor])
 def customer_list(request):
     org, err = require_org(request)
     if err:
@@ -55,7 +56,7 @@ def customer_list(request):
 
 
 @api_view(["GET", "PUT", "PATCH", "DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsCustomerEditor])
 def customer_detail(request, pk):
     org, err = require_org(request)
     if err:
@@ -85,7 +86,7 @@ def customer_detail(request, pk):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsCustomerEditor])
 def wallet_transactions(request, pk):
     org, err = require_org(request)
     if err:
@@ -114,7 +115,7 @@ def wallet_transactions(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsCustomerEditor])
 @throttle_classes([ScopedRateThrottle])
 def wallet_topup(request, pk):
     request.throttle_scope = 'wallet'
@@ -156,7 +157,7 @@ def wallet_topup(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsCustomerEditor])
 @throttle_classes([ScopedRateThrottle])
 def wallet_deduct(request, pk):
     request.throttle_scope = 'wallet'
@@ -195,7 +196,7 @@ def wallet_deduct(request, pk):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsCustomerEditor])
 def customer_sales(request, pk):
     org, err = require_org(request)
     if err:
@@ -206,7 +207,7 @@ def customer_sales(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsCustomerEditor])
 @throttle_classes([ScopedRateThrottle])
 def wallet_reset(request, pk):
     request.throttle_scope = 'wallet'
@@ -230,7 +231,7 @@ def wallet_reset(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsCustomerEditor])
 @throttle_classes([ScopedRateThrottle])
 def record_payment(request, pk):
     request.throttle_scope = 'wallet'
