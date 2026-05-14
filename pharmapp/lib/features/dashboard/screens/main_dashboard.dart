@@ -115,19 +115,27 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
     final hasCustFeature    = ref.watch(hasFeatureProvider(SaasFeature.customers));
     final hasReportsFeature = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
+    final isSeniorUser      = Rbac.isSenior(user);
     final revenue   = salesAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
     final lowStock  = invAsync.whenOrNull(data: (d) => d.lowStockCount) ?? 0;
     final customers = custAsync.whenOrNull(data: (d) => d.total) ?? 0;
     final debt      = custAsync.whenOrNull(data: (d) => d.totalDebt) ?? 0.0;
+    final dispensed = salesAsync.whenOrNull(
+      data: (d) => d.topItems.fold<int>(0, (sum, i) => sum + i.qty),
+    ) ?? 0;
     final loading   = salesAsync.isLoading || invAsync.isLoading || custAsync.isLoading;
 
     final retailStats = [
       DashboardCard(title: "Today's Revenue", value: loading ? '…' : _fmt(revenue), subtitle: 'Retail + Wholesale', icon: Icons.monetization_on,  color: EnhancedTheme.successGreen),
       DashboardCard(title: 'Low Stock',        value: loading ? '…' : '$lowStock',   subtitle: 'Below threshold',     icon: Icons.warning_amber,    color: EnhancedTheme.warningAmber),
-      if (hasCustFeature)
+      if (!isSeniorUser)
+        DashboardCard(title: 'Items Dispensed', value: loading ? '…' : '$dispensed', subtitle: 'Units sold today',    icon: Icons.medication_rounded, color: EnhancedTheme.accentCyan),
+      if (hasCustFeature && isSeniorUser)
         DashboardCard(title: 'Customers',        value: loading ? '…' : '$customers',  subtitle: 'Total registered',    icon: Icons.people,           color: EnhancedTheme.accentPurple),
-      if (hasCustFeature)
+      if (hasCustFeature && isSeniorUser)
         DashboardCard(title: 'Outstanding Debt', value: loading ? '…' : _fmt(debt),    subtitle: 'Total owed',          icon: Icons.money_off,        color: EnhancedTheme.errorRed),
+      if (hasCustFeature && !isSeniorUser)
+        DashboardCard(title: 'Customers',        value: loading ? '…' : '$customers',  subtitle: 'Total registered',    icon: Icons.people,           color: EnhancedTheme.accentPurple),
     ];
 
     return RefreshIndicator(
@@ -175,6 +183,13 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
             _quickAccessPanel(wide2, hasReportsFeature: hasReportsFeature),
             const SizedBox(height: 24),
+
+            if (!isSeniorUser) ...[
+              _sectionHeader('Dispensed Items Today', () => context.go('/dashboard/dispensing-log')),
+              const SizedBox(height: 12),
+              _dispensedItemsSection(salesAsync),
+              const SizedBox(height: 24),
+            ],
 
             if (hasReportsFeature) ...[
             _sectionHeader('Sales Trend', () => context.go('/dashboard/reports/sales')),
@@ -859,6 +874,62 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             ),
           ),
       ]),
+    );
+  }
+
+  // ── Dispensed Items Section ────────────────────────────────────────────────
+
+  Widget _dispensedItemsSection(AsyncValue<SalesReportData> salesAsync) {
+    return salesAsync.when(
+      loading: () => const Center(child: Padding(
+        padding: EdgeInsets.all(24),
+        child: CircularProgressIndicator(color: EnhancedTheme.accentCyan),
+      )),
+      error: (e, _) => _glassRow(child: Text('Failed to load dispensing data',
+          style: TextStyle(color: context.hintColor, fontSize: 13))),
+      data: (report) {
+        if (report.topItems.isEmpty) {
+          return _emptyState(Icons.medication_rounded, 'No items dispensed today', EnhancedTheme.accentCyan);
+        }
+        return Column(
+          children: report.topItems.take(5).toList().asMap().entries.map((e) {
+            final item = e.value;
+            return _glassRow(child: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                    EnhancedTheme.accentCyan.withValues(alpha: 0.3),
+                    EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                  ]),
+                  borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.medication_rounded, color: EnhancedTheme.accentCyan, size: 16),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(item.name,
+                    style: GoogleFonts.outfit(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text('${item.qty} units dispensed',
+                    style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+              ])),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(_fmt(item.revenue),
+                    style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w800, fontSize: 14)),
+                Container(
+                  margin: const EdgeInsets.only(top: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4)),
+                  child: Text('#${e.key + 1}',
+                      style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 9, fontWeight: FontWeight.w700)),
+                ),
+              ]),
+            ]));
+          }).toList(),
+        ).animate().fadeIn(delay: 200.ms);
+      },
     );
   }
 
