@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
+import 'package:pharmapp/core/offline/app_restart_service.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart'
     show isOnlineProvider, checkConnectivityNow;
 import 'package:pharmapp/core/offline/web_online_listener.dart';
+import 'package:pharmapp/core/offline/web_reload.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
 import 'package:pharmapp/core/offline/eager_sync_service.dart';
@@ -81,6 +83,9 @@ class _AppShellState extends ConsumerState<AppShell>
   /// no-op on native platforms via conditional import).
   late final void Function() _cancelWebListener;
 
+  /// Set to true when the browser/app goes offline; consumed by the online
+  /// handler to decide whether a restart is needed.
+  bool _wentOffline = false;
 
   @override
   void initState() {
@@ -89,12 +94,38 @@ class _AppShellState extends ConsumerState<AppShell>
     // Browser-native online/offline events — more reliable than connectivity_plus
     // on web where OS-level network events may be missed.
     _cancelWebListener = listenBrowserNetwork(
-      onOnline: () => _syncIfNeeded(delayMs: 1000, forceRefresh: true),
-      onOffline: () {}, // offline state is handled by isOnlineProvider
+      onOnline: _handleReconnect,
+      onOffline: () { _wentOffline = true; },
     );
     // Sync on startup: runs after the first frame so providers are ready.
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncIfNeeded());
     _startRetryTimer();
+  }
+
+  /// Called when the network comes back (browser online event / retry timer).
+  ///
+  /// On **web**: reloads the page so the Flutter app reinitialises from a clean
+  /// state. The offline queue survives in localStorage (SharedPreferences).
+  ///
+  /// On **native**: rebuilds the ProviderScope root via [AppRestartWrapper],
+  /// which is equivalent to a cold restart without killing the process.
+  ///
+  /// A restart only happens when we actually went offline first ([_wentOffline]).
+  /// Initial-load online events are ignored.
+  void _handleReconnect() {
+    if (!_wentOffline) {
+      // Not a real reconnect — just sync as usual.
+      _syncIfNeeded(delayMs: 1000, forceRefresh: true);
+      return;
+    }
+    _wentOffline = false;
+    Future.delayed(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      // Web: reload the browser page.
+      reloadApp();
+      // Native (reloadApp is a no-op stub): rebuild the ProviderScope root.
+      AppRestartWrapper.restart(context);
+    });
   }
 
   void _startRetryTimer() {
@@ -105,8 +136,13 @@ class _AppShellState extends ConsumerState<AppShell>
       // the change event (known issue on Windows and some Android setups).
       final isOnlineNow = await checkConnectivityNow();
       final justReconnected = isOnlineNow && !_wasOnlinePrev;
+      if (!isOnlineNow) _wentOffline = true;
       _wasOnlinePrev = isOnlineNow;
-      _syncIfNeeded(forceRefresh: justReconnected);
+      if (justReconnected) {
+        _handleReconnect();
+      } else {
+        _syncIfNeeded();
+      }
     });
   }
 
@@ -326,15 +362,14 @@ class _AppShellState extends ConsumerState<AppShell>
       _syncIfNeeded(forceRefresh: true);
     });
 
-    // Auto-sync and data refresh on offline→online transition at runtime.
-    // Startup and resume cases are handled by _syncIfNeeded() via the
-    // lifecycle observer and initState post-frame callback above.
+    // Auto-restart/sync on offline→online transition at runtime.
+    // Startup and resume cases are handled via initState post-frame callback.
     ref.listen<bool>(isOnlineProvider, (wasOnline, nowOnline) {
       if (!nowOnline || wasOnline == true) return;
-      // Wait 1 s for the connection to stabilise before syncing. syncAll()
-      // handles connection-level failures gracefully (no attempt counter
-      // increments), so failing fast on a briefly-flapping network is safe.
-      _syncIfNeeded(delayMs: 1000, forceRefresh: true);
+      // Mark offline so _handleReconnect knows this is a real reconnect.
+      // (The browser offline event may have already set this — idempotent.)
+      _wentOffline = true;
+      _handleReconnect();
     });
 
     // Trigger sync when the offline queues finish loading from SharedPreferences

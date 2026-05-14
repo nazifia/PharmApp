@@ -10,6 +10,7 @@ import 'core/router/app_router.dart';
 import 'core/network/api_client.dart';
 import 'core/services/auth_service.dart';
 import 'core/database/local_db.dart';
+import 'core/offline/app_restart_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,16 +27,18 @@ void main() async {
   final initialTheme =
       savedTheme == 'dark' ? ThemeMode.dark : ThemeMode.light;
 
-  runApp(ProviderScope(
-    overrides: [
-      if (savedUrl != null && savedUrl.isNotEmpty)
-        baseUrlProvider.overrideWith((ref) => savedUrl),
-      themeModeProvider
-          .overrideWith((ref) => ThemeModeNotifier(initialTheme)),
-      appModeProvider
-          .overrideWith((ref) => AppModeNotifier(AppMode.production)),
-    ],
-    child: const _AppStartup(),
+  runApp(AppRestartWrapper(
+    child: ProviderScope(
+      overrides: [
+        if (savedUrl != null && savedUrl.isNotEmpty)
+          baseUrlProvider.overrideWith((ref) => savedUrl),
+        themeModeProvider
+            .overrideWith((ref) => ThemeModeNotifier(initialTheme)),
+        appModeProvider
+            .overrideWith((ref) => AppModeNotifier(AppMode.production)),
+      ],
+      child: const _AppStartup(),
+    ),
   ));
 }
 
