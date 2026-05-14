@@ -25,14 +25,16 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
   int _dateFilter = 3; // 0=Today, 1=Week, 2=Month, 3=All
   DateTimeRange? _customRange;
   bool _myOnly = false;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
     final user = ref.read(currentUserProvider);
     final userRole = user?.role ?? '';
-    final isAdmin = const {'Admin', 'Manager', 'Wholesale Manager'}.contains(userRole);
-    if (!isAdmin) _myOnly = true;
+    _isAdmin = const {'Admin', 'Manager', 'Wholesale Manager'}.contains(userRole);
+    // Non-admin staff can only see their own dispensing entries.
+    if (!_isAdmin) _myOnly = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(dispensingStatsProvider);
       ref.invalidate(dispensingLogProvider);
@@ -446,46 +448,50 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
           );
         }),
       ])),
-      const SizedBox(width: 8),
-      GestureDetector(
-        onTap: () => setState(() {
-          _myOnly = !_myOnly;
-          ref.invalidate(dispensingStatsProvider(_myOnly));
-          ref.invalidate(dispensingLogProvider(_params));
-        }),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: _myOnly
-                ? EnhancedTheme.accentPurple.withValues(alpha: 0.18)
-                : Colors.white.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
+      // Admins can toggle between "my entries" and "all staff entries".
+      // Non-admin staff are always locked to their own entries.
+      if (_isAdmin) ...[
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: () => setState(() {
+            _myOnly = !_myOnly;
+            ref.invalidate(dispensingStatsProvider(_myOnly));
+            ref.invalidate(dispensingLogProvider(_params));
+          }),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
               color: _myOnly
-                  ? EnhancedTheme.accentPurple.withValues(alpha: 0.55)
-                  : Colors.white.withValues(alpha: 0.12),
-              width: _myOnly ? 1.5 : 1,
+                  ? EnhancedTheme.accentPurple.withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _myOnly
+                    ? EnhancedTheme.accentPurple.withValues(alpha: 0.55)
+                    : Colors.white.withValues(alpha: 0.12),
+                width: _myOnly ? 1.5 : 1,
+              ),
+              boxShadow: _myOnly
+                  ? [BoxShadow(
+                      color: EnhancedTheme.accentPurple.withValues(alpha: 0.25),
+                      blurRadius: 8)]
+                  : null,
             ),
-            boxShadow: _myOnly
-                ? [BoxShadow(
-                    color: EnhancedTheme.accentPurple.withValues(alpha: 0.25),
-                    blurRadius: 8)]
-                : null,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.person_rounded,
+                  color: _myOnly ? EnhancedTheme.accentPurple : context.subLabelColor,
+                  size: 13),
+              const SizedBox(width: 4),
+              Text('Mine',
+                  style: TextStyle(
+                      color: _myOnly ? EnhancedTheme.accentPurple : context.subLabelColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700)),
+            ]),
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.person_rounded,
-                color: _myOnly ? EnhancedTheme.accentPurple : context.subLabelColor,
-                size: 13),
-            const SizedBox(width: 4),
-            Text('Mine',
-                style: TextStyle(
-                    color: _myOnly ? EnhancedTheme.accentPurple : context.subLabelColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700)),
-          ]),
         ),
-      ),
+      ],
       const SizedBox(width: 8),
       GestureDetector(
         onTap: _openDatePicker,
@@ -832,26 +838,33 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
     final status = (entry['status'] as String? ?? 'dispensed').toLowerCase();
     final dateStr = entry['createdAt'] as String? ?? entry['date'] as String? ?? entry['dispensedAt'] as String? ?? '';
     final dispenser = entry['dispenser'] as String? ?? '';
+    final isPendingSync = entry['_pendingSaleId'] != null;
 
     Color statusColor;
     String statusLabel;
     IconData statusIcon;
-    switch (status) {
-      case 'returned':
-        statusColor = EnhancedTheme.errorRed;
-        statusLabel = 'Returned';
-        statusIcon = Icons.undo_rounded;
-        break;
-      case 'partially_returned':
-      case 'partial':
-        statusColor = EnhancedTheme.warningAmber;
-        statusLabel = 'Partial';
-        statusIcon = Icons.remove_circle_outline_rounded;
-        break;
-      default:
-        statusColor = EnhancedTheme.successGreen;
-        statusLabel = 'Dispensed';
-        statusIcon = Icons.check_circle_rounded;
+    if (isPendingSync) {
+      statusColor = EnhancedTheme.warningAmber;
+      statusLabel = 'Pending Sync';
+      statusIcon = Icons.cloud_upload_outlined;
+    } else {
+      switch (status) {
+        case 'returned':
+          statusColor = EnhancedTheme.errorRed;
+          statusLabel = 'Returned';
+          statusIcon = Icons.undo_rounded;
+          break;
+        case 'partially_returned':
+        case 'partial':
+          statusColor = EnhancedTheme.warningAmber;
+          statusLabel = 'Partial';
+          statusIcon = Icons.remove_circle_outline_rounded;
+          break;
+        default:
+          statusColor = EnhancedTheme.successGreen;
+          statusLabel = 'Dispensed';
+          statusIcon = Icons.check_circle_rounded;
+      }
     }
 
     return Padding(

@@ -98,6 +98,11 @@ class SyncService {
           await ref
               .read(posApiProvider)
               .submitCheckout(CheckoutPayload.fromJson(sale.payload));
+          // Remove local dispensing entries created while the sale was offline
+          // to prevent them showing alongside the just-synced backend record.
+          await ref
+              .read(posApiProvider)
+              .removeOfflineDispLogEntriesByPendingSaleId(sale.id);
           await ref.read(offlineQueueProvider.notifier).remove(sale.id);
           salesSynced++;
         } catch (e) {

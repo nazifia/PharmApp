@@ -549,6 +549,22 @@ class PosApiClient {
     }
   }
 
+  /// Removes all local dispensing entries that were saved while a sale was
+  /// queued offline (identified by [pendingSaleId]).  Called by [SyncService]
+  /// after a queued sale is successfully submitted to prevent double-entries.
+  Future<void> removeOfflineDispLogEntriesByPendingSaleId(
+      String pendingSaleId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kLocalDispLogKey);
+    if (raw == null) return;
+    final all = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+    final filtered =
+        all.where((e) => e['_pendingSaleId'] != pendingSaleId).toList();
+    if (filtered.length < all.length) {
+      await prefs.setString(_kLocalDispLogKey, jsonEncode(filtered));
+    }
+  }
+
   // ── Expenses ───────────────────────────────────────────────────────────────
   Future<List<dynamic>> fetchExpenseCategories() async {
     if (_isLocal) return LocalDb.instance.getExpenseCategories();
@@ -1725,7 +1741,8 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   CheckoutNotifier(this._ref) : super(const AsyncValue.data(null));
 
-  Future<void> _saveLocalDispensingEntriesFromPayload(CheckoutPayload payload) async {
+  Future<void> _saveLocalDispensingEntriesFromPayload(
+      CheckoutPayload payload, String pendingSaleId) async {
     final prefs = await SharedPreferences.getInstance();
     // Best-effort: resolve item names from any cached inventory list.
     final Map<int, Map<String, String>> itemMeta = {};
@@ -1770,6 +1787,7 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
         'createdAt': createdAt,
         'dispenser': dispenserName,
         '_offline': true,
+        '_pendingSaleId': pendingSaleId,
       });
     }
     await prefs.setString(
@@ -1826,8 +1844,8 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
     // Short-circuit: if device is already offline, enqueue without a network call.
     final isOnline = _ref.read(isOnlineProvider);
     if (!isOnline) {
-      await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
-      await _saveLocalDispensingEntriesFromPayload(payload);
+      final pending = await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
+      await _saveLocalDispensingEntriesFromPayload(payload, pending.id);
       state = const AsyncValue.data(null);
       return {'offline': true};
     }
@@ -1845,8 +1863,8 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
       // Queue the sale and return the offline marker so the UI shows the
       // "Queued for sync" sheet rather than a generic error.
       if (e.response == null) {
-        await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
-        await _saveLocalDispensingEntriesFromPayload(payload);
+        final pending = await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
+        await _saveLocalDispensingEntriesFromPayload(payload, pending.id);
         state = const AsyncValue.data(null);
         return {'offline': true};
       }
