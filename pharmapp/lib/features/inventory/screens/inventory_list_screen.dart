@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -240,6 +241,24 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   );
 
   void _showAddItemSheet(BuildContext context) {
+    final user = ref.read(currentUserProvider);
+    if (!Rbac.can(user, AppPermission.createInventory)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: const Row(children: [
+          Icon(Icons.lock_rounded, color: Colors.white, size: 18),
+          SizedBox(width: 10),
+          Expanded(child: Text(
+            'You do not have permission to add items',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          )),
+        ]),
+      ));
+      return;
+    }
     final nameCtrl    = TextEditingController();
     final brandCtrl   = TextEditingController();
     final costCtrl    = TextEditingController();
@@ -609,17 +628,20 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
 
   @override
   Widget build(BuildContext context) {
+    final canAddItem = Rbac.can(ref.watch(currentUserProvider), AppPermission.createInventory);
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       drawer: const AppDrawer(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddItemSheet(context),
-        backgroundColor: EnhancedTheme.primaryTeal,
-        foregroundColor: Colors.black,
-        elevation: 4,
-        icon: const Icon(Icons.add_rounded),
-        label: Text('Add Item', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-      ),
+      floatingActionButton: canAddItem
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddItemSheet(context),
+              backgroundColor: EnhancedTheme.primaryTeal,
+              foregroundColor: Colors.black,
+              elevation: 4,
+              icon: const Icon(Icons.add_rounded),
+              label: Text('Add Item', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+            )
+          : null,
       body: Stack(children: [
         Container(decoration: context.bgGradient),
         // Decorative blobs
