@@ -675,10 +675,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                     )),
                     const SizedBox(width: 10),
                     Expanded(child: _quickAccessCard(
-                      'Sales History', 'Records & Reports',
-                      Icons.receipt_long_rounded, EnhancedTheme.successGreen,
-                      [(Icons.history_rounded, 'WS Sales', '/dashboard/wholesale-sales'),
-                       (Icons.analytics_rounded, 'WS Dashboard', '/wholesale-dashboard')],
+                      'My Activity', 'Daily sales & history',
+                      Icons.receipt_long_rounded, EnhancedTheme.accentOrange,
+                      [(Icons.today_rounded, 'My Daily Sales', '/dashboard/reports/cashier-sales'),
+                       (Icons.history_rounded, 'WS Sales', '/dashboard/wholesale-sales')],
                     )),
                   ])
                 : Column(children: [
@@ -697,10 +697,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                     ),
                     const SizedBox(height: 10),
                     _quickAccessCard(
-                      'Sales History', 'Records & Reports',
-                      Icons.receipt_long_rounded, EnhancedTheme.successGreen,
-                      [(Icons.history_rounded, 'WS Sales', '/dashboard/wholesale-sales'),
-                       (Icons.analytics_rounded, 'WS Dashboard', '/wholesale-dashboard')],
+                      'My Activity', 'Daily sales & history',
+                      Icons.receipt_long_rounded, EnhancedTheme.accentOrange,
+                      [(Icons.today_rounded, 'My Daily Sales', '/dashboard/reports/cashier-sales'),
+                       (Icons.history_rounded, 'WS Sales', '/dashboard/wholesale-sales')],
                     ),
                   ]),
           ]),

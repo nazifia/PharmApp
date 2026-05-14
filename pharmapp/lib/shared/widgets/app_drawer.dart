@@ -190,8 +190,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             _NavItem(icon: Icons.swap_horiz_rounded, label: 'Transfers', route: '/dashboard/transfers', onTap: navigate),
                         ],
 
-                        // ══ MY DAILY SALES (all roles) ═══════════════════════
-                        if (canPOS) ...[
+                        // ══ MY DAILY SALES (all sales roles — retail + wholesale) ═
+                        if (canPOS || isWholesale) ...[
                           const SizedBox(height: 4),
                           const _SectionDivider(label: 'My Activity'),
                           _NavItem(icon: Icons.point_of_sale_rounded, label: 'My Daily Sales', route: '/dashboard/reports/cashier-sales', onTap: navigate),

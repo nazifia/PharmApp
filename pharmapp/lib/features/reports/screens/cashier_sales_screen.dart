@@ -53,7 +53,6 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
   @override
   Widget build(BuildContext context) {
     final user    = ref.watch(currentUserProvider);
-    final isSenior = Rbac.isSenior(user);
     final reportAsync = ref.watch(cashierSalesReportProvider(_apiPeriod));
 
     return Scaffold(
@@ -69,7 +68,12 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
             decoration: BoxDecoration(shape: BoxShape.circle,
               color: EnhancedTheme.primaryTeal.withValues(alpha: 0.05)))),
         SafeArea(child: Column(children: [
-          _header(context, isSenior),
+          // Header title adapts once data arrives; fall back to client-side role check
+          reportAsync.when(
+            data: (data) => _header(context, data.isAdminView),
+            loading: () => _header(context, Rbac.isSenior(user)),
+            error:   (_, __) => _header(context, Rbac.isSenior(user)),
+          ),
           const SizedBox(height: 8),
           _periodSelector(),
           const SizedBox(height: 4),
@@ -79,7 +83,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
             child: reportAsync.when(
               loading: () => _loadingState(),
               error: (e, _) => _errorState(e),
-              data: (data) => _buildBody(context, data, isSenior),
+              data: (data) => _buildBody(context, data, data.isAdminView),
             ),
           )),
         ])),
