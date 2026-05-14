@@ -32,142 +32,178 @@ class _PrescriptionDetailScreenState
     final isBusy = notifierState is AsyncLoading;
 
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
-      appBar: AppBar(
-        backgroundColor: EnhancedTheme.primaryDark,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Prescription Details',
-            style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
-        actions: [
-          if (canWrite)
-            rxAsync.whenOrNull(
-              data: (rx) => rx.isPending || rx.isPartial
-                  ? TextButton.icon(
-                      onPressed: _selectMode
-                          ? () => setState(() {
-                                _selectMode = false;
-                                _selectedIndices.clear();
-                              })
-                          : () => setState(() => _selectMode = true),
-                      icon: Icon(
-                        _selectMode
-                            ? Icons.close_rounded
-                            : Icons.checklist_rounded,
-                        color: EnhancedTheme.accentCyan,
-                        size: 18,
-                      ),
-                      label: Text(
-                        _selectMode ? 'Cancel' : 'Select',
-                        style: const TextStyle(color: EnhancedTheme.accentCyan),
-                      ),
-                    )
-                  : null,
-            ) ??
-            const SizedBox(),
-        ],
-      ),
-      body: rxAsync.when(
-        loading: () => const Center(
-            child: CircularProgressIndicator(
-                color: EnhancedTheme.primaryTeal)),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(e.toString(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 14)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref
-                    .invalidate(prescriptionDetailProvider(widget.prescriptionId)),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: EnhancedTheme.primaryTeal,
-                    foregroundColor: Colors.white),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-        data: (rx) => Stack(
-          children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+      backgroundColor: context.scaffoldBg,
+      body: Stack(
+        children: [
+          Container(decoration: context.bgGradient),
+          SafeArea(
+            child: Column(
               children: [
-                _PatientCard(rx: rx),
-                const SizedBox(height: 16),
-                if (rx.diagnosis != null && rx.diagnosis!.isNotEmpty) ...[
-                  _InfoSection(
-                    label: 'Diagnosis',
-                    value: rx.diagnosis!,
-                    icon: Icons.local_hospital_rounded,
+                // Custom header (replaces AppBar)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => context.pop(),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12)),
+                          ),
+                          child: const Icon(Icons.arrow_back_rounded,
+                              color: Colors.white, size: 22),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Prescription Details',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      if (canWrite)
+                        rxAsync.whenOrNull(
+                          data: (rx) => rx.isPending || rx.isPartial
+                              ? TextButton.icon(
+                                  onPressed: _selectMode
+                                      ? () => setState(() {
+                                            _selectMode = false;
+                                            _selectedIndices.clear();
+                                          })
+                                      : () =>
+                                          setState(() => _selectMode = true),
+                                  icon: Icon(
+                                    _selectMode
+                                        ? Icons.close_rounded
+                                        : Icons.checklist_rounded,
+                                    color: EnhancedTheme.accentCyan,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    _selectMode ? 'Cancel' : 'Select',
+                                    style: const TextStyle(
+                                        color: EnhancedTheme.accentCyan),
+                                  ),
+                                )
+                              : null,
+                        ) ??
+                        const SizedBox(),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                ],
-                if (rx.notes != null && rx.notes!.isNotEmpty) ...[
-                  _InfoSection(
-                    label: 'Notes',
-                    value: rx.notes!,
-                    icon: Icons.notes_rounded,
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                _MedicationHeader(
-                  rx: rx,
-                  selectMode: _selectMode,
-                  selectedCount: _selectedIndices.length,
                 ),
-                const SizedBox(height: 8),
-                ...List.generate(rx.medications.length, (i) {
-                  final med = rx.medications[i];
-                  return _MedicationCard(
-                    med: med,
-                    index: i,
-                    selectMode: _selectMode,
-                    isSelected: _selectedIndices.contains(i),
-                    onToggleSelect: () => setState(() {
-                      if (_selectedIndices.contains(i)) {
-                        _selectedIndices.remove(i);
-                      } else {
-                        _selectedIndices.add(i);
-                      }
-                    }),
-                    canDispense: canWrite && !med.isDispensed,
-                    onDispenseSingle: () =>
-                        _dispense(rx, indices: [i]),
-                  )
-                      .animate()
-                      .fadeIn(delay: Duration(milliseconds: i * 50))
-                      .slideY(begin: 0.05, end: 0);
-                }),
+                // Body content
+                Expanded(
+                  child: rxAsync.when(
+                    loading: () => const Center(
+                        child: CircularProgressIndicator(
+                            color: EnhancedTheme.primaryTeal)),
+                    error: (e, _) => Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(e.toString(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  fontSize: 14)),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => ref.invalidate(
+                                prescriptionDetailProvider(
+                                    widget.prescriptionId)),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: EnhancedTheme.primaryTeal,
+                                foregroundColor: Colors.white),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    data: (rx) => Stack(
+                      children: [
+                        ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                          children: [
+                            _PatientCard(rx: rx),
+                            const SizedBox(height: 16),
+                            if (rx.diagnosis != null &&
+                                rx.diagnosis!.isNotEmpty) ...[
+                              _InfoSection(
+                                label: 'Diagnosis',
+                                value: rx.diagnosis!,
+                                icon: Icons.local_hospital_rounded,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            if (rx.notes != null && rx.notes!.isNotEmpty) ...[
+                              _InfoSection(
+                                label: 'Notes',
+                                value: rx.notes!,
+                                icon: Icons.notes_rounded,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            _MedicationHeader(
+                              rx: rx,
+                              selectMode: _selectMode,
+                              selectedCount: _selectedIndices.length,
+                            ),
+                            const SizedBox(height: 8),
+                            ...List.generate(rx.medications.length, (i) {
+                              final med = rx.medications[i];
+                              return _MedicationCard(
+                                med: med,
+                                index: i,
+                                selectMode: _selectMode,
+                                isSelected: _selectedIndices.contains(i),
+                                onToggleSelect: () => setState(() {
+                                  if (_selectedIndices.contains(i)) {
+                                    _selectedIndices.remove(i);
+                                  } else {
+                                    _selectedIndices.add(i);
+                                  }
+                                }),
+                                canDispense: canWrite && !med.isDispensed,
+                                onDispenseSingle: () =>
+                                    _dispense(rx, indices: [i]),
+                              )
+                                  .animate()
+                                  .fadeIn(
+                                      delay: Duration(milliseconds: i * 50))
+                                  .slideY(begin: 0.05, end: 0);
+                            }),
+                          ],
+                        ),
+                        if (canWrite && (rx.isPending || rx.isPartial))
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: _BottomActions(
+                              rx: rx,
+                              selectMode: _selectMode,
+                              selectedIndices: _selectedIndices,
+                              isBusy: isBusy,
+                              onDispenseAll: () => _dispense(rx),
+                              onDispenseSelected: () => _dispense(rx,
+                                  indices: _selectedIndices.toList()),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
-            // Bottom action bar
-            if (canWrite && (rx.isPending || rx.isPartial))
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _BottomActions(
-                  rx: rx,
-                  selectMode: _selectMode,
-                  selectedIndices: _selectedIndices,
-                  isBusy: isBusy,
-                  onDispenseAll: () => _dispense(rx),
-                  onDispenseSelected: () =>
-                      _dispense(rx, indices: _selectedIndices.toList()),
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

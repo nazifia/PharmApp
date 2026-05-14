@@ -223,35 +223,64 @@ class _WritePrescriptionScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: EnhancedTheme.primaryDark,
-      appBar: AppBar(
-        backgroundColor: EnhancedTheme.primaryDark,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () {
-            if (_step == 1) {
-              setState(() {
-                _step = 0;
-                _selectedPatient = null;
-              });
-            } else {
-              context.pop();
-            }
-          },
-        ),
-        title: Text(
-          _step == 0 ? 'Find Patient' : 'Write Prescription',
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(3),
-          child: _StepIndicator(step: _step),
-        ),
+      backgroundColor: context.scaffoldBg,
+      body: Stack(
+        children: [
+          Container(decoration: context.bgGradient),
+          SafeArea(
+            child: Column(
+              children: [
+                // Custom header (replaces AppBar)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          if (_step == 1) {
+                            setState(() {
+                              _step = 0;
+                              _selectedPatient = null;
+                            });
+                          } else {
+                            context.pop();
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12)),
+                          ),
+                          child: const Icon(Icons.arrow_back_rounded,
+                              color: Colors.white, size: 22),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _step == 0 ? 'Find Patient' : 'Write Prescription',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _StepIndicator(step: _step),
+                // Body content
+                Expanded(
+                  child: _step == 0 ? _patientSearchStep() : _rxWriteStep(),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      body: _step == 0 ? _patientSearchStep() : _rxWriteStep(),
     );
   }
 
