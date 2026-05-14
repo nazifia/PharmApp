@@ -26,6 +26,46 @@ final _wholesaleDashProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   }
 });
 
+// Aggregates today's dispensed items from /pos/sales/ — accessible to all POS roles.
+final _todayStaffItemsProvider = FutureProvider.autoDispose<List<TopItem>>((ref) async {
+  final now = DateTime.now();
+  final today = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  try {
+    final sales = await ref.read(posApiProvider).fetchSales(from: today, to: today);
+    final Map<String, _ItemAgg> agg = {};
+    for (final sale in sales) {
+      final items = (sale['items'] as List<dynamic>?) ?? [];
+      for (final raw in items) {
+        final item   = raw as Map<String, dynamic>;
+        final name   = (item['name'] as String?) ?? (item['itemName'] as String?) ?? 'Unknown';
+        final itemId = (item['itemId'] as num?)?.toInt() ?? (item['id'] as num?)?.toInt() ?? 0;
+        final qty    = (item['quantity'] as num?)?.toInt() ?? 0;
+        final price  = (item['price'] as num?)?.toDouble() ?? 0.0;
+        if (agg.containsKey(name)) {
+          agg[name]!.qty += qty;
+          agg[name]!.revenue += qty * price;
+        } else {
+          agg[name] = _ItemAgg(itemId: itemId, name: name, qty: qty, revenue: qty * price);
+        }
+      }
+    }
+    return agg.values
+        .map((a) => TopItem(itemId: a.itemId, name: a.name, qty: a.qty, revenue: a.revenue))
+        .toList()
+      ..sort((a, b) => b.qty.compareTo(a.qty));
+  } catch (_) {
+    return [];
+  }
+});
+
+class _ItemAgg {
+  final int itemId;
+  final String name;
+  int qty;
+  double revenue;
+  _ItemAgg({required this.itemId, required this.name, required this.qty, required this.revenue});
+}
+
 class MainDashboard extends ConsumerStatefulWidget {
   const MainDashboard({super.key});
 
@@ -94,6 +134,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   Future<void> _refresh() async {
     ref.invalidate(salesReportProvider('today'));
+    ref.invalidate(cashierSalesReportProvider('today'));
+    ref.invalidate(_todayStaffItemsProvider);
     ref.invalidate(inventoryReportProvider);
     ref.invalidate(customerReportProvider);
     ref.invalidate(_wholesaleDashProvider);
@@ -103,27 +145,36 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   Widget _content() => _homeContent();
 
   Widget _homeContent() {
-    final user      = ref.watch(currentUserProvider);
-    final role      = user?.role ?? '';
-    final isWsUser  = Rbac.can(user, AppPermission.viewWholesale);
-    final salesAsync = ref.watch(salesReportProvider('today'));
-    final invAsync   = ref.watch(inventoryReportProvider);
-    final custAsync  = ref.watch(customerReportProvider);
-    final wide2      = MediaQuery.of(context).size.width > 600;
-    final hour       = DateTime.now().hour;
-    final greeting   = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    final user         = ref.watch(currentUserProvider);
+    final role         = user?.role ?? '';
+    final isWsUser     = Rbac.can(user, AppPermission.viewWholesale);
+    final isSeniorUser = Rbac.isSenior(user);
+    // Admin-only endpoint — only used for senior users
+    final salesAsync      = ref.watch(salesReportProvider('today'));
+    // All-roles endpoints — used for non-senior users
+    final cashierAsync    = ref.watch(cashierSalesReportProvider('today'));
+    final staffItemsAsync = ref.watch(_todayStaffItemsProvider);
+    final invAsync        = ref.watch(inventoryReportProvider);
+    final custAsync       = ref.watch(customerReportProvider);
+    final wide2           = MediaQuery.of(context).size.width > 600;
+    final hour            = DateTime.now().hour;
+    final greeting        = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
     final hasCustFeature    = ref.watch(hasFeatureProvider(SaasFeature.customers));
     final hasReportsFeature = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
-    final isSeniorUser      = Rbac.isSenior(user);
-    final revenue   = salesAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0;
+    // Senior users get full revenue from admin report; non-senior get their own total
+    final revenue = isSeniorUser
+        ? salesAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0
+        : cashierAsync.whenOrNull(data: (d) => d.totalAmount) ?? 0.0;
     final lowStock  = invAsync.whenOrNull(data: (d) => d.lowStockCount) ?? 0;
     final customers = custAsync.whenOrNull(data: (d) => d.total) ?? 0;
     final debt      = custAsync.whenOrNull(data: (d) => d.totalDebt) ?? 0.0;
-    final dispensed = salesAsync.whenOrNull(
-      data: (d) => d.topItems.fold<int>(0, (sum, i) => sum + i.qty),
-    ) ?? 0;
-    final loading   = salesAsync.isLoading || invAsync.isLoading || custAsync.isLoading;
+    final dispensed = isSeniorUser
+        ? salesAsync.whenOrNull(data: (d) => d.topItems.fold<int>(0, (sum, i) => sum + i.qty)) ?? 0
+        : staffItemsAsync.whenOrNull(data: (items) => items.fold<int>(0, (sum, i) => sum + i.qty)) ?? 0;
+    final loading = isSeniorUser
+        ? salesAsync.isLoading || invAsync.isLoading || custAsync.isLoading
+        : cashierAsync.isLoading || invAsync.isLoading || staffItemsAsync.isLoading;
 
     final retailStats = [
       DashboardCard(title: "Today's Revenue", value: loading ? '…' : _fmt(revenue), subtitle: 'Retail + Wholesale', icon: Icons.monetization_on,  color: EnhancedTheme.successGreen),
@@ -187,11 +238,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             if (!isSeniorUser) ...[
               _sectionHeader('Dispensed Items Today', () => context.go('/dashboard/dispensing-log')),
               const SizedBox(height: 12),
-              _dispensedItemsSection(salesAsync),
+              _staffDispensedSection(staffItemsAsync),
               const SizedBox(height: 24),
             ],
 
-            if (hasReportsFeature) ...[
+            if (isSeniorUser && hasReportsFeature) ...[
             _sectionHeader('Sales Trend', () => context.go('/dashboard/reports/sales')),
             const SizedBox(height: 12),
             _salesTrendChart(salesAsync),
@@ -877,22 +928,21 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     );
   }
 
-  // ── Dispensed Items Section ────────────────────────────────────────────────
+  // ── Staff Dispensed Items Section (non-senior: uses POS sales endpoint) ──────
 
-  Widget _dispensedItemsSection(AsyncValue<SalesReportData> salesAsync) {
-    return salesAsync.when(
+  Widget _staffDispensedSection(AsyncValue<List<TopItem>> itemsAsync) {
+    return itemsAsync.when(
       loading: () => const Center(child: Padding(
         padding: EdgeInsets.all(24),
         child: CircularProgressIndicator(color: EnhancedTheme.accentCyan),
       )),
-      error: (e, _) => _glassRow(child: Text('Failed to load dispensing data',
-          style: TextStyle(color: context.hintColor, fontSize: 13))),
-      data: (report) {
-        if (report.topItems.isEmpty) {
+      error: (e, _) => _emptyState(Icons.medication_rounded, 'No items dispensed today', EnhancedTheme.accentCyan),
+      data: (items) {
+        if (items.isEmpty) {
           return _emptyState(Icons.medication_rounded, 'No items dispensed today', EnhancedTheme.accentCyan);
         }
         return Column(
-          children: report.topItems.take(5).toList().asMap().entries.map((e) {
+          children: items.take(5).toList().asMap().entries.map((e) {
             final item = e.value;
             return _glassRow(child: Row(children: [
               Container(

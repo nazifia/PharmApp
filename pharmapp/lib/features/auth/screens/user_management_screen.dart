@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/services/auth_storage.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
@@ -1491,13 +1493,34 @@ class _UserManagementScreenState
                                             branchId: selectedBranchId ?? 0,
                                           );
                                         }
-                                        // If the saved user is the currently
-                                        // logged-in user, refresh their profile
-                                        // so the new permissions take effect
-                                        // immediately without re-login.
+                                        // Apply saved overrides directly to
+                                        // the current user's in-memory state
+                                        // so RBAC checks reflect the changes
+                                        // immediately without a re-login.
+                                        // (refreshProfile relies on /auth/me/
+                                        // returning a permissions map, which
+                                        // may not always happen.)
                                         final currentUser = ref.read(currentUserProvider);
                                         if (currentUser?.id == user.id) {
-                                          await ref.read(authFlowProvider.notifier).refreshProfile();
+                                          final effectivePerms = <String, bool>{};
+                                          for (final r in rows) {
+                                            final key = r['key'] as String;
+                                            final roleDefault = r['role_default'] as bool;
+                                            final st = overrides[key] ?? 'inherit';
+                                            effectivePerms[key] = st == 'grant'
+                                                ? true
+                                                : st == 'revoke'
+                                                    ? false
+                                                    : roleDefault;
+                                          }
+                                          final updated = currentUser!
+                                              .copyWith(permissions: effectivePerms);
+                                          ref
+                                              .read(currentUserProvider.notifier)
+                                              .state = updated;
+                                          await AuthStorage.write(
+                                              'current_user',
+                                              jsonEncode(updated.toJson()));
                                         }
                                         if (ctx.mounted) Navigator.pop(ctx);
                                         if (context.mounted) {
