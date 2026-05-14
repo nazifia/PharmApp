@@ -49,6 +49,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     final canReadInv     = ref.watch(canProvider(AppPermission.readInventory));
     final canReadCust    = ref.watch(canProvider(AppPermission.readCustomers));
     final canPayments    = ref.watch(canProvider(AppPermission.processPayments));
+    final canReadRx      = ref.watch(canProvider(AppPermission.readPrescriptions));
     // Subscription feature gates
     final hasCustFeature     = ref.watch(hasFeatureProvider(SaasFeature.customers));
     final hasWsFeature       = ref.watch(hasFeatureProvider(SaasFeature.wholesale));
@@ -161,6 +162,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             _NavItem(icon: Icons.people_rounded, label: 'Customer List', route: '/dashboard/customers', onTap: navigate),
                           if (canPayments)
                             _NavItem(icon: Icons.credit_card_rounded, label: 'Payment Requests', route: '/dashboard/payment-requests', onTap: navigate),
+                        ],
+
+                        // ══ CLINICAL ═════════════════════════════════════════
+                        if (canReadRx) ...[
+                          const SizedBox(height: 4),
+                          const _SectionDivider(label: 'Clinical'),
+                          _NavItem(icon: Icons.medical_services_rounded, label: 'Prescriptions', route: '/dashboard/prescriptions', onTap: navigate),
                         ],
 
                         // ══ INVENTORY ════════════════════════════════════════

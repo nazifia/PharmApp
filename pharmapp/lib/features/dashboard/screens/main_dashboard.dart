@@ -86,6 +86,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     final user = ref.read(currentUserProvider);
     final isAdmin     = Rbac.can(user, AppPermission.manageUsers);
     final isWholesale = Rbac.can(user, AppPermission.viewWholesale);
+    final canReadRx   = Rbac.can(user, AppPermission.readPrescriptions);
 
     showModalBottomSheet(
       context: context,
@@ -94,6 +95,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
       builder: (_) => _MoreFeaturesSheet(
         isAdmin: isAdmin,
         isWholesale: isWholesale,
+        canReadRx: canReadRx,
         onNavigate: (route) { Navigator.pop(context); context.go(route); },
         onLogout: () { Navigator.pop(context); _logout(); },
       ),
@@ -1259,12 +1261,14 @@ class _PressableCardState extends State<_PressableCard> {
 class _MoreFeaturesSheet extends ConsumerWidget {
   final bool isAdmin;
   final bool isWholesale;
+  final bool canReadRx;
   final void Function(String route) onNavigate;
   final VoidCallback onLogout;
 
   const _MoreFeaturesSheet({
     required this.isAdmin,
     required this.isWholesale,
+    required this.canReadRx,
     required this.onNavigate,
     required this.onLogout,
   });
@@ -1336,6 +1340,19 @@ class _MoreFeaturesSheet extends ConsumerWidget {
                 _featureCard(context, Icons.history_rounded,      'Sale History', EnhancedTheme.successGreen, '/dashboard/sales'),
                 const SizedBox(width: 10),
                 _featureCard(context, Icons.list_alt_rounded,     'Disp. Log',   EnhancedTheme.primaryTeal,  '/dashboard/dispensing-log'),
+              ]),
+              const SizedBox(height: 20),
+            ],
+
+            if (canReadRx) ...[
+              _sectionLabel(context, 'Clinical'),
+              const SizedBox(height: 10),
+              Row(children: [
+                _featureCard(context, Icons.medical_services_rounded, 'Prescriptions', EnhancedTheme.primaryTeal, '/dashboard/prescriptions'),
+                const SizedBox(width: 10),
+                const Expanded(child: SizedBox.shrink()),
+                const SizedBox(width: 10),
+                const Expanded(child: SizedBox.shrink()),
               ]),
               const SizedBox(height: 20),
             ],
