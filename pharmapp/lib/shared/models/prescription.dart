@@ -104,6 +104,29 @@ class Prescription {
   int get undispensedCount => medications.where((m) => !m.isDispensed).length;
   int get dispensedCount => medications.where((m) => m.isDispensed).length;
 
+  Prescription copyWith({
+    List<PrescriptionItem>? medications,
+    String? status,
+    String? dispensedAt,
+  }) =>
+      Prescription(
+        id: id,
+        customerId: customerId,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        doctorName: doctorName,
+        diagnosis: diagnosis,
+        notes: notes,
+        medications: medications ?? this.medications,
+        status: status ?? this.status,
+        createdAt: createdAt,
+        dispensedAt: dispensedAt ?? this.dispensedAt,
+        createdByName: createdByName,
+        createdById: createdById,
+        pharmacyName: pharmacyName,
+        pharmacyId: pharmacyId,
+      );
+
   factory Prescription.fromJson(Map<String, dynamic> j) {
     final rawDate = (j['created_at'] ?? j['createdAt'] as String?) ?? '';
     String formatted = rawDate;

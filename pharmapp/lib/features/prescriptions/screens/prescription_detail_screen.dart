@@ -512,35 +512,72 @@ class _PrescriptionDetailScreenState
     );
     if (confirm != true || !mounted) return;
 
+    // Determine which medication indices to dispense.
+    // When indices is null, dispense every medication that is still pending.
+    final now = DateTime.now().toIso8601String();
+    final targetIndices = indices ??
+        List.generate(rx.medications.length, (i) => i)
+            .where((i) => !rx.medications[i].isDispensed)
+            .toList();
+
+    // Build the optimistic prescription immediately so the UI responds at once.
+    final optimisticMeds = rx.medications.asMap().entries.map((e) {
+      if (targetIndices.contains(e.key) && !e.value.isDispensed) {
+        return e.value.copyWith(isDispensed: true, dispensedAt: now);
+      }
+      return e.value;
+    }).toList();
+
+    final allDone = optimisticMeds.every((m) => m.isDispensed);
+    final anyDone = optimisticMeds.any((m) => m.isDispensed);
+    final optimisticStatus =
+        allDone ? 'dispensed' : (anyDone ? 'partial' : rx.status);
+
+    final optimisticRx = rx.copyWith(
+      medications: optimisticMeds,
+      status: optimisticStatus,
+      dispensedAt: allDone ? now : rx.dispensedAt,
+    );
+
+    setState(() {
+      _localRx = optimisticRx;
+      _selectMode = false;
+      _selectedIndices.clear();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: EnhancedTheme.successGreen,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: Row(children: [
+        const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+        const SizedBox(width: 10),
+        Text(
+          '${targetIndices.length} medication(s) dispensed.',
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+      ]),
+    ));
+
+    // Sync with backend.  Pass null when dispensing all so the server handles
+    // all-pending logic; pass specific indices for partial dispense.
     final result = await ref
         .read(prescriptionNotifierProvider.notifier)
         .dispense(rx.id, itemIndices: indices);
 
     if (!mounted) return;
+
     if (result != null) {
-      setState(() {
-        _localRx = result; // show updated data immediately without waiting for re-fetch
-        _selectMode = false;
-        _selectedIndices.clear();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: EnhancedTheme.successGreen,
-        behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        content: const Row(children: [
-          Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-          SizedBox(width: 10),
-          Text('Medications dispensed successfully.',
-              style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w600)),
-        ]),
-      ));
+      // Server returned an updated prescription — use it as the authoritative state.
+      setState(() => _localRx = result);
     } else {
-      // queued offline
       final notifierState = ref.read(prescriptionNotifierProvider);
       if (notifierState is AsyncError) {
+        // Server returned an error — revert the optimistic update.
+        setState(() => _localRx = null);
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: EnhancedTheme.errorRed,
           behavior: SnackBarBehavior.floating,
@@ -553,6 +590,8 @@ class _PrescriptionDetailScreenState
           ),
         ));
       } else {
+        // Offline — optimistic update stays; queued for sync.
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: EnhancedTheme.warningAmber,
           behavior: SnackBarBehavior.floating,
@@ -563,7 +602,7 @@ class _PrescriptionDetailScreenState
             Icon(Icons.wifi_off_rounded, color: Colors.black, size: 20),
             SizedBox(width: 10),
             Expanded(
-                child: Text('Queued for sync when back online.',
+                child: Text('Dispensed locally — will sync when back online.',
                     style: TextStyle(
                         color: Colors.black, fontWeight: FontWeight.w600))),
           ]),
