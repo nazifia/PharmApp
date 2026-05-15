@@ -193,9 +193,12 @@ class EnhancedTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         textStyle: GoogleFonts.inter(color: Colors.black87, fontSize: 13),
       ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.white,
+      ),
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Colors.transparent,
-        modalBackgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
+        modalBackgroundColor: Colors.white,
       ),
     );
   }
