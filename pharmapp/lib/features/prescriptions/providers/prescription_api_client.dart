@@ -5,6 +5,35 @@ import '../../../shared/models/prescription.dart';
 
 const _kPrescriptionsCacheKey = 'cache_prescriptions';
 
+// ── Medication availability across pharmacies ──────────────────────────────────
+
+class MedicationAvailability {
+  final String pharmacyName;
+  final int pharmacyId;
+  final int stockQuantity;
+  final String? address;
+  final String? phone;
+
+  const MedicationAvailability({
+    required this.pharmacyName,
+    required this.pharmacyId,
+    required this.stockQuantity,
+    this.address,
+    this.phone,
+  });
+
+  factory MedicationAvailability.fromJson(Map<String, dynamic> j) =>
+      MedicationAvailability(
+        pharmacyName:
+            (j['pharmacy_name'] ?? j['pharmacyName'] as String?) ?? '',
+        pharmacyId: (j['pharmacy_id'] ?? j['pharmacyId'] as int?) ?? 0,
+        stockQuantity:
+            (j['stock_quantity'] ?? j['stockQuantity'] as int?) ?? 0,
+        address: j['address'] as String?,
+        phone: j['phone'] as String?,
+      );
+}
+
 class PrescriptionApiClient {
   final Dio _dio;
   PrescriptionApiClient(this._dio);
@@ -184,6 +213,37 @@ class PrescriptionApiClient {
       }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load prescriptions');
+    }
+  }
+
+  // ── Medication availability across pharmacies ──────────────────────────────
+
+  /// Returns which pharmacies in the network carry [medicationName] and their
+  /// current stock level, price, address, and contact info.
+  Future<List<MedicationAvailability>> fetchMedicationAvailability(
+    String medicationName, {
+    String? brand,
+  }) async {
+    try {
+      final params = <String, dynamic>{'name': medicationName};
+      if (brand != null && brand.isNotEmpty) params['brand'] = brand;
+      final res = await _dio.get('/inventory/availability/',
+          queryParameters: params);
+      final data = res.data;
+      final list = data is Map && data.containsKey('results')
+          ? data['results'] as List
+          : data as List;
+      return list
+          .map((e) =>
+              MedicationAvailability.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      if (e.response == null) {
+        throw Exception(
+            'You are offline. Cannot check pharmacy availability.');
+      }
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to check availability');
     }
   }
 

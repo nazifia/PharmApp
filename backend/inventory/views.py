@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Item
+from .models import Item, STATUS_ACTIVE
 from authapp.utils import require_org, log_activity
 from authapp.permissions import IsInventoryEditor, LOW_STOCK_ALERT_ROLES, require_role
 
@@ -163,6 +163,56 @@ def item_detail(request, pk):
     log_activity(request, action='Delete Item', category='inventory',
                  description=f'Deleted "{item_name}"')
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def medication_availability(request):
+    """Cross-pharmacy stock lookup for a given medication name.
+
+    GET /inventory/availability/?name=Amoxicillin&brand=Amoxil
+
+    Returns one entry per pharmacy that carries the item with stock > 0,
+    showing the highest-stocked matching item's quantity and price.
+    Any authenticated user can call this (read-only, cross-org).
+    """
+    name = request.query_params.get("name", "").strip()
+    brand = request.query_params.get("brand", "").strip()
+
+    if not name:
+        return Response(
+            {"detail": "name query parameter is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    qs = (
+        Item.objects
+        .filter(name__icontains=name, stock__gt=0, status=STATUS_ACTIVE)
+        .select_related("organization")
+        .order_by("organization_id", "-stock")
+    )
+    if brand:
+        qs = qs.filter(brand__icontains=brand)
+
+    # One entry per pharmacy — pick the item with the highest stock.
+    seen_orgs = set()
+    results = []
+    for item in qs:
+        if item.organization_id is None or item.organization_id in seen_orgs:
+            continue
+        seen_orgs.add(item.organization_id)
+        org = item.organization
+        results.append({
+            "pharmacy_name": org.name,
+            "pharmacy_id": org.id,
+            "stock_quantity": int(item.stock),
+            "address": org.address or "",
+            "phone": org.phone or "",
+        })
+
+    # Sort by most stock first so the most-stocked pharmacy appears at the top.
+    results.sort(key=lambda x: -x["stock_quantity"])
+    return Response(results)
 
 
 @api_view(["POST"])

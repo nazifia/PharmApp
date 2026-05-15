@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
+import '../providers/prescription_api_client.dart';
 import '../providers/prescription_provider.dart';
 import '../../../shared/models/prescription.dart';
 
@@ -173,6 +174,8 @@ class _PrescriptionDetailScreenState
                                 canDispense: canWrite && !med.isDispensed,
                                 onDispenseSingle: () =>
                                     _dispense(rx, indices: [i]),
+                                onCheckAvailability: () =>
+                                    _showAvailability(med),
                               )
                                   .animate()
                                   .fadeIn(
@@ -205,6 +208,15 @@ class _PrescriptionDetailScreenState
           ),
         ],
       ),
+    );
+  }
+
+  void _showAvailability(PrescriptionItem med) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AvailabilitySheet(med: med),
     );
   }
 
@@ -559,6 +571,7 @@ class _MedicationCard extends StatelessWidget {
   final VoidCallback onToggleSelect;
   final bool canDispense;
   final VoidCallback onDispenseSingle;
+  final VoidCallback onCheckAvailability;
 
   const _MedicationCard({
     required this.med,
@@ -568,6 +581,7 @@ class _MedicationCard extends StatelessWidget {
     required this.onToggleSelect,
     required this.canDispense,
     required this.onDispenseSingle,
+    required this.onCheckAvailability,
   });
 
   @override
@@ -674,29 +688,66 @@ class _MedicationCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (!selectMode && canDispense) ...[
+            if (!selectMode) ...[
               const SizedBox(width: 8),
-              TextButton(
-                onPressed: onDispenseSingle,
-                style: TextButton.styleFrom(
-                  backgroundColor:
-                      EnhancedTheme.successGreen.withValues(alpha: 0.12),
-                  foregroundColor: EnhancedTheme.successGreen,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text('Dispense',
-                    style: TextStyle(fontSize: 12)),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: onCheckAvailability,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.accentCyan
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: EnhancedTheme.accentCyan
+                                .withValues(alpha: 0.25)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.store_rounded,
+                              color: EnhancedTheme.accentCyan, size: 13),
+                          SizedBox(width: 3),
+                          Text('Avail.',
+                              style: TextStyle(
+                                  color: EnhancedTheme.accentCyan,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (canDispense) ...[
+                    const SizedBox(height: 5),
+                    TextButton(
+                      onPressed: onDispenseSingle,
+                      style: TextButton.styleFrom(
+                        backgroundColor:
+                            EnhancedTheme.successGreen.withValues(alpha: 0.12),
+                        foregroundColor: EnhancedTheme.successGreen,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text('Dispense',
+                          style: TextStyle(fontSize: 12)),
+                    ),
+                  ] else if (med.isDispensed) ...[
+                    const SizedBox(height: 5),
+                    Icon(Icons.done_all_rounded,
+                        color: EnhancedTheme.successGreen.withValues(alpha: 0.6),
+                        size: 18),
+                  ],
+                ],
               ),
-            ] else if (med.isDispensed) ...[
-              const SizedBox(width: 8),
-              Icon(Icons.done_all_rounded,
-                  color: EnhancedTheme.successGreen.withValues(alpha: 0.6),
-                  size: 18),
             ],
           ],
         ),
@@ -723,6 +774,240 @@ class _Tag extends StatelessWidget {
       child: Text(text,
           style: TextStyle(
               color: color, fontSize: 11, fontWeight: FontWeight.w500)),
+    );
+  }
+}
+
+// ── Availability bottom sheet ─────────────────────────────────────────────────
+
+class _AvailabilitySheet extends ConsumerWidget {
+  final PrescriptionItem med;
+  const _AvailabilitySheet({required this.med});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final query =
+        MedicationAvailabilityQuery(name: med.itemName, brand: med.brand);
+    final availAsync = ref.watch(medicationAvailabilityProvider(query));
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E293B),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+          20, 12, 20, MediaQuery.of(context).padding.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.store_rounded,
+                    color: EnhancedTheme.primaryTeal, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(med.itemName,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700)),
+                    if (med.brand != null && med.brand!.isNotEmpty)
+                      Text(med.brand!,
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text('Stock availability across pharmacies',
+              style: TextStyle(color: Colors.white38, fontSize: 12)),
+          const SizedBox(height: 14),
+          const Divider(color: Colors.white12),
+          const SizedBox(height: 8),
+          availAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(
+                  child: CircularProgressIndicator(
+                      color: EnhancedTheme.primaryTeal)),
+            ),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Column(
+                  children: [
+                    const Icon(Icons.wifi_off_rounded,
+                        color: Colors.white38, size: 32),
+                    const SizedBox(height: 8),
+                    Text(e.toString(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ),
+            data: (list) => list.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.search_off_rounded,
+                              color: Colors.white24, size: 40),
+                          SizedBox(height: 12),
+                          Text(
+                            'Not available at any pharmacy\nin the network',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: Colors.white38, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ConstrainedBox(
+                    constraints: BoxConstraints(
+                        maxHeight:
+                            MediaQuery.of(context).size.height * 0.45),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children:
+                            list.map((a) => _AvailabilityTile(a)).toList(),
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AvailabilityTile extends StatelessWidget {
+  final MedicationAvailability availability;
+  const _AvailabilityTile(this.availability);
+
+  @override
+  Widget build(BuildContext context) {
+    final inStock = availability.stockQuantity > 0;
+    final stockColor =
+        inStock ? EnhancedTheme.successGreen : EnhancedTheme.errorRed;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: stockColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              inStock
+                  ? Icons.local_pharmacy_rounded
+                  : Icons.remove_shopping_cart_rounded,
+              color: stockColor,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(availability.pharmacyName,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
+                if (availability.address != null &&
+                    availability.address!.isNotEmpty)
+                  Row(
+                    children: [
+                      const Icon(Icons.place_rounded,
+                          size: 11, color: Colors.white38),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(availability.address!,
+                            style: const TextStyle(
+                                color: Colors.white38, fontSize: 11)),
+                      ),
+                    ],
+                  ),
+                if (availability.phone != null &&
+                    availability.phone!.isNotEmpty)
+                  Row(
+                    children: [
+                      const Icon(Icons.phone_rounded,
+                          size: 11, color: Colors.white38),
+                      const SizedBox(width: 3),
+                      Text(availability.phone!,
+                          style: const TextStyle(
+                              color: Colors.white38, fontSize: 11)),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: stockColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border:
+                      Border.all(color: stockColor.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  inStock
+                      ? '${availability.stockQuantity} in stock'
+                      : 'Out of stock',
+                  style: TextStyle(
+                      color: stockColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -236,6 +236,31 @@ class GlobalCustomerSearchResult {
       );
 }
 
+// ── Medication availability across pharmacies ─────────────────────────────────
+
+class MedicationAvailabilityQuery {
+  final String name;
+  final String? brand;
+  const MedicationAvailabilityQuery({required this.name, this.brand});
+
+  @override
+  bool operator ==(Object other) =>
+      other is MedicationAvailabilityQuery &&
+      other.name == name &&
+      other.brand == brand;
+
+  @override
+  int get hashCode => Object.hash(name, brand);
+}
+
+final medicationAvailabilityProvider = FutureProvider.autoDispose
+    .family<List<MedicationAvailability>, MedicationAvailabilityQuery>(
+        (ref, query) {
+  return ref
+      .watch(prescriptionApiProvider)
+      .fetchMedicationAvailability(query.name, brand: query.brand);
+});
+
 final globalCustomerSearchProvider = FutureProvider.autoDispose
     .family<List<GlobalCustomerSearchResult>, String>((ref, query) async {
   if (query.trim().length < 2) return [];
