@@ -109,7 +109,9 @@
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\inventory\\\\migrations\\\\\" | Where-Object { $_.Extension -eq \".py\" } | Select-Object -ExpandProperty Name)",
       "PowerShell(flutter analyze *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\prescriptions\" -Recurse -File)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem *)",
+      "PowerShell(head *)"
     ]
   }
 }

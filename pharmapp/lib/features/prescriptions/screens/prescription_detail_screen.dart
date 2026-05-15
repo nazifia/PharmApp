@@ -22,6 +22,7 @@ class _PrescriptionDetailScreenState
     extends ConsumerState<PrescriptionDetailScreen> {
   final Set<int> _selectedIndices = {};
   bool _selectMode = false;
+  Prescription? _localRx; // optimistic update applied immediately on dispense
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +32,17 @@ class _PrescriptionDetailScreenState
         ref.watch(prescriptionDetailProvider(widget.prescriptionId));
     final notifierState = ref.watch(prescriptionNotifierProvider);
     final isBusy = notifierState is AsyncLoading;
+
+    // Clear the optimistic copy once the server re-fetch delivers fresh data
+    ref.listen(prescriptionDetailProvider(widget.prescriptionId),
+        (_, next) {
+      if (next is AsyncData && _localRx != null) {
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) {
+          if (mounted) setState(() => _localRx = null);
+        });
+      }
+    });
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -71,7 +83,9 @@ class _PrescriptionDetailScreenState
                       ),
                       if (canWrite)
                         rxAsync.whenOrNull(
-                          data: (rx) => Row(
+                          data: (serverRx) {
+                            final rx = _localRx ?? serverRx;
+                            return Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               GestureDetector(
@@ -114,7 +128,7 @@ class _PrescriptionDetailScreenState
                                 ),
                               ],
                             ],
-                          ),
+                          );},
                         ) ??
                         const SizedBox(),
                     ],
@@ -148,7 +162,9 @@ class _PrescriptionDetailScreenState
                         ],
                       ),
                     ),
-                    data: (rx) => Stack(
+                    data: (serverRx) {
+                      final rx = _localRx ?? serverRx;
+                      return Stack(
                       children: [
                         ListView(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
@@ -221,7 +237,7 @@ class _PrescriptionDetailScreenState
                             ),
                           ),
                       ],
-                    ),
+                    );},
                   ),
                 ),
               ],
@@ -346,6 +362,7 @@ class _PrescriptionDetailScreenState
     if (!mounted) return;
     if (result != null) {
       setState(() {
+        _localRx = result; // show updated data immediately without waiting for re-fetch
         _selectMode = false;
         _selectedIndices.clear();
       });
