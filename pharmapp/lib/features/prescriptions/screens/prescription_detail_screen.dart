@@ -240,7 +240,6 @@ class _PrescriptionDetailScreenState
                               onDispenseAll: () => _dispense(rx),
                               onDispenseSelected: () => _dispense(rx,
                                   indices: _selectedIndices.toList()),
-                              onAddAllToCart: () => _addAllToCart(rx),
                             ),
                           ),
                       ],
@@ -313,114 +312,6 @@ class _PrescriptionDetailScreenState
         textColor: Colors.white,
         onPressed: () => context.go('/dashboard/pos'),
       ),
-    ));
-  }
-
-  Future<void> _addAllToCart(Prescription rx) async {
-    final pending = rx.medications.where((m) => !m.isDispensed).toList();
-    if (pending.isEmpty) return;
-
-    int added = 0;
-    int notLinked = 0;
-    int outOfStock = 0;
-
-    for (final med in pending) {
-      Item? item;
-
-      // 1. Try to resolve via linked inventory ID.
-      if (med.itemId != null) {
-        try {
-          item = await ref.read(inventoryApiProvider).fetchById(med.itemId!);
-        } catch (_) {}
-      }
-
-      // 2. If no linked ID (or fetch failed), auto-search by medication name.
-      if (item == null) {
-        try {
-          final results = await ref
-              .read(inventoryApiProvider)
-              .fetchInventory(search: med.itemName.trim());
-          if (results.length == 1) {
-            item = results.first;
-          } else if (results.isNotEmpty) {
-            // Pick the closest name match (case-insensitive exact match first,
-            // then first result that contains the name).
-            final nameLower = med.itemName.toLowerCase();
-            item = results.firstWhere(
-              (r) => r.name.toLowerCase() == nameLower,
-              orElse: () => results.firstWhere(
-                (r) => r.name.toLowerCase().contains(nameLower),
-                orElse: () => results.first,
-              ),
-            );
-          }
-        } catch (_) {}
-      }
-
-      if (item == null) {
-        notLinked++;
-        continue;
-      }
-
-      if (item.stock == 0) {
-        outOfStock++;
-        continue;
-      }
-
-      _commitToCart(item, med.quantity.round().clamp(1, item.stock));
-      added++;
-    }
-
-    if (!mounted) return;
-
-    String msg;
-    Color color;
-    if (added == 0) {
-      color = EnhancedTheme.warningAmber;
-      if (outOfStock > 0 && notLinked == 0) {
-        msg = 'All items are out of stock.';
-      } else if (notLinked > 0 && outOfStock == 0) {
-        msg = 'Could not find $notLinked medication(s) in inventory — use individual "Add to Cart".';
-      } else {
-        msg = '$notLinked not found in inventory, $outOfStock out of stock.';
-      }
-    } else {
-      color = EnhancedTheme.successGreen;
-      final extras = <String>[];
-      if (notLinked > 0) extras.add('$notLinked not found');
-      if (outOfStock > 0) extras.add('$outOfStock out of stock');
-      msg = '$added medication(s) added to cart'
-          '${extras.isNotEmpty ? ' (${extras.join(', ')})' : ''}.';
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      backgroundColor: color,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-      content: Row(children: [
-        Icon(
-          added > 0
-              ? Icons.shopping_cart_rounded
-              : Icons.warning_amber_rounded,
-          color: added > 0 ? Colors.white : Colors.black87,
-          size: 18,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(msg,
-              style: TextStyle(
-                  color: added > 0 ? Colors.white : Colors.black87,
-                  fontWeight: FontWeight.w600)),
-        ),
-      ]),
-      action: added > 0
-          ? SnackBarAction(
-              label: 'Go to POS',
-              textColor: Colors.white,
-              onPressed: () => context.go('/dashboard/pos'),
-            )
-          : null,
     ));
   }
 
@@ -508,6 +399,13 @@ class _PrescriptionDetailScreenState
       backgroundColor: Colors.transparent,
       builder: (_) => _AvailabilitySheet(med: med),
     );
+  }
+
+  Prescription _recomputeStatus(Prescription rx) {
+    final allDone = rx.medications.every((m) => m.isDispensed);
+    final anyDone = rx.medications.any((m) => m.isDispensed);
+    final computed = allDone ? 'dispensed' : (anyDone ? 'partial' : 'pending');
+    return computed != rx.status ? rx.copyWith(status: computed) : rx;
   }
 
   Future<void> _dispense(Prescription rx, {List<int>? indices}) async {
@@ -603,8 +501,8 @@ class _PrescriptionDetailScreenState
     if (!mounted) return;
 
     if (result != null) {
-      // Server returned an updated prescription — use it as the authoritative state.
-      setState(() => _localRx = result);
+      // Recompute status from medication flags in case backend didn't update it.
+      setState(() => _localRx = _recomputeStatus(result));
     } else {
       final notifierState = ref.read(prescriptionNotifierProvider);
       if (notifierState is AsyncError) {
@@ -1868,7 +1766,6 @@ class _BottomActions extends StatelessWidget {
   final bool isBusy;
   final VoidCallback onDispenseAll;
   final VoidCallback onDispenseSelected;
-  final VoidCallback? onAddAllToCart;
 
   const _BottomActions({
     required this.rx,
@@ -1877,7 +1774,6 @@ class _BottomActions extends StatelessWidget {
     required this.isBusy,
     required this.onDispenseAll,
     required this.onDispenseSelected,
-    this.onAddAllToCart,
   });
 
   @override
@@ -1925,23 +1821,6 @@ class _BottomActions extends StatelessWidget {
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (onAddAllToCart != null)
-                  OutlinedButton.icon(
-                    onPressed: isBusy ? null : onAddAllToCart,
-                    icon: const Icon(Icons.shopping_cart_rounded, size: 18),
-                    label: Text(
-                      'Add All to Cart (${rx.undispensedCount})',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: EnhancedTheme.warningAmber,
-                      side: const BorderSide(color: EnhancedTheme.warningAmber),
-                      minimumSize: const Size(double.infinity, 46),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                if (onAddAllToCart != null) const SizedBox(height: 8),
                 ElevatedButton.icon(
                   onPressed: isBusy ? null : onDispenseAll,
                   icon: isBusy

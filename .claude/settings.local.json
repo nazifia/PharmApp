@@ -112,7 +112,8 @@
       "Bash(Select-Object FullName)",
       "Bash(Get-ChildItem *)",
       "PowerShell(head *)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(findstr /i prescription)"
     ]
   }
 }
