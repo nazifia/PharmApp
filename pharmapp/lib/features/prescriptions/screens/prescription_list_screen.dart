@@ -136,7 +136,7 @@ class _PrescriptionListScreenState
                       color: Colors.white.withValues(alpha: 0.12)),
                 ),
                 child: const Icon(Icons.menu_rounded,
-                    color: Colors.white, size: 22),
+                    color: Colors.black87, size: 22),
               ),
             ),
           ),
@@ -147,12 +147,12 @@ class _PrescriptionListScreenState
               children: [
                 const Text('Prescriptions',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.black87,
                         fontSize: 20,
                         fontWeight: FontWeight.w700)),
                 Text('Medication prescriptions',
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.55),
+                        color: Colors.black54,
                         fontSize: 12)),
               ],
             ),
@@ -161,7 +161,7 @@ class _PrescriptionListScreenState
             onPressed: () =>
                 ref.invalidate(prescriptionListProvider(_filter)),
             icon: const Icon(Icons.refresh_rounded,
-                color: Colors.white70, size: 22),
+                color: Colors.black54, size: 22),
           ),
         ],
       ),
@@ -173,16 +173,16 @@ class _PrescriptionListScreenState
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: TextField(
         controller: _searchCtrl,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Colors.black87),
         decoration: InputDecoration(
           hintText: 'Search by patient name or phone…',
           hintStyle:
-              TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14),
-          prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54),
+              TextStyle(color: Colors.black38, fontSize: 14),
+          prefixIcon: const Icon(Icons.search_rounded, color: Colors.black45),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear_rounded,
-                      color: Colors.white54, size: 20),
+                      color: Colors.black45, size: 20),
                   onPressed: () {
                     _searchCtrl.clear();
                     setState(() => _searchQuery = '');
@@ -241,7 +241,7 @@ class _PrescriptionListScreenState
                   child: Text(
                     _tabs[i],
                     style: TextStyle(
-                      color: selected ? Colors.white : Colors.white70,
+                      color: selected ? Colors.white : Colors.black54,
                       fontSize: 13,
                       fontWeight: selected
                           ? FontWeight.w700
@@ -339,14 +339,14 @@ class _PrescriptionCard extends StatelessWidget {
                         Text(
                           rx.customerName,
                           style: const TextStyle(
-                              color: Colors.white,
+                              color: Colors.black87,
                               fontWeight: FontWeight.w700,
                               fontSize: 15),
                         ),
                         if (rx.customerPhone.isNotEmpty)
                           Text(rx.customerPhone,
-                              style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.55),
+                              style: const TextStyle(
+                                  color: Colors.black54,
                                   fontSize: 12)),
                       ],
                     ),
@@ -396,13 +396,13 @@ class _PrescriptionCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.local_pharmacy_rounded,
+                    const Icon(Icons.local_pharmacy_rounded,
                         size: 13,
-                        color: Colors.white.withValues(alpha: 0.4)),
+                        color: Colors.black38),
                     const SizedBox(width: 4),
                     Text(rx.pharmacyName!,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
+                        style: const TextStyle(
+                            color: Colors.black38,
                             fontSize: 11)),
                   ],
                 ),
@@ -412,13 +412,13 @@ class _PrescriptionCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(rx.createdAt,
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
+                      style: const TextStyle(
+                          color: Colors.black38,
                           fontSize: 11)),
                   if (rx.createdByName != null)
                     Text('by ${rx.createdByName}',
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
+                        style: const TextStyle(
+                            color: Colors.black38,
                             fontSize: 11)),
                 ],
               ),
@@ -438,7 +438,7 @@ class _InfoChip extends StatelessWidget {
   const _InfoChip({
     required this.icon,
     required this.label,
-    this.color = Colors.white54,
+    this.color = Colors.black45,
   });
 
   @override
@@ -470,17 +470,17 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.receipt_long_rounded,
-              size: 56, color: Colors.white.withValues(alpha: 0.15)),
+          const Icon(Icons.receipt_long_rounded,
+              size: 56, color: Colors.black26),
           const SizedBox(height: 16),
           Text(messages[tabIndex],
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
+              style: const TextStyle(
+                  color: Colors.black45,
                   fontSize: 15)),
           const SizedBox(height: 8),
-          Text('Tap the button below to write a new prescription.',
+          const Text('Tap the button below to write a new prescription.',
               style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.28),
+                  color: Colors.black38,
                   fontSize: 13)),
         ],
       ),
@@ -507,8 +507,8 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 16),
             Text(message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6), fontSize: 14)),
+                style: const TextStyle(
+                    color: Colors.black54, fontSize: 14)),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: onRetry,

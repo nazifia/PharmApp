@@ -36,11 +36,11 @@ class EnhancedTheme {
       ),
       scaffoldBackgroundColor: primaryDark,
       textTheme: TextTheme(
-        displayLarge: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black),
-        titleLarge:   GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.black),
-        bodyLarge:    GoogleFonts.inter(color: Colors.black),
-        bodyMedium:   GoogleFonts.inter(color: Colors.black87),
-        labelLarge:   GoogleFonts.inter(color: Colors.black87, fontWeight: FontWeight.w500),
+        displayLarge: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+        titleLarge:   GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white),
+        bodyLarge:    GoogleFonts.inter(color: Colors.white),
+        bodyMedium:   GoogleFonts.inter(color: Colors.white70),
+        labelLarge:   GoogleFonts.inter(color: Colors.white70, fontWeight: FontWeight.w500),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -63,7 +63,7 @@ class EnhancedTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryTeal,
-          foregroundColor: Colors.black,
+          foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
@@ -91,16 +91,16 @@ class EnhancedTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         titleTextStyle: GoogleFonts.outfit(
-          color: Colors.black,
+          color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.w700,
         ),
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        textStyle: GoogleFonts.inter(color: Colors.black87, fontSize: 13),
+        textStyle: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.transparent,

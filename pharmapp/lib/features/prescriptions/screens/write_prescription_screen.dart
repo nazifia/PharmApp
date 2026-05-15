@@ -255,7 +255,7 @@ class _WritePrescriptionScreenState
                                 color: Colors.white.withValues(alpha: 0.12)),
                           ),
                           child: const Icon(Icons.arrow_back_rounded,
-                              color: Colors.white, size: 22),
+                              color: Colors.black87, size: 22),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -263,7 +263,7 @@ class _WritePrescriptionScreenState
                         child: Text(
                           _step == 0 ? 'Find Patient' : 'Write Prescription',
                           style: const TextStyle(
-                              color: Colors.white,
+                              color: Colors.black87,
                               fontSize: 20,
                               fontWeight: FontWeight.w700),
                         ),
@@ -300,16 +300,16 @@ class _WritePrescriptionScreenState
           TextField(
             controller: _searchCtrl,
             autofocus: true,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.black87),
             decoration: InputDecoration(
               hintText: 'Search by name or phone number…',
-              hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4), fontSize: 14),
-              prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54),
+              hintStyle: const TextStyle(
+                  color: Colors.black38, fontSize: 14),
+              prefixIcon: const Icon(Icons.search_rounded, color: Colors.black45),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear_rounded,
-                          color: Colors.white54, size: 20),
+                          color: Colors.black45, size: 20),
                       onPressed: () {
                         _searchCtrl.clear();
                         setState(() => _searchQuery = '');
@@ -355,13 +355,13 @@ class _WritePrescriptionScreenState
                   children: [
                     const Text('Search across all pharmacies',
                         style: TextStyle(
-                            color: Colors.white,
+                            color: Colors.black87,
                             fontSize: 13,
                             fontWeight: FontWeight.w600)),
-                    Text(
+                    const Text(
                       'Find patients registered in any subscribed pharmacy',
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.45),
+                          color: Colors.black45,
                           fontSize: 11),
                     ),
                   ],
@@ -383,8 +383,8 @@ class _WritePrescriptionScreenState
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text('Error: $e',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                    style: const TextStyle(
+                        color: Colors.black45,
                         fontSize: 13)),
               ),
               data: (results) {
@@ -402,8 +402,8 @@ class _WritePrescriptionScreenState
                   children: [
                     Text(
                       '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
+                      style: const TextStyle(
+                          color: Colors.black45,
                           fontSize: 12),
                     ),
                     const SizedBox(height: 8),
@@ -435,22 +435,22 @@ class _WritePrescriptionScreenState
           const SizedBox(height: 16),
           const Text('Walk-in Patient',
               style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.black87,
                   fontSize: 15,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text('Patient not in system? Enter details manually.',
+          const Text('Patient not in system? Enter details manually.',
               style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.45), fontSize: 13)),
+                  color: Colors.black45, fontSize: 13)),
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: _showWalkInSheet,
             icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
             label: const Text('Continue as Walk-in'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.08),
-              foregroundColor: Colors.white,
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+              backgroundColor: Colors.black.withValues(alpha: 0.05),
+              foregroundColor: Colors.black87,
+              side: BorderSide(color: Colors.black.withValues(alpha: 0.2)),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               padding:
@@ -478,7 +478,7 @@ class _WritePrescriptionScreenState
           children: [
             const Text('Walk-in Patient Details',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.black87,
                     fontSize: 17,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
@@ -704,13 +704,13 @@ class _SelectedPatientBanner extends StatelessWidget {
               children: [
                 Text(patient.name,
                     style: const TextStyle(
-                        color: Colors.white,
+                        color: Colors.black87,
                         fontWeight: FontWeight.w700,
                         fontSize: 15)),
                 if (patient.phone.isNotEmpty)
                   Text(patient.phone,
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.55),
+                      style: const TextStyle(
+                          color: Colors.black54,
                           fontSize: 12)),
                 if (patient.pharmacyName != null)
                   Text('From ${patient.pharmacyName}',
@@ -771,13 +771,13 @@ class _CustomerResultTile extends StatelessWidget {
                 children: [
                   Text(result.name,
                       style: const TextStyle(
-                          color: Colors.white,
+                          color: Colors.black87,
                           fontWeight: FontWeight.w600,
                           fontSize: 14)),
                   if (result.phone.isNotEmpty)
                     Text(result.phone,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                        style: const TextStyle(
+                            color: Colors.black54,
                             fontSize: 12)),
                   if (result.pharmacyName != null &&
                       result.pharmacyName!.isNotEmpty)
@@ -789,7 +789,7 @@ class _CustomerResultTile extends StatelessWidget {
               ),
             ),
             const Icon(Icons.chevron_right_rounded,
-                color: Colors.white38, size: 20),
+                color: Colors.black38, size: 20),
           ],
         ),
       ),
@@ -829,7 +829,7 @@ class _MedicationFormCard extends StatelessWidget {
             children: [
               Text('Medication ${index + 1}',
                   style: const TextStyle(
-                      color: Colors.white,
+                      color: Colors.black87,
                       fontWeight: FontWeight.w700,
                       fontSize: 13)),
               const Spacer(),
@@ -851,7 +851,7 @@ class _MedicationFormCard extends StatelessWidget {
           const SizedBox(height: 10),
           TextFormField(
             controller: med.name,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(color: Colors.black87, fontSize: 14),
             validator: (v) =>
                 (v == null || v.trim().isEmpty) ? 'Name required' : null,
             decoration: _fieldDeco(
@@ -863,7 +863,7 @@ class _MedicationFormCard extends StatelessWidget {
               Expanded(
                 child: TextFormField(
                   controller: med.brand,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
                   decoration: _fieldDeco('Brand (optional)', null),
                 ),
               ),
@@ -872,7 +872,7 @@ class _MedicationFormCard extends StatelessWidget {
                 width: 90,
                 child: TextFormField(
                   controller: med.quantity,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
                   keyboardType: TextInputType.number,
                   decoration: _fieldDeco('Qty', null),
                 ),
@@ -882,7 +882,7 @@ class _MedicationFormCard extends StatelessWidget {
                 width: 90,
                 child: TextFormField(
                   controller: med.unit,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
                   decoration: _fieldDeco('Unit', null),
                 ),
               ),
@@ -894,7 +894,7 @@ class _MedicationFormCard extends StatelessWidget {
               Expanded(
                 child: TextFormField(
                   controller: med.dosage,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
                   decoration: _fieldDeco('Dosage (e.g. twice daily)', null),
                 ),
               ),
@@ -902,7 +902,7 @@ class _MedicationFormCard extends StatelessWidget {
               Expanded(
                 child: TextFormField(
                   controller: med.duration,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
                   decoration: _fieldDeco('Duration (e.g. 7 days)', null),
                 ),
               ),
@@ -911,7 +911,7 @@ class _MedicationFormCard extends StatelessWidget {
           const SizedBox(height: 8),
           TextFormField(
             controller: med.instructions,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(color: Colors.black87, fontSize: 14),
             maxLines: 2,
             decoration: _fieldDeco(
                 'Special instructions (optional)', Icons.notes_rounded),
@@ -923,10 +923,10 @@ class _MedicationFormCard extends StatelessWidget {
 
   InputDecoration _fieldDeco(String label, IconData? icon) => InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
+        labelStyle: const TextStyle(
+            color: Colors.black45, fontSize: 12),
         prefixIcon: icon != null
-            ? Icon(icon, color: Colors.white38, size: 18)
+            ? Icon(icon, color: Colors.black38, size: 18)
             : null,
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.04),
@@ -964,7 +964,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(text,
         style: const TextStyle(
-            color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700));
+            color: Colors.black87, fontSize: 15, fontWeight: FontWeight.w700));
   }
 }
 
@@ -989,12 +989,12 @@ class _DarkTextField extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
+      style: const TextStyle(color: Colors.black87, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-            color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.white38, size: 19),
+        labelStyle: const TextStyle(
+            color: Colors.black45, fontSize: 13),
+        prefixIcon: Icon(icon, color: Colors.black38, size: 19),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.06),
         border: OutlineInputBorder(
@@ -1035,11 +1035,11 @@ class _HintCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white38, size: 18),
+          Icon(icon, color: Colors.black38, size: 18),
           const SizedBox(width: 10),
           Text(text,
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.45),
+              style: const TextStyle(
+                  color: Colors.black45,
                   fontSize: 13)),
         ],
       ),
@@ -1058,13 +1058,13 @@ class _NoResultsView extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 8),
-        Icon(Icons.person_search_rounded,
-            size: 48, color: Colors.white.withValues(alpha: 0.15)),
+        const Icon(Icons.person_search_rounded,
+            size: 48, color: Colors.black26),
         const SizedBox(height: 12),
         Text('No patients found for "$query"',
             textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
+            style: const TextStyle(
+                color: Colors.black45, fontSize: 14)),
         const SizedBox(height: 8),
         TextButton(
           onPressed: onWalkIn,

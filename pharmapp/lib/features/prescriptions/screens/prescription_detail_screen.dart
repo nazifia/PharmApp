@@ -55,7 +55,7 @@ class _PrescriptionDetailScreenState
                                 color: Colors.white.withValues(alpha: 0.12)),
                           ),
                           child: const Icon(Icons.arrow_back_rounded,
-                              color: Colors.white, size: 22),
+                              color: Colors.black87, size: 22),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -63,7 +63,7 @@ class _PrescriptionDetailScreenState
                         child: Text(
                           'Prescription Details',
                           style: TextStyle(
-                              color: Colors.white,
+                              color: Colors.black87,
                               fontSize: 20,
                               fontWeight: FontWeight.w700),
                         ),
@@ -110,8 +110,8 @@ class _PrescriptionDetailScreenState
                         children: [
                           Text(e.toString(),
                               textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.6),
+                              style: const TextStyle(
+                                  color: Colors.black54,
                                   fontSize: 14)),
                           const SizedBox(height: 16),
                           ElevatedButton(
@@ -359,20 +359,19 @@ class _PatientCard extends StatelessWidget {
                   children: [
                     Text(rx.customerName,
                         style: const TextStyle(
-                            color: Colors.white,
+                            color: Colors.black87,
                             fontSize: 17,
                             fontWeight: FontWeight.w700)),
                     if (rx.customerPhone.isNotEmpty)
                       Row(
                         children: [
-                          Icon(Icons.phone_rounded,
+                          const Icon(Icons.phone_rounded,
                               size: 13,
-                              color: Colors.white.withValues(alpha: 0.5)),
+                              color: Colors.black45),
                           const SizedBox(width: 4),
                           Text(rx.customerPhone,
-                              style: TextStyle(
-                                  color:
-                                      Colors.white.withValues(alpha: 0.6),
+                              style: const TextStyle(
+                                  color: Colors.black54,
                                   fontSize: 13)),
                         ],
                       ),
@@ -404,13 +403,13 @@ class _PatientCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.medical_information_rounded,
+                const Icon(Icons.medical_information_rounded,
                     size: 15,
-                    color: Colors.white.withValues(alpha: 0.5)),
+                    color: Colors.black45),
                 const SizedBox(width: 6),
                 Text('Dr. ${rx.doctorName}',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.65),
+                    style: const TextStyle(
+                        color: Colors.black54,
                         fontSize: 13)),
               ],
             ),
@@ -422,13 +421,13 @@ class _PatientCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(rx.createdAt,
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4),
+                  style: const TextStyle(
+                      color: Colors.black38,
                       fontSize: 11)),
               if (rx.createdByName != null)
                 Text('by ${rx.createdByName}',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
+                    style: const TextStyle(
+                        color: Colors.black38,
                         fontSize: 11)),
             ],
           ),
@@ -436,13 +435,13 @@ class _PatientCard extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                Icon(Icons.local_pharmacy_rounded,
+                const Icon(Icons.local_pharmacy_rounded,
                     size: 13,
-                    color: Colors.white.withValues(alpha: 0.35)),
+                    color: Colors.black38),
                 const SizedBox(width: 4),
                 Text(rx.pharmacyName!,
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.35),
+                    style: const TextStyle(
+                        color: Colors.black38,
                         fontSize: 11)),
               ],
             ),
@@ -485,14 +484,14 @@ class _InfoSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                    style: const TextStyle(
+                        color: Colors.black45,
                         fontSize: 11,
                         fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(value,
                     style: const TextStyle(
-                        color: Colors.white, fontSize: 14)),
+                        color: Colors.black87, fontSize: 14)),
               ],
             ),
           ),
@@ -524,7 +523,7 @@ class _MedicationHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Text('Medications (${rx.medications.length})',
             style: const TextStyle(
-                color: Colors.white,
+                color: Colors.black87,
                 fontWeight: FontWeight.w700,
                 fontSize: 15)),
         const Spacer(),
@@ -624,7 +623,7 @@ class _MedicationCard extends StatelessWidget {
                       : Icons.medication_liquid_rounded,
                   color: med.isDispensed
                       ? EnhancedTheme.successGreen
-                      : Colors.white54,
+                      : Colors.black45,
                   size: 18,
                 ),
               ),
@@ -637,8 +636,8 @@ class _MedicationCard extends StatelessWidget {
                   Text(med.itemName,
                       style: TextStyle(
                           color: med.isDispensed
-                              ? Colors.white.withValues(alpha: 0.5)
-                              : Colors.white,
+                              ? Colors.black38
+                              : Colors.black87,
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                           decoration: med.isDispensed
@@ -646,8 +645,8 @@ class _MedicationCard extends StatelessWidget {
                               : null)),
                   if (med.brand != null && med.brand!.isNotEmpty)
                     Text(med.brand!,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45),
+                        style: const TextStyle(
+                            color: Colors.black45,
                             fontSize: 11)),
                   const SizedBox(height: 4),
                   Wrap(
@@ -667,8 +666,8 @@ class _MedicationCard extends StatelessWidget {
                       med.instructions!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(med.instructions!,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45),
+                        style: const TextStyle(
+                            color: Colors.black45,
                             fontSize: 11,
                             fontStyle: FontStyle.italic)),
                   ],
@@ -710,7 +709,7 @@ class _Tag extends StatelessWidget {
   final String text;
   final Color color;
 
-  const _Tag(this.text, {this.color = Colors.white54});
+  const _Tag(this.text, {this.color = Colors.black45});
 
   @override
   Widget build(BuildContext context) {
