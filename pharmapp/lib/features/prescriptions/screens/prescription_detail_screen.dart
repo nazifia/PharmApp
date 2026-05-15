@@ -528,34 +528,53 @@ class _MedicationHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.medication_rounded,
-            color: EnhancedTheme.primaryTeal, size: 18),
-        const SizedBox(width: 8),
-        Text('Medications (${rx.medications.length})',
-            style: const TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w700,
-                fontSize: 15)),
-        const Spacer(),
-        if (rx.undispensedCount > 0)
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color:
-                  EnhancedTheme.warningAmber.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: EnhancedTheme.warningAmber.withValues(alpha: 0.4)),
-            ),
-            child: Text('${rx.undispensedCount} pending',
+        Row(
+          children: [
+            const Icon(Icons.medication_rounded,
+                color: EnhancedTheme.primaryTeal, size: 18),
+            const SizedBox(width: 8),
+            Text('Medications (${rx.medications.length})',
                 style: const TextStyle(
-                    color: EnhancedTheme.warningAmber,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15)),
+            const Spacer(),
+            if (rx.undispensedCount > 0)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color:
+                      EnhancedTheme.warningAmber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: EnhancedTheme.warningAmber.withValues(alpha: 0.4)),
+                ),
+                child: Text('${rx.undispensedCount} pending',
+                    style: const TextStyle(
+                        color: EnhancedTheme.warningAmber,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
+              ),
+          ],
+        ),
+        if (!selectMode) ...[
+          const SizedBox(height: 6),
+          const Row(
+            children: [
+              Icon(Icons.store_rounded,
+                  size: 12, color: Colors.black38),
+              SizedBox(width: 4),
+              Text(
+                'Tap "Where Available" on any item to check pharmacy stock',
+                style: TextStyle(color: Colors.black38, fontSize: 11),
+              ),
+            ],
           ),
+        ],
       ],
     );
   }
@@ -698,25 +717,25 @@ class _MedicationCard extends StatelessWidget {
                     onTap: onCheckAvailability,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 5),
+                          horizontal: 10, vertical: 7),
                       decoration: BoxDecoration(
                         color: EnhancedTheme.accentCyan
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(9),
                         border: Border.all(
                             color: EnhancedTheme.accentCyan
-                                .withValues(alpha: 0.25)),
+                                .withValues(alpha: 0.35)),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.store_rounded,
-                              color: EnhancedTheme.accentCyan, size: 13),
-                          SizedBox(width: 3),
-                          Text('Avail.',
+                              color: EnhancedTheme.accentCyan, size: 14),
+                          SizedBox(width: 4),
+                          Text('Where Available',
                               style: TextStyle(
                                   color: EnhancedTheme.accentCyan,
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600)),
                         ],
                       ),
@@ -843,7 +862,7 @@ class _AvailabilitySheet extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 4),
-          const Text('Stock availability across pharmacies',
+          const Text('Which pharmacies in the network have this in stock',
               style: TextStyle(color: Colors.white38, fontSize: 12)),
           const SizedBox(height: 14),
           const Divider(color: Colors.white12),
