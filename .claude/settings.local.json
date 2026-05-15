@@ -111,7 +111,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\prescriptions\" -Recurse -File)",
       "Bash(Select-Object FullName)",
       "Bash(Get-ChildItem *)",
-      "PowerShell(head *)"
+      "PowerShell(head *)",
+      "Bash(Select-Object Name)"
     ]
   }
 }

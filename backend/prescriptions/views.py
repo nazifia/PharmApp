@@ -6,8 +6,21 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from authapp.utils import require_org, log_activity
-from authapp.permissions import IsPrescriptionUser
+from authapp.permissions import IsPrescriptionUser, PRESCRIPTIONS_WRITE
 from .models import Prescription, PrescriptionItem
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _resolve_item(org, item_name: str, brand: str = '') -> int | None:
+    """Return the inventory Item pk that best matches name+brand within org, or None."""
+    from inventory.models import Item
+    qs = Item.objects.filter(organization=org, name__iexact=item_name.strip())
+    if brand:
+        exact = qs.filter(brand__iexact=brand.strip())
+        if exact.exists():
+            return exact.first().pk
+    return qs.first().pk if qs.exists() else None
 
 
 # ── List / Create ─────────────────────────────────────────────────────────────
@@ -92,11 +105,14 @@ def prescription_list(request):
             item_name = (med.get('item_name') or med.get('name') or '').strip()
             if not item_name:
                 continue
+            brand    = (med.get('brand') or '').strip()
+            # Use explicit item_id when provided; otherwise try to auto-link by name.
+            item_id  = med.get('item_id') or _resolve_item(org, item_name, brand)
             PrescriptionItem.objects.create(
                 prescription = rx,
-                item_id      = med.get('item_id'),
+                item_id      = item_id,
                 item_name    = item_name,
-                brand        = (med.get('brand')        or '').strip(),
+                brand        = brand,
                 quantity     = float(med.get('quantity', 1)),
                 unit         = (med.get('unit')         or 'unit(s)').strip(),
                 dosage       = (med.get('dosage')       or '').strip(),
@@ -116,9 +132,9 @@ def prescription_list(request):
     return Response(rx.to_api_dict(), status=status.HTTP_201_CREATED)
 
 
-# ── Retrieve / Delete ─────────────────────────────────────────────────────────
+# ── Retrieve / Update / Delete ────────────────────────────────────────────────
 
-@api_view(['GET', 'DELETE'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated, IsPrescriptionUser])
 def prescription_detail(request, pk):
     org, err = require_org(request)
@@ -136,6 +152,48 @@ def prescription_detail(request, pk):
     if request.method == 'GET':
         return Response(rx.to_api_dict())
 
+    if request.method == 'PATCH':
+        # Only write-permission roles may edit prescription metadata.
+        if request.user.role not in PRESCRIPTIONS_WRITE:
+            return Response(
+                {'detail': 'You do not have permission to edit prescriptions.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        data = request.data
+        changed = False
+
+        if 'doctor_name' in data:
+            rx.doctor_name = (data['doctor_name'] or '').strip()
+            changed = True
+        if 'diagnosis' in data:
+            rx.diagnosis = (data['diagnosis'] or '').strip()
+            changed = True
+        if 'notes' in data:
+            rx.notes = (data['notes'] or '').strip()
+            changed = True
+        if 'status' in data and data['status'] in ('pending', 'partial', 'dispensed'):
+            rx.status = data['status']
+            # Keep dispensed_at in sync when manually setting status.
+            if data['status'] == 'dispensed' and not rx.dispensed_at:
+                rx.dispensed_at = timezone.now()
+            elif data['status'] in ('pending', 'partial'):
+                rx.dispensed_at = None
+            changed = True
+
+        if changed:
+            rx.save()
+            log_activity(
+                request,
+                action='Update Prescription',
+                category='customers',
+                description=f'Updated metadata on Rx#{pk} for "{rx.customer_name}"',
+            )
+
+        # Return fresh serialisation (medications prefetched by the initial get).
+        return Response(rx.to_api_dict())
+
+    # DELETE
     rx.delete()
     log_activity(request, action='Delete Prescription', category='customers',
                  description=f'Deleted prescription #{pk}')

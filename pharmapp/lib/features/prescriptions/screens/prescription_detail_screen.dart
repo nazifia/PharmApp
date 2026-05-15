@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
+import 'package:pharmapp/features/pos/providers/cart_provider.dart';
+import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
+import 'package:pharmapp/shared/models/item.dart';
 import '../providers/prescription_api_client.dart';
 import '../providers/prescription_provider.dart';
 import '../../../shared/models/prescription.dart';
@@ -213,6 +216,9 @@ class _PrescriptionDetailScreenState
                                     _dispense(rx, indices: [i]),
                                 onCheckAvailability: () =>
                                     _showAvailability(med),
+                                onAddToCart: med.isDispensed
+                                    ? null
+                                    : () => _addToCart(med),
                               )
                                   .animate()
                                   .fadeIn(
@@ -234,6 +240,7 @@ class _PrescriptionDetailScreenState
                               onDispenseAll: () => _dispense(rx),
                               onDispenseSelected: () => _dispense(rx,
                                   indices: _selectedIndices.toList()),
+                              onAddAllToCart: () => _addAllToCart(rx),
                             ),
                           ),
                       ],
@@ -246,6 +253,155 @@ class _PrescriptionDetailScreenState
         ],
       ),
     );
+  }
+
+  Future<void> _addToCart(PrescriptionItem med) async {
+    Item? item;
+
+    if (med.itemId != null) {
+      try {
+        item = await ref.read(inventoryApiProvider).fetchById(med.itemId!);
+      } catch (_) {}
+    }
+
+    if (item == null && mounted) {
+      item = await showModalBottomSheet<Item>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _ItemPickerSheet(initialSearch: med.itemName),
+      );
+    }
+
+    if (item == null || !mounted) return;
+
+    if (item.stock == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.errorRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: Text('${item.name} is out of stock.',
+            style: const TextStyle(color: Colors.white)),
+      ));
+      return;
+    }
+
+    _commitToCart(item, med.quantity.round().clamp(1, item.stock));
+
+    if (!mounted) return;
+    final resolvedItem = item;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: EnhancedTheme.successGreen,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: Row(children: [
+        const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            '${resolvedItem.name} added to cart',
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ]),
+      action: SnackBarAction(
+        label: 'Go to POS',
+        textColor: Colors.white,
+        onPressed: () => context.go('/dashboard/pos'),
+      ),
+    ));
+  }
+
+  Future<void> _addAllToCart(Prescription rx) async {
+    final pending = rx.medications.where((m) => !m.isDispensed).toList();
+    if (pending.isEmpty) return;
+
+    int added = 0;
+    int notLinked = 0;
+    int outOfStock = 0;
+
+    for (final med in pending) {
+      if (med.itemId == null) {
+        notLinked++;
+        continue;
+      }
+      try {
+        final item = await ref.read(inventoryApiProvider).fetchById(med.itemId!);
+        if (item.stock == 0) {
+          outOfStock++;
+          continue;
+        }
+        _commitToCart(item, med.quantity.round().clamp(1, item.stock));
+        added++;
+      } catch (_) {
+        notLinked++;
+      }
+    }
+
+    if (!mounted) return;
+
+    String msg;
+    Color color;
+    if (added == 0) {
+      color = EnhancedTheme.warningAmber;
+      msg = notLinked > 0
+          ? 'Items not linked to inventory — use individual "Add to Cart".'
+          : 'All items are out of stock.';
+    } else {
+      color = EnhancedTheme.successGreen;
+      final extras = <String>[];
+      if (notLinked > 0) extras.add('$notLinked not linked');
+      if (outOfStock > 0) extras.add('$outOfStock out of stock');
+      msg = '$added medication(s) added to cart'
+          '${extras.isNotEmpty ? ' (${extras.join(', ')})' : ''}.';
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: color,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: Row(children: [
+        Icon(
+          added > 0
+              ? Icons.shopping_cart_rounded
+              : Icons.warning_amber_rounded,
+          color: added > 0 ? Colors.white : Colors.black87,
+          size: 18,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(msg,
+              style: TextStyle(
+                  color: added > 0 ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600)),
+        ),
+      ]),
+      action: added > 0
+          ? SnackBarAction(
+              label: 'Go to POS',
+              textColor: Colors.white,
+              onPressed: () => context.go('/dashboard/pos'),
+            )
+          : null,
+    ));
+  }
+
+  void _commitToCart(Item item, int quantity) {
+    final cart = ref.read(cartProvider.notifier);
+    final existing =
+        ref.read(cartProvider).where((c) => c.item.id == item.id).firstOrNull;
+    if (existing == null) {
+      cart.addItem(item);
+      if (quantity > 1) cart.updateQuantity(item.id, quantity);
+    } else {
+      cart.updateQuantity(
+          item.id, (existing.quantity + quantity).clamp(1, item.stock));
+    }
   }
 
   void _showEditSheet(Prescription rx) {
@@ -692,6 +848,7 @@ class _MedicationCard extends StatelessWidget {
   final bool canDispense;
   final VoidCallback onDispenseSingle;
   final VoidCallback onCheckAvailability;
+  final VoidCallback? onAddToCart;
 
   const _MedicationCard({
     required this.med,
@@ -702,6 +859,7 @@ class _MedicationCard extends StatelessWidget {
     required this.canDispense,
     required this.onDispenseSingle,
     required this.onCheckAvailability,
+    this.onAddToCart,
   });
 
   @override
@@ -842,6 +1000,32 @@ class _MedicationCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (onAddToCart != null) ...[
+                    const SizedBox(height: 5),
+                    TextButton(
+                      onPressed: onAddToCart,
+                      style: TextButton.styleFrom(
+                        backgroundColor:
+                            EnhancedTheme.warningAmber.withValues(alpha: 0.12),
+                        foregroundColor: EnhancedTheme.warningAmber,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.shopping_cart_rounded, size: 12),
+                          SizedBox(width: 4),
+                          Text('Add to Cart',
+                              style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
                   if (canDispense) ...[
                     const SizedBox(height: 5),
                     TextButton(
@@ -1377,6 +1561,231 @@ class _SheetField extends StatelessWidget {
   }
 }
 
+// ── Item picker sheet (inventory search) ─────────────────────────────────────
+
+class _ItemPickerSheet extends ConsumerStatefulWidget {
+  final String initialSearch;
+  const _ItemPickerSheet({required this.initialSearch});
+
+  @override
+  ConsumerState<_ItemPickerSheet> createState() => _ItemPickerSheetState();
+}
+
+class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet> {
+  late final TextEditingController _ctrl;
+  List<Item>? _results;
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.initialSearch);
+    _search(widget.initialSearch);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() { _results = []; _loading = false; _error = null; });
+      return;
+    }
+    setState(() { _loading = true; _error = null; });
+    try {
+      final items = await ref
+          .read(inventoryApiProvider)
+          .fetchInventory(search: query.trim());
+      if (mounted) setState(() { _results = items; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.72,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E293B),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+          20, 12, 20, MediaQuery.of(context).padding.bottom + 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text('Find Inventory Item',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          const Text('Search and select the matching inventory item to add to cart.',
+              style: TextStyle(color: Colors.white38, fontSize: 12)),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            onChanged: _search,
+            decoration: InputDecoration(
+              hintText: 'Search by name or brand…',
+              hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+              prefixIcon: const Icon(Icons.search_rounded,
+                  color: Colors.white38, size: 20),
+              suffixIcon: _loading
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: EnhancedTheme.primaryTeal)),
+                    )
+                  : null,
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.06),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: EnhancedTheme.primaryTeal),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(child: _buildBody()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off_rounded,
+                color: Colors.white24, size: 36),
+            const SizedBox(height: 10),
+            Text(_error!,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(color: Colors.white38, fontSize: 13)),
+          ],
+        ),
+      );
+    }
+    final results = _results;
+    if (results == null || results.isEmpty) {
+      if (_loading) return const SizedBox();
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off_rounded, color: Colors.white24, size: 40),
+            SizedBox(height: 12),
+            Text('No matching items found in inventory.',
+                style: TextStyle(color: Colors.white38, fontSize: 14)),
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      itemCount: results.length,
+      separatorBuilder: (_, __) =>
+          const Divider(color: Colors.white10, height: 1),
+      itemBuilder: (_, i) {
+        final item = results[i];
+        final inStock = item.stock > 0;
+        return ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: inStock
+                  ? EnhancedTheme.primaryTeal.withValues(alpha: 0.15)
+                  : Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              inStock
+                  ? Icons.medication_rounded
+                  : Icons.remove_shopping_cart_rounded,
+              color: inStock
+                  ? EnhancedTheme.primaryTeal
+                  : Colors.white24,
+              size: 20,
+            ),
+          ),
+          title: Text(item.name,
+              style: TextStyle(
+                  color: inStock ? Colors.white : Colors.white38,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14)),
+          subtitle: Text(
+            '${item.brand.isNotEmpty ? item.brand : item.dosageForm}'
+            '${item.brand.isNotEmpty && item.dosageForm.isNotEmpty ? ' · ${item.dosageForm}' : ''}',
+            style:
+                const TextStyle(color: Colors.white38, fontSize: 12),
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                inStock ? '${item.stock} in stock' : 'Out of stock',
+                style: TextStyle(
+                    color:
+                        inStock ? EnhancedTheme.successGreen : EnhancedTheme.errorRed,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'GHS ${item.price.toStringAsFixed(2)}',
+                style: const TextStyle(
+                    color: Colors.white54, fontSize: 11),
+              ),
+            ],
+          ),
+          onTap: inStock ? () => Navigator.pop(context, item) : null,
+        );
+      },
+    );
+  }
+}
+
 // ── Bottom action bar ─────────────────────────────────────────────────────────
 
 class _BottomActions extends StatelessWidget {
@@ -1386,6 +1795,7 @@ class _BottomActions extends StatelessWidget {
   final bool isBusy;
   final VoidCallback onDispenseAll;
   final VoidCallback onDispenseSelected;
+  final VoidCallback? onAddAllToCart;
 
   const _BottomActions({
     required this.rx,
@@ -1394,6 +1804,7 @@ class _BottomActions extends StatelessWidget {
     required this.isBusy,
     required this.onDispenseAll,
     required this.onDispenseSelected,
+    this.onAddAllToCart,
   });
 
   @override
@@ -1438,28 +1849,50 @@ class _BottomActions extends StatelessWidget {
                 ),
               ],
             )
-          : ElevatedButton.icon(
-              onPressed: isBusy ? null : onDispenseAll,
-              icon: isBusy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.done_all_rounded, size: 20),
-              label: Text(
-                rx.isPartial
-                    ? 'Dispense Remaining (${rx.undispensedCount})'
-                    : 'Dispense All (${rx.medications.length})',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: EnhancedTheme.successGreen,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onAddAllToCart != null)
+                  OutlinedButton.icon(
+                    onPressed: isBusy ? null : onAddAllToCart,
+                    icon: const Icon(Icons.shopping_cart_rounded, size: 18),
+                    label: Text(
+                      'Add All to Cart (${rx.undispensedCount})',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: EnhancedTheme.warningAmber,
+                      side: const BorderSide(color: EnhancedTheme.warningAmber),
+                      minimumSize: const Size(double.infinity, 46),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                if (onAddAllToCart != null) const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: isBusy ? null : onDispenseAll,
+                  icon: isBusy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.done_all_rounded, size: 20),
+                  label: Text(
+                    rx.isPartial
+                        ? 'Dispense Remaining (${rx.undispensedCount})'
+                        : 'Dispense All (${rx.medications.length})',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: EnhancedTheme.successGreen,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ],
             ),
     );
   }
