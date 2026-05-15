@@ -184,6 +184,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       );
       if (!mounted) return;
       ref.read(cartProvider.notifier).clearCart();
+      ref.read(prescriptionCartBindingsProvider.notifier).state = {};
       ref.read(selectedCustomerProvider.notifier).state = null;
       _showSnackBar('Payment request sent to cashier', type: _SnackType.success);
     } on DioException catch (e) {
@@ -200,6 +201,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           description: 'Send payment request to cashier${patientName.isNotEmpty ? ' for $patientName' : ''}',
         );
         ref.read(cartProvider.notifier).clearCart();
+        ref.read(prescriptionCartBindingsProvider.notifier).state = {};
         ref.read(selectedCustomerProvider.notifier).state = null;
         _showSnackBar('Offline — request queued for sync', type: _SnackType.warning);
       } else {
@@ -1252,6 +1254,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   Expanded(child: OutlinedButton.icon(
                     onPressed: () {
                       ref.read(cartProvider.notifier).clearCart();
+                      ref.read(prescriptionCartBindingsProvider.notifier).state = {};
                       ref.read(selectedCustomerProvider.notifier).state = null;
                     },
                     style: OutlinedButton.styleFrom(

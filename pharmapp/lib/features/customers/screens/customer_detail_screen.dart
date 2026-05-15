@@ -386,6 +386,7 @@ class CustomerDetailScreen extends ConsumerWidget {
 
   void _startNewSale(BuildContext context, WidgetRef ref, Customer customer) {
     ref.read(cartProvider.notifier).clearCart();
+    ref.read(prescriptionCartBindingsProvider.notifier).state = {};
     ref.read(selectedCustomerProvider.notifier).state = SelectedCustomer(
       id: customer.id,
       name: customer.name,

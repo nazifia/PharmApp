@@ -140,6 +140,7 @@ class _PrescriptionDetailScreenState
                 // Body content
                 Expanded(
                   child: rxAsync.when(
+                    skipLoadingOnReload: true,
                     loading: () => const Center(
                         child: CircularProgressIndicator(
                             color: EnhancedTheme.primaryTeal)),
@@ -170,7 +171,8 @@ class _PrescriptionDetailScreenState
                       return Stack(
                       children: [
                         ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                          padding: EdgeInsets.fromLTRB(16, 8, 16,
+                              canWrite && _selectMode && (rx.isPending || rx.isPartial) ? 120.0 : 24.0),
                           children: [
                             _PatientCard(rx: rx),
                             const SizedBox(height: 16),
@@ -218,7 +220,7 @@ class _PrescriptionDetailScreenState
                                     _showAvailability(med),
                                 onAddToCart: med.isDispensed
                                     ? null
-                                    : () => _addToCart(med),
+                                    : () => _addToCart(med, i, rx.id),
                               )
                                   .animate()
                                   .fadeIn(
@@ -227,17 +229,14 @@ class _PrescriptionDetailScreenState
                             }),
                           ],
                         ),
-                        if (canWrite && (rx.isPending || rx.isPartial))
+                        if (canWrite && _selectMode && (rx.isPending || rx.isPartial))
                           Positioned(
                             left: 0,
                             right: 0,
                             bottom: 0,
                             child: _BottomActions(
-                              rx: rx,
-                              selectMode: _selectMode,
                               selectedIndices: _selectedIndices,
                               isBusy: isBusy,
-                              onDispenseAll: () => _dispense(rx),
                               onDispenseSelected: () => _dispense(rx,
                                   indices: _selectedIndices.toList()),
                             ),
@@ -254,7 +253,7 @@ class _PrescriptionDetailScreenState
     );
   }
 
-  Future<void> _addToCart(PrescriptionItem med) async {
+  Future<void> _addToCart(PrescriptionItem med, int medIndex, int prescriptionId) async {
     Item? item;
 
     if (med.itemId != null) {
@@ -287,6 +286,15 @@ class _PrescriptionDetailScreenState
     }
 
     _commitToCart(item, med.quantity.round().clamp(1, item.stock));
+
+    // Register binding so the POS checkout automatically dispenses this medication slot.
+    ref.read(prescriptionCartBindingsProvider.notifier).update((b) {
+      final updated = Map<int, List<int>>.from(b);
+      final indices = List<int>.from(updated[prescriptionId] ?? []);
+      if (!indices.contains(medIndex)) indices.add(medIndex);
+      updated[prescriptionId] = indices;
+      return updated;
+    });
 
     if (!mounted) return;
     final resolvedItem = item;
@@ -411,6 +419,7 @@ class _PrescriptionDetailScreenState
   Future<void> _dispense(Prescription rx, {List<int>? indices}) async {
     final confirm = await showDialog<bool>(
       context: context,
+      useRootNavigator: false,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         shape:
@@ -1760,19 +1769,13 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet> {
 // ── Bottom action bar ─────────────────────────────────────────────────────────
 
 class _BottomActions extends StatelessWidget {
-  final Prescription rx;
-  final bool selectMode;
   final Set<int> selectedIndices;
   final bool isBusy;
-  final VoidCallback onDispenseAll;
   final VoidCallback onDispenseSelected;
 
   const _BottomActions({
-    required this.rx,
-    required this.selectMode,
     required this.selectedIndices,
     required this.isBusy,
-    required this.onDispenseAll,
     required this.onDispenseSelected,
   });
 
@@ -1786,66 +1789,37 @@ class _BottomActions extends StatelessWidget {
         border:
             Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
       ),
-      child: selectMode
-          ? Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: isBusy || selectedIndices.isEmpty
-                        ? null
-                        : onDispenseSelected,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: EnhancedTheme.successGreen,
-                      side: const BorderSide(color: EnhancedTheme.successGreen),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: isBusy || selectedIndices.isEmpty
+                  ? null
+                  : onDispenseSelected,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: EnhancedTheme.successGreen,
+                side: const BorderSide(color: EnhancedTheme.successGreen),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: isBusy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: EnhancedTheme.successGreen))
+                  : Text(
+                      selectedIndices.isEmpty
+                          ? 'Select medications'
+                          : 'Dispense ${selectedIndices.length} selected',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    child: isBusy
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: EnhancedTheme.successGreen))
-                        : Text(
-                            selectedIndices.isEmpty
-                                ? 'Select medications'
-                                : 'Dispense ${selectedIndices.length} selected',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                  ),
-                ),
-              ],
-            )
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: isBusy ? null : onDispenseAll,
-                  icon: isBusy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.done_all_rounded, size: 20),
-                  label: Text(
-                    rx.isPartial
-                        ? 'Dispense Remaining (${rx.undispensedCount})'
-                        : 'Dispense All (${rx.medications.length})',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: EnhancedTheme.successGreen,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }

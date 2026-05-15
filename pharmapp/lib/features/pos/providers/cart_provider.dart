@@ -69,3 +69,8 @@ class SelectedCustomer {
 }
 
 final selectedCustomerProvider = StateProvider<SelectedCustomer?>((ref) => null);
+
+/// Tracks which cart items originated from prescriptions so that a completed
+/// POS checkout can auto-dispense those medication slots.
+/// Key = prescription ID, Value = list of 0-based medication indices in that prescription.
+final prescriptionCartBindingsProvider = StateProvider<Map<int, List<int>>>((ref) => {});

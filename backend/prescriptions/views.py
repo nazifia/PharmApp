@@ -250,9 +250,18 @@ def dispense_prescription(request, pk):
                     med.dispensed_by = request.user
                     med.save()
 
-        # Recompute aggregate status
-        rx.refresh_from_db()
-        rx.recompute_status()
+        # Compute status from the in-memory medications list (avoids stale
+        # prefetch cache that refresh_from_db() does not clear).
+        dispensed_count = sum(1 for m in medications if m.is_dispensed)
+        if dispensed_count == 0:
+            rx.status = 'pending'
+            rx.dispensed_at = None
+        elif dispensed_count == len(medications):
+            rx.status = 'dispensed'
+            if not rx.dispensed_at:
+                rx.dispensed_at = now
+        else:
+            rx.status = 'partial'
         rx.save()
 
     log_activity(
@@ -265,7 +274,7 @@ def dispense_prescription(request, pk):
     # Return fresh data with prefetched medications
     rx = (Prescription.objects
           .prefetch_related('medications')
-          .get(pk=pk))
+          .get(pk=pk, organization=org))
     return Response(rx.to_api_dict())
 
 

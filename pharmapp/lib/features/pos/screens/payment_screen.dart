@@ -11,6 +11,7 @@ import 'package:pharmapp/shared/models/sale.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/offline/offline_queue.dart';
 import '../../../features/branches/providers/branch_provider.dart';
+import '../../../features/prescriptions/providers/prescription_provider.dart';
 import '../../../shared/models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../providers/pos_api_provider.dart';
@@ -190,6 +191,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
       _buyerNameCtrl.clear();
+      _autoDispensePrescriptions();
       _showOfflineQueuedSheet(receiptData);
     } else if (result != null) {
       // Merge the manually-typed buyer name into the backend response so the
@@ -214,6 +216,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
       _buyerNameCtrl.clear();
+      _autoDispensePrescriptions();
       _showSuccessSheet(enrichedResult);
     } else {
       final err = ref.read(checkoutProvider).error;
@@ -267,6 +270,20 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         'subtotal':    c.total,
       }).toList(),
     };
+  }
+
+  /// Fire-and-forget: marks prescription medications as dispensed for any
+  /// prescription items that were added to the cart before checkout.
+  void _autoDispensePrescriptions() {
+    final bindings = ref.read(prescriptionCartBindingsProvider);
+    if (bindings.isEmpty) return;
+    ref.read(prescriptionCartBindingsProvider.notifier).state = {};
+    for (final entry in bindings.entries) {
+      ref.read(prescriptionNotifierProvider.notifier).dispense(
+        entry.key,
+        itemIndices: entry.value,
+      );
+    }
   }
 
   void _showSnackBar(String msg, {required _SnackType type}) {

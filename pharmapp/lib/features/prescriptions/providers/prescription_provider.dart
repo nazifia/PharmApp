@@ -136,7 +136,8 @@ class PrescriptionNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       final updated = await _api.dispensePrescription(id, itemIndices: itemIndices);
-      _ref.invalidate(prescriptionDetailProvider(id));
+      // Only invalidate lists — the detail screen manages its own state via
+      // _localRx so the optimistic/PATCH result stays visible without a reload.
       _invalidateLists();
       state = const AsyncValue.data(null);
       return updated;
