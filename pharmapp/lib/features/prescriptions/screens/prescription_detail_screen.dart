@@ -325,21 +325,50 @@ class _PrescriptionDetailScreenState
     int outOfStock = 0;
 
     for (final med in pending) {
-      if (med.itemId == null) {
+      Item? item;
+
+      // 1. Try to resolve via linked inventory ID.
+      if (med.itemId != null) {
+        try {
+          item = await ref.read(inventoryApiProvider).fetchById(med.itemId!);
+        } catch (_) {}
+      }
+
+      // 2. If no linked ID (or fetch failed), auto-search by medication name.
+      if (item == null) {
+        try {
+          final results = await ref
+              .read(inventoryApiProvider)
+              .fetchInventory(search: med.itemName.trim());
+          if (results.length == 1) {
+            item = results.first;
+          } else if (results.isNotEmpty) {
+            // Pick the closest name match (case-insensitive exact match first,
+            // then first result that contains the name).
+            final nameLower = med.itemName.toLowerCase();
+            item = results.firstWhere(
+              (r) => r.name.toLowerCase() == nameLower,
+              orElse: () => results.firstWhere(
+                (r) => r.name.toLowerCase().contains(nameLower),
+                orElse: () => results.first,
+              ),
+            );
+          }
+        } catch (_) {}
+      }
+
+      if (item == null) {
         notLinked++;
         continue;
       }
-      try {
-        final item = await ref.read(inventoryApiProvider).fetchById(med.itemId!);
-        if (item.stock == 0) {
-          outOfStock++;
-          continue;
-        }
-        _commitToCart(item, med.quantity.round().clamp(1, item.stock));
-        added++;
-      } catch (_) {
-        notLinked++;
+
+      if (item.stock == 0) {
+        outOfStock++;
+        continue;
       }
+
+      _commitToCart(item, med.quantity.round().clamp(1, item.stock));
+      added++;
     }
 
     if (!mounted) return;
@@ -348,13 +377,17 @@ class _PrescriptionDetailScreenState
     Color color;
     if (added == 0) {
       color = EnhancedTheme.warningAmber;
-      msg = notLinked > 0
-          ? 'Items not linked to inventory — use individual "Add to Cart".'
-          : 'All items are out of stock.';
+      if (outOfStock > 0 && notLinked == 0) {
+        msg = 'All items are out of stock.';
+      } else if (notLinked > 0 && outOfStock == 0) {
+        msg = 'Could not find $notLinked medication(s) in inventory — use individual "Add to Cart".';
+      } else {
+        msg = '$notLinked not found in inventory, $outOfStock out of stock.';
+      }
     } else {
       color = EnhancedTheme.successGreen;
       final extras = <String>[];
-      if (notLinked > 0) extras.add('$notLinked not linked');
+      if (notLinked > 0) extras.add('$notLinked not found');
       if (outOfStock > 0) extras.add('$outOfStock out of stock');
       msg = '$added medication(s) added to cart'
           '${extras.isNotEmpty ? ' (${extras.join(', ')})' : ''}.';
