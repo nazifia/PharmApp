@@ -71,15 +71,34 @@ class _PrescriptionDetailScreenState
                       ),
                       if (canWrite)
                         rxAsync.whenOrNull(
-                          data: (rx) => rx.isPending || rx.isPartial
-                              ? TextButton.icon(
+                          data: (rx) => Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () => _showEditSheet(rx),
+                                child: Container(
+                                  padding: const EdgeInsets.all(7),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.12)),
+                                  ),
+                                  child: const Icon(Icons.edit_rounded,
+                                      color: Colors.black54, size: 18),
+                                ),
+                              ),
+                              if (rx.isPending || rx.isPartial) ...[
+                                const SizedBox(width: 6),
+                                TextButton.icon(
                                   onPressed: _selectMode
                                       ? () => setState(() {
                                             _selectMode = false;
                                             _selectedIndices.clear();
                                           })
-                                      : () =>
-                                          setState(() => _selectMode = true),
+                                      : () => setState(
+                                          () => _selectMode = true),
                                   icon: Icon(
                                     _selectMode
                                         ? Icons.close_rounded
@@ -92,8 +111,10 @@ class _PrescriptionDetailScreenState
                                     style: const TextStyle(
                                         color: EnhancedTheme.accentCyan),
                                   ),
-                                )
-                              : null,
+                                ),
+                              ],
+                            ],
+                          ),
                         ) ??
                         const SizedBox(),
                     ],
@@ -207,6 +228,69 @@ class _PrescriptionDetailScreenState
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditSheet(Prescription rx) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditPrescriptionSheet(
+        rx: rx,
+        onSave: (data) async {
+          Navigator.pop(context);
+          final result = await ref
+              .read(prescriptionNotifierProvider.notifier)
+              .update(rx.id, data);
+          if (!mounted) return;
+          final notifierState = ref.read(prescriptionNotifierProvider);
+          if (result != null) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: EnhancedTheme.successGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+              content: const Row(children: [
+                Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 20),
+                SizedBox(width: 10),
+                Text('Prescription updated.',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w600)),
+              ]),
+            ));
+          } else if (notifierState is AsyncError) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: EnhancedTheme.errorRed,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+              content: Text(notifierState.error.toString(),
+                  style: const TextStyle(color: Colors.white)),
+            ));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: EnhancedTheme.warningAmber,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+              content: const Row(children: [
+                Icon(Icons.wifi_off_rounded, color: Colors.black, size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                    child: Text('Queued for sync when back online.',
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600))),
+              ]),
+            ));
+          }
+        },
       ),
     );
   }
@@ -1027,6 +1111,251 @@ class _AvailabilityTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Edit prescription bottom sheet ───────────────────────────────────────────
+
+class _EditPrescriptionSheet extends StatefulWidget {
+  final Prescription rx;
+  final void Function(Map<String, dynamic>) onSave;
+  const _EditPrescriptionSheet({required this.rx, required this.onSave});
+
+  @override
+  State<_EditPrescriptionSheet> createState() => _EditPrescriptionSheetState();
+}
+
+class _EditPrescriptionSheetState extends State<_EditPrescriptionSheet> {
+  late final TextEditingController _doctorCtrl;
+  late final TextEditingController _diagnosisCtrl;
+  late final TextEditingController _notesCtrl;
+  late String _status;
+
+  @override
+  void initState() {
+    super.initState();
+    _doctorCtrl = TextEditingController(text: widget.rx.doctorName ?? '');
+    _diagnosisCtrl = TextEditingController(text: widget.rx.diagnosis ?? '');
+    _notesCtrl = TextEditingController(text: widget.rx.notes ?? '');
+    _status = widget.rx.status;
+  }
+
+  @override
+  void dispose() {
+    _doctorCtrl.dispose();
+    _diagnosisCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E293B),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+            20, 12, 20, MediaQuery.of(context).padding.bottom + 20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Edit Prescription',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              const Text('Status',
+                  style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              _StatusSelector(
+                current: _status,
+                onChanged: (v) => setState(() => _status = v),
+              ),
+              const SizedBox(height: 16),
+              _SheetField(
+                controller: _doctorCtrl,
+                label: 'Doctor Name',
+                hint: 'e.g. Dr. Smith',
+                icon: Icons.medical_information_rounded,
+              ),
+              const SizedBox(height: 12),
+              _SheetField(
+                controller: _diagnosisCtrl,
+                label: 'Diagnosis',
+                hint: 'e.g. Hypertension',
+                icon: Icons.local_hospital_rounded,
+              ),
+              const SizedBox(height: 12),
+              _SheetField(
+                controller: _notesCtrl,
+                label: 'Notes',
+                hint: 'Additional instructions…',
+                icon: Icons.notes_rounded,
+                maxLines: 3,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  widget.onSave({
+                    'status': _status,
+                    'doctor_name': _doctorCtrl.text.trim(),
+                    'diagnosis': _diagnosisCtrl.text.trim(),
+                    'notes': _notesCtrl.text.trim(),
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EnhancedTheme.primaryTeal,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text('Save Changes',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusSelector extends StatelessWidget {
+  final String current;
+  final void Function(String) onChanged;
+  const _StatusSelector({required this.current, required this.onChanged});
+
+  static const _statuses = ['pending', 'partial', 'dispensed'];
+  static const _labels = ['Pending', 'Partial', 'Dispensed'];
+  static const _colors = [
+    EnhancedTheme.warningAmber,
+    EnhancedTheme.accentCyan,
+    EnhancedTheme.successGreen,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(_statuses.length, (i) {
+        final selected = current == _statuses[i];
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: i < 2 ? 8 : 0),
+            child: GestureDetector(
+              onTap: () => onChanged(_statuses[i]),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? _colors[i].withValues(alpha: 0.18)
+                      : Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: selected
+                        ? _colors[i]
+                        : Colors.white.withValues(alpha: 0.15),
+                    width: selected ? 1.5 : 1,
+                  ),
+                ),
+                child: Text(
+                  _labels[i],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: selected ? _colors[i] : Colors.white38,
+                    fontSize: 13,
+                    fontWeight:
+                        selected ? FontWeight.w700 : FontWeight.w400,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _SheetField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+  final IconData icon;
+  final int maxLines;
+
+  const _SheetField({
+    required this.controller,
+    required this.label,
+    required this.hint,
+    required this.icon,
+    this.maxLines = 1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle:
+                const TextStyle(color: Colors.white30, fontSize: 13),
+            prefixIcon: Icon(icon, color: Colors.white38, size: 18),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.06),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  const BorderSide(color: EnhancedTheme.primaryTeal),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 12),
+          ),
+        ),
+      ],
     );
   }
 }

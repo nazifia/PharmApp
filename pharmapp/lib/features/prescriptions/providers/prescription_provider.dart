@@ -103,6 +103,35 @@ class PrescriptionNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<Prescription?> update(int id, Map<String, dynamic> data) async {
+    state = const AsyncValue.loading();
+    try {
+      final updated = await _api.updatePrescription(id, data);
+      _ref.invalidate(prescriptionDetailProvider(id));
+      _invalidateLists();
+      state = const AsyncValue.data(null);
+      return updated;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+              'PATCH',
+              '/prescriptions/$id/',
+              body: data,
+              description: 'Update prescription #$id',
+            );
+        _ref.invalidate(prescriptionDetailProvider(id));
+        _invalidateLists();
+        state = const AsyncValue.data(null);
+        return null;
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
   Future<Prescription?> dispense(int id, {List<int>? itemIndices}) async {
     state = const AsyncValue.loading();
     try {

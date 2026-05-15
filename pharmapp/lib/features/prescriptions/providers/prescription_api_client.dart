@@ -151,6 +151,27 @@ class PrescriptionApiClient {
     }
   }
 
+  // ── Update prescription metadata / status ─────────────────────────────────
+
+  /// Updates editable fields: doctor_name, diagnosis, notes, status.
+  /// Status values: 'pending' | 'partial' | 'dispensed'.
+  Future<Prescription> updatePrescription(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final res = await _dio.patch('/prescriptions/$id/', data: data);
+      final updated = Prescription.fromJson(res.data as Map<String, dynamic>);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cache_prescription_$id');
+      return updated;
+    } on DioException catch (e) {
+      if (e.response == null) rethrow;
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to update prescription');
+    }
+  }
+
   // ── Prescriptions for a specific customer ─────────────────────────────────
 
   /// Returns all prescriptions for a customer by their ID.
