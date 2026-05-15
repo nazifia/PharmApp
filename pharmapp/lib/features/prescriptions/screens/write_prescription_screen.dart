@@ -191,8 +191,9 @@ class _WritePrescriptionScreenState
     } else {
       final notifierState = ref.read(prescriptionNotifierProvider);
       if (notifierState is AsyncError) {
+        final msg = notifierState.error.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(_snack(
-          notifierState.error.toString(),
+          msg,
           EnhancedTheme.errorRed,
           Colors.white,
         ));
@@ -478,7 +479,7 @@ class _WritePrescriptionScreenState
           children: [
             const Text('Walk-in Patient Details',
                 style: TextStyle(
-                    color: Colors.black87,
+                    color: Colors.white,
                     fontSize: 17,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
@@ -486,6 +487,7 @@ class _WritePrescriptionScreenState
               controller: _walkInNameCtrl,
               label: 'Patient Name *',
               icon: Icons.person_rounded,
+              isOnDark: true,
             ),
             const SizedBox(height: 12),
             _DarkTextField(
@@ -493,6 +495,7 @@ class _WritePrescriptionScreenState
               label: 'Phone Number (optional)',
               icon: Icons.phone_rounded,
               keyboardType: TextInputType.phone,
+              isOnDark: true,
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -974,6 +977,7 @@ class _DarkTextField extends StatelessWidget {
   final IconData icon;
   final TextInputType keyboardType;
   final int maxLines;
+  final bool isOnDark;
 
   const _DarkTextField({
     required this.controller,
@@ -981,20 +985,23 @@ class _DarkTextField extends StatelessWidget {
     required this.icon,
     this.keyboardType = TextInputType.text,
     this.maxLines = 1,
+    this.isOnDark = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final textColor = isOnDark ? Colors.white : Colors.black87;
+    final labelColor = isOnDark ? Colors.white54 : Colors.black45;
+    final iconColor = isOnDark ? Colors.white38 : Colors.black38;
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      style: const TextStyle(color: Colors.black87, fontSize: 14),
+      style: TextStyle(color: textColor, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(
-            color: Colors.black45, fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.black38, size: 19),
+        labelStyle: TextStyle(color: labelColor, fontSize: 13),
+        prefixIcon: Icon(icon, color: iconColor, size: 19),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.06),
         border: OutlineInputBorder(

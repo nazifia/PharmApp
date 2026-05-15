@@ -441,7 +441,8 @@ class _PrescriptionDetailScreenState
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               margin: const EdgeInsets.all(16),
-              content: Text(notifierState.error.toString(),
+              content: Text(
+                  notifierState.error.toString().replaceFirst('Exception: ', ''),
                   style: const TextStyle(color: Colors.white)),
             ));
           } else {
@@ -547,7 +548,7 @@ class _PrescriptionDetailScreenState
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
           content: Text(
-            notifierState.error.toString(),
+            notifierState.error.toString().replaceFirst('Exception: ', ''),
             style: const TextStyle(color: Colors.white),
           ),
         ));

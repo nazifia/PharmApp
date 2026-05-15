@@ -108,6 +108,7 @@ class _PrescriptionListScreenState
                             prescriptions: list,
                             statusColor: _statusColor,
                             statusLabel: _statusLabel,
+                            canWrite: canWrite,
                           ),
                   ),
                 ),
@@ -262,11 +263,13 @@ class _PrescriptionGrid extends StatelessWidget {
   final List<Prescription> prescriptions;
   final Color Function(String) statusColor;
   final String Function(String) statusLabel;
+  final bool canWrite;
 
   const _PrescriptionGrid({
     required this.prescriptions,
     required this.statusColor,
     required this.statusLabel,
+    required this.canWrite,
   });
 
   @override
@@ -280,6 +283,7 @@ class _PrescriptionGrid extends StatelessWidget {
           prescription: rx,
           statusColor: statusColor,
           statusLabel: statusLabel,
+          canWrite: canWrite,
         )
             .animate()
             .fadeIn(delay: Duration(milliseconds: i * 40), duration: 300.ms)
@@ -289,25 +293,125 @@ class _PrescriptionGrid extends StatelessWidget {
   }
 }
 
-class _PrescriptionCard extends StatelessWidget {
+class _PrescriptionCard extends ConsumerStatefulWidget {
   final Prescription prescription;
   final Color Function(String) statusColor;
   final String Function(String) statusLabel;
+  final bool canWrite;
 
   const _PrescriptionCard({
     required this.prescription,
     required this.statusColor,
     required this.statusLabel,
+    required this.canWrite,
   });
 
   @override
+  ConsumerState<_PrescriptionCard> createState() => _PrescriptionCardState();
+}
+
+class _PrescriptionCardState extends ConsumerState<_PrescriptionCard> {
+  bool _dispensing = false;
+
+  Future<void> _quickDispenseAll() async {
+    final rx = widget.prescription;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Confirm Dispense',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: Text(
+          'Dispense all ${rx.undispensedCount} pending medication(s) for ${rx.customerName}?',
+          style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.75), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: EnhancedTheme.successGreen,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Dispense'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _dispensing = true);
+    final result = await ref
+        .read(prescriptionNotifierProvider.notifier)
+        .dispense(rx.id);
+    if (!mounted) return;
+    setState(() => _dispensing = false);
+
+    if (result != null) {
+      ref.invalidate(prescriptionListProvider);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.successGreen,
+        behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: const Row(children: [
+          Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+          SizedBox(width: 10),
+          Text('Medications dispensed.',
+              style: TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w600)),
+        ]),
+      ));
+    } else {
+      final notifierState = ref.read(prescriptionNotifierProvider);
+      Color bg;
+      Widget content;
+      if (notifierState is AsyncError) {
+        bg = EnhancedTheme.errorRed;
+        content = Text(
+          notifierState.error.toString().replaceFirst('Exception: ', ''),
+          style: const TextStyle(color: Colors.white),
+        );
+      } else {
+        bg = EnhancedTheme.warningAmber;
+        content = const Row(children: [
+          Icon(Icons.wifi_off_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Expanded(
+              child: Text('Queued for sync when back online.',
+                  style: TextStyle(
+                      color: Colors.black, fontWeight: FontWeight.w600))),
+        ]);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: bg,
+        behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: content,
+      ));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final rx = prescription;
-    final sColor = statusColor(rx.status);
+    final rx = widget.prescription;
+    final sColor = widget.statusColor(rx.status);
+    final showDispense =
+        widget.canWrite && (rx.isPending || rx.isPartial);
 
     return GestureDetector(
-      onTap: () =>
-          context.push('/dashboard/prescriptions/${rx.id}'),
+      onTap: () => context.push('/dashboard/prescriptions/${rx.id}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -325,7 +429,8 @@ class _PrescriptionCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                      color:
+                          EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.medical_services_rounded,
@@ -346,8 +451,7 @@ class _PrescriptionCard extends StatelessWidget {
                         if (rx.customerPhone.isNotEmpty)
                           Text(rx.customerPhone,
                               style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 12)),
+                                  color: Colors.black54, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -357,10 +461,11 @@ class _PrescriptionCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: sColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: sColor.withValues(alpha: 0.4)),
+                      border:
+                          Border.all(color: sColor.withValues(alpha: 0.4)),
                     ),
                     child: Text(
-                      statusLabel(rx.status),
+                      widget.statusLabel(rx.status),
                       style: TextStyle(
                           color: sColor,
                           fontSize: 11,
@@ -392,18 +497,17 @@ class _PrescriptionCard extends StatelessWidget {
                     ),
                 ],
               ),
-              if (rx.pharmacyName != null && rx.pharmacyName!.isNotEmpty) ...[
+              if (rx.pharmacyName != null &&
+                  rx.pharmacyName!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     const Icon(Icons.local_pharmacy_rounded,
-                        size: 13,
-                        color: Colors.black38),
+                        size: 13, color: Colors.black38),
                     const SizedBox(width: 4),
                     Text(rx.pharmacyName!,
                         style: const TextStyle(
-                            color: Colors.black38,
-                            fontSize: 11)),
+                            color: Colors.black38, fontSize: 11)),
                   ],
                 ),
               ],
@@ -413,15 +517,73 @@ class _PrescriptionCard extends StatelessWidget {
                 children: [
                   Text(rx.createdAt,
                       style: const TextStyle(
-                          color: Colors.black38,
-                          fontSize: 11)),
+                          color: Colors.black38, fontSize: 11)),
                   if (rx.createdByName != null)
                     Text('by ${rx.createdByName}',
                         style: const TextStyle(
-                            color: Colors.black38,
-                            fontSize: 11)),
+                            color: Colors.black38, fontSize: 11)),
                 ],
               ),
+              if (showDispense) ...[
+                const SizedBox(height: 10),
+                const Divider(color: Colors.white10, height: 1),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${rx.undispensedCount} medication(s) pending',
+                        style: const TextStyle(
+                            color: Colors.black45, fontSize: 11),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _dispensing ? null : _quickDispenseAll,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: EnhancedTheme.successGreen
+                              .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: EnhancedTheme.successGreen
+                                  .withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_dispensing)
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: EnhancedTheme.successGreen),
+                              )
+                            else
+                              const Icon(Icons.done_all_rounded,
+                                  color: EnhancedTheme.successGreen,
+                                  size: 14),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Dispense All',
+                              style: TextStyle(
+                                color: _dispensing
+                                    ? EnhancedTheme.successGreen
+                                        .withValues(alpha: 0.5)
+                                    : EnhancedTheme.successGreen,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
