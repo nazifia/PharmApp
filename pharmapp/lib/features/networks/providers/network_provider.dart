@@ -139,6 +139,14 @@ class NetworkApiClient {
   Future<void> removeMember(int networkId, int orgId) async {
     await _dio.delete('/auth/networks/$networkId/members/$orgId/');
   }
+
+  /// Called after org registration — silently joins the platform default network.
+  /// Errors are swallowed so a missing/unavailable endpoint never breaks sign-up.
+  Future<void> joinDefaultNetwork() async {
+    try {
+      await _dio.post('/auth/networks/join-default/');
+    } catch (_) {}
+  }
 }
 
 final networkApiProvider = Provider<NetworkApiClient>((ref) {

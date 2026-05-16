@@ -10,6 +10,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/offline/eager_sync_service.dart';
 import '../../../core/services/auth_storage.dart';
 import '../../../features/branches/providers/branch_provider.dart';
+import '../../../features/networks/providers/network_provider.dart';
 import 'auth_repository.dart';
 
 export '../../../core/network/api_client.dart' show authTokenProvider;
@@ -110,6 +111,7 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
   }
 
   /// Register a new pharmacy organization + first admin user.
+  /// Auto-logs in on success and joins the platform default network in the background.
   Future<void> registerOrg({
     required String orgName,
     required String phone,
@@ -119,15 +121,26 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     _errorMessage = null;
     state = AuthFlowState.registering;
     try {
-      await _ref.read(authRepositoryProvider).registerOrg(
+      final result = await _ref.read(authRepositoryProvider).registerOrg(
             orgName: orgName,
             phone: phone,
             password: password,
             address: address,
           );
-      // Registration succeeded — do NOT log the user in automatically.
-      // Redirect to login so they authenticate explicitly.
-      state = AuthFlowState.registered;
+
+      final String token = result['token'] as String;
+      final User   user  = result['user']  as User;
+
+      _ref.read(authTokenProvider.notifier).state   = token;
+      _ref.read(currentUserProvider.notifier).state = user;
+
+      await AuthStorage.write('auth_token',   token);
+      await AuthStorage.write('current_user', jsonEncode(user.toJson()));
+
+      // Auto-join default network — fire and forget, never blocks sign-up.
+      _ref.read(networkApiProvider).joinDefaultNetwork();
+
+      state = AuthFlowState.authenticated;
     } catch (e) {
       _errorMessage = _friendly(e);
       state = AuthFlowState.error;

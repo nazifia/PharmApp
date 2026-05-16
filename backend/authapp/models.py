@@ -305,6 +305,7 @@ class PharmacyNetwork(models.Model):
         related_name='created_networks',
     )
     is_active   = models.BooleanField(default=True)
+    is_default  = models.BooleanField(default=False, db_index=True)
     created_at  = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):

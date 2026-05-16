@@ -9,6 +9,7 @@ POST /api/networks/<id>/accept/         — accept a pending invitation
 POST /api/networks/<id>/decline/        — decline / cancel a pending invitation
 DELETE /api/networks/<id>/leave/        — leave (non-owner) or disband (owner, if sole owner)
 DELETE /api/networks/<id>/members/<org_id>/  — owner removes a member org
+POST /api/networks/join-default/        — auto-join the platform default network (idempotent)
 """
 
 from django.utils import timezone
@@ -234,6 +235,42 @@ def network_leave(request, network_id):
             description=f'"{org.name}" left network "{network.name}"',
         )
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Join default network ──────────────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def network_join_default(request):
+    org, err = require_org(request)
+    if err:
+        return err
+
+    network = PharmacyNetwork.objects.filter(is_default=True, is_active=True).first()
+    if not network:
+        return Response({'detail': 'No default network configured.'}, status=status.HTTP_404_NOT_FOUND)
+
+    membership, created = PharmacyNetworkMembership.objects.get_or_create(
+        network=network,
+        organization=org,
+        defaults={
+            'role': 'member',
+            'status': 'active',
+            'invited_by': request.user,
+            'joined_at': timezone.now(),
+        },
+    )
+    if not created and membership.status != 'active':
+        membership.status = 'active'
+        membership.joined_at = membership.joined_at or timezone.now()
+        membership.save(update_fields=['status', 'joined_at'])
+
+    if created:
+        log_activity(
+            request, action='Join Default Network', category='settings',
+            description=f'"{org.name}" auto-joined default network "{network.name}"',
+        )
+    return Response(membership.to_api_dict(), status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 # ── Remove member (owner action) ──────────────────────────────────────────────

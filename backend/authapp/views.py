@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Organization, PharmUser, ActivityLog
+from django.utils import timezone
+from .models import Organization, PharmUser, ActivityLog, PharmacyNetwork, PharmacyNetworkMembership
 from .permissions import (
     IsAdminOrManager, PERMISSION_LABELS, _PERMISSION_ROLE_MAP, get_effective_permissions
 )
@@ -103,6 +104,23 @@ def register_org_view(request):
         )
     except Exception:
         pass  # non-fatal — subscription can be created later via GET /subscription/
+
+    # Auto-join default network — non-fatal if none configured
+    try:
+        default_network = PharmacyNetwork.objects.filter(is_default=True, is_active=True).first()
+        if default_network:
+            PharmacyNetworkMembership.objects.get_or_create(
+                network=default_network,
+                organization=org,
+                defaults={
+                    'role': 'member',
+                    'status': 'active',
+                    'invited_by': user,
+                    'joined_at': timezone.now(),
+                },
+            )
+    except Exception:
+        pass
 
     return Response({
         'access': _token_for(user),

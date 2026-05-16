@@ -12,6 +12,7 @@ urlpatterns = [
 
     # ── Pharmacy networks ─────────────────────────────────────────────────────
     path('networks/',                                          nv.network_list,          name='network-list'),
+    path('networks/join-default/',                             nv.network_join_default,  name='network-join-default'),
     path('networks/<int:network_id>/',                         nv.network_detail,        name='network-detail'),
     path('networks/<int:network_id>/invite/',                  nv.network_invite,        name='network-invite'),
     path('networks/<int:network_id>/accept/',                  nv.network_accept,        name='network-accept'),
