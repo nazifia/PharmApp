@@ -46,11 +46,15 @@ def prescription_list(request):
         elif rx_status in ('pending', 'partial', 'dispensed'):
             qs = qs.filter(status=rx_status)
 
-        # Branch filter
-        branch_id = request.query_params.get('branch_id', '')
-        branch_filtered = branch_id.isdigit() and int(branch_id) > 0
-        if branch_filtered:
-            qs = qs.filter(branch_id=int(branch_id))
+        # network_wide=true → show all branches; branch_id → scope to one branch.
+        # The two are mutually exclusive; network_wide takes precedence.
+        network_wide = request.query_params.get('network_wide', '').lower() in ('1', 'true')
+        branch_filtered = False
+        if not network_wide:
+            branch_id = request.query_params.get('branch_id', '')
+            branch_filtered = branch_id.isdigit() and int(branch_id) > 0
+            if branch_filtered:
+                qs = qs.filter(branch_id=int(branch_id))
 
         # Customer filter
         customer_id = request.query_params.get('customer_id', '')
@@ -69,7 +73,7 @@ def prescription_list(request):
 
         # Network-wide view: order by branch name so grouped display works cleanly.
         # Branch-scoped view: use default -created_at ordering from Meta.
-        if not branch_filtered:
+        if network_wide or not branch_filtered:
             qs = qs.order_by(
                 F('branch__name').asc(nulls_last=True),
                 '-created_at',

@@ -57,14 +57,19 @@ class PrescriptionApiClient {
     String? status,
     String? search,
     int? branchId,
+    bool networkWide = false,
   }) async {
     final cacheKey = '${_kPrescriptionsCacheKey}_${status ?? 'all'}'
-        '${branchId != null ? '_b$branchId' : ''}';
+        '${networkWide ? '_network' : branchId != null ? '_b$branchId' : ''}';
     try {
       final params = <String, dynamic>{};
       if (status != null && status.isNotEmpty) params['status'] = status;
       if (search != null && search.isNotEmpty) params['search'] = search;
-      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
+      if (networkWide) {
+        params['network_wide'] = 'true';
+      } else if (branchId != null && branchId > 0) {
+        params['branch_id'] = branchId;
+      }
       final res = await _dio.get('/prescriptions/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;

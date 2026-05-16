@@ -1,4 +1,5 @@
-
 {
-  
+  "enabledPlugins": {
+    "caveman@caveman": true
+  }
 }

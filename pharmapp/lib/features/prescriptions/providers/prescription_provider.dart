@@ -49,6 +49,7 @@ final prescriptionListProvider =
         status: filter.status,
         search: filter.search,
         branchId: branchId,
+        networkWide: filter.networkWide,
       );
 });
 
