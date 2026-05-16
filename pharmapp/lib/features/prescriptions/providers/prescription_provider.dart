@@ -20,17 +20,19 @@ final prescriptionApiProvider = Provider<PrescriptionApiClient>((ref) {
 class PrescriptionFilter {
   final String? status; // 'pending' | 'partial' | 'dispensed' | null = all
   final String? search;
+  final bool networkWide; // true = ignore activeBranch, fetch entire org network
 
-  const PrescriptionFilter({this.status, this.search});
+  const PrescriptionFilter({this.status, this.search, this.networkWide = false});
 
   @override
   bool operator ==(Object other) =>
       other is PrescriptionFilter &&
       other.status == status &&
-      other.search == search;
+      other.search == search &&
+      other.networkWide == networkWide;
 
   @override
-  int get hashCode => Object.hash(status, search);
+  int get hashCode => Object.hash(status, search, networkWide);
 }
 
 // ── List provider ─────────────────────────────────────────────────────────────
@@ -38,8 +40,11 @@ class PrescriptionFilter {
 final prescriptionListProvider =
     FutureProvider.autoDispose.family<List<Prescription>, PrescriptionFilter>(
         (ref, filter) {
-  final branch = ref.watch(activeBranchProvider);
-  final branchId = (branch == null || branch.id <= 0) ? null : branch.id;
+  int? branchId;
+  if (!filter.networkWide) {
+    final branch = ref.watch(activeBranchProvider);
+    branchId = (branch == null || branch.id <= 0) ? null : branch.id;
+  }
   return ref.watch(prescriptionApiProvider).fetchPrescriptions(
         status: filter.status,
         search: filter.search,
@@ -56,6 +61,15 @@ final undispensedPrescriptionsProvider =
   return ref
       .watch(prescriptionApiProvider)
       .fetchPrescriptions(status: 'undispensed', branchId: branchId);
+});
+
+/// Total count of pending+partial prescriptions across the entire org network.
+/// Uses a dedicated aggregate endpoint — does not load full objects.
+final networkPendingCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  final counts = await ref
+      .read(prescriptionApiProvider)
+      .fetchPendingCount();
+  return counts['total'] ?? 0;
 });
 
 // ── Single prescription ───────────────────────────────────────────────────────

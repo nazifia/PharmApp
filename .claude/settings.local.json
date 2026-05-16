@@ -113,7 +113,11 @@
       "Bash(Get-ChildItem *)",
       "PowerShell(head *)",
       "Bash(Select-Object Name)",
-      "Bash(findstr /i prescription)"
+      "Bash(findstr /i prescription)",
+      "Bash(dir /s \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\")",
+      "Bash(dir C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\prescriptions *)",
+      "Bash(dir C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\prescriptions\\\\providers *)",
+      "Bash(dir C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\prescriptions\\\\screens *)"
     ]
   }
 }

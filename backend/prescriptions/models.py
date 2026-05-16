@@ -77,6 +77,8 @@ class Prescription(models.Model):
             'created_by_id':  self.created_by_id,
             'pharmacy_name':  self.organization.name if self.organization_id else None,
             'pharmacy_id':    self.organization_id,
+            'branch_name':    self.branch.name if self.branch_id else None,
+            'branch_id':      self.branch_id,
             'medications':    [m.to_api_dict() for m in self.medications.all()],
         }
 

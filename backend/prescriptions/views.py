@@ -1,4 +1,5 @@
 from django.db import models as _m, transaction
+from django.db.models import Count, Case, When, IntegerField, F
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -33,7 +34,10 @@ def prescription_list(request):
         return err
 
     if request.method == 'GET':
-        qs = Prescription.objects.filter(organization=org).prefetch_related('medications')
+        qs = (Prescription.objects
+              .filter(organization=org)
+              .select_related('organization', 'created_by', 'branch')
+              .prefetch_related('medications'))
 
         # Status filter — 'undispensed' is a convenience alias for pending+partial
         rx_status = request.query_params.get('status', '').strip()
@@ -44,7 +48,8 @@ def prescription_list(request):
 
         # Branch filter
         branch_id = request.query_params.get('branch_id', '')
-        if branch_id.isdigit() and int(branch_id) > 0:
+        branch_filtered = branch_id.isdigit() and int(branch_id) > 0
+        if branch_filtered:
             qs = qs.filter(branch_id=int(branch_id))
 
         # Customer filter
@@ -52,15 +57,35 @@ def prescription_list(request):
         if customer_id.isdigit():
             qs = qs.filter(customer_id=int(customer_id))
 
-        # Text search — name or phone
+        # Text search — name, phone, doctor, diagnosis
         search = request.query_params.get('search', '').strip()
         if search:
             qs = qs.filter(
                 _m.Q(customer_name__icontains=search) |
-                _m.Q(customer_phone__icontains=search)
+                _m.Q(customer_phone__icontains=search) |
+                _m.Q(doctor_name__icontains=search) |
+                _m.Q(diagnosis__icontains=search)
             )
 
-        return Response([rx.to_api_dict() for rx in qs])
+        # Network-wide view: order by branch name so grouped display works cleanly.
+        # Branch-scoped view: use default -created_at ordering from Meta.
+        if not branch_filtered:
+            qs = qs.order_by(
+                F('branch__name').asc(nulls_last=True),
+                '-created_at',
+            )
+
+        # Pagination — page_size=50; Flutter client handles {'count', 'results'} format.
+        page_size = 50
+        try:
+            page = max(1, int(request.query_params.get('page', '1')))
+        except (ValueError, TypeError):
+            page = 1
+        total = qs.count()
+        offset = (page - 1) * page_size
+        page_qs = qs[offset:offset + page_size]
+
+        return Response({'count': total, 'results': [rx.to_api_dict() for rx in page_qs]})
 
     # ── POST: create prescription ─────────────────────────────────────────────
 
@@ -143,6 +168,7 @@ def prescription_detail(request, pk):
 
     try:
         rx = (Prescription.objects
+              .select_related('organization', 'created_by', 'branch')
               .prefetch_related('medications')
               .get(pk=pk, organization=org))
     except Prescription.DoesNotExist:
@@ -217,6 +243,7 @@ def dispense_prescription(request, pk):
 
     try:
         rx = (Prescription.objects
+              .select_related('organization', 'created_by', 'branch')
               .prefetch_related('medications')
               .get(pk=pk, organization=org))
     except Prescription.DoesNotExist:
@@ -273,6 +300,7 @@ def dispense_prescription(request, pk):
 
     # Return fresh data with prefetched medications
     rx = (Prescription.objects
+          .select_related('organization', 'created_by', 'branch')
           .prefetch_related('medications')
           .get(pk=pk, organization=org))
     return Response(rx.to_api_dict())
@@ -301,6 +329,7 @@ def customer_prescriptions(request, customer_pk):
 
     qs = (Prescription.objects
           .filter(organization=org, customer=customer)
+          .select_related('organization', 'created_by', 'branch')
           .prefetch_related('medications'))
 
     undispensed_only = request.query_params.get('undispensed', '').lower() in ('1', 'true')
@@ -331,6 +360,7 @@ def prescriptions_by_phone(request):
 
     qs = (Prescription.objects
           .filter(organization=org, customer_phone=phone)
+          .select_related('organization', 'created_by', 'branch')
           .prefetch_related('medications'))
 
     undispensed_only = request.query_params.get('undispensed', '').lower() in ('1', 'true')
@@ -338,3 +368,47 @@ def prescriptions_by_phone(request):
         qs = qs.filter(status__in=['pending', 'partial'])
 
     return Response([rx.to_api_dict() for rx in qs])
+
+
+# ── Network-wide pending count ────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrescriptionUser])
+def pending_count(request):
+    """
+    GET /api/prescriptions/pending-count/
+    Returns { "pending": N, "partial": M, "total": N+M }
+
+    Efficient aggregate — does not load prescription objects.
+    Used by the Flutter header badge to show total unresolved Rxs across the network.
+    Optionally scoped to a single branch via ?branch_id=<int>.
+    """
+    org, err = require_org(request)
+    if err:
+        return err
+
+    qs = Prescription.objects.filter(
+        organization=org,
+        status__in=['pending', 'partial'],
+    )
+
+    branch_id = request.query_params.get('branch_id', '')
+    if branch_id.isdigit() and int(branch_id) > 0:
+        qs = qs.filter(branch_id=int(branch_id))
+
+    counts = qs.aggregate(
+        pending=Count(
+            Case(When(status='pending', then=1), output_field=IntegerField())
+        ),
+        partial=Count(
+            Case(When(status='partial', then=1), output_field=IntegerField())
+        ),
+    )
+    pending = counts['pending'] or 0
+    partial = counts['partial'] or 0
+
+    return Response({
+        'pending': pending,
+        'partial': partial,
+        'total':   pending + partial,
+    })

@@ -78,6 +78,8 @@ class Prescription {
   final int? createdById;
   final String? pharmacyName;
   final int? pharmacyId;
+  final String? branchName;
+  final int? branchId;
 
   const Prescription({
     required this.id,
@@ -95,6 +97,8 @@ class Prescription {
     this.createdById,
     this.pharmacyName,
     this.pharmacyId,
+    this.branchName,
+    this.branchId,
   });
 
   bool get isPending => status == 'pending';
@@ -125,6 +129,8 @@ class Prescription {
         createdById: createdById,
         pharmacyName: pharmacyName,
         pharmacyId: pharmacyId,
+        branchName: branchName,
+        branchId: branchId,
       );
 
   factory Prescription.fromJson(Map<String, dynamic> j) {
@@ -163,6 +169,8 @@ class Prescription {
       createdById: (j['created_by_id'] ?? j['createdById']) as int?,
       pharmacyName: j['pharmacy_name'] ?? j['pharmacyName'] as String?,
       pharmacyId: (j['pharmacy_id'] ?? j['pharmacyId']) as int?,
+      branchName: j['branch_name'] ?? j['branchName'] as String?,
+      branchId: (j['branch_id'] ?? j['branchId']) as int?,
     );
   }
 

@@ -268,6 +268,32 @@ class PrescriptionApiClient {
     }
   }
 
+  // ── Network-wide pending count ─────────────────────────────────────────────
+
+  /// Returns pending + partial counts across the org network (no branch filter).
+  /// Pass [branchId] to scope to a specific branch.
+  Future<Map<String, int>> fetchPendingCount({int? branchId}) async {
+    try {
+      final params = <String, dynamic>{};
+      if (branchId != null && branchId > 0) params['branch_id'] = branchId;
+      final res = await _dio.get('/prescriptions/pending-count/',
+          queryParameters: params.isNotEmpty ? params : null);
+      final data = res.data as Map<String, dynamic>;
+      return {
+        'pending': (data['pending'] as num?)?.toInt() ?? 0,
+        'partial': (data['partial'] as num?)?.toInt() ?? 0,
+        'total':   (data['total']   as num?)?.toInt() ?? 0,
+      };
+    } on DioException catch (e) {
+      if (e.response == null) {
+        // Offline — return zeros rather than surfacing an error
+        return {'pending': 0, 'partial': 0, 'total': 0};
+      }
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to fetch pending count');
+    }
+  }
+
   // ── Global customer search ─────────────────────────────────────────────────
 
   /// Searches customers across ALL subscribed pharmacies.
