@@ -208,15 +208,18 @@ class PrescriptionApiClient {
 
   // ── Prescriptions by phone number ──────────────────────────────────────────
 
-  /// Looks up prescriptions by customer phone number (walk-in / POS dispensing).
+  /// Looks up prescriptions by patient phone number OR name (walk-in / POS dispensing).
+  /// Pass [networkWide] = true to search across all active network peer orgs.
   Future<List<Prescription>> fetchPrescriptionsByPhone(
     String phone, {
     bool undispensedOnly = false,
+    bool networkWide = false,
   }) async {
-    final cacheKey = 'cache_rx_phone_${phone}_${undispensedOnly ? 'u' : 'a'}';
+    final cacheKey = 'cache_rx_phone_${phone}_${undispensedOnly ? 'u' : 'a'}${networkWide ? '_net' : ''}';
     try {
-      final params = <String, dynamic>{'phone': phone};
+      final params = <String, dynamic>{'q': phone};
       if (undispensedOnly) params['undispensed'] = '1';
+      if (networkWide) params['network'] = 'true';
       final res = await _dio.get('/prescriptions/by-phone/',
           queryParameters: params);
       final data = res.data;
@@ -270,6 +273,50 @@ class PrescriptionApiClient {
       }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to check availability');
+    }
+  }
+
+  // ── Cross-network prescriptions ───────────────────────────────────────────
+
+  /// Returns prescriptions from all orgs sharing an active PharmacyNetwork
+  /// with the caller's org.  Falls back to own org if not in any network.
+  Future<List<Prescription>> fetchNetworkPrescriptions({
+    String? status,
+    String? search,
+    int? networkId,
+    int page = 1,
+  }) async {
+    const cacheKey = '${_kPrescriptionsCacheKey}_network';
+    try {
+      final params = <String, dynamic>{};
+      if (status != null && status.isNotEmpty) params['status'] = status;
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      if (networkId != null && networkId > 0) params['network_id'] = networkId;
+      if (page > 1) params['page'] = page;
+      final res = await _dio.get('/prescriptions/network/',
+          queryParameters: params.isNotEmpty ? params : null);
+      final data = res.data;
+      final list = data is Map && data.containsKey('results')
+          ? data['results'] as List
+          : data as List;
+      if (search == null || search.isEmpty) {
+        await _cache(cacheKey, list);
+      }
+      return list
+          .map((e) => Prescription.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      if (e.response == null) {
+        final cached = await _getCache(cacheKey);
+        if (cached is List) {
+          return cached
+              .map((e) => Prescription.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+        throw Exception('Offline — no cached network prescription data available.');
+      }
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to load network prescriptions');
     }
   }
 

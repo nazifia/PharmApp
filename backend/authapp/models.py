@@ -288,3 +288,105 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"[{self.category}] {self.username}: {self.action}"
+
+
+# ── Pharmacy Network ──────────────────────────────────────────────────────────
+
+class PharmacyNetwork(models.Model):
+    """
+    A named consortium that links multiple pharmacy organizations.
+    The org that creates the network becomes its first owner.
+    """
+    name        = models.CharField(max_length=200)
+    slug        = models.SlugField(max_length=220, unique=True, blank=True)
+    description = models.TextField(blank=True, default='')
+    created_by  = models.ForeignKey(
+        Organization, on_delete=models.CASCADE,
+        related_name='created_networks',
+    )
+    is_active   = models.BooleanField(default=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.name)
+            slug = base
+            n = 1
+            while PharmacyNetwork.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base}-{n}"
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def member_org_ids(self, status='active'):
+        return list(
+            self.memberships.filter(status=status)
+            .values_list('organization_id', flat=True)
+        )
+
+    def to_api_dict(self, membership=None):
+        d = {
+            'id':          self.id,
+            'name':        self.name,
+            'slug':        self.slug,
+            'description': self.description,
+            'isActive':    self.is_active,
+            'createdAt':   self.created_at.isoformat(),
+            'memberCount': self.memberships.filter(status='active').count(),
+        }
+        if membership is not None:
+            d['myRole']   = membership.role
+            d['myStatus'] = membership.status
+        return d
+
+    def __str__(self):
+        return self.name
+
+
+class PharmacyNetworkMembership(models.Model):
+    ROLE_CHOICES   = [('owner', 'Owner'), ('member', 'Member')]
+    STATUS_CHOICES = [
+        ('active',    'Active'),
+        ('pending',   'Pending'),
+        ('suspended', 'Suspended'),
+    ]
+
+    network      = models.ForeignKey(
+        PharmacyNetwork, on_delete=models.CASCADE, related_name='memberships',
+    )
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name='network_memberships',
+    )
+    role         = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
+    status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    invited_by   = models.ForeignKey(
+        'authapp.PharmUser', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='network_invitations_sent',
+    )
+    joined_at    = models.DateTimeField(null=True, blank=True)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('network', 'organization')
+        ordering        = ['-created_at']
+        indexes         = [
+            models.Index(fields=['organization', 'status']),
+            models.Index(fields=['network', 'status']),
+        ]
+
+    def to_api_dict(self):
+        return {
+            'id':               self.id,
+            'networkId':        self.network_id,
+            'networkName':      self.network.name,
+            'networkSlug':      self.network.slug,
+            'organizationId':   self.organization_id,
+            'organizationName': self.organization.name,
+            'organizationSlug': self.organization.slug,
+            'role':             self.role,
+            'status':           self.status,
+            'joinedAt':         self.joined_at.isoformat() if self.joined_at else None,
+        }
+
+    def __str__(self):
+        return f"{self.organization} in {self.network} ({self.role}, {self.status})"

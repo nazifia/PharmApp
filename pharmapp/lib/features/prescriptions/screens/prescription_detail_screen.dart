@@ -168,13 +168,15 @@ class _PrescriptionDetailScreenState
                     ),
                     data: (serverRx) {
                       final rx = _localRx ?? serverRx;
+                      final isCrossOrg = rx.pharmacyId != null &&
+                          rx.pharmacyId != user?.organizationId;
                       return Stack(
                       children: [
                         ListView(
                           padding: EdgeInsets.fromLTRB(16, 8, 16,
                               canWrite && _selectMode && (rx.isPending || rx.isPartial) ? 120.0 : 24.0),
                           children: [
-                            _PatientCard(rx: rx),
+                            _PatientCard(rx: rx, isCrossOrg: isCrossOrg),
                             const SizedBox(height: 16),
                             if (rx.diagnosis != null &&
                                 rx.diagnosis!.isNotEmpty) ...[
@@ -417,6 +419,8 @@ class _PrescriptionDetailScreenState
   }
 
   Future<void> _dispense(Prescription rx, {List<int>? indices}) async {
+    final isCrossOrg = rx.pharmacyId != null &&
+        rx.pharmacyId != ref.read(currentUserProvider)?.organizationId;
     final confirm = await showDialog<bool>(
       context: context,
       useRootNavigator: false,
@@ -426,12 +430,44 @@ class _PrescriptionDetailScreenState
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Confirm Dispense',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        content: Text(
-          indices == null
-              ? 'Dispense all pending medications?'
-              : 'Dispense ${indices.length} selected medication(s)?',
-          style:
-              TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              indices == null
+                  ? 'Dispense all pending medications?'
+                  : 'Dispense ${indices.length} selected medication(s)?',
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+            ),
+            if (isCrossOrg && rx.pharmacyName != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: EnhancedTheme.accentCyan.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.swap_horiz_rounded,
+                        color: EnhancedTheme.accentCyan, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Written by ${rx.pharmacyName}. Dispensing at your pharmacy.',
+                        style: const TextStyle(
+                            color: EnhancedTheme.accentCyan, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
         actions: [
           TextButton(
@@ -556,7 +592,8 @@ class _PrescriptionDetailScreenState
 
 class _PatientCard extends StatelessWidget {
   final Prescription rx;
-  const _PatientCard({required this.rx});
+  final bool isCrossOrg;
+  const _PatientCard({required this.rx, this.isCrossOrg = false});
 
   @override
   Widget build(BuildContext context) {
@@ -590,6 +627,35 @@ class _PatientCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (isCrossOrg && rx.pharmacyName != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: EnhancedTheme.accentCyan.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.swap_horiz_rounded,
+                      color: EnhancedTheme.accentCyan, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Written by ${rx.pharmacyName}',
+                      style: const TextStyle(
+                          color: EnhancedTheme.accentCyan,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               Container(

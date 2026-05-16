@@ -8,10 +8,28 @@ from rest_framework import status
 
 from authapp.utils import require_org, log_activity
 from authapp.permissions import IsPrescriptionUser, PRESCRIPTIONS_WRITE
+from authapp.models import PharmacyNetworkMembership
 from .models import Prescription, PrescriptionItem
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _get_peer_org_ids(org) -> set:
+    """Return set of org IDs (own + active network peers) for cross-org queries."""
+    my_network_ids = list(
+        PharmacyNetworkMembership.objects
+        .filter(organization=org, status='active')
+        .values_list('network_id', flat=True)
+    )
+    peer_ids = {org.id}
+    if my_network_ids:
+        peer_ids.update(
+            PharmacyNetworkMembership.objects
+            .filter(network_id__in=my_network_ids, status='active')
+            .values_list('organization_id', flat=True)
+        )
+    return peer_ids
+
 
 def _resolve_item(org, item_name: str, brand: str = '') -> int | None:
     """Return the inventory Item pk that best matches name+brand within org, or None."""
@@ -170,6 +188,26 @@ def prescription_detail(request, pk):
     if err:
         return err
 
+    if request.method == 'GET':
+        # Network peer orgs may view prescriptions written by any peer.
+        try:
+            rx = (Prescription.objects
+                  .select_related('organization', 'created_by', 'branch')
+                  .prefetch_related('medications')
+                  .get(pk=pk, organization=org))
+        except Prescription.DoesNotExist:
+            peer_org_ids = _get_peer_org_ids(org)
+            try:
+                rx = (Prescription.objects
+                      .select_related('organization', 'created_by', 'branch')
+                      .prefetch_related('medications')
+                      .get(pk=pk, organization_id__in=peer_org_ids))
+            except Prescription.DoesNotExist:
+                return Response({'detail': 'Prescription not found'},
+                                status=status.HTTP_404_NOT_FOUND)
+        return Response(rx.to_api_dict())
+
+    # PATCH / DELETE — restricted to the owning org only.
     try:
         rx = (Prescription.objects
               .select_related('organization', 'created_by', 'branch')
@@ -178,9 +216,6 @@ def prescription_detail(request, pk):
     except Prescription.DoesNotExist:
         return Response({'detail': 'Prescription not found'},
                         status=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'GET':
-        return Response(rx.to_api_dict())
 
     if request.method == 'PATCH':
         # Only write-permission roles may edit prescription metadata.
@@ -251,8 +286,16 @@ def dispense_prescription(request, pk):
               .prefetch_related('medications')
               .get(pk=pk, organization=org))
     except Prescription.DoesNotExist:
-        return Response({'detail': 'Prescription not found'},
-                        status=status.HTTP_404_NOT_FOUND)
+        # Allow network peer org to dispense cross-org prescriptions.
+        peer_org_ids = _get_peer_org_ids(org)
+        try:
+            rx = (Prescription.objects
+                  .select_related('organization', 'created_by', 'branch')
+                  .prefetch_related('medications')
+                  .get(pk=pk, organization_id__in=peer_org_ids))
+        except Prescription.DoesNotExist:
+            return Response({'detail': 'Prescription not found'},
+                            status=status.HTTP_404_NOT_FOUND)
 
     if rx.status == 'dispensed':
         return Response({'detail': 'All medications are already dispensed.'},
@@ -302,11 +345,11 @@ def dispense_prescription(request, pk):
         description=f'Dispensed medications on Rx#{pk} for "{rx.customer_name}"',
     )
 
-    # Return fresh data with prefetched medications
+    # Return fresh data — use pk only (org already verified above)
     rx = (Prescription.objects
           .select_related('organization', 'created_by', 'branch')
           .prefetch_related('medications')
-          .get(pk=pk, organization=org))
+          .get(pk=pk))
     return Response(rx.to_api_dict())
 
 
@@ -357,15 +400,27 @@ def prescriptions_by_phone(request):
     if err:
         return err
 
-    phone = request.query_params.get('phone', '').strip()
-    if not phone:
-        return Response({'detail': 'phone query parameter is required'},
+    q = (request.query_params.get('q') or request.query_params.get('phone') or '').strip()
+    if not q:
+        return Response({'detail': 'q (or phone) query parameter is required'},
                         status=status.HTTP_400_BAD_REQUEST)
 
-    qs = (Prescription.objects
-          .filter(organization=org, customer_phone=phone)
-          .select_related('organization', 'created_by', 'branch')
-          .prefetch_related('medications'))
+    # Match customer phone (contains) OR customer name (contains).
+    name_or_phone = _m.Q(customer_phone__icontains=q) | _m.Q(customer_name__icontains=q)
+
+    # ?network=true expands the search to all active network peer orgs.
+    network = request.query_params.get('network', '').lower() in ('1', 'true')
+    if network:
+        org_ids = _get_peer_org_ids(org)
+        qs = (Prescription.objects
+              .filter(name_or_phone, organization_id__in=org_ids)
+              .select_related('organization', 'created_by', 'branch')
+              .prefetch_related('medications'))
+    else:
+        qs = (Prescription.objects
+              .filter(name_or_phone, organization=org)
+              .select_related('organization', 'created_by', 'branch')
+              .prefetch_related('medications'))
 
     undispensed_only = request.query_params.get('undispensed', '').lower() in ('1', 'true')
     if undispensed_only:
@@ -416,3 +471,101 @@ def pending_count(request):
         'partial': partial,
         'total':   pending + partial,
     })
+
+
+# ── Cross-network prescriptions ───────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrescriptionUser])
+def network_prescriptions(request):
+    """
+    GET /api/prescriptions/network/
+
+    Returns prescriptions from every organization that shares at least one
+    active PharmacyNetwork with the requesting user's org.  Falls back to
+    the current org only when the org has no active network memberships.
+
+    Query params:
+        status      — pending | partial | dispensed | undispensed
+        search      — patient name / phone / doctor / diagnosis
+        network_id  — (optional) scope to a specific network
+        page        — 1-based pagination (50 per page)
+    """
+    org, err = require_org(request)
+    if err:
+        return err
+
+    # Collect all network IDs this org actively belongs to
+    my_network_ids = list(
+        PharmacyNetworkMembership.objects
+        .filter(organization=org, status='active')
+        .values_list('network_id', flat=True)
+    )
+
+    if my_network_ids:
+        # Optionally scope to one specific network the caller belongs to
+        network_id_param = request.query_params.get('network_id', '')
+        if network_id_param.isdigit() and int(network_id_param) > 0:
+            requested_net = int(network_id_param)
+            if requested_net not in my_network_ids:
+                return Response(
+                    {'detail': 'You are not an active member of that network.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            active_network_ids = [requested_net]
+        else:
+            active_network_ids = my_network_ids
+
+        # All org IDs that are active members of any of those networks
+        peer_org_ids = list(
+            PharmacyNetworkMembership.objects
+            .filter(network_id__in=active_network_ids, status='active')
+            .values_list('organization_id', flat=True)
+            .distinct()
+        )
+        qs = (Prescription.objects
+              .filter(organization_id__in=peer_org_ids)
+              .select_related('organization', 'created_by', 'branch')
+              .prefetch_related('medications'))
+    else:
+        # No active networks — fall back to own org
+        qs = (Prescription.objects
+              .filter(organization=org)
+              .select_related('organization', 'created_by', 'branch')
+              .prefetch_related('medications'))
+
+    # Status filter
+    rx_status = request.query_params.get('status', '').strip()
+    if rx_status == 'undispensed':
+        qs = qs.filter(status__in=['pending', 'partial'])
+    elif rx_status in ('pending', 'partial', 'dispensed'):
+        qs = qs.filter(status=rx_status)
+
+    # Text search
+    search = request.query_params.get('search', '').strip()
+    if search:
+        qs = qs.filter(
+            _m.Q(customer_name__icontains=search) |
+            _m.Q(customer_phone__icontains=search) |
+            _m.Q(doctor_name__icontains=search) |
+            _m.Q(diagnosis__icontains=search)
+        )
+
+    # Order by org → branch → newest first (enables grouped display in Flutter)
+    qs = qs.order_by(
+        'organization__name',
+        F('branch__name').asc(nulls_last=True),
+        '-created_at',
+    )
+
+    # Pagination (50 per page)
+    page_size = 50
+    try:
+        page = max(1, int(request.query_params.get('page', '1')))
+    except (ValueError, TypeError):
+        page = 1
+    total  = qs.count()
+    offset = (page - 1) * page_size
+    page_qs = qs[offset:offset + page_size]
+
+    return Response({'count': total, 'results': [rx.to_api_dict() for rx in page_qs]})

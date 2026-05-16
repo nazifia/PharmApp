@@ -40,17 +40,21 @@ class PrescriptionFilter {
 final prescriptionListProvider =
     FutureProvider.autoDispose.family<List<Prescription>, PrescriptionFilter>(
         (ref, filter) {
-  int? branchId;
-  if (!filter.networkWide) {
-    final branch = ref.watch(activeBranchProvider);
-    branchId = (branch == null || branch.id <= 0) ? null : branch.id;
+  final api = ref.watch(prescriptionApiProvider);
+  if (filter.networkWide) {
+    // Cross-org query via PharmacyNetwork — falls back to own org if no network
+    return api.fetchNetworkPrescriptions(
+      status: filter.status,
+      search: filter.search,
+    );
   }
-  return ref.watch(prescriptionApiProvider).fetchPrescriptions(
-        status: filter.status,
-        search: filter.search,
-        branchId: branchId,
-        networkWide: filter.networkWide,
-      );
+  final branch = ref.watch(activeBranchProvider);
+  final branchId = (branch == null || branch.id <= 0) ? null : branch.id;
+  return api.fetchPrescriptions(
+    status: filter.status,
+    search: filter.search,
+    branchId: branchId,
+  );
 });
 
 /// Convenience provider — prescriptions with any undispensed medications
@@ -213,20 +217,24 @@ final customerPrescriptionsProvider = FutureProvider.autoDispose
           undispensedOnly: filter.undispensedOnly);
 });
 
-/// Prescriptions looked up by phone number (walk-in POS dispensing).
+/// Prescriptions looked up by patient phone number OR name (walk-in POS dispensing).
+/// Set [networkWide] = true to search across all active network peer orgs.
 class PhonePrescriptionFilter {
   final String phone;
   final bool undispensedOnly;
-  const PhonePrescriptionFilter(this.phone, {this.undispensedOnly = false});
+  final bool networkWide;
+  const PhonePrescriptionFilter(this.phone,
+      {this.undispensedOnly = false, this.networkWide = false});
 
   @override
   bool operator ==(Object other) =>
       other is PhonePrescriptionFilter &&
       other.phone == phone &&
-      other.undispensedOnly == undispensedOnly;
+      other.undispensedOnly == undispensedOnly &&
+      other.networkWide == networkWide;
 
   @override
-  int get hashCode => Object.hash(phone, undispensedOnly);
+  int get hashCode => Object.hash(phone, undispensedOnly, networkWide);
 }
 
 final prescriptionsByPhoneProvider = FutureProvider.autoDispose
@@ -235,7 +243,8 @@ final prescriptionsByPhoneProvider = FutureProvider.autoDispose
   return ref
       .watch(prescriptionApiProvider)
       .fetchPrescriptionsByPhone(filter.phone,
-          undispensedOnly: filter.undispensedOnly);
+          undispensedOnly: filter.undispensedOnly,
+          networkWide: filter.networkWide);
 });
 
 // ── Global customer search ────────────────────────────────────────────────────
