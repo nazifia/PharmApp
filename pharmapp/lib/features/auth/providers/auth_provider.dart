@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -160,23 +161,29 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
           .fetchCurrentUser(current);
       _ref.read(currentUserProvider.notifier).state = fresh;
       // Re-enforce backend-assigned branch in case it changed server-side.
-      // Always write so the router (which listens to activeBranchProvider)
-      // triggers a redirect even when the branch id was already set to the
-      // same value in a previous session.
       if (fresh.branchId != 0) {
         _ref.read(activeBranchProvider.notifier).state = Branch(
           id:   fresh.branchId,
           name: fresh.branchName,
         );
-        // Persist so the next session restore skips the branch selection screen.
-        SharedPreferences.getInstance().then(
-          (p) => p.setString('active_branch',
-              jsonEncode(Branch(id: fresh.branchId, name: fresh.branchName).toJson())),
-        );
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('active_branch',
+            jsonEncode(Branch(id: fresh.branchId, name: fresh.branchName).toJson()));
       }
       await AuthStorage.write('current_user', jsonEncode(fresh.toJson()));
-    } catch (_) {
-      // Silently ignore — keep the cached user
+    } catch (e) {
+      // Token revoked server-side — clear session and force re-login.
+      if (e is DioException && e.response?.statusCode == 401) {
+        await AuthStorage.delete('auth_token');
+        await AuthStorage.delete('current_user');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('active_branch');
+        _ref.read(currentUserProvider.notifier).state  = null;
+        _ref.read(authTokenProvider.notifier).state    = null;
+        _ref.read(activeBranchProvider.notifier).state = null;
+        state = AuthFlowState.initial;
+      }
+      // Other errors (network timeout, DNS, etc.) — keep cached user silently.
     }
   }
 
@@ -216,7 +223,8 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     // refreshProfile() to reset it back to 0, re-showing the branch switcher.
     _ref.read(activeBranchProvider.notifier).state = branch;
     SharedPreferences.getInstance()
-        .then((p) => p.setString('active_branch', jsonEncode(branch.toJson())));
+        .then((p) => p.setString('active_branch', jsonEncode(branch.toJson())))
+        .catchError((_) => false);
   }
 
   /// Called when user explicitly skips branch selection (org-wide access).
@@ -225,7 +233,8 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     const sentinel = Branch(id: -1, name: 'All Branches');
     _ref.read(activeBranchProvider.notifier).state = sentinel;
     SharedPreferences.getInstance()
-        .then((p) => p.setString('active_branch', jsonEncode(sentinel.toJson())));
+        .then((p) => p.setString('active_branch', jsonEncode(sentinel.toJson())))
+        .catchError((_) => false);
   }
 
   void resetFlow() {

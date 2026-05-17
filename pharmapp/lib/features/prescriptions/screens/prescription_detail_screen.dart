@@ -1819,7 +1819,7 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet> {
               ),
               const SizedBox(height: 2),
               Text(
-                'GHS ${item.price.toStringAsFixed(2)}',
+                '₦${item.price.toStringAsFixed(2)}',
                 style: const TextStyle(
                     color: Colors.white54, fontSize: 11),
               ),

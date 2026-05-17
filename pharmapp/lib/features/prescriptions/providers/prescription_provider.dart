@@ -102,17 +102,21 @@ class PrescriptionNotifier extends StateNotifier<AsyncValue<void>> {
       return prescription;
     } on DioException catch (e, st) {
       if (e.response == null) {
-        // Queue for offline sync
-        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
-              'POST',
-              '/prescriptions/',
-              body: data,
-              description:
-                  'Create prescription for ${data['customer_name'] ?? 'patient'}',
-            );
-        _invalidateLists();
-        state = const AsyncValue.data(null);
-        return null; // null = queued offline
+        try {
+          await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+                'POST',
+                '/prescriptions/',
+                body: data,
+                description:
+                    'Create prescription for ${data['customer_name'] ?? 'patient'}',
+              );
+          _invalidateLists();
+          state = const AsyncValue.data(null);
+          return null; // null = queued offline
+        } catch (qe, qst) {
+          state = AsyncValue.error(qe, qst);
+          return null;
+        }
       }
       state = AsyncValue.error(e, st);
       return null;
@@ -132,16 +136,21 @@ class PrescriptionNotifier extends StateNotifier<AsyncValue<void>> {
       return updated;
     } on DioException catch (e, st) {
       if (e.response == null) {
-        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
-              'PATCH',
-              '/prescriptions/$id/',
-              body: data,
-              description: 'Update prescription #$id',
-            );
-        _ref.invalidate(prescriptionDetailProvider(id));
-        _invalidateLists();
-        state = const AsyncValue.data(null);
-        return null;
+        try {
+          await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+                'PATCH',
+                '/prescriptions/$id/',
+                body: data,
+                description: 'Update prescription #$id',
+              );
+          _ref.invalidate(prescriptionDetailProvider(id));
+          _invalidateLists();
+          state = const AsyncValue.data(null);
+          return null;
+        } catch (qe, qst) {
+          state = AsyncValue.error(qe, qst);
+          return null;
+        }
       }
       state = AsyncValue.error(e, st);
       return null;
@@ -162,14 +171,19 @@ class PrescriptionNotifier extends StateNotifier<AsyncValue<void>> {
       return updated;
     } on DioException catch (e, st) {
       if (e.response == null) {
-        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
-              'PATCH',
-              '/prescriptions/$id/dispense/',
-              body: itemIndices != null ? {'item_indices': itemIndices} : {},
-              description: 'Dispense prescription #$id',
-            );
-        state = const AsyncValue.data(null);
-        return null;
+        try {
+          await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+                'PATCH',
+                '/prescriptions/$id/dispense/',
+                body: itemIndices != null ? {'item_indices': itemIndices} : {},
+                description: 'Dispense prescription #$id',
+              );
+          state = const AsyncValue.data(null);
+          return null;
+        } catch (qe, qst) {
+          state = AsyncValue.error(qe, qst);
+          return null;
+        }
       }
       state = AsyncValue.error(e, st);
       return null;
