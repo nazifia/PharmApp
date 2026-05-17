@@ -22,6 +22,8 @@ _$ItemImpl _$$ItemImplFromJson(Map<String, dynamic> json) => _$ItemImpl(
           ? null
           : DateTime.parse(json['expiryDate'] as String),
       unitOfDispensing: json['unitOfDispensing'] as String? ?? '',
+      reorderLevel: (json['reorderLevel'] as num?)?.toInt(),
+      batchNumber: json['batchNumber'] as String?,
     );
 
 Map<String, dynamic> _$$ItemImplToJson(_$ItemImpl instance) =>
@@ -39,4 +41,6 @@ Map<String, dynamic> _$$ItemImplToJson(_$ItemImpl instance) =>
       'barcode': instance.barcode,
       'expiryDate': instance.expiryDate?.toIso8601String(),
       'unitOfDispensing': instance.unitOfDispensing,
+      'reorderLevel': instance.reorderLevel,
+      'batchNumber': instance.batchNumber,
     };

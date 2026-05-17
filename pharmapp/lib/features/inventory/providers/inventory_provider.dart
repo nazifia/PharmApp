@@ -192,13 +192,15 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
           'brand': data['brand'] ?? '',
           'dosageForm': data['dosage_form'] ?? data['dosageForm'] ?? '',
           'price': data['price'] ?? 0,
-          'costPrice': data['cost'] ?? data['costPrice'] ?? 0,
+          'costPrice': data['cost'] ?? data['cost_price'] ?? data['costPrice'] ?? 0,
           'branchId': data['branch_id'] ?? data['branchId'] ?? 0,
           'stock': data['stock'] ?? 0,
           'lowStockThreshold': data['low_stock_threshold'] ?? data['lowStockThreshold'] ?? 10,
           'barcode': data['barcode'] ?? '',
           'expiryDate': data['expiry_date'] ?? data['expiryDate'],
           'store': data['store'] ?? '',
+          'reorderLevel': data['reorder_level'] ?? data['reorderLevel'],
+          'batchNumber': data['batch_number'] ?? data['batchNumber'],
           'status': 'pending_sync',
         };
         await _patchAllInventoryCaches(tempItem);

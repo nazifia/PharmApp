@@ -346,6 +346,21 @@ class PrescriptionApiClient {
     }
   }
 
+  // ── Request refill ─────────────────────────────────────────────────────────
+
+  Future<Prescription> requestRefill(int id) async {
+    try {
+      final res = await _dio.post('/prescriptions/$id/refill/');
+      final updated = Prescription.fromJson(res.data as Map<String, dynamic>);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cache_prescription_$id');
+      return updated;
+    } on DioException catch (e) {
+      if (e.response == null) rethrow;
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to request refill');
+    }
+  }
+
   // ── Global customer search ─────────────────────────────────────────────────
 
   /// Searches customers across ALL subscribed pharmacies.

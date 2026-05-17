@@ -10,6 +10,8 @@ import '../providers/customer_provider.dart';
 import '../providers/customer_api_client.dart' show SaleItemDetail;
 import '../../pos/providers/cart_provider.dart';
 
+const List<String> _kBloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
 class CustomerDetailScreen extends ConsumerWidget {
   const CustomerDetailScreen({super.key});
 
@@ -321,6 +323,14 @@ class CustomerDetailScreen extends ConsumerWidget {
           ])).animate().fadeIn(duration: 400.ms, delay: 200.ms),
           const SizedBox(height: 20),
 
+          // ── Medical history ──────────────────────────────────────────────────
+          _MedicalHistorySection(
+            customer: customer,
+            ref: ref,
+            onEdit: () => _showMedicalEditSheet(context, ref, customer),
+          ),
+          const SizedBox(height: 20),
+
           // ── Recent purchases ─────────────────────────────────────────────────
           _sectionTitle(context, 'Purchase History', Icons.receipt_long_rounded, EnhancedTheme.accentPurple),
           const SizedBox(height: 10),
@@ -512,6 +522,298 @@ class CustomerDetailScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Medical history edit sheet ──────────────────────────────────────────────
+
+  void _showMedicalEditSheet(BuildContext context, WidgetRef ref, Customer customer) {
+    String? bloodGroup = customer.bloodGroup;
+    DateTime? dateOfBirth = customer.dateOfBirth;
+    final allergies         = List<String>.from(customer.allergies);
+    final chronicConditions = List<String>.from(customer.chronicConditions);
+    final currentMeds       = List<String>.from(customer.currentMedications);
+
+    final allergyCtrl    = TextEditingController();
+    final conditionCtrl  = TextEditingController();
+    final medicationCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          int calcAge(DateTime dob) {
+            final now = DateTime.now();
+            int age = now.year - dob.year;
+            if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+              age--;
+            }
+            return age;
+          }
+
+          void addItem(List<String> list, TextEditingController ctrl) {
+            final val = ctrl.text.trim();
+            if (val.isNotEmpty && !list.contains(val)) {
+              setSheetState(() => list.add(val));
+              ctrl.clear();
+            }
+          }
+
+          Widget chipList(List<String> items, Color color, VoidCallback Function(int) onRemove) {
+            if (items.isEmpty) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(spacing: 6, runSpacing: 6, children: items.asMap().entries.map((e) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(e.value, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: onRemove(e.key),
+                      child: Icon(Icons.close_rounded, color: color, size: 13),
+                    ),
+                  ]),
+                );
+              }).toList()),
+            );
+          }
+
+          Widget addRow(TextEditingController ctrl, String hint, Color color, VoidCallback onAdd) {
+            return Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: ctrl,
+                  style: TextStyle(color: context.labelColor, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+                    filled: true,
+                    fillColor: context.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: color, width: 1.5)),
+                  ),
+                  onSubmitted: (_) => onAdd(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onAdd,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                  ),
+                  child: Icon(Icons.add_rounded, color: color, size: 18),
+                ),
+              ),
+            ]);
+          }
+
+          Widget sectionLabel(String t) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(t, style: TextStyle(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+          );
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.9),
+                  decoration: BoxDecoration(
+                    color: context.cardColor,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                    border: Border(top: BorderSide(color: EnhancedTheme.accentPurple.withValues(alpha: 0.3), width: 1.5))),
+                  child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Center(child: Container(width: 44, height: 5,
+                        decoration: BoxDecoration(color: context.hintColor.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(3)))),
+                    const SizedBox(height: 20),
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.medical_information_rounded, color: EnhancedTheme.accentPurple, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Text('Medical History',
+                          style: GoogleFonts.outfit(color: context.labelColor, fontSize: 20, fontWeight: FontWeight.w700)),
+                    ]),
+                    const SizedBox(height: 20),
+
+                    sectionLabel('Blood Group'),
+                    Wrap(spacing: 8, runSpacing: 8, children: _kBloodGroups.map((bg) {
+                      final selected = bloodGroup == bg;
+                      return GestureDetector(
+                        onTap: () => setSheetState(() => bloodGroup = selected ? null : bg),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: selected ? EnhancedTheme.errorRed.withValues(alpha: 0.15) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: selected ? EnhancedTheme.errorRed : context.borderColor,
+                              width: selected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Text(bg, style: TextStyle(
+                            color: selected ? EnhancedTheme.errorRed : context.subLabelColor,
+                            fontSize: 13, fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          )),
+                        ),
+                      );
+                    }).toList()),
+                    const SizedBox(height: 16),
+
+                    sectionLabel('Date of Birth'),
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: ctx,
+                          initialDate: dateOfBirth ?? DateTime(1990),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                          builder: (ctx2, child) => Theme(
+                            data: Theme.of(ctx2).copyWith(
+                              colorScheme: ColorScheme.dark(
+                                primary: EnhancedTheme.primaryTeal,
+                                surface: context.cardColor,
+                              ),
+                            ),
+                            child: child!,
+                          ),
+                        );
+                        if (picked != null) setSheetState(() => dateOfBirth = picked);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        decoration: BoxDecoration(
+                          color: context.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: context.borderColor),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.cake_rounded, color: context.hintColor, size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(child: dateOfBirth != null
+                              ? Text(
+                                  '${dateOfBirth!.day.toString().padLeft(2, '0')}/'
+                                  '${dateOfBirth!.month.toString().padLeft(2, '0')}/'
+                                  '${dateOfBirth!.year}  ·  ${calcAge(dateOfBirth!)} yrs',
+                                  style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600))
+                              : Text('Select date of birth', style: TextStyle(color: context.hintColor, fontSize: 13))),
+                          if (dateOfBirth != null)
+                            GestureDetector(
+                              onTap: () => setSheetState(() => dateOfBirth = null),
+                              child: Icon(Icons.close_rounded, color: context.hintColor, size: 16),
+                            ),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    sectionLabel('Allergies'),
+                    addRow(allergyCtrl, 'e.g. Penicillin', EnhancedTheme.errorRed,
+                        () => addItem(allergies, allergyCtrl)),
+                    chipList(allergies, EnhancedTheme.errorRed,
+                        (i) => () => setSheetState(() => allergies.removeAt(i))),
+                    const SizedBox(height: 16),
+
+                    sectionLabel('Chronic Conditions'),
+                    addRow(conditionCtrl, 'e.g. Diabetes', EnhancedTheme.warningAmber,
+                        () => addItem(chronicConditions, conditionCtrl)),
+                    chipList(chronicConditions, EnhancedTheme.warningAmber,
+                        (i) => () => setSheetState(() => chronicConditions.removeAt(i))),
+                    const SizedBox(height: 16),
+
+                    sectionLabel('Current Medications'),
+                    addRow(medicationCtrl, 'e.g. Metformin 500mg', EnhancedTheme.infoBlue,
+                        () => addItem(currentMeds, medicationCtrl)),
+                    chipList(currentMeds, EnhancedTheme.infoBlue,
+                        (i) => () => setSheetState(() => currentMeds.removeAt(i))),
+                    const SizedBox(height: 24),
+
+                    SizedBox(width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final data = <String, dynamic>{
+                            'allergies':            allergies,
+                            'chronic_conditions':   chronicConditions,
+                            'current_medications':  currentMeds,
+                            if (bloodGroup != null) 'blood_group': bloodGroup,
+                            if (dateOfBirth != null) 'date_of_birth':
+                                '${dateOfBirth!.year.toString().padLeft(4, '0')}-'
+                                '${dateOfBirth!.month.toString().padLeft(2, '0')}-'
+                                '${dateOfBirth!.day.toString().padLeft(2, '0')}',
+                          };
+                          final updated = await ref.read(customerNotifierProvider.notifier)
+                              .updateCustomer(customer.id, data);
+                          final notifierState = ref.read(customerNotifierProvider);
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            final Color bg;
+                            final IconData ic;
+                            final String msg;
+                            if (updated != null) {
+                              bg = EnhancedTheme.successGreen;
+                              ic = Icons.check_circle_rounded;
+                              msg = 'Medical history updated';
+                            } else if (notifierState is AsyncData) {
+                              bg = EnhancedTheme.warningAmber;
+                              ic = Icons.cloud_off_rounded;
+                              msg = 'Offline — changes queued for sync';
+                            } else {
+                              bg = EnhancedTheme.errorRed;
+                              ic = Icons.error_rounded;
+                              msg = 'Update failed';
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              backgroundColor: bg.withValues(alpha: 0.92),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              margin: const EdgeInsets.all(16),
+                              content: Row(children: [
+                                Icon(ic, color: Colors.black, size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(msg, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                              ]),
+                            ));
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: EnhancedTheme.accentPurple,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                        child: Text('Save Medical History', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
+                      )),
+                    const SizedBox(height: 8),
+                  ])),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -805,6 +1107,242 @@ class CustomerDetailScreen extends ConsumerWidget {
             fontSize: 13, fontWeight: FontWeight.w700)),
       ]),
     ));
+}
+
+// ── Medical history section ───────────────────────────────────────────────────
+
+class _MedicalHistorySection extends StatefulWidget {
+  final Customer customer;
+  final WidgetRef ref;
+  final VoidCallback onEdit;
+  const _MedicalHistorySection({required this.customer, required this.ref, required this.onEdit});
+
+  @override
+  State<_MedicalHistorySection> createState() => _MedicalHistorySectionState();
+}
+
+class _MedicalHistorySectionState extends State<_MedicalHistorySection>
+    with SingleTickerProviderStateMixin {
+  bool _expanded = false;
+  late final AnimationController _ctrl;
+  late final Animation<double> _rotate;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
+    _rotate = Tween<double>(begin: 0, end: 0.5).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+    _expanded ? _ctrl.forward() : _ctrl.reverse();
+  }
+
+  int _calcAge(DateTime dob) {
+    final now = DateTime.now();
+    int age = now.year - dob.year;
+    if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  Widget _medChip(String label, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: color.withValues(alpha: 0.3)),
+    ),
+    child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+  );
+
+  Widget _emptyHint(BuildContext context, String msg) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Text(msg, style: TextStyle(color: context.hintColor, fontSize: 12, fontStyle: FontStyle.italic)),
+  );
+
+  Widget _subLabel(BuildContext context, String t, IconData icon, Color color) => Row(children: [
+    Icon(icon, color: color, size: 13),
+    const SizedBox(width: 6),
+    Text(t, style: TextStyle(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w600)),
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.customer;
+    final hasAny = c.bloodGroup != null || c.dateOfBirth != null ||
+        c.allergies.isNotEmpty || c.chronicConditions.isNotEmpty || c.currentMedications.isNotEmpty;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(
+          width: 3, height: 18,
+          decoration: BoxDecoration(
+            color: EnhancedTheme.accentPurple,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        const Icon(Icons.medical_information_rounded, color: EnhancedTheme.accentPurple, size: 16),
+        const SizedBox(width: 8),
+        Expanded(child: Text('Medical History', style: GoogleFonts.outfit(
+            color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700))),
+        GestureDetector(
+          onTap: widget.onEdit,
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: EnhancedTheme.accentPurple.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: EnhancedTheme.accentPurple.withValues(alpha: 0.3)),
+            ),
+            child: const Icon(Icons.edit_outlined, color: EnhancedTheme.accentPurple, size: 14),
+          ),
+        ),
+      ]),
+      const SizedBox(height: 10),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: context.borderColor),
+            ),
+            child: Column(children: [
+              InkWell(
+                onTap: _toggle,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.accentPurple.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.health_and_safety_rounded,
+                          color: EnhancedTheme.accentPurple, size: 16),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(hasAny ? 'Medical data on file' : 'No medical data recorded',
+                          style: TextStyle(
+                            color: hasAny ? context.labelColor : context.hintColor,
+                            fontSize: 13, fontWeight: FontWeight.w600)),
+                      if (c.bloodGroup != null || c.dateOfBirth != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Row(children: [
+                            if (c.bloodGroup != null) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: Text(c.bloodGroup!,
+                                    style: const TextStyle(color: EnhancedTheme.errorRed,
+                                        fontSize: 10, fontWeight: FontWeight.w700)),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            if (c.dateOfBirth != null)
+                              Text('${_calcAge(c.dateOfBirth!)} yrs',
+                                  style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                          ]),
+                        ),
+                    ])),
+                    RotationTransition(
+                      turns: _rotate,
+                      child: Icon(Icons.expand_more_rounded, color: context.hintColor, size: 18),
+                    ),
+                  ]),
+                ),
+              ),
+
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 220),
+                crossFadeState: _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                firstChild: const SizedBox.shrink(),
+                secondChild: Container(
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: context.dividerColor, width: 1)),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _subLabel(context, 'Blood Group', Icons.bloodtype_rounded, EnhancedTheme.errorRed),
+                        const SizedBox(height: 6),
+                        c.bloodGroup != null
+                            ? _medChip(c.bloodGroup!, EnhancedTheme.errorRed)
+                            : _emptyHint(context, 'Not recorded'),
+                      ])),
+                      const SizedBox(width: 16),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _subLabel(context, 'Date of Birth', Icons.cake_rounded, EnhancedTheme.infoBlue),
+                        const SizedBox(height: 6),
+                        c.dateOfBirth != null
+                            ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(
+                                  '${c.dateOfBirth!.day.toString().padLeft(2, '0')}/'
+                                  '${c.dateOfBirth!.month.toString().padLeft(2, '0')}/'
+                                  '${c.dateOfBirth!.year}',
+                                  style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                                Text('${_calcAge(c.dateOfBirth!)} years old',
+                                    style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                              ])
+                            : _emptyHint(context, 'Not recorded'),
+                      ])),
+                    ]),
+                    const SizedBox(height: 14),
+                    Divider(height: 1, color: context.dividerColor),
+                    const SizedBox(height: 14),
+
+                    _subLabel(context, 'Allergies', Icons.warning_amber_rounded, EnhancedTheme.errorRed),
+                    const SizedBox(height: 8),
+                    c.allergies.isNotEmpty
+                        ? Wrap(spacing: 6, runSpacing: 6,
+                            children: c.allergies.map((a) => _medChip(a, EnhancedTheme.errorRed)).toList())
+                        : _emptyHint(context, 'No known allergies'),
+                    const SizedBox(height: 14),
+
+                    _subLabel(context, 'Chronic Conditions', Icons.monitor_heart_rounded, EnhancedTheme.warningAmber),
+                    const SizedBox(height: 8),
+                    c.chronicConditions.isNotEmpty
+                        ? Wrap(spacing: 6, runSpacing: 6,
+                            children: c.chronicConditions.map((cc) => _medChip(cc, EnhancedTheme.warningAmber)).toList())
+                        : _emptyHint(context, 'None recorded'),
+                    const SizedBox(height: 14),
+
+                    _subLabel(context, 'Current Medications', Icons.medication_rounded, EnhancedTheme.infoBlue),
+                    const SizedBox(height: 8),
+                    c.currentMedications.isNotEmpty
+                        ? Wrap(spacing: 6, runSpacing: 6,
+                            children: c.currentMedications.map((m) => _medChip(m, EnhancedTheme.infoBlue)).toList())
+                        : _emptyHint(context, 'None recorded'),
+                  ]),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    ]);
+  }
 }
 
 // ── Expandable purchase card ──────────────────────────────────────────────────

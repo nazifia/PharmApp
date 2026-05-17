@@ -1,10 +1,13 @@
 import 'dart:typed_data';
 import 'dart:ui';
+import 'dart:ui' as ui show ImageByteFormat;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 
 // ── Public helper ─────────────────────────────────────────────────────────────
@@ -22,9 +25,16 @@ void showReceiptSheet(BuildContext context, Map<String, dynamic> saleData) {
 
 // ── Receipt Sheet ─────────────────────────────────────────────────────────────
 
-class ReceiptSheet extends StatelessWidget {
+class ReceiptSheet extends StatefulWidget {
   final Map<String, dynamic> saleData;
   const ReceiptSheet({super.key, required this.saleData});
+
+  @override
+  State<ReceiptSheet> createState() => _ReceiptSheetState();
+}
+
+class _ReceiptSheetState extends State<ReceiptSheet> {
+  final GlobalKey _repaintKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +48,6 @@ class ReceiptSheet extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(children: [
-          // ── drag handle
           Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 4),
             child: Container(
@@ -48,7 +57,6 @@ class ReceiptSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2)),
             ),
           ),
-          // ── action bar
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 6, 16, 0),
             child: Row(children: [
@@ -70,11 +78,13 @@ class ReceiptSheet extends StatelessWidget {
                       style: TextStyle(
                           color: context.labelColor,
                           fontSize: 18, fontWeight: FontWeight.w800)),
-                  Text('Tap print to share or print',
+                  Text('Print or share this receipt',
                       style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                 ]),
               ),
-              _PrintButton(saleData: saleData),
+              _PrintButton(saleData: widget.saleData),
+              const SizedBox(width: 4),
+              ReceiptShareButton(saleData: widget.saleData, repaintKey: _repaintKey),
               const SizedBox(width: 4),
               Container(
                 decoration: BoxDecoration(
@@ -93,7 +103,10 @@ class ReceiptSheet extends StatelessWidget {
             child: SingleChildScrollView(
               controller: controller,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              child: _ReceiptCard(saleData: saleData),
+              child: RepaintBoundary(
+                key: _repaintKey,
+                child: _ReceiptCard(saleData: widget.saleData),
+              ),
             ),
           ),
         ]),
@@ -165,8 +178,290 @@ class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
   }
 }
 
-// Keep private alias so the receipt sheet's internal usage doesn't change.
 typedef _PrintButton = ReceiptPrintButton;
+
+// ── Share button ──────────────────────────────────────────────────────────────
+
+class ReceiptShareButton extends StatefulWidget {
+  final Map<String, dynamic> saleData;
+  final GlobalKey? repaintKey;
+  const ReceiptShareButton({super.key, required this.saleData, this.repaintKey});
+
+  @override
+  State<ReceiptShareButton> createState() => _ReceiptShareButtonState();
+}
+
+class _ReceiptShareButtonState extends State<ReceiptShareButton> {
+  bool _sharing = false;
+
+  String _buildReceiptText() {
+    final data = widget.saleData;
+
+    String fmt(double v) =>
+        v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+
+    String methodLabel(String m) {
+      switch (m.toLowerCase()) {
+        case 'pos':
+        case 'card': return 'Card / POS';
+        case 'transfer':
+        case 'bank_transfer': return 'Bank Transfer';
+        case 'wallet': return 'Wallet';
+        default: return 'Cash';
+      }
+    }
+
+    final orgName = data['organizationName'] as String? ?? 'PharmApp';
+    final branchName = data['branchName'] as String? ?? '';
+    final receiptId = data['receiptId'] as String? ?? '#${data['id']}';
+    final customerName = data['customerName'] as String? ??
+        data['customer_name'] as String? ??
+        data['patientName'] as String? ??
+        data['patient_name'] as String? ??
+        data['buyerName'] as String? ??
+        'Walk-in';
+    final total = (data['totalAmount'] as num?)?.toDouble() ?? 0;
+    final discountTotal = (data['discountTotal'] as num?)?.toDouble() ?? 0;
+    final isWholesale = data['isWholesale'] as bool? ?? false;
+    final items = data['items'] as List<dynamic>? ?? [];
+
+    final raw = data['created'] as String? ??
+        data['createdAt'] as String? ??
+        data['created_at'] as String? ?? '';
+    String dateStr = raw;
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+      final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final m = dt.minute.toString().padLeft(2, '0');
+      final ap = dt.hour < 12 ? 'AM' : 'PM';
+      dateStr = '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $h:$m $ap';
+    } catch (_) {}
+
+    final payments = <String, double>{};
+    final list = data['payments'] as List<dynamic>? ?? [];
+    for (final p in list) {
+      final pm = p as Map<String, dynamic>;
+      final method = pm['paymentMethod'] as String? ?? 'cash';
+      final amount = (pm['amount'] as num?)?.toDouble() ?? 0;
+      if (amount > 0) payments[method] = (payments[method] ?? 0) + amount;
+    }
+    if (payments.isEmpty) {
+      final pc  = (data['paymentCash']     as num?)?.toDouble() ?? 0;
+      final pp  = (data['paymentPos']      as num?)?.toDouble() ?? 0;
+      final pt  = (data['paymentTransfer'] as num?)?.toDouble() ?? 0;
+      final pw2 = (data['paymentWallet']   as num?)?.toDouble() ?? 0;
+      if (pc  > 0) payments['cash']     = pc;
+      if (pp  > 0) payments['pos']      = pp;
+      if (pt  > 0) payments['transfer'] = pt;
+      if (pw2 > 0) payments['wallet']   = pw2;
+    }
+
+    final sb = StringBuffer();
+    sb.writeln('============================');
+    sb.writeln(orgName);
+    if (branchName.isNotEmpty) sb.writeln(branchName);
+    sb.writeln('============================');
+    sb.writeln('Date:     $dateStr');
+    sb.writeln('Receipt:  $receiptId');
+    sb.writeln('Customer: $customerName');
+    sb.writeln('Type:     ${isWholesale ? 'Wholesale' : 'Retail'}');
+    sb.writeln('----------------------------');
+    for (final i in items) {
+      final item = i as Map<String, dynamic>;
+      final name = item['name'] as String? ?? '';
+      final qty  = (item['quantity'] as num?)?.toInt() ?? 0;
+      final price = (item['price'] as num?)?.toDouble() ?? 0;
+      final disc  = (item['discount'] as num?)?.toDouble() ?? 0;
+      final sub   = (item['subtotal'] as num?)?.toDouble() ?? (price * qty - disc);
+      sb.writeln('${name.padRight(18)}x$qty  ₦${fmt(sub)}');
+    }
+    sb.writeln('----------------------------');
+    if (discountTotal > 0) {
+      sb.writeln('Subtotal:         ₦${fmt(total + discountTotal)}');
+      sb.writeln('Discount:        -₦${fmt(discountTotal)}');
+    }
+    sb.writeln('TOTAL:            ₦${fmt(total)}');
+    for (final e in payments.entries) {
+      sb.writeln('${methodLabel(e.key).padRight(18)}₦${fmt(e.value)}');
+    }
+    sb.writeln('============================');
+    sb.write('Thank you for your purchase!');
+    return sb.toString();
+  }
+
+  Future<void> _shareText() async {
+    setState(() => _sharing = true);
+    try {
+      await Share.share(_buildReceiptText(), subject: 'Receipt');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Share failed: $e'),
+          backgroundColor: EnhancedTheme.errorRed,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  Future<void> _shareImage() async {
+    final key = widget.repaintKey;
+    if (key == null) { await _shareText(); return; }
+    setState(() => _sharing = true);
+    try {
+      final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) { await _shareText(); return; }
+      final image = await boundary.toImage(pixelRatio: 2.5);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) { await _shareText(); return; }
+      final bytes = byteData.buffer.asUint8List();
+      final receiptId = widget.saleData['receiptId'] as String? ??
+          '${widget.saleData['id']}';
+      await Share.shareXFiles(
+        [XFile.fromData(bytes, name: 'receipt_$receiptId.png', mimeType: 'image/png')],
+        subject: 'Receipt $receiptId',
+      );
+    } catch (_) {
+      await _shareText();
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  void _showShareMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 4),
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: Text('Share Receipt',
+                style: TextStyle(
+                    color: context.labelColor,
+                    fontSize: 16, fontWeight: FontWeight.w800)),
+          ),
+          const SizedBox(height: 8),
+          _ShareOption(
+            icon: Icons.text_snippet_rounded,
+            iconColor: EnhancedTheme.primaryTeal,
+            label: 'Share as Text',
+            subtitle: 'Send via WhatsApp, SMS or any app',
+            onTap: () { Navigator.pop(context); _shareText(); },
+          ),
+          if (widget.repaintKey != null)
+            _ShareOption(
+              icon: Icons.image_rounded,
+              iconColor: EnhancedTheme.accentCyan,
+              label: 'Share as Image',
+              subtitle: 'Capture receipt as a PNG',
+              onTap: () { Navigator.pop(context); _shareImage(); },
+            ),
+          const SizedBox(height: 16),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: _sharing
+            ? Colors.white.withValues(alpha: 0.06)
+            : EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _sharing
+              ? Colors.white.withValues(alpha: 0.1)
+              : EnhancedTheme.primaryTeal.withValues(alpha: 0.4)),
+      ),
+      child: TextButton.icon(
+        onPressed: _sharing ? null : () => _showShareMenu(context),
+        icon: _sharing
+            ? const SizedBox(
+                width: 14, height: 14,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: EnhancedTheme.primaryTeal))
+            : const Icon(Icons.share_rounded, size: 16,
+                color: EnhancedTheme.primaryTeal),
+        label: Text(_sharing ? 'Sharing…' : 'Share',
+            style: const TextStyle(
+                color: EnhancedTheme.primaryTeal,
+                fontSize: 13,
+                fontWeight: FontWeight.w700)),
+      ),
+    );
+  }
+}
+
+class _ShareOption extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _ShareOption({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: iconColor.withValues(alpha: 0.2)),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label,
+                style: TextStyle(
+                    color: context.labelColor,
+                    fontSize: 14, fontWeight: FontWeight.w700)),
+            Text(subtitle,
+                style: TextStyle(
+                    color: context.subLabelColor, fontSize: 11)),
+          ]),
+          const Spacer(),
+          Icon(Icons.chevron_right_rounded, color: context.hintColor, size: 20),
+        ]),
+      ),
+    );
+  }
+}
 
 // ── Receipt Card (on-screen) ──────────────────────────────────────────────────
 

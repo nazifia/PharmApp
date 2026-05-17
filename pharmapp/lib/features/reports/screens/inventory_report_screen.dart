@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,8 +14,15 @@ import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
 import '../shared/report_exporter.dart';
 
-class InventoryReportScreen extends ConsumerWidget {
+class InventoryReportScreen extends ConsumerStatefulWidget {
   const InventoryReportScreen({super.key});
+
+  @override
+  ConsumerState<InventoryReportScreen> createState() => _InventoryReportScreenState();
+}
+
+class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
+  int _touchedPieIndex = -1;
 
   String _fmtValue(double v) {
     if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
@@ -24,7 +32,7 @@ class InventoryReportScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final reportAsync = ref.watch(inventoryReportProvider);
 
     return Scaffold(
@@ -303,6 +311,27 @@ class InventoryReportScreen extends ConsumerWidget {
         ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0),
         const SizedBox(height: 24),
 
+        // ── Stock Distribution Pie Chart ──────────────────────────────────────
+        Row(children: [
+          Container(
+            width: 4, height: 20,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                colors: [EnhancedTheme.accentCyan, EnhancedTheme.primaryTeal],
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text('Stock Distribution',
+              style: GoogleFonts.outfit(
+                  color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
+        ]).animate().fadeIn(duration: 350.ms, delay: 80.ms),
+        const SizedBox(height: 12),
+        _stockPieChart(context, data).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+        const SizedBox(height: 24),
+
         // ── Low stock alerts header ───────────────────────────────────────────
         Row(children: [
           Container(
@@ -345,6 +374,141 @@ class InventoryReportScreen extends ConsumerWidget {
               .map((e) => _lowStockRow(context, e.value, e.key)),
         const SizedBox(height: 32),
       ]),
+    );
+  }
+
+  Widget _stockPieChart(BuildContext context, InventoryReportData data) {
+    if (data.totalItems <= 0) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Center(
+              child: Text(
+                'No inventory data available',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final healthy = (data.totalItems - data.lowStockCount).clamp(0, data.totalItems);
+    final critical = (data.lowStockItems.where((i) => i.stock < i.lowStockThreshold * 0.3).length);
+    final lowOnly = data.lowStockCount - critical;
+
+    final segments = <_PieSegment>[
+      _PieSegment('Healthy', healthy.toDouble(), EnhancedTheme.successGreen),
+      if (lowOnly > 0) _PieSegment('Low Stock', lowOnly.toDouble(), EnhancedTheme.warningAmber),
+      if (critical > 0) _PieSegment('Critical', critical.toDouble(), EnhancedTheme.errorRed),
+    ];
+
+    final total = segments.fold<double>(0, (s, e) => s + e.value);
+
+    return LayoutBuilder(
+      builder: (context, constraints) => ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Row(children: [
+              SizedBox(
+                width: constraints.maxWidth * 0.5,
+                height: 200,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: PieChart(
+                    PieChartData(
+                      sections: segments.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final seg = entry.value;
+                        final isTouched = i == _touchedPieIndex;
+                        final pct = total > 0 ? (seg.value / total * 100).round() : 0;
+                        return PieChartSectionData(
+                          color: seg.color,
+                          value: seg.value,
+                          title: '$pct%',
+                          radius: isTouched ? 72 : 60,
+                          titleStyle: TextStyle(
+                            fontSize: isTouched ? 13 : 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            shadows: const [Shadow(color: Colors.black45, blurRadius: 4)],
+                          ),
+                        );
+                      }).toList(),
+                      pieTouchData: PieTouchData(
+                        touchCallback: (event, response) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                response == null ||
+                                response.touchedSection == null) {
+                              _touchedPieIndex = -1;
+                            } else {
+                              _touchedPieIndex = response.touchedSection!.touchedSectionIndex;
+                            }
+                          });
+                        },
+                      ),
+                      centerSpaceRadius: 30,
+                      sectionsSpace: 2,
+                      borderData: FlBorderData(show: false),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: segments.asMap().entries.map((entry) {
+                      final seg = entry.value;
+                      final pct = total > 0 ? (seg.value / total * 100).round() : 0;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(children: [
+                          Container(
+                            width: 12, height: 12,
+                            decoration: BoxDecoration(
+                              color: seg.color,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(seg.label,
+                                style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.85),
+                                    fontSize: 11, fontWeight: FontWeight.w600)),
+                            Text('${seg.value.toInt()} items · $pct%',
+                                style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.5), fontSize: 10)),
+                          ])),
+                        ]),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 
@@ -485,4 +649,11 @@ class InventoryReportScreen extends ConsumerWidget {
       ),
     ).animate().fadeIn(duration: 400.ms, delay: 150.ms);
   }
+}
+
+class _PieSegment {
+  final String label;
+  final double value;
+  final Color color;
+  const _PieSegment(this.label, this.value, this.color);
 }

@@ -56,6 +56,9 @@ import 'package:pharmapp/features/auth/screens/activity_log_screen.dart';
 import 'package:pharmapp/features/prescriptions/screens/prescription_list_screen.dart';
 import 'package:pharmapp/features/prescriptions/screens/prescription_detail_screen.dart';
 import 'package:pharmapp/features/prescriptions/screens/write_prescription_screen.dart';
+import 'package:pharmapp/features/networks/screens/network_list_screen.dart';
+import 'package:pharmapp/features/networks/screens/network_detail_screen.dart';
+import 'package:pharmapp/features/networks/screens/create_network_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -137,6 +140,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       if ((loc == '/dashboard/prescriptions' ||
               loc.startsWith('/dashboard/prescriptions/')) &&
           !Rbac.can(user, AppPermission.readPrescriptions)) {
+        return '/dashboard';
+      }
+
+      // Network management — Admin / Manager only
+      if ((loc == '/dashboard/network' ||
+              loc.startsWith('/dashboard/network/')) &&
+          !Rbac.isSenior(user)) {
         return '/dashboard';
       }
 
@@ -320,6 +330,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'prescription_detail',
                 builder: (_, state) => PrescriptionDetailScreen(
                   prescriptionId: int.parse(state.pathParameters['id']!),
+                ),
+              ),
+              GoRoute(path: 'network',        name: 'network_list',   builder: (_, __) => const NetworkListScreen()),
+              GoRoute(path: 'network/create', name: 'network_create', builder: (_, __) => const CreateNetworkScreen()),
+              GoRoute(
+                path: 'network/:id',
+                name: 'network_detail',
+                builder: (_, state) => NetworkDetailScreen(
+                  networkId: int.parse(state.pathParameters['id']!),
                 ),
               ),
             ],

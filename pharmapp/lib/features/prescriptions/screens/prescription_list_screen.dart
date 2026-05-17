@@ -663,6 +663,21 @@ class _PrescriptionCard extends StatelessWidget {
                       label: '${rx.undispensedCount} pending',
                       color: EnhancedTheme.warningAmber,
                     ),
+                  if (rx.isRefillDueSoon)
+                    _InfoChip(
+                      icon: Icons.repeat_rounded,
+                      label: 'Refill due',
+                      color: EnhancedTheme.warningAmber,
+                    ),
+                  if (rx.refillsAllowed > 0 && !rx.isRefillDueSoon)
+                    _InfoChip(
+                      icon: Icons.repeat_rounded,
+                      label: '${rx.refillsAllowed - rx.refillsUsed} refill'
+                          '${rx.refillsAllowed - rx.refillsUsed == 1 ? '' : 's'} left',
+                      color: rx.refillsUsed >= rx.refillsAllowed
+                          ? EnhancedTheme.errorRed
+                          : Colors.black45,
+                    ),
                   if (rx.doctorName != null &&
                       rx.doctorName!.isNotEmpty)
                     _InfoChip(

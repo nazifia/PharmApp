@@ -80,6 +80,10 @@ class Prescription {
   final int? pharmacyId;
   final String? branchName;
   final int? branchId;
+  final int refillsAllowed;
+  final int refillsUsed;
+  final DateTime? lastRefillDate;
+  final DateTime? nextRefillDate;
 
   const Prescription({
     required this.id,
@@ -99,11 +103,20 @@ class Prescription {
     this.pharmacyId,
     this.branchName,
     this.branchId,
+    this.refillsAllowed = 0,
+    this.refillsUsed = 0,
+    this.lastRefillDate,
+    this.nextRefillDate,
   });
 
   bool get isPending => status == 'pending';
   bool get isPartial => status == 'partial';
   bool get isDispensed => status == 'dispensed';
+  bool get canRefill => refillsUsed < refillsAllowed && !isDispensed;
+  bool get isRefillDueSoon {
+    if (nextRefillDate == null) return false;
+    return nextRefillDate!.difference(DateTime.now()).inDays <= 7;
+  }
 
   int get undispensedCount => medications.where((m) => !m.isDispensed).length;
   int get dispensedCount => medications.where((m) => m.isDispensed).length;
@@ -112,6 +125,10 @@ class Prescription {
     List<PrescriptionItem>? medications,
     String? status,
     String? dispensedAt,
+    int? refillsAllowed,
+    int? refillsUsed,
+    DateTime? lastRefillDate,
+    DateTime? nextRefillDate,
   }) =>
       Prescription(
         id: id,
@@ -131,6 +148,10 @@ class Prescription {
         pharmacyId: pharmacyId,
         branchName: branchName,
         branchId: branchId,
+        refillsAllowed: refillsAllowed ?? this.refillsAllowed,
+        refillsUsed: refillsUsed ?? this.refillsUsed,
+        lastRefillDate: lastRefillDate ?? this.lastRefillDate,
+        nextRefillDate: nextRefillDate ?? this.nextRefillDate,
       );
 
   factory Prescription.fromJson(Map<String, dynamic> j) {
@@ -153,6 +174,11 @@ class Prescription {
             .toList()
         : <PrescriptionItem>[];
 
+    DateTime? parseDate(dynamic raw) {
+      if (raw == null) return null;
+      try { return DateTime.parse(raw as String).toLocal(); } catch (_) { return null; }
+    }
+
     return Prescription(
       id: (j['id'] as num?)?.toInt() ?? 0,
       customerId: (j['customer_id'] ?? j['customerId']) as int?,
@@ -171,6 +197,10 @@ class Prescription {
       pharmacyId: (j['pharmacy_id'] ?? j['pharmacyId']) as int?,
       branchName: j['branch_name'] ?? j['branchName'] as String?,
       branchId: (j['branch_id'] ?? j['branchId']) as int?,
+      refillsAllowed: (j['refills_allowed'] ?? j['refillsAllowed'] as num?)?.toInt() ?? 0,
+      refillsUsed: (j['refills_used'] ?? j['refillsUsed'] as num?)?.toInt() ?? 0,
+      lastRefillDate: parseDate(j['last_refill_date'] ?? j['lastRefillDate']),
+      nextRefillDate: parseDate(j['next_refill_date'] ?? j['nextRefillDate']),
     );
   }
 
@@ -182,5 +212,6 @@ class Prescription {
         if (diagnosis != null && diagnosis!.isNotEmpty) 'diagnosis': diagnosis,
         if (notes != null && notes!.isNotEmpty) 'notes': notes,
         'medications': medications.map((m) => m.toJson()).toList(),
+        'refills_allowed': refillsAllowed,
       };
 }

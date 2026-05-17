@@ -259,18 +259,20 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
       ));
       return;
     }
-    final nameCtrl    = TextEditingController();
-    final brandCtrl   = TextEditingController();
-    final costCtrl    = TextEditingController();
-    final priceCtrl   = TextEditingController();
-    final stockCtrl   = TextEditingController();
-    final barcodeCtrl = TextEditingController();
-    final expiryCtrl  = TextEditingController();
-    String form       = 'Tablet';
-    String unit       = 'Tablet';
-    double markup     = 0.0;
-    String store      = _currentStore;
-    final formKey     = GlobalKey<FormState>();
+    final nameCtrl         = TextEditingController();
+    final brandCtrl        = TextEditingController();
+    final costCtrl         = TextEditingController();
+    final priceCtrl        = TextEditingController();
+    final stockCtrl        = TextEditingController();
+    final barcodeCtrl      = TextEditingController();
+    final expiryCtrl       = TextEditingController();
+    final reorderLevelCtrl = TextEditingController();
+    final batchCtrl        = TextEditingController();
+    String form            = 'Tablet';
+    String unit            = 'Tablet';
+    double markup          = 0.0;
+    String store           = _currentStore;
+    final formKey          = GlobalKey<FormState>();
 
     showModalBottomSheet(
       context: context,
@@ -400,6 +402,18 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                           }
                         },
                       )),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(child: _sheetField(reorderLevelCtrl, 'Reorder Level',
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          if (int.tryParse(v) == null) return 'Invalid';
+                          return null;
+                        })),
+                    const SizedBox(width: 12),
+                    Expanded(child: _sheetField(batchCtrl, 'Batch / Lot No.')),
+                  ]),
                   const SizedBox(height: 20),
                   // Store selector
                   Text('Store', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w700,
@@ -511,6 +525,10 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                         'expiry_date':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
                         'store':               store,
                         'unit_of_dispensing':  unit,
+                        if (reorderLevelCtrl.text.trim().isNotEmpty)
+                          'reorder_level': int.tryParse(reorderLevelCtrl.text.trim()),
+                        if (batchCtrl.text.trim().isNotEmpty)
+                          'batch_number': batchCtrl.text.trim(),
                       };
                       // Inject active branch_id so item is assigned to correct branch.
                       final branchId = ref.read(activeBranchProvider)?.id;
@@ -950,6 +968,31 @@ class _StoreInventoryView extends ConsumerWidget {
       ])),
       data: (items) {
         final filtered = applyFilter(items);
+        final reorderItems = items.where(
+          (i) => i.reorderLevel != null && i.stock <= i.reorderLevel! && i.stock > 0,
+        ).toList();
+        if (reorderItems.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            final count = reorderItems.length;
+            final label = count == 1
+                ? '${reorderItems.first.name} needs reordering'
+                : '$count items need reordering';
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: EnhancedTheme.accentOrange.withValues(alpha: 0.92),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+              duration: const Duration(seconds: 5),
+              content: Row(children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(child: Text(label,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+              ]),
+            ));
+          });
+        }
         if (filtered.isEmpty) return _emptyState(context);
         return isGrid ? _buildGrid(context, filtered) : _buildList(context, filtered);
       },
@@ -979,6 +1022,7 @@ class _StoreInventoryView extends ConsumerWidget {
 
   Color _stockColor(Item item) {
     if (item.stock == 0) return EnhancedTheme.errorRed;
+    if (item.reorderLevel != null && item.stock <= item.reorderLevel!) return EnhancedTheme.accentOrange;
     if (item.stock <= item.lowStockThreshold) return EnhancedTheme.warningAmber;
     return EnhancedTheme.successGreen;
   }
@@ -1036,6 +1080,10 @@ class _StoreInventoryView extends ConsumerWidget {
                   Row(children: [
                     _stockBadge(item),
                     if (exp) ...[const SizedBox(width: 6), _chip('Expired', EnhancedTheme.errorRed)],
+                    if (!exp && item.reorderLevel != null && item.stock <= item.reorderLevel!) ...[
+                      const SizedBox(width: 6),
+                      _chip('Reorder', EnhancedTheme.accentOrange),
+                    ],
                   ]),
                 ])),
                 const SizedBox(width: 12),
@@ -1044,7 +1092,10 @@ class _StoreInventoryView extends ConsumerWidget {
                       style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal, fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
-                  Icon(Icons.chevron_right_rounded, color: context.hintColor, size: 18),
+                  if (item.reorderLevel != null && item.stock <= item.reorderLevel!)
+                    const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.accentOrange, size: 16)
+                  else
+                    Icon(Icons.chevron_right_rounded, color: context.hintColor, size: 18),
                 ]),
               ]),
             ),
@@ -1070,16 +1121,34 @@ class _StoreInventoryView extends ConsumerWidget {
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [sc.withValues(alpha: 0.15), sc.withValues(alpha: 0.05)],
+                Stack(
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [sc.withValues(alpha: 0.15), sc.withValues(alpha: 0.05)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: sc.withValues(alpha: 0.2)),
+                      ),
+                      child: Icon(Icons.medication_rounded, color: sc, size: 22),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: sc.withValues(alpha: 0.2)),
-                  ),
-                  child: Icon(Icons.medication_rounded, color: sc, size: 22),
+                    if (item.reorderLevel != null && item.stock <= item.reorderLevel!)
+                      Positioned(
+                        top: 0, right: 0,
+                        child: Container(
+                          width: 14, height: 14,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: EnhancedTheme.accentOrange,
+                            border: Border.all(color: context.cardColor, width: 1.5),
+                          ),
+                          child: const Icon(Icons.warning_amber_rounded,
+                              color: Colors.white, size: 8),
+                        ),
+                      ),
+                  ],
                 ),
                 _stockBadge(item),
               ]),
@@ -1102,11 +1171,16 @@ class _StoreInventoryView extends ConsumerWidget {
 
   Widget _stockBadge(Item item) {
     final c = _stockColor(item);
-    final label = item.stock == 0
-        ? 'Out of Stock'
-        : item.stock <= item.lowStockThreshold
-            ? '${item.stock} low'
-            : '${item.stock} in stock';
+    final String label;
+    if (item.stock == 0) {
+      label = 'Out of Stock';
+    } else if (item.reorderLevel != null && item.stock <= item.reorderLevel!) {
+      label = '${item.stock} reorder';
+    } else if (item.stock <= item.lowStockThreshold) {
+      label = '${item.stock} low';
+    } else {
+      label = '${item.stock} in stock';
+    }
     return _chip(label, c);
   }
 

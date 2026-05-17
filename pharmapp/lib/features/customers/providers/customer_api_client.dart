@@ -254,7 +254,17 @@ class CustomerApiClient {
   Future<Customer> updateCustomer(int id, Map<String, dynamic> data) async {
     if (_isLocal) return Customer.fromJson(await LocalDb.instance.updateCustomer(id, data));
     try {
-      final res = await _dio!.patch('/customers/$id/', data: data);
+      final payload = Map<String, dynamic>.from(data);
+      if (payload.containsKey('allergies') && (payload['allergies'] as List).isEmpty) {
+        payload.remove('allergies');
+      }
+      if (payload.containsKey('chronic_conditions') && (payload['chronic_conditions'] as List).isEmpty) {
+        payload.remove('chronic_conditions');
+      }
+      if (payload.containsKey('current_medications') && (payload['current_medications'] as List).isEmpty) {
+        payload.remove('current_medications');
+      }
+      final res = await _dio!.patch('/customers/$id/', data: payload);
       return Customer.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       if (e.response == null) rethrow;

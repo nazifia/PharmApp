@@ -195,6 +195,15 @@ class _PrescriptionDetailScreenState
                               ),
                               const SizedBox(height: 12),
                             ],
+                            if (rx.refillsAllowed > 0) ...[
+                              _RefillSection(
+                                rx: rx,
+                                canWrite: canWrite,
+                                isBusy: isBusy,
+                                onRefill: () => _requestRefill(rx),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
                             _MedicationHeader(
                               rx: rx,
                               selectMode: _selectMode,
@@ -409,6 +418,75 @@ class _PrescriptionDetailScreenState
       backgroundColor: Colors.transparent,
       builder: (_) => _AvailabilitySheet(med: med),
     );
+  }
+
+  Future<void> _requestRefill(Prescription rx) async {
+    if (!rx.canRefill) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      useRootNavigator: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Request Refill',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: Text(
+          'Request refill ${rx.refillsUsed + 1} of ${rx.refillsAllowed} for ${rx.customerName}?',
+          style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: EnhancedTheme.primaryTeal,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final result = await ref
+        .read(prescriptionNotifierProvider.notifier)
+        .requestRefill(rx.id);
+
+    if (!mounted) return;
+    if (result != null) {
+      setState(() => _localRx = result);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.successGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: const Row(children: [
+          Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+          SizedBox(width: 10),
+          Text('Refill requested successfully.',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        ]),
+      ));
+    } else {
+      final notifierState = ref.read(prescriptionNotifierProvider);
+      if (notifierState is AsyncError) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: EnhancedTheme.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          content: Text(
+              notifierState.error.toString().replaceFirst('Exception: ', ''),
+              style: const TextStyle(color: Colors.white)),
+        ));
+      }
+    }
   }
 
   Prescription _recomputeStatus(Prescription rx) {
@@ -1828,6 +1906,198 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet> {
           onTap: inStock ? () => Navigator.pop(context, item) : null,
         );
       },
+    );
+  }
+}
+
+// ── Refill section ────────────────────────────────────────────────────────────
+
+class _RefillSection extends StatelessWidget {
+  final Prescription rx;
+  final bool canWrite;
+  final bool isBusy;
+  final VoidCallback onRefill;
+
+  const _RefillSection({
+    required this.rx,
+    required this.canWrite,
+    required this.isBusy,
+    required this.onRefill,
+  });
+
+  String _formatDate(DateTime dt) =>
+      '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = rx.refillsAllowed > 0
+        ? rx.refillsUsed / rx.refillsAllowed
+        : 0.0;
+    final remaining = rx.refillsAllowed - rx.refillsUsed;
+    final progressColor = remaining == 0
+        ? EnhancedTheme.errorRed
+        : remaining == 1
+            ? EnhancedTheme.warningAmber
+            : EnhancedTheme.primaryTeal;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.accentPurple.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const Icon(Icons.repeat_rounded,
+                    color: EnhancedTheme.accentPurple, size: 16),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Refills',
+                        style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
+                    Text(
+                      '${rx.refillsUsed} of ${rx.refillsAllowed} used',
+                      style: TextStyle(
+                          color: progressColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              if (canWrite && rx.canRefill && !isBusy)
+                GestureDetector(
+                  onTap: onRefill,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color:
+                              EnhancedTheme.primaryTeal.withValues(alpha: 0.4)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_circle_outline_rounded,
+                            color: EnhancedTheme.primaryTeal, size: 15),
+                        SizedBox(width: 5),
+                        Text('Request Refill',
+                            style: TextStyle(
+                                color: EnhancedTheme.primaryTeal,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+                )
+              else if (!rx.canRefill && !rx.isDispensed && rx.refillsAllowed > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.errorRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: EnhancedTheme.errorRed.withValues(alpha: 0.3)),
+                  ),
+                  child: const Text('No refills left',
+                      style: TextStyle(
+                          color: EnhancedTheme.errorRed,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              backgroundColor: Colors.white.withValues(alpha: 0.08),
+              color: progressColor,
+              minHeight: 6,
+            ),
+          ),
+          if (rx.nextRefillDate != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 12,
+                  color: rx.isRefillDueSoon
+                      ? EnhancedTheme.warningAmber
+                      : Colors.black38,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  'Next refill: ${_formatDate(rx.nextRefillDate!)}',
+                  style: TextStyle(
+                      color: rx.isRefillDueSoon
+                          ? EnhancedTheme.warningAmber
+                          : Colors.black38,
+                      fontSize: 12,
+                      fontWeight: rx.isRefillDueSoon
+                          ? FontWeight.w600
+                          : FontWeight.normal),
+                ),
+                if (rx.isRefillDueSoon) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.warningAmber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                          color: EnhancedTheme.warningAmber
+                              .withValues(alpha: 0.4)),
+                    ),
+                    child: const Text('Due soon',
+                        style: TextStyle(
+                            color: EnhancedTheme.warningAmber,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ],
+            ),
+          ],
+          if (rx.lastRefillDate != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.history_rounded,
+                    size: 12, color: Colors.black38),
+                const SizedBox(width: 5),
+                Text(
+                  'Last refill: ${_formatDate(rx.lastRefillDate!)}',
+                  style: const TextStyle(color: Colors.black38, fontSize: 11),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

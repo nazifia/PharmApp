@@ -193,6 +193,23 @@ class PrescriptionNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<Prescription?> requestRefill(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      final updated = await _api.requestRefill(id);
+      _ref.invalidate(prescriptionDetailProvider(id));
+      _invalidateLists();
+      state = const AsyncValue.data(null);
+      return updated;
+    } on DioException catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
   void _invalidateLists() {
     _ref.invalidate(prescriptionListProvider);
     _ref.invalidate(undispensedPrescriptionsProvider);

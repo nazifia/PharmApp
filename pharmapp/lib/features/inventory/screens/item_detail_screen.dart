@@ -65,13 +65,15 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   // ── Edit sheet ────────────────────────────────────────────────────────────
 
   void _showEditSheet(BuildContext context, Item item) {
-    final nameCtrl      = TextEditingController(text: item.name);
-    final brandCtrl     = TextEditingController(text: item.brand);
-    final priceCtrl     = TextEditingController(text: item.price.toStringAsFixed(0));
-    final costCtrl      = TextEditingController(text: item.costPrice > 0 ? item.costPrice.toStringAsFixed(0) : '');
-    final thresholdCtrl = TextEditingController(text: item.lowStockThreshold.toString());
-    final barcodeCtrl   = TextEditingController(text: item.barcode == 'N/A' ? '' : item.barcode);
-    final expiryCtrl    = TextEditingController(
+    final nameCtrl         = TextEditingController(text: item.name);
+    final brandCtrl        = TextEditingController(text: item.brand);
+    final priceCtrl        = TextEditingController(text: item.price.toStringAsFixed(0));
+    final costCtrl         = TextEditingController(text: item.costPrice > 0 ? item.costPrice.toStringAsFixed(0) : '');
+    final thresholdCtrl    = TextEditingController(text: item.lowStockThreshold.toString());
+    final barcodeCtrl      = TextEditingController(text: item.barcode == 'N/A' ? '' : item.barcode);
+    final reorderLevelCtrl = TextEditingController(text: item.reorderLevel?.toString() ?? '');
+    final batchCtrl        = TextEditingController(text: item.batchNumber ?? '');
+    final expiryCtrl       = TextEditingController(
       text: item.expiryDate != null
           ? '${item.expiryDate!.year}-${item.expiryDate!.month.toString().padLeft(2, '0')}-${item.expiryDate!.day.toString().padLeft(2, '0')}'
           : '',
@@ -137,6 +139,18 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid' : null)),
                     const SizedBox(width: 12),
                     Expanded(child: _field(barcodeCtrl, 'Barcode')),
+                  ]),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(child: _field(reorderLevelCtrl, 'Reorder Level',
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          if (int.tryParse(v) == null) return 'Invalid';
+                          return null;
+                        })),
+                    const SizedBox(width: 12),
+                    Expanded(child: _field(batchCtrl, 'Batch / Lot No.')),
                   ]),
                   const SizedBox(height: 12),
                   _field(expiryCtrl, 'Expiry Date (YYYY-MM-DD)',
@@ -280,6 +294,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           'lowStockThreshold':   int.parse(thresholdCtrl.text),
                           'barcode':             barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
                           'expiryDate':          expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
+                          'reorderLevel':        reorderLevelCtrl.text.trim().isEmpty ? null : int.tryParse(reorderLevelCtrl.text.trim()),
+                          'batchNumber':         batchCtrl.text.trim().isEmpty ? null : batchCtrl.text.trim(),
                         };
                         final updated = await ref.read(inventoryNotifierProvider.notifier)
                             .updateItem(item.id, payload);
@@ -310,14 +326,16 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             brand: payload['brand'] as String,
                             dosageForm: dosageForm,
                             price: payload['price'] as double,
-                            costPrice: payload['cost_price'] as double,
+                            costPrice: payload['costPrice'] as double? ?? item.costPrice,
                             markup: markup,
-                            lowStockThreshold: payload['low_stock_threshold'] as int,
+                            lowStockThreshold: payload['lowStockThreshold'] as int,
                             barcode: payload['barcode'] as String,
-                            expiryDate: (payload['expiry_date'] as String?) != null
-                                ? DateTime.tryParse(payload['expiry_date'] as String)
+                            expiryDate: (payload['expiryDate'] as String?) != null
+                                ? DateTime.tryParse(payload['expiryDate'] as String)
                                 : null,
                             unitOfDispensing: unitOfDispensing,
+                            reorderLevel: payload['reorderLevel'] as int?,
+                            batchNumber: payload['batchNumber'] as String?,
                           ));
                           if (ctx.mounted) Navigator.of(ctx).pop();
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1119,11 +1137,14 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   Widget _buildContent(BuildContext context, Item item) {
     final now     = DateTime.now();
     final expired = item.expiryDate != null && item.expiryDate!.isBefore(now);
+    final isReorderNeeded = item.reorderLevel != null && item.stock <= item.reorderLevel!;
     final stockColor = item.stock == 0
         ? EnhancedTheme.errorRed
-        : item.stock <= item.lowStockThreshold
-            ? EnhancedTheme.warningAmber
-            : EnhancedTheme.successGreen;
+        : isReorderNeeded
+            ? EnhancedTheme.accentOrange
+            : item.stock <= item.lowStockThreshold
+                ? EnhancedTheme.warningAmber
+                : EnhancedTheme.successGreen;
 
     return Column(children: [
       _header(context, item, item.brand),
@@ -1171,7 +1192,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     const SizedBox(height: 10),
                     Wrap(spacing: 6, runSpacing: 6, children: [
                       _chip(item.dosageForm, EnhancedTheme.accentPurple),
+                      if (item.batchNumber != null && item.batchNumber!.isNotEmpty)
+                        _chip('Lot: ${item.batchNumber}', EnhancedTheme.accentPurple),
                       if (expired) _chip('Expired', EnhancedTheme.errorRed),
+                      if (!expired && item.reorderLevel != null && item.stock <= item.reorderLevel!)
+                        _chip('Reorder Needed', EnhancedTheme.accentOrange),
                       if (!expired && item.stock <= item.lowStockThreshold && item.stock > 0)
                         _chip('Low Stock', EnhancedTheme.warningAmber),
                       if (item.stock == 0) _chip('Out of Stock', EnhancedTheme.errorRed),
@@ -1224,9 +1249,20 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   _divider(),
                   _detailRow('Low Stock Alert', '${item.lowStockThreshold} units',
                       Icons.warning_amber_rounded, EnhancedTheme.warningAmber),
+                  if (item.reorderLevel != null) ...[
+                    _divider(),
+                    _detailRow('Reorder Level', '${item.reorderLevel} units',
+                        Icons.refresh_rounded, EnhancedTheme.accentOrange),
+                  ],
+                  if (item.batchNumber != null && item.batchNumber!.isNotEmpty) ...[
+                    _divider(),
+                    _detailRow('Batch / Lot No.', item.batchNumber!,
+                        Icons.tag_rounded, EnhancedTheme.accentPurple),
+                  ],
                   _divider(),
                   _detailRow('Stock Status',
                       item.stock == 0 ? 'Out of Stock'
+                      : (item.reorderLevel != null && item.stock <= item.reorderLevel!) ? 'Reorder Needed'
                       : item.stock <= item.lowStockThreshold ? 'Low Stock'
                       : 'In Stock',
                       Icons.circle_rounded,

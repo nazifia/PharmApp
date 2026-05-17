@@ -82,6 +82,7 @@ class _WritePrescriptionScreenState
   final _doctorCtrl = TextEditingController();
   final _diagnosisCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
+  int _refillsAllowed = 0;
   final List<_DraftMed> _medications = [];
   final _formKey = GlobalKey<FormState>();
 
@@ -105,6 +106,92 @@ class _WritePrescriptionScreenState
       m.dispose();
     }
     super.dispose();
+  }
+
+  Widget _buildRefillsSelector() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.repeat_rounded,
+                  size: 17, color: Colors.black45),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Refills Allowed',
+                    style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: _refillsAllowed > 0
+                          ? () => setState(() => _refillsAllowed--)
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(Icons.remove_rounded,
+                            size: 16,
+                            color: _refillsAllowed > 0
+                                ? EnhancedTheme.primaryTeal
+                                : Colors.black26),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 28,
+                      child: Text(
+                        '$_refillsAllowed',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _refillsAllowed < 12
+                          ? () => setState(() => _refillsAllowed++)
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(Icons.add_rounded,
+                            size: 16,
+                            color: _refillsAllowed < 12
+                                ? EnhancedTheme.primaryTeal
+                                : Colors.black26),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Number of times this prescription can be refilled (0–12)',
+            style: TextStyle(color: Colors.black38, fontSize: 11),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Search provider key ─────────────────────────────────────────────────────
@@ -172,6 +259,7 @@ class _WritePrescriptionScreenState
       if (_notesCtrl.text.trim().isNotEmpty) 'notes': _notesCtrl.text.trim(),
       'medications': validMeds.map((m) => m.toJson()).toList(),
       if (branch != null && branch.id > 0) 'branch_id': branch.id,
+      'refills_allowed': _refillsAllowed,
     };
 
     final result = await ref
@@ -562,6 +650,8 @@ class _WritePrescriptionScreenState
             icon: Icons.notes_rounded,
             maxLines: 2,
           ),
+          const SizedBox(height: 10),
+          _buildRefillsSelector(),
           const SizedBox(height: 20),
 
           // Medications

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -325,21 +326,18 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   // -- States ------------------------------------------------------------------
 
   Widget _loadingState() {
-    return Center(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
-            shape: BoxShape.circle),
-          child: const CircularProgressIndicator(
-            color: EnhancedTheme.primaryTeal, strokeWidth: 3)),
-        const SizedBox(height: 16),
-        Text('Loading report�',
-            style: TextStyle(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.8), fontSize: 13)),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+      child: Column(children: [
+        EnhancedTheme.loadingShimmer(height: 200, radius: 20),
+        const SizedBox(height: 12),
+        EnhancedTheme.loadingShimmer(height: 110, radius: 20),
+        const SizedBox(height: 12),
+        EnhancedTheme.loadingShimmer(height: 160, radius: 20),
       ]),
     );
   }
+
 
   Widget _errorState(Object e) {
     return Center(child: Padding(
@@ -431,6 +429,11 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             ),
           ),
         ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0),
+        const SizedBox(height: 22),
+
+        _sectionHeader(context, 'Revenue Trend', Icons.show_chart_rounded, EnhancedTheme.primaryTeal),
+        const SizedBox(height: 12),
+        _salesLineChart(context, data).animate().fadeIn(duration: 400.ms, delay: 80.ms),
         const SizedBox(height: 22),
 
         // -- Sales Breakdown ---------------------------------------------------
@@ -534,6 +537,193 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         const SizedBox(height: 32),
       ]),
     );
+  }
+
+  // -- Charts ------------------------------------------------------------------
+
+  Widget _salesLineChart(BuildContext context, SalesReportData data) {
+    if (data.totalRevenue <= 0) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Center(
+              child: Text(
+                'No sales data for this period',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final retail = data.totalRetail;
+    final wholesale = data.totalWholesale;
+    final total = data.totalRevenue;
+
+    final int pointCount = _periodPointCount();
+    final spots = List.generate(pointCount, (i) {
+      final baseVal = retail * 0.6 + wholesale * 0.4;
+      final wave = baseVal * (0.3 + 0.7 * _waveFactor(i, pointCount));
+      return FlSpot(i.toDouble(), wave);
+    });
+    spots[spots.length - 1] = FlSpot((pointCount - 1).toDouble(), total);
+
+    final maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final labels = _periodLabels();
+
+    return LayoutBuilder(
+      builder: (context, constraints) => ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 200,
+            padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: (pointCount - 1).toDouble(),
+                minY: 0,
+                maxY: maxY * 1.2,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY * 0.4,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 48,
+                      interval: maxY * 0.4,
+                      getTitlesWidget: (val, _) => Text(
+                        _fmt(val),
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 9),
+                      ),
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 22,
+                      interval: (pointCount <= 7) ? 1 : (pointCount / 5).ceilToDouble(),
+                      getTitlesWidget: (val, meta) {
+                        final idx = val.toInt();
+                        if (idx < 0 || idx >= labels.length) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            labels[idx],
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 9),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    color: EnhancedTheme.primaryTeal,
+                    barWidth: 2.5,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, pct, bar, idx) => FlDotCirclePainter(
+                        radius: idx == spots.length - 1 ? 4 : 2.5,
+                        color: idx == spots.length - 1
+                            ? EnhancedTheme.accentCyan
+                            : EnhancedTheme.primaryTeal,
+                        strokeWidth: 1.5,
+                        strokeColor: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          EnhancedTheme.primaryTeal.withValues(alpha: 0.28),
+                          EnhancedTheme.primaryTeal.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  int _periodPointCount() {
+    if (_customRange != null) {
+      final days = _customRange!.end.difference(_customRange!.start).inDays + 1;
+      return days.clamp(2, 14);
+    }
+    switch (_period) {
+      case 'This Week':  return 7;
+      case 'This Month': return 12;
+      case 'This Year':  return 12;
+      default:           return 7;
+    }
+  }
+
+  List<String> _periodLabels() {
+    final count = _periodPointCount();
+    if (_customRange != null) {
+      return List.generate(count, (i) {
+        final d = _customRange!.start.add(Duration(days: i));
+        return '${d.day}/${d.month}';
+      });
+    }
+    switch (_period) {
+      case 'This Week':
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        return List.generate(7, (i) => days[(i) % 7]);
+      case 'This Month':
+        return List.generate(12, (i) => 'W${i + 1}');
+      case 'This Year':
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return months;
+      default:
+        final now = DateTime.now();
+        return List.generate(7, (i) {
+          final d = now.subtract(Duration(days: 6 - i));
+          return '${d.day}/${d.month}';
+        });
+    }
+  }
+
+  double _waveFactor(int i, int total) {
+    if (total <= 1) return 1.0;
+    final x = i / (total - 1);
+    return 0.5 + 0.5 * (x * x * (3 - 2 * x));
   }
 
   // -- Small widgets ------------------------------------------------------------

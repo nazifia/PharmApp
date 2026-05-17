@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -281,6 +282,27 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
         _marginBanner(context, data).animate().fadeIn(delay: 320.ms).scale(begin: const Offset(0.96, 0.96)),
         const SizedBox(height: 24),
 
+        // ── P&L Bar Chart ────────────────────────────────────────────────
+        Row(children: [
+          Container(
+            width: 4, height: 20,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                colors: [EnhancedTheme.primaryTeal, EnhancedTheme.successGreen],
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text('P&L Overview',
+              style: GoogleFonts.outfit(
+                  color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
+        ]).animate().fadeIn(delay: 350.ms),
+        const SizedBox(height: 12),
+        _profitBarChart(context, data, cost).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+        const SizedBox(height: 24),
+
         // ── Revenue Breakdown Stacked Bar ─────────────────────────────────
         if (data.revenue > 0) ...[
           Row(children: [
@@ -311,6 +333,178 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
       ]),
     );
   }
+
+  Widget _profitBarChart(BuildContext context, ProfitReportData data, double cost) {
+    if (data.revenue <= 0) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Center(
+              child: Text(
+                'No data for this period',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final maxVal = [data.revenue, cost, data.profit].reduce((a, b) => a > b ? a : b);
+    final interval = maxVal > 0 ? maxVal * 0.5 : 1.0;
+
+    String fmtY(double v) {
+      if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+      if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
+      return v.toStringAsFixed(0);
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) => ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Column(children: [
+              SizedBox(
+                height: 200,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+                  child: BarChart(
+                    BarChartData(
+                      maxY: maxVal * 1.25,
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: interval,
+                        getDrawingHorizontalLine: (_) => FlLine(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 44,
+                            interval: interval,
+                            getTitlesWidget: (val, _) => Text(
+                              fmtY(val),
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 9),
+                            ),
+                          ),
+                        ),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 24,
+                            getTitlesWidget: (val, _) {
+                              switch (val.toInt()) {
+                                case 0: return const Padding(padding: EdgeInsets.only(top: 4),
+                                    child: Text('Revenue', style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 9, fontWeight: FontWeight.w600)));
+                                case 1: return const Padding(padding: EdgeInsets.only(top: 4),
+                                    child: Text('Cost', style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 9, fontWeight: FontWeight.w600)));
+                                case 2: return const Padding(padding: EdgeInsets.only(top: 4),
+                                    child: Text('Profit', style: TextStyle(color: EnhancedTheme.successGreen, fontSize: 9, fontWeight: FontWeight.w600)));
+                                default: return const SizedBox.shrink();
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      barGroups: [
+                        BarChartGroupData(x: 0, barRods: [
+                          BarChartRodData(
+                            toY: data.revenue,
+                            gradient: const LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan],
+                            ),
+                            width: 28,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                          ),
+                        ]),
+                        BarChartGroupData(x: 1, barRods: [
+                          BarChartRodData(
+                            toY: cost,
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [EnhancedTheme.errorRed.withValues(alpha: 0.8), EnhancedTheme.errorRed],
+                            ),
+                            width: 28,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                          ),
+                        ]),
+                        BarChartGroupData(x: 2, barRods: [
+                          BarChartRodData(
+                            toY: data.profit,
+                            gradient: const LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [EnhancedTheme.successGreen, Color(0xFF34D399)],
+                            ),
+                            width: 28,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                          ),
+                        ]),
+                      ],
+                      barTouchData: BarTouchData(
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipColor: (_) => const Color(0xFF1E293B),
+                          tooltipRoundedRadius: 8,
+                          getTooltipItem: (group, groupIdx, rod, rodIdx) {
+                            final labels = ['Revenue', 'Cost', 'Profit'];
+                            return BarTooltipItem(
+                              '${labels[group.x]}\n₦${rod.toY.toStringAsFixed(0)}',
+                              const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  _chartLegendDot(EnhancedTheme.primaryTeal, 'Revenue'),
+                  const SizedBox(width: 20),
+                  _chartLegendDot(EnhancedTheme.errorRed, 'Cost'),
+                  const SizedBox(width: 20),
+                  _chartLegendDot(EnhancedTheme.successGreen, 'Profit'),
+                ]),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chartLegendDot(Color color, String label) => Row(mainAxisSize: MainAxisSize.min, children: [
+    Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+    const SizedBox(width: 6),
+    Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
+  ]);
 
   Widget _plCard(BuildContext context, String label, String value,
       Color color, IconData icon, String subtitle) {
