@@ -2,6 +2,35 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 
+// ── Drug availability across network pharmacies ───────────────────────────────
+
+class DrugAvailability {
+  final String pharmacyName;
+  final int pharmacyId;
+  final int stockQuantity;
+  final String? address;
+  final String? phone;
+  final String? distance; // e.g. "1.2 km" — optional field from backend
+
+  const DrugAvailability({
+    required this.pharmacyName,
+    required this.pharmacyId,
+    required this.stockQuantity,
+    this.address,
+    this.phone,
+    this.distance,
+  });
+
+  factory DrugAvailability.fromJson(Map<String, dynamic> j) => DrugAvailability(
+        pharmacyName:  (j['pharmacy_name']  ?? j['pharmacyName']  as String?) ?? '',
+        pharmacyId:    ((j['pharmacy_id']   ?? j['pharmacyId'])   as num?)?.toInt() ?? 0,
+        stockQuantity: ((j['stock_quantity']?? j['stockQuantity']) as num?)?.toInt() ?? 0,
+        address:       j['address']  as String?,
+        phone:         j['phone']    as String?,
+        distance:      j['distance'] as String?,
+      );
+}
+
 // ── Models ────────────────────────────────────────────────────────────────────
 
 class PharmacyNetwork {
@@ -147,6 +176,32 @@ class NetworkApiClient {
       await _dio.post('/auth/networks/join-default/');
     } catch (_) {}
   }
+
+  /// Returns which pharmacies in the shared network carry [drugName] and their
+  /// current stock levels.
+  Future<List<DrugAvailability>> fetchDrugAvailability(
+      String drugName) async {
+    try {
+      final res = await _dio.get(
+        '/pharmacy-networks/medication-availability/',
+        queryParameters: {'drug': drugName},
+      );
+      final data = res.data;
+      final list = data is Map && data.containsKey('results')
+          ? data['results'] as List
+          : data as List;
+      return list
+          .map((e) => DrugAvailability.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      if (e.response == null) {
+        throw Exception(
+            'You are offline. Cannot check network availability.');
+      }
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to check medication availability');
+    }
+  }
 }
 
 final networkApiProvider = Provider<NetworkApiClient>((ref) {
@@ -269,4 +324,15 @@ class NetworkNotifier extends StateNotifier<AsyncValue<void>> {
 final networkNotifierProvider =
     StateNotifierProvider<NetworkNotifier, AsyncValue<void>>((ref) {
   return NetworkNotifier(ref.watch(networkApiProvider), ref);
+});
+
+// ── Medication availability provider ──────────────────────────────────────────
+
+/// Fetches stock levels for [drugName] across all pharmacies in the shared
+/// network.  Results are keyed by drug name string so each lookup is cached
+/// independently.
+final drugAvailabilityProvider =
+    FutureProvider.autoDispose.family<List<DrugAvailability>, String>(
+        (ref, drugName) {
+  return ref.watch(networkApiProvider).fetchDrugAvailability(drugName);
 });

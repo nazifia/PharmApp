@@ -25,6 +25,7 @@ import 'package:pharmapp/features/reports/screens/customer_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/profit_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/monthly_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/cashier_sales_screen.dart';
+import 'package:pharmapp/features/reports/screens/commission_report_screen.dart';
 import 'package:pharmapp/features/settings/screens/app_settings_screen.dart';
 import 'package:pharmapp/features/settings/screens/edit_profile_screen.dart';
 import 'package:pharmapp/features/inventory/screens/item_detail_screen.dart';
@@ -59,6 +60,11 @@ import 'package:pharmapp/features/prescriptions/screens/write_prescription_scree
 import 'package:pharmapp/features/networks/screens/network_list_screen.dart';
 import 'package:pharmapp/features/networks/screens/network_detail_screen.dart';
 import 'package:pharmapp/features/networks/screens/create_network_screen.dart';
+import 'package:pharmapp/features/networks/screens/medication_availability_screen.dart';
+import 'package:pharmapp/features/suppliers/screens/purchase_order_list_screen.dart';
+import 'package:pharmapp/features/suppliers/screens/purchase_order_detail_screen.dart';
+import 'package:pharmapp/features/suppliers/screens/purchase_order_form_screen.dart';
+import 'package:pharmapp/features/suppliers/screens/receive_order_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -126,6 +132,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/dashboard';
       }
 
+      // Commission report — Admin / Manager only
+      if (loc == '/dashboard/reports/commissions' &&
+          !Rbac.isSenior(user)) {
+        return '/dashboard';
+      }
+
       // User management — Admin / Manager only
       if (loc == '/dashboard/users' && !Rbac.can(user, AppPermission.manageUsers)) {
         return '/dashboard';
@@ -164,6 +176,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Suppliers — Admin / Manager / Pharmacist / Wholesale Manager
       if (loc == '/dashboard/suppliers' && !Rbac.can(user, AppPermission.manageSuppliers)) {
+        return '/dashboard';
+      }
+
+      // Purchase Orders — same role gate as suppliers
+      if ((loc == '/dashboard/purchase-orders' ||
+              loc.startsWith('/dashboard/purchase-orders/')) &&
+          !Rbac.can(user, AppPermission.manageSuppliers)) {
         return '/dashboard';
       }
 
@@ -291,6 +310,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'reports/profit',  name: 'profit_report',   builder: (_, __) => const ProfitReportScreen()),
               GoRoute(path: 'reports/monthly',       name: 'monthly_report',        builder: (_, __) => const MonthlyReportScreen()),
               GoRoute(path: 'reports/cashier-sales', name: 'cashier_sales_report',  builder: (_, __) => const CashierSalesScreen()),
+              GoRoute(path: 'reports/commissions',  name: 'commission_report',     builder: (_, __) => const CommissionReportScreen()),
               GoRoute(
                 path: 'settings',
                 name: 'settings',
@@ -339,6 +359,30 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'network_detail',
                 builder: (_, state) => NetworkDetailScreen(
                   networkId: int.parse(state.pathParameters['id']!),
+                ),
+              ),
+              GoRoute(
+                path: 'medication-availability/:drugName',
+                name: 'medication_availability',
+                builder: (_, state) => MedicationAvailabilityScreen(
+                  drugName: Uri.decodeComponent(
+                      state.pathParameters['drugName']!),
+                ),
+              ),
+              GoRoute(path: 'purchase-orders', name: 'purchase_orders', builder: (_, __) => const PurchaseOrderListScreen()),
+              GoRoute(path: 'purchase-orders/new', name: 'purchase_order_new', builder: (_, __) => const PurchaseOrderFormScreen()),
+              GoRoute(
+                path: 'purchase-orders/:id',
+                name: 'purchase_order_detail',
+                builder: (_, state) => PurchaseOrderDetailScreen(
+                  orderId: int.parse(state.pathParameters['id']!),
+                ),
+              ),
+              GoRoute(
+                path: 'purchase-orders/:id/receive',
+                name: 'purchase_order_receive',
+                builder: (_, state) => ReceiveOrderScreen(
+                  orderId: int.parse(state.pathParameters['id']!),
                 ),
               ),
             ],

@@ -6,6 +6,8 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import '../providers/prescription_provider.dart';
 import '../../../shared/models/prescription.dart';
 import '../../../features/branches/providers/branch_provider.dart';
+import '../../../features/customers/providers/customer_provider.dart';
+import '../../../core/services/drug_interaction_service.dart';
 
 // ── Draft medication row ──────────────────────────────────────────────────────
 
@@ -228,6 +230,164 @@ class _WritePrescriptionScreenState
     });
   }
 
+  // ── Drug interaction check ──────────────────────────────────────────────────
+
+  Future<List<DrugWarning>> _gatherWarnings(List<String> drugNames) async {
+    final patient = _selectedPatient;
+    if (patient == null || patient.id == null || patient.id! <= 0) return [];
+    try {
+      final customer = await ref.read(customerDetailProvider(patient.id!).future);
+      if (customer.allergies.isEmpty && customer.currentMedications.isEmpty) {
+        return [];
+      }
+      final allWarnings = <DrugWarning>[];
+      for (final drug in drugNames) {
+        if (drug.trim().isEmpty) continue;
+        final warnings = DrugInteractionService.checkInteractions(
+          drug,
+          customer.currentMedications,
+          customer.allergies,
+        );
+        allWarnings.addAll(warnings);
+      }
+      return allWarnings;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<bool> _showWarningDialog(List<DrugWarning> warnings) async {
+    final hasAllergy = warnings.any((w) => w.severity == WarningSeverity.allergy);
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: EdgeInsets.zero,
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: hasAllergy
+                ? EnhancedTheme.errorRed.withValues(alpha: 0.15)
+                : EnhancedTheme.accentOrange.withValues(alpha: 0.12),
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                hasAllergy
+                    ? Icons.warning_rounded
+                    : Icons.error_rounded,
+                color: hasAllergy
+                    ? EnhancedTheme.errorRed
+                    : EnhancedTheme.accentOrange,
+                size: 24,
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Drug Safety Warning',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                ...warnings.map((w) {
+                  final color = DrugInteractionService.severityColor(w.severity);
+                  final icon = DrugInteractionService.severityIcon(w.severity);
+                  final label = DrugInteractionService.severityLabel(w.severity);
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: color.withValues(alpha: 0.30)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(icon, color: color, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.20),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  label,
+                                  style: TextStyle(
+                                      color: color,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                w.message,
+                                style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    height: 1.4),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel',
+                style: TextStyle(
+                    color: Colors.white54, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: hasAllergy
+                  ? EnhancedTheme.errorRed
+                  : EnhancedTheme.accentOrange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Override & Save',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   // ── Submit ──────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
@@ -241,6 +401,15 @@ class _WritePrescriptionScreenState
         Colors.black,
       ));
       return;
+    }
+
+    final drugNames = validMeds.map((m) => m.itemName).toList();
+    final warnings = await _gatherWarnings(drugNames);
+    if (!mounted) return;
+    if (warnings.isNotEmpty) {
+      final proceed = await _showWarningDialog(warnings);
+      if (!mounted) return;
+      if (!proceed) return;
     }
 
     setState(() => _isSubmitting = true);
@@ -438,16 +607,16 @@ class _WritePrescriptionScreenState
                 activeThumbColor: Colors.white,
               ),
               const SizedBox(width: 8),
-              Expanded(
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Search across all pharmacies',
+                    Text('Search across all pharmacies',
                         style: TextStyle(
                             color: Colors.black87,
                             fontSize: 13,
                             fontWeight: FontWeight.w600)),
-                    const Text(
+                    Text(
                       'Find patients registered in any subscribed pharmacy',
                       style: TextStyle(
                           color: Colors.black45,

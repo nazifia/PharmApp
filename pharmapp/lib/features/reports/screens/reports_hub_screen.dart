@@ -61,6 +61,14 @@ class ReportsHubScreen extends ConsumerWidget {
       'advanced':   false,
       'allRoles':   true,
     },
+    {
+      'title':    'Commission Report',
+      'sub':      'Staff commission rates, earnings & payouts',
+      'icon':     Icons.payments_rounded,
+      'color':    EnhancedTheme.successGreen,
+      'route':    '/dashboard/reports/commissions',
+      'advanced': false,
+    },
   ];
 
   String _fmt(double v) {

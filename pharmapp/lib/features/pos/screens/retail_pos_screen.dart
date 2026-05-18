@@ -9,6 +9,7 @@ import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/cart_item.dart';
 import 'package:pharmapp/shared/models/item.dart';
+import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
 import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../providers/cart_provider.dart';
@@ -211,6 +212,27 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       if (!mounted) return;
       _showSnackBar('$e', type: _SnackType.error);
     }
+  }
+
+  void _onBarcodeScannedPOS(String code) {
+    final items = ref.read(retailInventoryProvider).valueOrNull ?? [];
+    final match = items.where((i) => i.barcode == code).firstOrNull;
+    if (match == null) {
+      _showSnackBar('Item not found for barcode: $code', type: _SnackType.error);
+      return;
+    }
+    if (match.stock == 0) {
+      _showSnackBar('${match.name} is out of stock', type: _SnackType.error);
+      return;
+    }
+    final cart = ref.read(cartProvider);
+    final inCart = cart.where((c) => c.item.id == match.id).fold<int>(0, (s, c) => s + c.quantity);
+    if (inCart >= match.stock) {
+      _showSnackBar('${match.name} — maximum stock in cart', type: _SnackType.error);
+      return;
+    }
+    ref.read(cartProvider.notifier).addItem(match);
+    _showSnackBar('${match.name} added to cart', type: _SnackType.success);
   }
 
   void _showSnackBar(String msg, {required _SnackType type}) {
@@ -828,25 +850,43 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     return Column(children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-        child: TextField(
-          controller: _searchCtrl,
-          onChanged: (_) => setState(() {}),
-          style: TextStyle(color: context.labelColor),
-          decoration: InputDecoration(
-            hintText: 'Search items by name, brand, barcode…',
-            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
-            prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
-            suffixIcon: _searchCtrl.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(Icons.close_rounded, color: context.hintColor, size: 16),
-                    onPressed: () => setState(() => _searchCtrl.clear()))
-                : null,
-            filled: true, fillColor: context.cardColor,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(vertical: 13),
+        child: Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: (_) => setState(() {}),
+              style: TextStyle(color: context.labelColor),
+              decoration: InputDecoration(
+                hintText: 'Search items by name, brand, barcode…',
+                hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+                prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
+                suffixIcon: _searchCtrl.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.close_rounded, color: context.hintColor, size: 16),
+                        onPressed: () => setState(() => _searchCtrl.clear()))
+                    : null,
+                filled: true, fillColor: context.cardColor,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => showBarcodeScannerSheet(context, _onBarcodeScannedPOS),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35)),
+              ),
+              child: const Icon(Icons.qr_code_scanner_rounded,
+                  color: EnhancedTheme.primaryTeal, size: 22),
+            ),
+          ),
+        ]),
       ),
       Expanded(child: filtered.when(
         loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [

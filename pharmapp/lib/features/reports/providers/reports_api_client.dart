@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
+import '../../../shared/models/commission_config.dart';
 
-const _kSalesReportPrefix        = 'cache_report_sales_';
-const _kInventoryReportKey       = 'cache_report_inventory';
-const _kCustomerReportKey        = 'cache_report_customers';
-const _kProfitReportPrefix       = 'cache_report_profit_';
-const _kCashierSalesReportPrefix = 'cache_report_cashier_sales_';
+const _kSalesReportPrefix           = 'cache_report_sales_';
+const _kInventoryReportKey          = 'cache_report_inventory';
+const _kCustomerReportKey           = 'cache_report_customers';
+const _kProfitReportPrefix          = 'cache_report_profit_';
+const _kCashierSalesReportPrefix    = 'cache_report_cashier_sales_';
+const _kCommissionConfigsKey        = 'cache_commission_configs';
+const _kStaffPerformancePrefix      = 'cache_staff_performance_';
 
 // ── Data models (unchanged) ────────────────────────────────────────────────────
 
@@ -287,6 +290,77 @@ class ReportsApiClient {
         throw Exception('Offline — no cached cashier sales report');
       }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load cashier sales report');
+    }
+  }
+
+  Future<List<CommissionConfig>> fetchCommissionConfigs() async {
+    if (_isLocal) return [];
+    try {
+      final res = await _dio!.get('/commission-configs/');
+      final list = res.data as List? ?? [];
+      final configs = list
+          .map((e) => CommissionConfig.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kCommissionConfigsKey, jsonEncode(res.data));
+      return configs;
+    } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kCommissionConfigsKey);
+        if (raw != null) {
+          final list = jsonDecode(raw) as List;
+          return list
+              .map((e) => CommissionConfig.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+        throw Exception('Offline — no cached commission configs');
+      }
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to load commission configs');
+    }
+  }
+
+  Future<CommissionConfig> updateCommissionConfig(
+      int userId, double rate, double? bonus) async {
+    if (_isLocal) {
+      return CommissionConfig(
+          userId: userId, userName: '', commissionRate: rate,
+          fixedBonus: bonus, isActive: true);
+    }
+    try {
+      final body = <String, dynamic>{
+        'commissionRate': rate,
+        if (bonus != null) 'fixedBonus': bonus,
+      };
+      final res = await _dio!.patch('/commission-configs/$userId/', data: body);
+      return CommissionConfig.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to update commission config');
+    }
+  }
+
+  Future<StaffPerformanceData> fetchStaffPerformance(String period) async {
+    if (_isLocal) {
+      return StaffPerformanceData(period: period, staff: [], totalCommissions: 0);
+    }
+    final cacheKey = '$_kStaffPerformancePrefix$period';
+    try {
+      final res = await _dio!.get(
+          '/reports/staff-performance/', queryParameters: {'period': period});
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(cacheKey, jsonEncode(res.data));
+      return StaffPerformanceData.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(cacheKey);
+        if (raw != null) {
+          return StaffPerformanceData.fromJson(
+              jsonDecode(raw) as Map<String, dynamic>);
+        }
+        throw Exception('Offline — no cached staff performance data');
+      }
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to load staff performance');
     }
   }
 }

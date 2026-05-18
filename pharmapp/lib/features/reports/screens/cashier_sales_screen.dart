@@ -8,9 +8,11 @@ import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/shared/models/commission_config.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/reports_api_client.dart';
 import '../providers/reports_provider.dart';
+import '../providers/commission_provider.dart';
 
 class CashierSalesScreen extends ConsumerStatefulWidget {
   const CashierSalesScreen({super.key});
@@ -220,6 +222,10 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
   // ── Body ─────────────────────────────────────────────────────────────────────
 
   Widget _buildBody(BuildContext context, CashierSalesData data, bool isSenior) {
+    final configsAsync = ref.watch(commissionConfigsProvider);
+    final configs = configsAsync.whenOrNull(data: (d) => d) ?? <CommissionConfig>[];
+    final configMap = {for (final c in configs) c.userId: c};
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -300,11 +306,13 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
         else ...[
           if (isSenior)
             ...data.users.asMap().entries.map((e) =>
-              _staffCard(context, e.value, e.key).animate()
+              _staffCard(context, e.value, e.key,
+                  configMap[e.value.userId]).animate()
                   .fadeIn(duration: 300.ms, delay: (60 * e.key).ms)
                   .slideX(begin: 0.05, end: 0))
           else
-            _selfCard(context, data.users.first).animate().fadeIn(duration: 350.ms),
+            _selfCard(context, data.users.first,
+                configMap[data.users.first.userId]).animate().fadeIn(duration: 350.ms),
         ],
         const SizedBox(height: 32),
       ]),
@@ -383,8 +391,13 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
     ]);
   }
 
-  Widget _staffCard(BuildContext context, CashierUserSummary user, int index) {
+  Widget _staffCard(BuildContext context, CashierUserSummary user, int index,
+      CommissionConfig? config) {
     final color = _roleColor(user.role);
+    final rate = config?.commissionRate ?? 0.0;
+    final bonus = config?.fixedBonus ?? 0.0;
+    final earned = user.totalAmount * rate;
+    final payout = earned + bonus;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: ClipRRect(
@@ -439,6 +452,42 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
                 _miniStat('Transfer', _fmt(user.transferAmount), EnhancedTheme.accentCyan),
                 _miniStat('Wallet',   _fmt(user.walletAmount),   EnhancedTheme.accentPurple),
               ]),
+              if (rate > 0 || bonus > 0) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.successGreen.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: EnhancedTheme.successGreen.withValues(alpha: 0.2))),
+                  child: Row(children: [
+                    const Icon(Icons.payments_rounded,
+                        color: EnhancedTheme.successGreen, size: 13),
+                    const SizedBox(width: 6),
+                    if (rate > 0)
+                      Text('${(rate * 100).toStringAsFixed(1)}% → ${_fmt(earned)}',
+                          style: const TextStyle(
+                              color: EnhancedTheme.successGreen,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700)),
+                    if (bonus > 0) ...[
+                      const SizedBox(width: 6),
+                      Text('+ ${_fmt(bonus)} bonus',
+                          style: const TextStyle(
+                              color: EnhancedTheme.accentOrange,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                    const Spacer(),
+                    Text('Payout: ${_fmt(payout)}',
+                        style: const TextStyle(
+                            color: EnhancedTheme.successGreen,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800)),
+                  ]),
+                ),
+              ],
             ]),
           ),
         ),
@@ -446,7 +495,12 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
     );
   }
 
-  Widget _selfCard(BuildContext context, CashierUserSummary user) {
+  Widget _selfCard(BuildContext context, CashierUserSummary user,
+      CommissionConfig? config) {
+    final rate = config?.commissionRate ?? 0.0;
+    final bonus = config?.fixedBonus ?? 0.0;
+    final earned = user.totalAmount * rate;
+    final payout = earned + bonus;
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
@@ -487,6 +541,20 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
               _miniStat('Transfer', _fmt(user.transferAmount), EnhancedTheme.accentCyan),
               _miniStat('Wallet',   _fmt(user.walletAmount),   EnhancedTheme.accentPurple),
             ]),
+            if (rate > 0 || bonus > 0) ...[
+              const SizedBox(height: 18),
+              _sectionHeader(context, 'My Commission',
+                  Icons.payments_rounded, EnhancedTheme.successGreen),
+              const SizedBox(height: 12),
+              Row(children: [
+                _miniStat('Rate', '${(rate * 100).toStringAsFixed(1)}%',
+                    EnhancedTheme.accentPurple),
+                _miniStat('Earned', _fmt(earned), EnhancedTheme.successGreen),
+                if (bonus > 0)
+                  _miniStat('Bonus', _fmt(bonus), EnhancedTheme.accentOrange),
+                _miniStat('Payout', _fmt(payout), EnhancedTheme.primaryTeal),
+              ]),
+            ],
           ]),
         ),
       ),
