@@ -701,6 +701,12 @@ class CustomerDetailScreen extends ConsumerWidget {
                                 surface: Color(0xFF1E293B),
                                 onSurface: Color(0xFFE2E8F0),
                               ),
+                              dialogBackgroundColor: const Color(0xFF1E293B),
+                              datePickerTheme: const DatePickerThemeData(
+                                backgroundColor: Color(0xFF1E293B),
+                                headerBackgroundColor: Color(0xFF0F172A),
+                                headerForegroundColor: Colors.white,
+                              ),
                             ),
                             child: child!,
                           ),
