@@ -15,12 +15,14 @@ class BarcodeScannerSheet extends StatefulWidget {
 
 class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
   final MobileScannerController _controller = MobileScannerController();
+  final TextEditingController _manualCtrl = TextEditingController();
   bool _scanned = false;
-  String? _cameraError;
+  bool _cameraFailed = false;
 
   @override
   void dispose() {
     _controller.dispose();
+    _manualCtrl.dispose();
     super.dispose();
   }
 
@@ -31,6 +33,13 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
     if (raw == null || raw.isEmpty) return;
     _scanned = true;
     widget.onBarcodeScanned(raw);
+    Navigator.of(context).pop();
+  }
+
+  void _submitManual() {
+    final code = _manualCtrl.text.trim();
+    if (code.isEmpty) return;
+    widget.onBarcodeScanned(code);
     Navigator.of(context).pop();
   }
 
@@ -81,13 +90,15 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Point camera at barcode or QR code',
+              kIsWeb
+                  ? 'Camera scan (Chrome/Edge) · or enter barcode below'
+                  : 'Point camera at barcode or QR code',
               style: TextStyle(color: Colors.white54, fontSize: 13),
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: _cameraError != null
-                  ? _errorView(_cameraError!)
+              child: _cameraFailed
+                  ? _manualEntryView()
                   : Stack(children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
@@ -96,12 +107,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
                           onDetect: _onDetect,
                           errorBuilder: (ctx, error, child) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (mounted) {
-                                setState(() {
-                                  _cameraError =
-                                      'Camera permission denied or unavailable';
-                                });
-                              }
+                              if (mounted) setState(() => _cameraFailed = true);
                             });
                             return const SizedBox.shrink();
                           },
@@ -110,6 +116,8 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
                       _ScanOverlay(),
                     ]),
             ),
+            // Always-visible manual entry on web when camera is alive
+            if (kIsWeb && !_cameraFailed) _manualEntryBar(),
             const SizedBox(height: 24),
           ]),
         ),
@@ -117,44 +125,153 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
     );
   }
 
-  Widget _errorView(String message) => Center(
+  // Full manual entry view — shown when camera fails (any platform)
+  Widget _manualEntryView() => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: EnhancedTheme.errorRed.withValues(alpha: 0.15),
+                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.no_photography_rounded,
-                  color: EnhancedTheme.errorRed, size: 40),
+              child: const Icon(Icons.keyboard_rounded,
+                  color: EnhancedTheme.primaryTeal, size: 40),
             ),
             const SizedBox(height: 16),
             const Text(
-              'Camera Unavailable',
+              'Enter Barcode Manually',
               style: TextStyle(
-                  color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            Text(
-              message,
-              style: const TextStyle(color: Colors.white60, fontSize: 13),
+            const Text(
+              kIsWeb
+                  ? 'Camera scan requires Chrome or Edge.\nType the barcode/code below:'
+                  : 'Camera unavailable. Type the barcode below:',
+              style: TextStyle(color: Colors.white60, fontSize: 13),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: EnhancedTheme.primaryTeal,
-                side: const BorderSide(color: EnhancedTheme.primaryTeal),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+            TextField(
+              controller: _manualCtrl,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              onSubmitted: (_) => _submitManual(),
+              decoration: InputDecoration(
+                hintText: 'e.g. 6223001543218',
+                hintStyle: const TextStyle(color: Colors.white38),
+                prefixIcon: const Icon(Icons.qr_code_rounded,
+                    color: Colors.white38, size: 20),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.08),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderSide:
+                      BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5),
+                ),
               ),
-              child: const Text('Close'),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [
+                    EnhancedTheme.primaryTeal,
+                    EnhancedTheme.accentCyan,
+                  ]),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: _submitManual,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                  ),
+                  icon: const Icon(Icons.search_rounded, size: 18),
+                  label: const Text('Look up Item',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
             ),
           ]),
         ),
+      );
+
+  // Compact manual entry bar shown below camera on web
+  Widget _manualEntryBar() => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _manualCtrl,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              onSubmitted: (_) => _submitManual(),
+              decoration: InputDecoration(
+                hintText: 'Or type barcode…',
+                hintStyle:
+                    const TextStyle(color: Colors.white38, fontSize: 12),
+                prefixIcon: const Icon(Icons.keyboard_rounded,
+                    color: Colors.white38, size: 18),
+                isDense: true,
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.06),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.15)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.15)),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                  borderSide:
+                      BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 11),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [
+                EnhancedTheme.primaryTeal,
+                EnhancedTheme.accentCyan,
+              ]),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              onPressed: _submitManual,
+              icon: const Icon(Icons.search_rounded,
+                  color: Colors.black, size: 20),
+              padding: const EdgeInsets.all(11),
+              constraints: const BoxConstraints(),
+            ),
+          ),
+        ]),
       );
 }
 
@@ -167,7 +284,8 @@ class _ScanOverlay extends StatelessWidget {
           width: 240,
           height: 240,
           decoration: BoxDecoration(
-            border: Border.all(color: EnhancedTheme.primaryTeal, width: 2.5),
+            border:
+                Border.all(color: EnhancedTheme.primaryTeal, width: 2.5),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -185,7 +303,8 @@ class _ScanOverlay extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
           decoration: BoxDecoration(
             color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
@@ -240,24 +359,6 @@ class _ScanOverlay extends StatelessWidget {
 
 void showBarcodeScannerSheet(
     BuildContext context, void Function(String code) onBarcodeScanned) {
-  if (kIsWeb) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-      content: const Row(children: [
-        Icon(Icons.info_outline_rounded, color: Colors.black, size: 20),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text('Scanning not supported on web',
-              style: TextStyle(
-                  color: Colors.black, fontWeight: FontWeight.w600)),
-        ),
-      ]),
-    ));
-    return;
-  }
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
