@@ -391,3 +391,34 @@ class PharmacyNetworkMembership(models.Model):
 
     def __str__(self):
         return f"{self.organization} in {self.network} ({self.role}, {self.status})"
+
+
+# ── Commission Config ─────────────────────────────────────────────────────────
+
+class CommissionConfig(models.Model):
+    organization    = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name='commission_configs'
+    )
+    user            = models.ForeignKey(
+        'authapp.PharmUser', on_delete=models.CASCADE, related_name='commission_config'
+    )
+    commission_rate = models.FloatField(default=0.0)
+    fixed_bonus     = models.FloatField(null=True, blank=True)
+    is_active       = models.BooleanField(default=True)
+    updated_at      = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('organization', 'user')
+        ordering        = ('user__full_name',)
+
+    def to_api_dict(self):
+        return {
+            'userId':         self.user_id,
+            'userName':       self.user.full_name or self.user.phone_number,
+            'commissionRate': self.commission_rate,
+            'fixedBonus':     self.fixed_bonus,
+            'isActive':       self.is_active,
+        }
+
+    def __str__(self):
+        return f"{self.user} — {self.commission_rate*100:.1f}%"

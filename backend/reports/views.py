@@ -5,7 +5,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from authapp.permissions import IsAdminOrManager, IsReportsUser
+from authapp.models import CommissionConfig
+from authapp.permissions import IsAdminOrManager, IsReportsUser, SENIOR_ROLES
 from authapp.utils import require_org
 from customers.models import Customer
 from inventory.models import Item
@@ -458,3 +459,128 @@ def cashier_sales_report(request):
         'totalSales':  grand_count,
         'users':       users,
     })
+
+
+# ── Staff performance / commissions ───────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsReportsUser])
+def staff_performance(request):
+    """Commission earnings per staff member for the given period."""
+    org, err = require_org(request)
+    if err:
+        return err
+
+    period = request.query_params.get('period', 'today')
+    start, end = _date_range(period)
+
+    sales_qs = Sale.objects.filter(
+        organization=org,
+        created__date__gte=start,
+        created__date__lte=end,
+        status__in=['completed', 'partial_return'],
+        dispenser__isnull=False,
+    )
+
+    user_stats = (
+        sales_qs
+        .values('dispenser__id', 'dispenser__full_name',
+                'dispenser__phone_number', 'dispenser__role')
+        .annotate(
+            total_amount=db_models.Sum('total_amount'),
+            sales_count=db_models.Count('id'),
+        )
+        .order_by('-total_amount')
+    )
+
+    configs = {
+        c.user_id: c
+        for c in CommissionConfig.objects.filter(organization=org, is_active=True)
+    }
+
+    staff = []
+    total_commissions = 0.0
+
+    for u in user_stats:
+        uid        = u['dispenser__id']
+        name       = u['dispenser__full_name'] or u['dispenser__phone_number'] or ''
+        role       = u['dispenser__role'] or ''
+        total_sales = float(u['total_amount'] or 0)
+        sales_count = u['sales_count'] or 0
+
+        cfg   = configs.get(uid)
+        rate  = cfg.commission_rate if cfg else 0.0
+        bonus = cfg.fixed_bonus     if cfg else None
+
+        earned = round(total_sales * rate, 2)
+        payout = round(earned + (bonus or 0), 2)
+        total_commissions += payout
+
+        staff.append({
+            'userId':         uid,
+            'userName':       name,
+            'role':           role,
+            'salesCount':     sales_count,
+            'totalSales':     round(total_sales, 2),
+            'commissionRate': rate,
+            'fixedBonus':     bonus,
+            'commissionEarned': earned,
+            'totalPayout':    payout,
+        })
+
+    return Response({
+        'period':           period,
+        'totalCommissions': round(total_commissions, 2),
+        'staff':            staff,
+    })
+
+
+# ── Commission config CRUD ────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsReportsUser])
+def commission_config_list(request):
+    """List all commission configs for the org."""
+    org, err = require_org(request)
+    if err:
+        return err
+
+    configs = CommissionConfig.objects.filter(organization=org).select_related('user')
+    return Response([c.to_api_dict() for c in configs])
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def commission_config_detail(request, user_id):
+    """Update (or create) commission config for a staff member. Senior roles only."""
+    if request.user.role not in SENIOR_ROLES and not request.user.is_superuser:
+        return Response({'detail': 'Only Admin or Manager can update commission rates.'},
+                        status=403)
+
+    org, err = require_org(request)
+    if err:
+        return err
+
+    try:
+        target_user = org.users.get(pk=user_id)
+    except Exception:
+        return Response({'detail': 'User not found in this organization.'}, status=404)
+
+    cfg, _ = CommissionConfig.objects.get_or_create(
+        organization=org, user=target_user,
+        defaults={'commission_rate': 0.0},
+    )
+
+    data = request.data
+    if 'commissionRate' in data:
+        try:
+            cfg.commission_rate = float(data['commissionRate'])
+        except (TypeError, ValueError):
+            return Response({'detail': 'Invalid commissionRate.'}, status=400)
+
+    if 'fixedBonus' in data:
+        raw = data['fixedBonus']
+        cfg.fixed_bonus = float(raw) if raw not in (None, '', 'null') else None
+
+    cfg.save()
+    return Response(cfg.to_api_dict())

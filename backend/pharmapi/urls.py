@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.urls import path, include
 from authapp.admin_views import global_overview_view
 from subscription.admin_views import saas_dashboard_view
+from reports import views as reports_views
 
 
 def _empty_sw(request):
@@ -26,6 +27,8 @@ urlpatterns = [
     path('api/customers/', include('customers.urls')),
     path('api/pos/',       include('pos.urls')),
     path('api/reports/',      include('reports.urls')),
+    path('api/commission-configs/',          reports_views.commission_config_list,   name='commission-config-list'),
+    path('api/commission-configs/<int:user_id>/', reports_views.commission_config_detail, name='commission-config-detail'),
     path('api/subscription/', include('subscription.urls')),
     path('api/branches/',       include('branches.urls')),
     path('api/prescriptions/', include('prescriptions.urls')),
