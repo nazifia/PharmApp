@@ -54,28 +54,28 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
       lastDate: DateTime.now(),
       initialDateRange: _customRange,
       builder: (ctx, child) => Theme(
-        data: ThemeData.light().copyWith(
+        data: ThemeData.dark().copyWith(
           // ── Base colour roles ──────────────────────────────────────────────
-          colorScheme: const ColorScheme.light(
+          colorScheme: const ColorScheme.dark(
             primary:           EnhancedTheme.primaryTeal,   // selected-date circles
             onPrimary: Colors.white,
             secondary:         EnhancedTheme.accentCyan,    // accent
             onSecondary: Colors.white,
-            surface:           Color(0xFFF8FAFC),     // dialog bg
-            onSurface:         Color(0xFF0F172A),
-            onSurfaceVariant:  Color(0xFF64748B),     // dim text
-            outline:           Color(0xFFCBD5E1),
+            surface:           Color(0xFF1E293B),     // dialog bg
+            onSurface:         Color(0xFFE2E8F0),
+            onSurfaceVariant:  Color(0xFF94A3B8),     // dim text
+            outline:           Color(0xFF334155),
           ),
           // ── Fine-grained picker styling ───────────────────────────────────
           datePickerTheme: DatePickerThemeData(
             // Dialog / sheet
-            backgroundColor:          const Color(0xFFF8FAFC),
+            backgroundColor:          const Color(0xFF1E293B),
             elevation:                4,
             shape:                    RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(24)),
             surfaceTintColor:         Colors.transparent,
             // Full-screen range picker
-            rangePickerBackgroundColor:          const Color(0xFFF8FAFC),
+            rangePickerBackgroundColor:          const Color(0xFF0F172A),
             rangePickerElevation:                0,
             rangePickerSurfaceTintColor:         Colors.transparent,
             rangePickerHeaderBackgroundColor:    EnhancedTheme.primaryTeal,
@@ -95,8 +95,8 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
             dayStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             dayForegroundColor: WidgetStateProperty.resolveWith((s) {
               if (s.contains(WidgetState.selected))  return Colors.white;
-              if (s.contains(WidgetState.disabled))  return const Color(0xFFCBD5E1);
-              return const Color(0xFF0F172A);
+              if (s.contains(WidgetState.disabled))  return const Color(0xFF475569);
+              return const Color(0xFFE2E8F0);
             }),
             dayBackgroundColor: WidgetStateProperty.resolveWith((s) {
               if (s.contains(WidgetState.selected))  return EnhancedTheme.primaryTeal;
@@ -122,7 +122,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
                 fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: 0.4),
             ),
           ),
-          dividerColor: const Color(0xFFE2E8F0),
+          dividerColor: const Color(0xFF334155),
         ),
         child: child!,
       ),

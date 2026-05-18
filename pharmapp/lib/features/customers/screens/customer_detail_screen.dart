@@ -694,10 +694,12 @@ class CustomerDetailScreen extends ConsumerWidget {
                           firstDate: DateTime(1900),
                           lastDate: DateTime.now(),
                           builder: (ctx2, child) => Theme(
-                            data: Theme.of(ctx2).copyWith(
-                              colorScheme: ColorScheme.dark(
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
                                 primary: EnhancedTheme.primaryTeal,
-                                surface: context.cardColor,
+                                onPrimary: Colors.white,
+                                surface: Color(0xFF1E293B),
+                                onSurface: Color(0xFFE2E8F0),
                               ),
                             ),
                             child: child!,

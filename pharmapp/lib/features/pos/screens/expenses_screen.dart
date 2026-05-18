@@ -626,12 +626,12 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                       builder: (ctx, child) => Theme(
-                        data: ThemeData.light().copyWith(
-                          colorScheme: const ColorScheme.light(
+                        data: ThemeData.dark().copyWith(
+                          colorScheme: const ColorScheme.dark(
                             primary: EnhancedTheme.primaryTeal,
                             onPrimary: Colors.white,
-                            surface: Color(0xFFF8FAFC),
-                            onSurface: Color(0xFF0F172A),
+                            surface: Color(0xFF1E293B),
+                            onSurface: Color(0xFFE2E8F0),
                           ),
                         ),
                         child: child!,
