@@ -156,6 +156,8 @@ class CashierSalesData {
   );
 }
 
+String? _detail(dynamic data) => data is Map ? data['detail'] as String? : null;
+
 // ── API client ────────────────────────────────────────────────────────────────
 
 class ReportsApiClient {
@@ -197,7 +199,7 @@ class ReportsApiClient {
         if (raw != null) return SalesReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
         throw Exception('Offline — no cached sales report available');
       }
-      throw Exception(e.response?.data?['detail'] ?? 'Failed to load sales report');
+      throw Exception(_detail(e.response?.data) ?? 'Failed to load sales report');
     }
   }
 
@@ -219,7 +221,7 @@ class ReportsApiClient {
         if (raw != null) return InventoryReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
         throw Exception('Offline — no cached inventory report available');
       }
-      throw Exception(e.response?.data?['detail'] ?? 'Failed to load inventory report');
+      throw Exception(_detail(e.response?.data) ?? 'Failed to load inventory report');
     }
   }
 
@@ -241,7 +243,7 @@ class ReportsApiClient {
         if (raw != null) return CustomerReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
         throw Exception('Offline — no cached customer report available');
       }
-      throw Exception(e.response?.data?['detail'] ?? 'Failed to load customer report');
+      throw Exception(_detail(e.response?.data) ?? 'Failed to load customer report');
     }
   }
 
@@ -262,7 +264,7 @@ class ReportsApiClient {
         if (raw != null) return ProfitReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
         throw Exception('Offline — no cached profit report available');
       }
-      throw Exception(e.response?.data?['detail'] ?? 'Failed to load profit report');
+      throw Exception(_detail(e.response?.data) ?? 'Failed to load profit report');
     }
   }
 
@@ -289,7 +291,7 @@ class ReportsApiClient {
         if (raw != null) return CashierSalesData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
         throw Exception('Offline — no cached cashier sales report');
       }
-      throw Exception(e.response?.data?['detail'] ?? 'Failed to load cashier sales report');
+      throw Exception(_detail(e.response?.data) ?? 'Failed to load cashier sales report');
     }
   }
 
@@ -316,7 +318,7 @@ class ReportsApiClient {
         }
         throw Exception('Offline — no cached commission configs');
       }
-      throw Exception(e.response?.data?['detail'] ?? 'Failed to load commission configs');
+      throw Exception(_detail(e.response?.data) ?? 'Failed to load commission configs');
     }
   }
 
@@ -335,7 +337,7 @@ class ReportsApiClient {
       final res = await _dio!.patch('/commission-configs/$userId/', data: body);
       return CommissionConfig.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['detail'] ?? 'Failed to update commission config');
+      throw Exception(_detail(e.response?.data) ?? 'Failed to update commission config');
     }
   }
 
@@ -360,7 +362,7 @@ class ReportsApiClient {
         }
         throw Exception('Offline — no cached staff performance data');
       }
-      throw Exception(e.response?.data?['detail'] ?? 'Failed to load staff performance');
+      throw Exception(_detail(e.response?.data) ?? 'Failed to load staff performance');
     }
   }
 }
