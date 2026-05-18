@@ -14,10 +14,30 @@ class BarcodeScannerSheet extends StatefulWidget {
 }
 
 class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
-  final MobileScannerController _controller = MobileScannerController();
+  late final MobileScannerController _controller;
   final TextEditingController _manualCtrl = TextEditingController();
   bool _scanned = false;
   bool _cameraFailed = false;
+  bool _cameraStarting = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+    );
+    _startCamera();
+  }
+
+  Future<void> _startCamera() async {
+    try {
+      await _controller.start();
+      if (mounted) setState(() => _cameraStarting = false);
+    } catch (e) {
+      if (mounted) setState(() { _cameraFailed = true; _cameraStarting = false; });
+    }
+  }
 
   @override
   void dispose() {
@@ -99,7 +119,13 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
             Expanded(
               child: _cameraFailed
                   ? _manualEntryView()
-                  : Stack(children: [
+                  : _cameraStarting
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: EnhancedTheme.primaryTeal,
+                          ),
+                        )
+                      : Stack(children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: MobileScanner(
@@ -117,7 +143,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
                     ]),
             ),
             // Always-visible manual entry on web when camera is alive
-            if (kIsWeb && !_cameraFailed) _manualEntryBar(),
+            if (kIsWeb && !_cameraFailed && !_cameraStarting) _manualEntryBar(),
             const SizedBox(height: 24),
           ]),
         ),
