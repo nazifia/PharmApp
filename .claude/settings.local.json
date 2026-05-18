@@ -118,7 +118,8 @@
       "Bash(dir C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\prescriptions *)",
       "Bash(dir C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\prescriptions\\\\providers *)",
       "Bash(dir C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\prescriptions\\\\screens *)",
-      "Bash(dir \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\")"
+      "Bash(dir \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\")",
+      "Bash(Select-Object -ExpandProperty Name)"
     ]
   }
 }

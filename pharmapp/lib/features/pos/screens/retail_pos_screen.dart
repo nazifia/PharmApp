@@ -13,6 +13,7 @@ import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
 import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/drug_interaction_provider.dart';
 import '../providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -1216,9 +1217,221 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     );
   }
 
+  // ── Drug interaction helpers ───────────────────────────────────────────────
+
+  Color _warningSeverityColor(String sev) {
+    switch (sev.toLowerCase()) {
+      case 'allergy':
+      case 'major':
+      case 'high':
+        return EnhancedTheme.errorRed;
+      case 'low':
+      case 'minor':
+        return EnhancedTheme.infoBlue;
+      default:
+        return EnhancedTheme.warningAmber;
+    }
+  }
+
+  void _showInteractionDialog(List<PosWarning> warnings) {
+    // Group by source for a cleaner dialog layout
+    final patientWarns =
+        warnings.where((w) => w.source == 'Patient Profile').toList();
+    final rxNormWarns =
+        warnings.where((w) => w.source != 'Patient Profile').toList();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        title: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: EnhancedTheme.warningAmber.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.warning_rounded,
+                color: EnhancedTheme.warningAmber, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Text('Drug Warnings',
+              style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87)),
+        ]),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (patientWarns.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _dialogSection('Patient Profile', patientWarns),
+                ],
+                if (rxNormWarns.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _dialogSection('Drug-Drug Interactions', rxNormWarns),
+                ],
+                const SizedBox(height: 4),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Understood',
+                style: TextStyle(
+                    color: EnhancedTheme.primaryTeal,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dialogSection(String heading, List<PosWarning> items) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(heading,
+            style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5)),
+      ),
+      const SizedBox(height: 8),
+      ...items.asMap().entries.map((e) {
+        final i = e.key;
+        final w = e.value;
+        final color = _warningSeverityColor(w.severity);
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (i > 0) const Divider(color: Colors.black12, height: 16),
+          Row(children: [
+            Expanded(
+              child: Text(w.title,
+                  style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(w.severity.toUpperCase(),
+                  style: TextStyle(
+                      color: color,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800)),
+            ),
+          ]),
+          if (w.description.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(w.description,
+                style:
+                    const TextStyle(color: Colors.black54, fontSize: 11)),
+          ],
+          if (w.source.isNotEmpty && w.source != 'Patient Profile') ...[
+            const SizedBox(height: 3),
+            Text('Source: ${w.source}',
+                style: const TextStyle(
+                    color: Colors.black38, fontSize: 10)),
+          ],
+        ]);
+      }),
+    ]);
+  }
+
+  Widget _interactionBanner(AsyncValue<List<PosWarning>> warningsAsync) {
+    return warningsAsync.when(
+      loading: () => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        child: Row(children: [
+          const SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+                strokeWidth: 1.5, color: EnhancedTheme.primaryTeal),
+          ),
+          const SizedBox(width: 8),
+          Text('Checking drug interactions…',
+              style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+        ]),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (warnings) {
+        if (warnings.isEmpty) return const SizedBox.shrink();
+        final hasAllergy = warnings
+            .any((w) => w.severity.toLowerCase() == 'allergy');
+        final hasHigh = warnings
+            .any((w) => ['high', 'major'].contains(w.severity.toLowerCase()));
+        final color = (hasAllergy || hasHigh)
+            ? EnhancedTheme.errorRed
+            : EnhancedTheme.warningAmber;
+        final label = hasAllergy
+            ? '${warnings.length} allergy/interaction warning'
+                '${warnings.length > 1 ? 's' : ''} — tap to review'
+            : '${warnings.length} drug warning'
+                '${warnings.length > 1 ? 's' : ''} detected — tap to review';
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: GestureDetector(
+            onTap: () => _showInteractionDialog(warnings),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+                border:
+                    Border.all(color: color.withValues(alpha: 0.40)),
+              ),
+              child: Row(children: [
+                Icon(
+                  hasAllergy
+                      ? Icons.emergency_rounded
+                      : Icons.warning_rounded,
+                  color: color,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(label,
+                      style: TextStyle(
+                          color: color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ),
+                Icon(Icons.chevron_right_rounded, color: color, size: 16),
+              ]),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ── Cart Panel (wide layout) ───────────────────────────────────────────────
 
   Widget _cartPanel(List<CartItem> cart, double cartTotal) {
+    final interactionsAsync = ref.watch(combinedPosWarningsProvider);
     return Column(children: [
       Expanded(child: cart.isEmpty
           ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
@@ -1247,6 +1460,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               ).animate(delay: (i * 30).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0),
             )),
 
+      _interactionBanner(interactionsAsync),
       // Summary + checkout
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
