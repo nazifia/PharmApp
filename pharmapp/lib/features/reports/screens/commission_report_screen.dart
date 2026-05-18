@@ -49,8 +49,8 @@ class _CommissionReportScreenState
 
   @override
   void dispose() {
-    for (final c in _rateControllers.values) c.dispose();
-    for (final c in _bonusControllers.values) c.dispose();
+    for (final c in _rateControllers.values) { c.dispose(); }
+    for (final c in _bonusControllers.values) { c.dispose(); }
     super.dispose();
   }
 
@@ -474,7 +474,7 @@ class _CommissionReportScreenState
                 ])),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Text(_fmt(entry.totalPayout),
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: EnhancedTheme.successGreen,
                           fontSize: 16,
                           fontWeight: FontWeight.w800)),

@@ -664,7 +664,7 @@ class _PrescriptionCard extends StatelessWidget {
                       color: EnhancedTheme.warningAmber,
                     ),
                   if (rx.isRefillDueSoon)
-                    _InfoChip(
+                    const _InfoChip(
                       icon: Icons.repeat_rounded,
                       label: 'Refill due',
                       color: EnhancedTheme.warningAmber,

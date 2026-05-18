@@ -11,11 +11,11 @@ import '../providers/purchase_order_provider.dart';
 
 class _POLineItem {
   int? itemId;
-  String itemName;
+  String itemName = '';
   final TextEditingController qtyCtrl = TextEditingController();
   final TextEditingController costCtrl = TextEditingController();
 
-  _POLineItem({this.itemId, this.itemName = ''});
+  _POLineItem();
 
   int get quantity => int.tryParse(qtyCtrl.text) ?? 0;
   double get unitCost => double.tryParse(costCtrl.text) ?? 0;

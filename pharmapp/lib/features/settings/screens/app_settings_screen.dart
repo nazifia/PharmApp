@@ -1351,8 +1351,8 @@ class _InviteCard extends StatelessWidget {
                       color: context.labelColor,
                       fontWeight: FontWeight.w700,
                       fontSize: 15)),
-              Text('Invitation pending',
-                  style: const TextStyle(
+              const Text('Invitation pending',
+                  style: TextStyle(
                       color: EnhancedTheme.warningAmber,
                       fontSize: 11,
                       fontWeight: FontWeight.w600)),
