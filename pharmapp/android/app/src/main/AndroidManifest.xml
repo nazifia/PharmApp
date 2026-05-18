@@ -2,6 +2,10 @@
 
     <!-- Required for backend API calls -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Required for barcode/QR scanning -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
 
     <application
         android:label="PharmApp"
