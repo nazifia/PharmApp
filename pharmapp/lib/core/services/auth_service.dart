@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/services/auth_storage.dart';
+import 'package:pharmapp/core/services/offline_credential_store.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/branch.dart';
@@ -72,6 +73,7 @@ class AuthService {
   Future<void> logout() async {
     await AuthStorage.delete('auth_token');
     await AuthStorage.delete('current_user');
+    await OfflineCredentialStore.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('active_branch');
     _ref.read(currentUserProvider.notifier).state  = null;

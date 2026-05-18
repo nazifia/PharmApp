@@ -10,6 +10,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/eager_sync_service.dart';
 import '../../../core/services/auth_storage.dart';
+import '../../../core/services/offline_credential_store.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../../../features/networks/providers/network_provider.dart';
 import 'auth_repository.dart';
@@ -92,12 +93,33 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
 
       await AuthStorage.write('auth_token',   token);
       await AuthStorage.write('current_user', jsonEncode(user.toJson()));
+      await OfflineCredentialStore.saveHash(phone, password);
 
       state = AuthFlowState.authenticated;
 
       // Warm the offline cache in the background — don't block login.
       _ref.read(eagerSyncProvider.notifier).warmCache();
     } catch (e) {
+      // Network unreachable → attempt offline credential verification.
+      if (e is DioException && e.response == null) {
+        final token    = await AuthStorage.read('auth_token');
+        final userData = await AuthStorage.read('current_user');
+        if (token != null && userData != null) {
+          final verified = await OfflineCredentialStore.verify(phone, password);
+          if (verified) {
+            final user = User.fromJson(
+                jsonDecode(userData) as Map<String, dynamic>);
+            _ref.read(authTokenProvider.notifier).state   = token;
+            _ref.read(currentUserProvider.notifier).state = user;
+            if (user.branchId != 0) {
+              _ref.read(activeBranchProvider.notifier).state =
+                  Branch(id: user.branchId, name: user.branchName);
+            }
+            state = AuthFlowState.authenticated;
+            return;
+          }
+        }
+      }
       _errorMessage = _friendly(e);
       state = AuthFlowState.error;
     }
