@@ -132,7 +132,7 @@ class ActivityLogNotifier extends StateNotifier<ActivityLogState> {
     };
 
     try {
-      final res = await dio.get('/activity-logs/', queryParameters: params);
+      final res = await dio.get('/auth/activity-log/', queryParameters: params);
       final data = res.data;
       List<dynamic> results;
       if (data is Map) {
