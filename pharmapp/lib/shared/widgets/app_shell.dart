@@ -366,7 +366,7 @@ class _AppShellState extends ConsumerState<AppShell>
     final isAdmin = role == 'Admin' || role == 'Manager';
     final isWholesale =
         role.contains('Wholesale') || (user?.isWholesaleOperator ?? false);
-    final canInventory = Rbac.can(user, AppPermission.readInventory);
+    final canInventory = Rbac.isSenior(user);
     final canCustomers = Rbac.can(user, AppPermission.readCustomers);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final location = GoRouterState.of(context).matchedLocation;
@@ -966,7 +966,7 @@ class _MoreSheet extends StatelessWidget {
     final canSuppliers = Rbac.can(user, AppPermission.manageSuppliers);
     final canPayments  = Rbac.can(user, AppPermission.processPayments);
     final canTransfers = Rbac.can(user, AppPermission.manageTransfers);
-    final canInventory = Rbac.can(user, AppPermission.readInventory);
+    final canInventory = Rbac.isSenior(user);
     final canPOS       = Rbac.can(user, AppPermission.retailPOS);
     final canManage    = Rbac.can(user, AppPermission.manageUsers);
     final canWholesale = Rbac.can(user, AppPermission.viewWholesale);
