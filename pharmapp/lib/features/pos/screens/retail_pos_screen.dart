@@ -18,6 +18,7 @@ import '../providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'retail_cart_screen.dart';
 
 class RetailPOSScreen extends ConsumerStatefulWidget {
   const RetailPOSScreen({super.key});
@@ -662,7 +663,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           Text('Retail POS',
               style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
           Row(children: [
-            Builder(builder: (_) {
+            Flexible(child: Builder(builder: (_) {
               final activeBranch = ref.watch(activeBranchProvider);
               final label = (activeBranch != null && activeBranch.id > 0)
                   ? activeBranch.name
@@ -690,10 +691,11 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                       size: 10,
                     ),
                     const SizedBox(width: 4),
-                    Text(label,
+                    Flexible(child: Text(label,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             color: isSpecific ? EnhancedTheme.primaryTeal : Colors.black54,
-                            fontSize: 10, fontWeight: FontWeight.w700)),
+                            fontSize: 10, fontWeight: FontWeight.w700))),
                     const SizedBox(width: 2),
                     Icon(Icons.expand_more_rounded,
                         color: isSpecific ? EnhancedTheme.primaryTeal : Colors.black54,
@@ -701,7 +703,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   ]),
                 ),
               );
-            }),
+            })),
             if (itemCount != null) ...[
               const SizedBox(width: 8),
               Container(
@@ -995,122 +997,132 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     final atStockCap = inCart >= item.stock;
     final accentColor = outOfStock ? context.hintColor : _categoryColor(item);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: outOfStock
-                ? context.cardColor.withValues(alpha: 0.3)
-                : inCart > 0
-                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.07)
-                    : context.cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: inCart > 0
-                  ? EnhancedTheme.primaryTeal.withValues(alpha: 0.35)
-                  : context.borderColor,
-              width: inCart > 0 ? 1.5 : 1.0,
-            ),
-          ),
-          child: Row(children: [
-            // Gradient icon background
-            Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    accentColor.withValues(alpha: outOfStock ? 0.08 : 0.18),
-                    accentColor.withValues(alpha: outOfStock ? 0.04 : 0.08),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+    final wide = MediaQuery.of(context).size.width > 800;
+
+    void onCardTap() {
+      if (outOfStock || atStockCap) return;
+      ref.read(cartProvider.notifier).addItem(item);
+      if (!wide) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const RetailCartScreen()));
+      }
+    }
+
+    return GestureDetector(
+      onTap: onCardTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: outOfStock
+                  ? context.cardColor.withValues(alpha: 0.3)
+                  : inCart > 0
+                      ? EnhancedTheme.primaryTeal.withValues(alpha: 0.07)
+                      : context.cardColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: inCart > 0
+                    ? EnhancedTheme.primaryTeal.withValues(alpha: 0.35)
+                    : context.borderColor,
+                width: inCart > 0 ? 1.5 : 1.0,
               ),
-              child: Icon(Icons.medication_rounded, color: accentColor, size: 22),
             ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(item.name,
-                  style: TextStyle(
-                      color: outOfStock ? context.hintColor : context.labelColor,
-                      fontSize: 13, fontWeight: FontWeight.w600)),
-              if (item.brand.isNotEmpty)
-                Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-              const SizedBox(height: 3),
-              // Stock badge chip
+            child: Row(children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                width: 48, height: 48,
                 decoration: BoxDecoration(
-                  color: outOfStock
-                      ? EnhancedTheme.errorRed.withValues(alpha: 0.12)
-                      : lowStock
-                          ? EnhancedTheme.warningAmber.withValues(alpha: 0.12)
-                          : EnhancedTheme.successGreen.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  outOfStock ? 'Out of stock' : lowStock ? '${item.stock} left — low' : '${item.stock} in stock',
-                  style: TextStyle(
-                    color: outOfStock
-                        ? EnhancedTheme.errorRed
-                        : lowStock
-                            ? EnhancedTheme.warningAmber
-                            : EnhancedTheme.successGreen,
-                    fontSize: 10, fontWeight: FontWeight.w600,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      accentColor.withValues(alpha: outOfStock ? 0.08 : 0.18),
+                      accentColor.withValues(alpha: outOfStock ? 0.04 : 0.08),
+                    ],
                   ),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: accentColor.withValues(alpha: 0.2)),
                 ),
+                child: Icon(Icons.medication_rounded, color: accentColor, size: 22),
               ),
-            ])),
-            const SizedBox(width: 8),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              // Price with currency color
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('₦', style: TextStyle(
-                  color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
-                  fontSize: 11, fontWeight: FontWeight.w600)),
-                Text(item.price.toStringAsFixed(0),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(item.name,
                     style: TextStyle(
-                      color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal,
-                      fontSize: 15, fontWeight: FontWeight.w800,
-                    )),
-              ]),
-              const SizedBox(height: 6),
-              if (!outOfStock && !atStockCap)
-                GestureDetector(
-                  onTap: () => ref.read(cartProvider.notifier).addItem(item),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      gradient: inCart > 0
-                          ? const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan])
-                          : null,
-                      color: inCart > 0 ? null : context.cardColor,
-                      borderRadius: BorderRadius.circular(8),
-                      border: inCart > 0 ? null : Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.5)),
-                    ),
-                    child: Text(inCart > 0 ? '+ More' : 'Add',
-                        style: TextStyle(
-                            color: inCart > 0 ? Colors.black : EnhancedTheme.primaryTeal,
-                            fontSize: 11, fontWeight: FontWeight.w700)),
-                  ),
-                ),
-              if (atStockCap && inCart > 0)
+                        color: outOfStock ? context.hintColor : context.labelColor,
+                        fontSize: 13, fontWeight: FontWeight.w600)),
+                if (item.brand.isNotEmpty)
+                  Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                const SizedBox(height: 3),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
-                    color: EnhancedTheme.warningAmber.withValues(alpha: 0.12),
+                    color: outOfStock
+                        ? EnhancedTheme.errorRed.withValues(alpha: 0.12)
+                        : lowStock
+                            ? EnhancedTheme.warningAmber.withValues(alpha: 0.12)
+                            : EnhancedTheme.successGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text('Max', style: TextStyle(color: EnhancedTheme.warningAmber, fontSize: 10, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    outOfStock ? 'Out of stock' : lowStock ? '${item.stock} left — low' : '${item.stock} in stock',
+                    style: TextStyle(
+                      color: outOfStock
+                          ? EnhancedTheme.errorRed
+                          : lowStock
+                              ? EnhancedTheme.warningAmber
+                              : EnhancedTheme.successGreen,
+                      fontSize: 10, fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
+              ])),
+              const SizedBox(width: 8),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text('₦', style: TextStyle(
+                    color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
+                    fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text(item.price.toStringAsFixed(0),
+                      style: TextStyle(
+                        color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal,
+                        fontSize: 15, fontWeight: FontWeight.w800,
+                      )),
+                ]),
+                const SizedBox(height: 6),
+                if (inCart > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      gradient: atStockCap
+                          ? null
+                          : const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                      color: atStockCap ? EnhancedTheme.warningAmber.withValues(alpha: 0.12) : null,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      atStockCap ? 'Max ($inCart)' : '×$inCart in cart',
+                      style: TextStyle(
+                        color: atStockCap ? EnhancedTheme.warningAmber : Colors.black,
+                        fontSize: 10, fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                else if (!outOfStock)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4)),
+                    ),
+                    child: const Text('Tap to add',
+                        style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 10, fontWeight: FontWeight.w600)),
+                  ),
+              ]),
             ]),
-          ]),
+          ),
         ),
       ),
     );
@@ -1125,7 +1137,15 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     final accentColor = outOfStock ? context.hintColor : _categoryColor(item);
 
     return GestureDetector(
-      onTap: (outOfStock || atStockCap) ? null : () => ref.read(cartProvider.notifier).addItem(item),
+      onTap: (outOfStock || atStockCap)
+          ? null
+          : () {
+              ref.read(cartProvider.notifier).addItem(item);
+              final wide = MediaQuery.of(context).size.width > 800;
+              if (!wide) {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const RetailCartScreen()));
+              }
+            },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
@@ -1461,103 +1481,32 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
             )),
 
       _interactionBanner(interactionsAsync),
-      // Summary + checkout
-      Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+      if (cart.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+          child: SizedBox(
+            width: double.infinity,
             child: Container(
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: context.cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: context.borderColor),
+                gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 3))],
               ),
-              child: Column(children: [
-                // Gradient total row
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                        EnhancedTheme.accentCyan.withValues(alpha: 0.08),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('${cart.length} lines · ${cart.fold<int>(0, (s, c) => s + c.quantity)} units',
-                          style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                      const Text('Total Amount', style: TextStyle(color: Colors.black87, fontSize: 12)),
-                    ]),
-                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      const Text('₦', style: TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11)),
-                      Text(cartTotal.toStringAsFixed(2),
-                          style: GoogleFonts.outfit(
-                              color: Colors.black, fontSize: 22, fontWeight: FontWeight.w800)),
-                    ]),
-                  ]),
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RetailCartScreen())),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(child: OutlinedButton.icon(
-                    onPressed: () {
-                      ref.read(cartProvider.notifier).clearCart();
-                      ref.read(prescriptionCartBindingsProvider.notifier).state = {};
-                      ref.read(selectedCustomerProvider.notifier).state = null;
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: EnhancedTheme.errorRed,
-                      side: BorderSide(color: EnhancedTheme.errorRed.withValues(alpha: 0.4)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 11),
-                    ),
-                    icon: const Icon(Icons.delete_sweep_rounded, size: 16),
-                    label: const Text('Clear', style: TextStyle(fontWeight: FontWeight.w600)),
-                  )),
-                  const SizedBox(width: 10),
-                  Expanded(flex: 2, child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 3))],
-                    ),
-                    child: ElevatedButton.icon(
-                      onPressed: _checkout,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 11),
-                      ),
-                      icon: const Icon(Icons.check_circle_rounded, size: 18),
-                      label: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w700)),
-                    ),
-                  )),
-                ]),
-                const SizedBox(height: 8),
-                SizedBox(width: double.infinity, child: OutlinedButton.icon(
-                  onPressed: _sendToCashier,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: EnhancedTheme.accentOrange,
-                    side: BorderSide(color: EnhancedTheme.accentOrange.withValues(alpha: 0.5)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                  ),
-                  icon: const Icon(Icons.send_rounded, size: 16),
-                  label: const Text('Send to Cashier', style: TextStyle(fontWeight: FontWeight.w600)),
-                )),
-              ]),
+                icon: const Icon(Icons.check_circle_rounded, size: 18),
+                label: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              ),
             ),
           ),
         ),
-      ),
     ]);
   }
 }
