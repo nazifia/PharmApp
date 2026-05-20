@@ -966,7 +966,7 @@ class _MoreSheet extends StatelessWidget {
     final canSuppliers = Rbac.can(user, AppPermission.manageSuppliers);
     final canPayments  = Rbac.can(user, AppPermission.processPayments);
     final canTransfers = Rbac.can(user, AppPermission.manageTransfers);
-    final canInventory = Rbac.isSenior(user);
+    final canInventory = Rbac.can(user, AppPermission.readInventory);
     final canPOS       = Rbac.can(user, AppPermission.retailPOS);
     final canManage    = Rbac.can(user, AppPermission.manageUsers);
     final canWholesale = Rbac.can(user, AppPermission.viewWholesale);
