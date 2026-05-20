@@ -149,8 +149,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   Widget _homeContent() {
     final user         = ref.watch(currentUserProvider);
     final role         = user?.role ?? '';
-    final isWsUser     = Rbac.can(user, AppPermission.viewWholesale);
-    final isSeniorUser = Rbac.isSenior(user);
+    final isWsUser      = Rbac.can(user, AppPermission.viewWholesale);
+    final isSeniorUser  = Rbac.isSenior(user);
+    final canInventory  = Rbac.canViewInventory(user);
     // Admin-only endpoint — only used for senior users
     final salesAsync      = ref.watch(salesReportProvider('today'));
     // All-roles endpoints — used for non-senior users
@@ -215,7 +216,8 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             // Quick action buttons
             _quickActionsRow([
               (Icons.add_shopping_cart, 'New Sale',   EnhancedTheme.primaryTeal,   () => context.go('/dashboard/pos')),
-              (Icons.inventory_2,        'Inventory',  EnhancedTheme.infoBlue,      () => context.go('/dashboard/inventory')),
+              if (canInventory)
+                (Icons.inventory_2,        'Inventory',  EnhancedTheme.infoBlue,      () => context.go('/dashboard/inventory')),
               if (hasCustFeature)
                 (Icons.people,           'Customers',  EnhancedTheme.accentPurple,  () => context.go('/dashboard/customers')),
               (Icons.more_horiz_rounded, 'More',       context.subLabelColor,       _showMoreSheet),
@@ -301,7 +303,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             const SizedBox(height: 24),
             ], // end hasReportsFeature
 
-            _sectionHeader('Low Stock Alerts', () => context.go('/dashboard/inventory')),
+            _sectionHeader('Low Stock Alerts', canInventory ? () => context.go('/dashboard/inventory') : () {}),
             const SizedBox(height: 12),
             invAsync.when(
               loading: () => const Center(child: Padding(
@@ -349,7 +351,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
           // ══ WHOLESALE MODE ════════════════════════════════════════════════
           if (_showWholesale)
-            _wholesaleBody(wide2),
+            _wholesaleBody(wide2, canInventory: canInventory),
         ],
       ),
       ),
@@ -528,7 +530,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   // ── Wholesale Body ─────────────────────────────────────────────────────────
 
-  Widget _wholesaleBody(bool wide2) {
+  Widget _wholesaleBody(bool wide2, {required bool canInventory}) {
     final wsAsync = ref.watch(_wholesaleDashProvider);
     return wsAsync.when(
       loading: () => const Center(
@@ -579,7 +581,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           const SizedBox(height: 24),
 
           // Wholesale quick access panel
-          _wholesaleQuickAccess(wide2),
+          _wholesaleQuickAccess(wide2, canInventory: canInventory),
           const SizedBox(height: 24),
 
           // Top products
@@ -655,7 +657,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           const SizedBox(height: 24),
 
           // Low stock
-          _sectionHeader('Low Stock Alerts', () => context.go('/dashboard/inventory')),
+          _sectionHeader('Low Stock Alerts', canInventory ? () => context.go('/dashboard/inventory') : () {}),
           const SizedBox(height: 12),
           if (lowStockItems.isEmpty)
             _emptyState(Icons.check_circle_rounded, 'All items adequately stocked', EnhancedTheme.successGreen)
@@ -694,7 +696,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     );
   }
 
-  Widget _wholesaleQuickAccess(bool wide) {
+  Widget _wholesaleQuickAccess(bool wide, {required bool canInventory}) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -738,8 +740,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                     Expanded(child: _quickAccessCard(
                       'Inventory & Transfers', 'Stock Management',
                       Icons.inventory_2_rounded, EnhancedTheme.warningAmber,
-                      [(Icons.swap_horiz_rounded, 'Transfers', '/dashboard/transfers'),
-                       (Icons.inventory_rounded, 'Inventory', '/dashboard/inventory')],
+                      [
+                        (Icons.swap_horiz_rounded, 'Transfers', '/dashboard/transfers'),
+                        if (canInventory)
+                          (Icons.inventory_rounded, 'Inventory', '/dashboard/inventory'),
+                      ],
                     )),
                     const SizedBox(width: 10),
                     Expanded(child: _quickAccessCard(
@@ -760,8 +765,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                     _quickAccessCard(
                       'Inventory & Transfers', 'Stock Management',
                       Icons.inventory_2_rounded, EnhancedTheme.warningAmber,
-                      [(Icons.swap_horiz_rounded, 'Transfers', '/dashboard/transfers'),
-                       (Icons.inventory_rounded, 'Inventory', '/dashboard/inventory')],
+                      [
+                        (Icons.swap_horiz_rounded, 'Transfers', '/dashboard/transfers'),
+                        if (canInventory)
+                          (Icons.inventory_rounded, 'Inventory', '/dashboard/inventory'),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     _quickAccessCard(

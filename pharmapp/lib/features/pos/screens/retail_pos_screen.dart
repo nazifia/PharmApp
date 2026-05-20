@@ -671,7 +671,10 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               final isSpecific = activeBranch != null && activeBranch.id > 0;
               return GestureDetector(
                 onTap: () => _showBranchPicker(context),
-                child: Container(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: isSpecific
@@ -701,6 +704,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                         color: isSpecific ? EnhancedTheme.primaryTeal : Colors.black54,
                         size: 10),
                   ]),
+                ),
                 ),
               );
             })),
@@ -950,7 +954,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-                    mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.05,
+                    mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 0.9,
                   ),
                   itemCount: items.length,
                   itemBuilder: (_, i) => _catalogueGridCard(items[i], cart)

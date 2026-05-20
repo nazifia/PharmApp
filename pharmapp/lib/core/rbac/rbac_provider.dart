@@ -13,3 +13,9 @@ final canProvider = Provider.family<bool, String>((ref, permission) {
   final user = ref.watch(currentUserProvider);
   return Rbac.can(user, permission);
 });
+
+/// Admin/Manager always; others only when explicitly granted readInventory.
+final canViewInventoryProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return Rbac.canViewInventory(user);
+});

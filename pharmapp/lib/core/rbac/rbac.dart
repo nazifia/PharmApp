@@ -217,6 +217,15 @@ class Rbac {
   /// Convenience: true when role is Admin or Manager.
   static bool isSenior(User? user) => can(user, AppPermission.viewReports);
 
+  /// True when user may view Inventory/Stock screens.
+  /// Admin/Manager always can; other roles only when explicitly granted via
+  /// a personal permission override (user.permissions[readInventory] == true).
+  static bool canViewInventory(User? user) {
+    if (user == null) return false;
+    if (isSenior(user)) return true;
+    return user.permissions[AppPermission.readInventory] == true;
+  }
+
   /// Convenience: true when user has access to any wholesale feature.
   static bool hasWholesaleAccess(User? user) => can(user, AppPermission.viewWholesale);
 

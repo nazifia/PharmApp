@@ -20,6 +20,15 @@ class RetailCartScreen extends ConsumerStatefulWidget {
 }
 
 class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   void _checkout() {
     final cart = ref.read(cartProvider);
     if (cart.isEmpty) {
@@ -387,6 +396,31 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
     );
   }
 
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: TextField(
+        controller: _searchCtrl,
+        onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+        style: TextStyle(color: context.labelColor, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: 'Search cart items…',
+          hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+          prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
+          suffixIcon: _searchCtrl.text.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.close_rounded, color: context.hintColor, size: 16),
+                  onPressed: () => setState(() { _searchCtrl.clear(); _searchQuery = ''; }))
+              : null,
+          filled: true,
+          fillColor: context.cardColor,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(vertical: 13),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart           = ref.watch(cartProvider);
@@ -394,23 +428,35 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
     final cartCount      = cart.fold<int>(0, (s, c) => s + c.quantity);
     final interactionsAsync = ref.watch(combinedPosWarningsProvider);
 
+    final filtered = _searchQuery.isEmpty
+        ? cart
+        : cart.where((c) => c.item.name.toLowerCase().contains(_searchQuery)).toList();
+
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       body: Stack(children: [
         Container(decoration: context.bgGradient),
         SafeArea(child: Column(children: [
           _buildHeader(context, cart.length, cartCount),
+          if (cart.isNotEmpty) _buildSearchBar(),
           if (cart.isNotEmpty) _interactionBanner(interactionsAsync),
           Expanded(child: cart.isEmpty
               ? _emptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  itemCount: cart.length,
-                  itemBuilder: (_, i) => _CartItemRow(
-                    key: ValueKey(cart[i].item.id),
-                    item: cart[i],
-                  ).animate(delay: (i * 30).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0),
-                )),
+              : filtered.isEmpty
+                  ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.search_off_rounded, color: context.hintColor, size: 40),
+                      const SizedBox(height: 10),
+                      Text('No items match "$_searchQuery"',
+                          style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+                    ]))
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) => _CartItemRow(
+                        key: ValueKey(filtered[i].item.id),
+                        item: filtered[i],
+                      ).animate(delay: (i * 30).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0),
+                    )),
           _buildFooter(cart, cartTotal),
         ])),
       ]),

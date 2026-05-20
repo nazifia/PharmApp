@@ -257,91 +257,194 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: context.cardColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: context.borderColor),
           ),
-          child: Row(children: [
-            // Logo preview
-            GestureDetector(
-              onTap: _logoUploading ? null : _pickAndUploadLogo,
-              child: Stack(
-                children: [
-                  ClipOval(
-                    child: Container(
-                      width: 64, height: 64,
-                      decoration: BoxDecoration(
-                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
-                        border: Border.all(
-                            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4), width: 2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: hasLogo
-                          ? Image.network(logoUrl, fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _logoFallback(orgName))
-                          : _logoFallback(orgName),
-                    ),
-                  ),
-                  if (_logoUploading)
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          shape: BoxShape.circle,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('Organisation',
+                  style: TextStyle(
+                      color: context.subLabelColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8)),
+            ),
+            // ── Logo row ──────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Row(children: [
+                GestureDetector(
+                  onTap: _logoUploading ? null : _pickAndUploadLogo,
+                  child: Stack(
+                    children: [
+                      ClipOval(
+                        child: Container(
+                          width: 56, height: 56,
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                            border: Border.all(
+                                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4), width: 2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: hasLogo
+                              ? Image.network(logoUrl, fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => _logoFallback(orgName))
+                              : _logoFallback(orgName),
                         ),
-                        child: const Center(
-                          child: SizedBox(
-                            width: 22, height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: EnhancedTheme.primaryTeal),
+                      ),
+                      if (_logoUploading)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 20, height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2.5, color: EnhancedTheme.primaryTeal),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Positioned(
+                          bottom: 0, right: 0,
+                          child: Container(
+                            width: 20, height: 20,
+                            decoration: const BoxDecoration(
+                              color: EnhancedTheme.primaryTeal,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.edit_rounded, size: 11, color: Colors.black),
                           ),
                         ),
-                      ),
-                    )
-                  else
-                    Positioned(
-                      bottom: 0, right: 0,
-                      child: Container(
-                        width: 22, height: 22,
-                        decoration: const BoxDecoration(
-                          color: EnhancedTheme.primaryTeal,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.edit_rounded, size: 13, color: Colors.black),
-                      ),
-                    ),
-                ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Logo',
+                      style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
+                  Text(hasLogo ? 'Tap to change' : 'No logo — tap to upload',
+                      style: TextStyle(color: context.hintColor, fontSize: 12)),
+                ])),
+                TextButton.icon(
+                  onPressed: _logoUploading ? null : _pickAndUploadLogo,
+                  icon: const Icon(Icons.upload_rounded, size: 15),
+                  label: const Text('Upload'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: EnhancedTheme.primaryTeal,
+                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ]),
+            ),
+            Divider(height: 1, indent: 16, endIndent: 16, color: context.dividerColor),
+            // ── Org name row ─────────────────────────────────────────────────
+            InkWell(
+              onTap: () => _showOrgNameDialog(orgName),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(children: [
+                  _tileIcon(Icons.business_rounded, EnhancedTheme.accentOrange),
+                  const SizedBox(width: 14),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Organisation Name',
+                        style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
+                    Text(orgName.isNotEmpty ? orgName : 'Not set',
+                        style: TextStyle(color: context.hintColor, fontSize: 12),
+                        overflow: TextOverflow.ellipsis),
+                  ])),
+                  Icon(Icons.edit_outlined, color: context.hintColor, size: 18),
+                ]),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Organisation Logo',
-                  style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(hasLogo ? 'Tap logo to change' : 'No logo set — tap to upload',
-                  style: TextStyle(color: context.hintColor, fontSize: 12)),
-              if (orgName.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(orgName,
-                    style: TextStyle(color: context.subLabelColor, fontSize: 11),
-                    overflow: TextOverflow.ellipsis),
-              ],
-            ])),
-            TextButton.icon(
-              onPressed: _logoUploading ? null : _pickAndUploadLogo,
-              icon: const Icon(Icons.upload_rounded, size: 16),
-              label: const Text('Upload'),
-              style: TextButton.styleFrom(
-                foregroundColor: EnhancedTheme.primaryTeal,
-                textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-            ),
+            const SizedBox(height: 4),
           ]),
         ),
       ),
     );
+  }
+
+  Future<void> _showOrgNameDialog(String current) async {
+    final ctrl = TextEditingController(text: current);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text('Organisation Name', style: TextStyle(color: context.labelColor)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          style: TextStyle(color: context.labelColor, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'Enter organisation name',
+            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+            filled: true,
+            fillColor: context.isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.04),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: context.borderColor)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: context.borderColor)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: EnhancedTheme.accentOrange)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: TextStyle(color: context.hintColor))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save',
+                  style: TextStyle(color: EnhancedTheme.accentOrange))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final name = ctrl.text.trim();
+    if (name.isEmpty || name == current) return;
+    try {
+      await ref.read(authFlowProvider.notifier).updateOrgName(name);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: const Row(children: [
+          Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Text('Organisation name updated',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+        ]),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: Row(children: [
+          const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(e.toString().replaceFirst('Exception: ', ''),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+        ]),
+      ));
+    }
   }
 
   Widget _logoFallback(String orgName) {

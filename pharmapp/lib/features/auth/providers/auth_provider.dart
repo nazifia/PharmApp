@@ -223,6 +223,17 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     await AuthStorage.write('current_user', jsonEncode(updated.toJson()));
   }
 
+  /// Updates the organisation name (admin-only).
+  /// Calls PATCH /auth/org/, updates in-memory state and persists.
+  Future<void> updateOrgName(String name) async {
+    final current = _ref.read(currentUserProvider);
+    if (current == null) return;
+    final newName = await _ref.read(authRepositoryProvider).updateOrgName(name);
+    final updated = current.copyWith(organizationName: newName);
+    _ref.read(currentUserProvider.notifier).state = updated;
+    await AuthStorage.write('current_user', jsonEncode(updated.toJson()));
+  }
+
   /// Uploads a new logo for the org and patches the cached user so the
   /// drawer updates immediately without a full re-login.
   Future<void> uploadOrgLogo(XFile imageFile) async {

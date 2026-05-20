@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
-import 'package:pharmapp/core/rbac/rbac_provider.dart';
+import 'package:pharmapp/core/rbac/rbac_provider.dart' show canProvider, canViewInventoryProvider;
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -46,7 +46,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     final canSuppliers   = ref.watch(canProvider(AppPermission.manageSuppliers));
     final canTransfers   = ref.watch(canProvider(AppPermission.manageTransfers));
     final canPOS         = ref.watch(canProvider(AppPermission.retailPOS));
-    final canReadInv     = ref.watch(canProvider(AppPermission.readInventory));
+    final canReadInv     = ref.watch(canViewInventoryProvider);
     final canReadCust    = ref.watch(canProvider(AppPermission.readCustomers));
     final canPayments    = ref.watch(canProvider(AppPermission.processPayments));
     final canReadRx      = ref.watch(canProvider(AppPermission.readPrescriptions));

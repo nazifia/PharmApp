@@ -130,6 +130,29 @@ def register_org_view(request):
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated, IsAdminOrManager])
+def org_view(request):
+    """
+    PATCH /auth/org/
+    Body: { org_name: string }
+    Updates the caller's organisation name.
+    """
+    org = request.user.organization
+    if org is None:
+        return Response({'detail': 'No organisation linked to this account.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    org_name = request.data.get('org_name', '').strip()
+    if not org_name:
+        return Response({'detail': 'org_name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    org.name = org_name
+    org.save(update_fields=['name'])
+
+    return Response({'org_name': org.name})
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminOrManager])
 def org_logo_view(request):
     """
     PATCH /auth/org/logo/
