@@ -2,12 +2,20 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/prescriber.dart';
+import '../../../shared/models/customer.dart';
 
 const _kPrescribersCacheKey = 'cache_prescribers';
 
 class PrescriberApiClient {
   final Dio _dio;
-  PrescriberApiClient(this._dio);
+  final String? prescriberToken;
+
+  PrescriberApiClient(this._dio, {this.prescriberToken});
+
+  Options _authOpts() => Options(headers: {
+        'skip_auth': true,
+        if (prescriberToken != null) 'Authorization': 'Bearer $prescriberToken',
+      });
 
   Future<void> _cache(String key, dynamic data) async {
     final prefs = await SharedPreferences.getInstance();
@@ -57,7 +65,6 @@ class PrescriberApiClient {
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
   }
 
-  /// Public self-registration — no JWT required.
   Future<Prescriber> registerPrescriber(Map<String, dynamic> data) async {
     final res = await _dio.post(
       '/prescriptions/prescribers/register/',
@@ -67,18 +74,58 @@ class PrescriberApiClient {
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
   }
 
-  Future<Prescriber> loginPrescriber(String phone, String password) async {
+  /// Returns (prescriber, token). Token may be null if backend omits it.
+  Future<(Prescriber, String?)> loginPrescriber(
+      String phone, String password) async {
     final res = await _dio.post(
       '/prescriptions/prescribers/login/',
       data: {'phone': phone, 'password': password},
       options: Options(headers: {'skip_auth': true}),
     );
     final data = res.data as Map<String, dynamic>;
-    return Prescriber.fromJson(data['prescriber'] as Map<String, dynamic>);
+    final prescriber =
+        Prescriber.fromJson(data['prescriber'] as Map<String, dynamic>);
+    final token = data['token'] as String?;
+    return (prescriber, token);
   }
 
   Future<Prescriber> updatePrescriber(int id, Map<String, dynamic> data) async {
-    final res = await _dio.patch('/prescriptions/prescribers/$id/', data: data);
+    final res =
+        await _dio.patch('/prescriptions/prescribers/$id/', data: data);
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<List<Customer>> fetchPatients(int prescriberId) async {
+    final res = await _dio.get(
+      '/prescriptions/prescribers/$prescriberId/patients/',
+      options: _authOpts(),
+    );
+    final data = res.data;
+    final list = data is Map && data.containsKey('results')
+        ? data['results'] as List
+        : data as List;
+    return list
+        .map((e) => Customer.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Customer> registerPatient(
+      int prescriberId, Map<String, dynamic> data) async {
+    final res = await _dio.post(
+      '/prescriptions/prescribers/$prescriberId/patients/',
+      data: data,
+      options: _authOpts(),
+    );
+    return Customer.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<Map<String, dynamic>> submitPrescription(
+      Map<String, dynamic> data) async {
+    final res = await _dio.post(
+      '/prescriptions/',
+      data: data,
+      options: _authOpts(),
+    );
+    return res.data as Map<String, dynamic>;
   }
 }

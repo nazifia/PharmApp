@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import '../providers/prescriber_provider.dart';
+import 'prescriber_patients_screen.dart';
+import 'prescriber_write_rx_screen.dart';
 
 class PrescriberPortalScreen extends ConsumerWidget {
   const PrescriberPortalScreen({super.key});
@@ -199,6 +201,45 @@ class PrescriberPortalScreen extends ConsumerWidget {
                     ),
                   ),
 
+                  const SizedBox(height: 16),
+
+                  // Action cards
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ActionCard(
+                          icon: Icons.people_rounded,
+                          label: 'My Patients',
+                          subtitle: 'Register & manage',
+                          color: EnhancedTheme.accentCyan,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const PrescriberPatientsScreen(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _ActionCard(
+                          icon: Icons.edit_document,
+                          label: 'Write Rx',
+                          subtitle: 'New prescription',
+                          color: EnhancedTheme.accentPurple,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const PrescriberWriteRxScreen(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 28),
 
                   // Sign out
@@ -263,3 +304,65 @@ class PrescriberPortalScreen extends ConsumerWidget {
         ),
       );
 }
+
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(18),
+              border:
+                  Border.all(color: color.withValues(alpha: 0.25), width: 1.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color.withValues(alpha: 0.15),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(height: 12),
+                Text(label,
+                    style: TextStyle(
+                        color: context.labelColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(subtitle,
+                    style: TextStyle(
+                        color: context.subLabelColor, fontSize: 12)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
