@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     # Prescriptions
+    path('portal/',                       views.prescriber_portal_create_rx, name='prescriber-portal-rx'),
     path('',                              views.prescription_list,        name='prescription-list'),
     path('network/',                      views.network_prescriptions,    name='prescription-network'),
     path('pending-count/',                views.pending_count,            name='prescription-pending-count'),

@@ -12,10 +12,16 @@ class PrescriberApiClient {
 
   PrescriberApiClient(this._dio, {this.prescriberToken});
 
-  Options _authOpts() => Options(headers: {
+  Options _authOpts() {
+    if (prescriberToken != null) {
+      return Options(headers: {
         'skip_auth': true,
-        if (prescriberToken != null) 'Authorization': 'Bearer $prescriberToken',
+        'Authorization': 'Bearer $prescriberToken',
       });
+    }
+    // No prescriber token — let AuthInterceptor attach pharmacy token
+    return Options();
+  }
 
   Future<void> _cache(String key, dynamic data) async {
     final prefs = await SharedPreferences.getInstance();
@@ -85,7 +91,7 @@ class PrescriberApiClient {
     final data = res.data as Map<String, dynamic>;
     final prescriber =
         Prescriber.fromJson(data['prescriber'] as Map<String, dynamic>);
-    final token = (data['access'] ?? data['token']) as String?;
+    final token = (data['token'] ?? data['access']) as String?;
     return (prescriber, token);
   }
 
@@ -122,7 +128,7 @@ class PrescriberApiClient {
   Future<Map<String, dynamic>> submitPrescription(
       Map<String, dynamic> data) async {
     final res = await _dio.post(
-      '/prescriptions/',
+      '/prescriptions/portal/',
       data: data,
       options: _authOpts(),
     );

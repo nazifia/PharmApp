@@ -1,3 +1,4 @@
+from django.core import signing
 from django.db import models as _m, transaction
 from django.db.models import Count, Case, When, IntegerField, F
 from django.utils import timezone
@@ -6,6 +7,22 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+
+_PRESCRIBER_TOKEN_SALT = 'prescriber-portal-auth'
+_PRESCRIBER_TOKEN_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+
+
+def _issue_prescriber_token(prescriber_id: int) -> str:
+    return signing.dumps({'prescriber_id': prescriber_id}, salt=_PRESCRIBER_TOKEN_SALT)
+
+
+def _verify_prescriber_token(token: str):
+    """Return Prescriber instance or None."""
+    try:
+        data = signing.loads(token, salt=_PRESCRIBER_TOKEN_SALT, max_age=_PRESCRIBER_TOKEN_MAX_AGE)
+        return Prescriber.objects.get(pk=data['prescriber_id'])
+    except Exception:
+        return None
 
 from authapp.utils import require_org, log_activity
 from authapp.permissions import IsPrescriptionUser, PRESCRIPTIONS_WRITE
@@ -948,4 +965,67 @@ def prescriber_login(request):
     if not prescriber.password or not check_password(password, prescriber.password):
         return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    return Response({'prescriber': prescriber.to_api_dict()})
+    token = _issue_prescriber_token(prescriber.id)
+    return Response({'prescriber': prescriber.to_api_dict(), 'token': token})
+
+
+# ── Prescriber portal — create prescription (no pharmacy JWT) ─────────────────
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def prescriber_portal_create_rx(request):
+    """
+    POST /api/prescriptions/portal/
+    Authenticated via 'Authorization: Bearer <prescriber_signed_token>' header.
+    Body: { customer, diagnosis?, notes?, items: [{item_name, quantity, unit, dosage?, duration?, instructions?}] }
+    """
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    token = auth_header.removeprefix('Bearer ').strip() if auth_header.startswith('Bearer ') else ''
+    prescriber = _verify_prescriber_token(token) if token else None
+    if prescriber is None:
+        return Response({'detail': 'Invalid or missing prescriber token.'},
+                        status=status.HTTP_401_UNAUTHORIZED)
+
+    data = request.data
+    customer_id = data.get('customer')
+    if not customer_id:
+        return Response({'detail': 'customer is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    from customers.models import Customer
+    try:
+        customer = Customer.objects.get(pk=customer_id)
+    except Customer.DoesNotExist:
+        return Response({'detail': 'Customer not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    items_data = data.get('items') or []
+    if not items_data:
+        return Response({'detail': 'At least one medication is required'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    with transaction.atomic():
+        rx = Prescription.objects.create(
+            organization   = customer.organization,
+            prescriber     = prescriber,
+            doctor_name    = prescriber.name,
+            customer       = customer,
+            customer_name  = customer.name,
+            customer_phone = customer.phone,
+            diagnosis      = (data.get('diagnosis') or '').strip(),
+            notes          = (data.get('notes') or '').strip(),
+            status         = 'pending',
+        )
+        for item in items_data:
+            item_name = (item.get('item_name') or '').strip()
+            if not item_name:
+                continue
+            PrescriptionItem.objects.create(
+                prescription = rx,
+                item_name    = item_name,
+                quantity     = float(item.get('quantity', 1)),
+                unit         = (item.get('unit') or 'unit(s)').strip(),
+                dosage       = (item.get('dosage') or '').strip(),
+                duration     = (item.get('duration') or '').strip(),
+                instructions = (item.get('instructions') or '').strip(),
+            )
+
+    return Response(rx.to_api_dict(), status=status.HTTP_201_CREATED)
