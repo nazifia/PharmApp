@@ -30,7 +30,7 @@ class PrescriberApiClient {
       final params = <String, dynamic>{};
       if (query != null && query.isNotEmpty) params['search'] = query;
       if (networkWide) params['network_wide'] = 'true';
-      final res = await _dio.get('/prescribers/',
+      final res = await _dio.get('/prescriptions/prescribers/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
@@ -53,14 +53,14 @@ class PrescriberApiClient {
   }
 
   Future<Prescriber> createPrescriber(Map<String, dynamic> data) async {
-    final res = await _dio.post('/prescribers/', data: data);
+    final res = await _dio.post('/prescriptions/prescribers/', data: data);
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
   }
 
   /// Public self-registration — no org or JWT required.
   Future<Prescriber> registerPrescriber(Map<String, dynamic> data) async {
     final res = await _dio.post(
-      '/prescribers/register/',
+      '/prescriptions/prescribers/register/',
       data: data,
       options: Options(headers: {'skip_auth': true}),
     );
@@ -68,7 +68,7 @@ class PrescriberApiClient {
   }
 
   Future<Prescriber> updatePrescriber(int id, Map<String, dynamic> data) async {
-    final res = await _dio.patch('/prescribers/$id/', data: data);
+    final res = await _dio.patch('/prescriptions/prescribers/$id/', data: data);
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
   }
 }
