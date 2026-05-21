@@ -299,10 +299,12 @@ class _PrescriberRegistrationScreenState
                 ),
                 const SizedBox(height: 14),
 
-                // Phone
-                _field(_phoneCtrl, 'Phone Number',
+                // Phone (required — used as login identifier)
+                _field(_phoneCtrl, 'Phone Number *',
                     icon: Icons.phone_rounded,
-                    keyboardType: TextInputType.phone),
+                    keyboardType: TextInputType.phone,
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required for login' : null),
                 const SizedBox(height: 14),
 
                 // Hospital picker

@@ -10,6 +10,10 @@ final prescriberApiClientProvider = Provider<PrescriberApiClient>(
   (ref) => PrescriberApiClient(ref.watch(dioProvider)),
 );
 
+// ── Signed-in prescriber session ─────────────────────────────────────────────
+
+final currentPrescriberProvider = StateProvider<Prescriber?>((ref) => null);
+
 // ── List / search ─────────────────────────────────────────────────────────────
 
 final prescriberListProvider =
@@ -47,6 +51,25 @@ class PrescriberNotifier extends StateNotifier<_PrescriberState> {
     } on DioException catch (e) {
       state = state.copyWith(
           isLoading: false, error: e.response?.data?['detail'] ?? e.message);
+      return null;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return null;
+    }
+  }
+
+  Future<Prescriber?> loginPrescriber(String phone, String password) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final p = await _client.loginPrescriber(phone, password);
+      _ref.read(currentPrescriberProvider.notifier).state = p;
+      state = state.copyWith(isLoading: false);
+      return p;
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? (e.response!.data['detail'] ?? e.message)
+          : e.message;
+      state = state.copyWith(isLoading: false, error: msg);
       return null;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());

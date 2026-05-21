@@ -1,7 +1,7 @@
 from django.db import models as _m, transaction
 from django.db.models import Count, Case, When, IntegerField, F
 from django.utils import timezone
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -825,6 +825,12 @@ def prescriber_register(request):
     if len(password_raw) < 8:
         return Response({'detail': 'password must be at least 8 characters'}, status=status.HTTP_400_BAD_REQUEST)
 
+    phone = (request.data.get('phone') or '').strip()
+    if not phone:
+        return Response({'detail': 'phone is required'}, status=status.HTTP_400_BAD_REQUEST)
+    if Prescriber.objects.filter(phone=phone).exists():
+        return Response({'detail': 'A prescriber with this phone number already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
     hospital = None
     hospital_id = request.data.get('hospital_id')
     if hospital_id:
@@ -838,9 +844,44 @@ def prescriber_register(request):
         name           = name,
         license_number = (request.data.get('license_number') or '').strip(),
         specialty      = (request.data.get('specialty') or '').strip(),
-        phone          = (request.data.get('phone') or '').strip(),
+        phone          = phone,
         address        = (request.data.get('address') or '').strip(),
         password       = make_password(password_raw),
         is_verified    = False,
     )
     return Response(prescriber.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+# ── Prescriber login ──────────────────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def prescriber_login(request):
+    """
+    POST /api/prescriptions/prescribers/login/
+    Body: { phone, password }
+    Returns prescriber profile data on success.
+    """
+    phone    = (request.data.get('phone') or '').strip()
+    password = (request.data.get('password') or '').strip()
+
+    if not phone or not password:
+        return Response(
+            {'detail': 'phone and password are required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        prescriber = Prescriber.objects.select_related('hospital').get(phone=phone)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+    except Prescriber.MultipleObjectsReturned:
+        return Response(
+            {'detail': 'Multiple accounts found with this phone. Contact admin.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not prescriber.password or not check_password(password, prescriber.password):
+        return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    return Response({'prescriber': prescriber.to_api_dict()})

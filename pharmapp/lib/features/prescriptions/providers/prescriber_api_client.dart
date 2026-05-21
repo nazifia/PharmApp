@@ -67,6 +67,16 @@ class PrescriberApiClient {
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
   }
 
+  Future<Prescriber> loginPrescriber(String phone, String password) async {
+    final res = await _dio.post(
+      '/prescriptions/prescribers/login/',
+      data: {'phone': phone, 'password': password},
+      options: Options(headers: {'skip_auth': true}),
+    );
+    final data = res.data as Map<String, dynamic>;
+    return Prescriber.fromJson(data['prescriber'] as Map<String, dynamic>);
+  }
+
   Future<Prescriber> updatePrescriber(int id, Map<String, dynamic> data) async {
     final res = await _dio.patch('/prescriptions/prescribers/$id/', data: data);
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
