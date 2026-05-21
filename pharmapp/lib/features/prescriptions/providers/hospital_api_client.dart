@@ -28,7 +28,10 @@ class HospitalApiClient {
         '/prescriptions/hospitals/',
         queryParameters: params.isNotEmpty ? params : null,
       );
-      final list = res.data as List;
+      final raw = res.data;
+      final list = raw is Map && raw.containsKey('results')
+          ? raw['results'] as List
+          : raw as List;
       if (query == null || query.isEmpty) await _cache(list);
       return list.map((e) => Hospital.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {

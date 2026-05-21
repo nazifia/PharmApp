@@ -487,7 +487,7 @@ class _HospitalPickerSheetState extends ConsumerState<HospitalPickerSheet> {
       if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
     });
 
-    setState(() => _creating = false);
+    if (mounted) setState(() => _creating = false);
     if (h != null && mounted) {
       widget.onSelected(h);
       Navigator.of(context).pop();
