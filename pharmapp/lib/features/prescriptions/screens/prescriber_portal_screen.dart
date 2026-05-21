@@ -43,6 +43,21 @@ class PrescriberPortalScreen extends ConsumerWidget {
                   // Header
                   Row(
                     children: [
+                      GestureDetector(
+                        onTap: () => context.go('/login'),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12)),
+                          ),
+                          child: const Icon(Icons.arrow_back_ios_new_rounded,
+                              color: Colors.white70, size: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
