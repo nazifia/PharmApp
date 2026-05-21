@@ -68,6 +68,8 @@ class Prescription {
   final String customerName;
   final String customerPhone;
   final String? doctorName;
+  final int? prescriberId;
+  final String? prescriberLicenseNo;
   final String? diagnosis;
   final String? notes;
   final List<PrescriptionItem> medications;
@@ -91,6 +93,8 @@ class Prescription {
     required this.customerName,
     required this.customerPhone,
     this.doctorName,
+    this.prescriberId,
+    this.prescriberLicenseNo,
     this.diagnosis,
     this.notes,
     required this.medications,
@@ -136,6 +140,8 @@ class Prescription {
         customerName: customerName,
         customerPhone: customerPhone,
         doctorName: doctorName,
+        prescriberId: prescriberId,
+        prescriberLicenseNo: prescriberLicenseNo,
         diagnosis: diagnosis,
         notes: notes,
         medications: medications ?? this.medications,
@@ -185,6 +191,9 @@ class Prescription {
       customerName: (j['customer_name'] ?? j['customerName'] as String?) ?? 'Walk-in',
       customerPhone: (j['customer_phone'] ?? j['customerPhone'] as String?) ?? '',
       doctorName: j['doctor_name'] ?? j['doctorName'] as String?,
+      prescriberId: (j['prescriber_id'] ?? j['prescriberId']) as int?,
+      prescriberLicenseNo:
+          (j['prescriber_license_no'] ?? j['prescriberLicenseNo']) as String?,
       diagnosis: j['diagnosis'] as String?,
       notes: j['notes'] as String?,
       medications: meds,
@@ -208,6 +217,7 @@ class Prescription {
         if (customerId != null) 'customer_id': customerId,
         'customer_name': customerName,
         'customer_phone': customerPhone,
+        if (prescriberId != null) 'prescriber_id': prescriberId,
         if (doctorName != null && doctorName!.isNotEmpty) 'doctor_name': doctorName,
         if (diagnosis != null && diagnosis!.isNotEmpty) 'diagnosis': diagnosis,
         if (notes != null && notes!.isNotEmpty) 'notes': notes,

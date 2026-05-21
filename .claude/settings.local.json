@@ -124,7 +124,10 @@
       "PowerShell(wsl -d \"Ubuntu-24.04\" -- ls ~ 2>$null)",
       "Bash(wsl -d \"Ubuntu-24.04\" -- find /home -name \"manage.py\")",
       "Bash(echo \"exit:$?\")",
-      "Bash(wsl *)"
+      "Bash(wsl *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\" -Recurse -Directory | Select-Object FullName | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\\"\\), \"\" } | Sort-Object)",
+      "PowerShell(Split-Path *)",
+      "PowerShell(Test-Path *)"
     ]
   }
 }

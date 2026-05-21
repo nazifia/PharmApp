@@ -46,7 +46,8 @@ def customer_list(request):
         organization=org,
         name=name,
         phone=phone,
-        is_wholesale=data.get("is_wholesale", False),
+        is_wholesale=bool(data.get("is_wholesale", False)),
+        is_network_patient=bool(data.get("is_network_patient", False)),
         email=data.get("email", ""),
         address=data.get("address", ""),
     )
@@ -71,6 +72,8 @@ def customer_detail(request, pk):
         customer.name = data.get("name", customer.name)
         customer.phone = data.get("phone", customer.phone)
         customer.is_wholesale = data.get("is_wholesale", customer.is_wholesale)
+        if "is_network_patient" in data:
+            customer.is_network_patient = bool(data["is_network_patient"])
         customer.email = data.get("email", customer.email)
         customer.address = data.get("address", customer.address)
         customer.save()
@@ -268,12 +271,13 @@ def search_customers_global(request):
     results = []
     for c in qs:
         results.append({
-            'id':            c.id,
-            'name':          c.name,
-            'phone':         c.phone,
-            'is_wholesale':  c.is_wholesale,
-            'pharmacy_name': c.organization.name if c.organization_id else None,
-            'pharmacy_id':   c.organization_id,
+            'id':                 c.id,
+            'name':               c.name,
+            'phone':              c.phone,
+            'is_wholesale':       c.is_wholesale,
+            'is_network_patient': c.is_network_patient,
+            'pharmacy_name':      c.organization.name if c.organization_id else None,
+            'pharmacy_id':        c.organization_id,
         })
     return Response(results)
 

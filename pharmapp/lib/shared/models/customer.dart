@@ -14,6 +14,9 @@ class Customer {
   final String? joinDate;
   final String? lastVisit;
 
+  // Network patient flag — visible across all pharmacies in the network
+  final bool isNetworkPatient;
+
   // Medical history fields
   final List<String> allergies;
   final List<String> chronicConditions;
@@ -34,6 +37,7 @@ class Customer {
     this.totalSpent,
     this.joinDate,
     this.lastVisit,
+    this.isNetworkPatient = false,
     this.allergies = const <String>[],
     this.chronicConditions = const <String>[],
     this.currentMedications = const <String>[],
@@ -42,12 +46,14 @@ class Customer {
   });
 
   String get type => isWholesale ? 'Wholesale' : 'Retail';
+  String get patientType => isNetworkPatient ? 'Network Patient' : type;
 
   factory Customer.fromJson(Map<String, dynamic> json) => Customer(
         id:              json['id'] as int,
         name:            (json['name']             as String?) ?? '',
         phone:           (json['phone']            as String?) ?? '',
         isWholesale:     (json['is_wholesale']     as bool?)   ?? false,
+        isNetworkPatient: (json['is_network_patient'] as bool?) ?? false,
         walletBalance:   (json['wallet_balance']   as num?)?.toDouble()  ?? 0.0,
         totalPurchases:  (json['total_purchases']  as num?)?.toInt()     ?? 0,
         outstandingDebt: (json['outstanding_debt'] as num?)?.toDouble()  ?? 0.0,
@@ -69,6 +75,7 @@ class Customer {
         'name':         name,
         'phone':        phone,
         'is_wholesale': isWholesale,
+        'is_network_patient': isNetworkPatient,
         if (email != null)   'email':   email,
         if (address != null) 'address': address,
         if (allergies.isNotEmpty)          'allergies':            allergies,
@@ -94,6 +101,7 @@ class Customer {
     double? totalSpent,
     String? joinDate,
     String? lastVisit,
+    bool? isNetworkPatient,
     List<String>? allergies,
     List<String>? chronicConditions,
     List<String>? currentMedications,
@@ -115,6 +123,7 @@ class Customer {
         totalSpent:       totalSpent      ?? this.totalSpent,
         joinDate:         joinDate        ?? this.joinDate,
         lastVisit:        lastVisit       ?? this.lastVisit,
+        isNetworkPatient: isNetworkPatient ?? this.isNetworkPatient,
         allergies:        allergies       ?? this.allergies,
         chronicConditions: chronicConditions ?? this.chronicConditions,
         currentMedications: currentMedications ?? this.currentMedications,

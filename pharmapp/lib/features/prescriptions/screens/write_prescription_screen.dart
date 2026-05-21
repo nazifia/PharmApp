@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import '../providers/prescription_provider.dart';
+import '../providers/prescriber_provider.dart';
 import '../../../shared/models/prescription.dart';
+import '../../../shared/models/prescriber.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../../../features/customers/providers/customer_provider.dart';
 import '../../../core/services/drug_interaction_service.dart';
+import 'prescriber_form_screen.dart';
 
 // ── Draft medication row ──────────────────────────────────────────────────────
 
@@ -81,12 +84,17 @@ class _WritePrescriptionScreenState
   final _walkInPhoneCtrl = TextEditingController();
 
   // Prescription fields
-  final _doctorCtrl = TextEditingController();
+  final _doctorCtrl = TextEditingController(); // free-text fallback
   final _diagnosisCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   int _refillsAllowed = 0;
   final List<_DraftMed> _medications = [];
   final _formKey = GlobalKey<FormState>();
+
+  // Prescriber picker state
+  Prescriber? _selectedPrescriber;
+  final _prescriberSearchCtrl = TextEditingController();
+  String _prescriberQuery = '';
 
   bool _isSubmitting = false;
 
@@ -102,6 +110,7 @@ class _WritePrescriptionScreenState
     _walkInNameCtrl.dispose();
     _walkInPhoneCtrl.dispose();
     _doctorCtrl.dispose();
+    _prescriberSearchCtrl.dispose();
     _diagnosisCtrl.dispose();
     _notesCtrl.dispose();
     for (final m in _medications) {
@@ -421,7 +430,10 @@ class _WritePrescriptionScreenState
       'customer_name': patient.name,
       'customer_phone': patient.phone,
       if (patient.pharmacyId != null) 'source_pharmacy_id': patient.pharmacyId,
-      if (_doctorCtrl.text.trim().isNotEmpty)
+      if (_selectedPrescriber != null) ...{
+        'prescriber_id': _selectedPrescriber!.id,
+        'doctor_name': _selectedPrescriber!.name,
+      } else if (_doctorCtrl.text.trim().isNotEmpty)
         'doctor_name': _doctorCtrl.text.trim(),
       if (_diagnosisCtrl.text.trim().isNotEmpty)
         'diagnosis': _diagnosisCtrl.text.trim(),
@@ -798,13 +810,36 @@ class _WritePrescriptionScreenState
           ),
           const SizedBox(height: 16),
 
-          // Doctor / Diagnosis / Notes
+          // Doctor / Prescriber / Diagnosis / Notes
           const _SectionLabel('Prescription Info'),
           const SizedBox(height: 8),
-          _DarkTextField(
-            controller: _doctorCtrl,
-            label: "Prescribing Doctor's Name (optional)",
-            icon: Icons.medical_information_rounded,
+          _PrescriberPickerField(
+            selected: _selectedPrescriber,
+            searchCtrl: _prescriberSearchCtrl,
+            query: _prescriberQuery,
+            freeTextCtrl: _doctorCtrl,
+            onQueryChanged: (v) => setState(() => _prescriberQuery = v),
+            onSelected: (p) => setState(() {
+              _selectedPrescriber = p;
+              _prescriberSearchCtrl.clear();
+              _prescriberQuery = '';
+            }),
+            onClear: () => setState(() {
+              _selectedPrescriber = null;
+              _prescriberSearchCtrl.clear();
+              _prescriberQuery = '';
+            }),
+            onAddNew: () async {
+              final result = await showModalBottomSheet<Prescriber>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => const PrescriberFormSheet(),
+              );
+              if (result != null && mounted) {
+                setState(() => _selectedPrescriber = result);
+              }
+            },
           ),
           const SizedBox(height: 10),
           _DarkTextField(
@@ -1336,6 +1371,287 @@ class _NoResultsView extends StatelessWidget {
           onPressed: onWalkIn,
           child: const Text('Continue as walk-in patient →',
               style: TextStyle(color: EnhancedTheme.accentCyan)),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Prescriber picker field ───────────────────────────────────────────────────
+
+class _PrescriberPickerField extends ConsumerWidget {
+  final Prescriber? selected;
+  final TextEditingController searchCtrl;
+  final TextEditingController freeTextCtrl;
+  final String query;
+  final ValueChanged<String> onQueryChanged;
+  final ValueChanged<Prescriber> onSelected;
+  final VoidCallback onClear;
+  final VoidCallback onAddNew;
+
+  const _PrescriberPickerField({
+    required this.selected,
+    required this.searchCtrl,
+    required this.freeTextCtrl,
+    required this.query,
+    required this.onQueryChanged,
+    required this.onSelected,
+    required this.onClear,
+    required this.onAddNew,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // If a prescriber is selected, show badge
+    if (selected != null) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: EnhancedTheme.accentPurple.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: EnhancedTheme.accentPurple.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.medical_information_rounded,
+                  color: EnhancedTheme.accentPurple, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(selected!.name,
+                      style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
+                  if (selected!.licenseNumber != null ||
+                      selected!.specialty != null)
+                    Text(
+                      [
+                        if (selected!.licenseNumber != null)
+                          selected!.licenseNumber!,
+                        selected!.specialtyLabel,
+                      ].join(' · '),
+                      style: const TextStyle(
+                          color: Colors.black45, fontSize: 11),
+                    ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: onClear,
+              child: const Icon(Icons.close_rounded,
+                  color: Colors.black45, size: 20),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Search field + live results
+    final prescriberAsync =
+        query.length >= 2 ? ref.watch(prescriberListProvider(query)) : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: searchCtrl,
+          style: const TextStyle(color: Colors.black87),
+          decoration: InputDecoration(
+            hintText: "Search prescriber by name or license…",
+            hintStyle:
+                const TextStyle(color: Colors.black38, fontSize: 13),
+            prefixIcon: const Icon(Icons.medical_information_rounded,
+                color: Colors.black45, size: 18),
+            suffixIcon: query.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded,
+                        color: Colors.black45, size: 18),
+                    onPressed: () {
+                      searchCtrl.clear();
+                      onQueryChanged('');
+                    },
+                  )
+                : null,
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.06),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                  color: EnhancedTheme.accentPurple),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+          onChanged: onQueryChanged,
+        ),
+
+        // Autocomplete results
+        if (prescriberAsync != null)
+          prescriberAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                  child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          color: EnhancedTheme.accentPurple,
+                          strokeWidth: 2))),
+            ),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (prescribers) {
+              if (prescribers.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text('No prescribers found for "$query"',
+                      style: const TextStyle(
+                          color: Colors.black38, fontSize: 12)),
+                );
+              }
+              return Container(
+                margin: const EdgeInsets.only(top: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  children: prescribers
+                      .take(5)
+                      .map((p) => InkWell(
+                            onTap: () => onSelected(p),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                      Icons.person_rounded,
+                                      color: Colors.black45,
+                                      size: 16),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(p.name,
+                                            style: const TextStyle(
+                                                color: Colors.black87,
+                                                fontSize: 13,
+                                                fontWeight:
+                                                    FontWeight.w600)),
+                                        Text(
+                                          [
+                                            if (p.licenseNumber != null)
+                                              p.licenseNumber!,
+                                            p.specialtyLabel,
+                                          ].join(' · '),
+                                          style: const TextStyle(
+                                              color: Colors.black45,
+                                              fontSize: 11),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              );
+            },
+          ),
+
+        // "or use free text" fallback + "add new" button
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: freeTextCtrl,
+                style: const TextStyle(color: Colors.black87, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: "Or type doctor's name manually",
+                  hintStyle: const TextStyle(
+                      color: Colors.black38, fontSize: 12),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.04),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.08)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.08)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.2)),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: onAddNew,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color:
+                      EnhancedTheme.accentPurple.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: EnhancedTheme.accentPurple
+                          .withValues(alpha: 0.4)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add_rounded,
+                        color: EnhancedTheme.accentPurple, size: 16),
+                    SizedBox(width: 4),
+                    Text('Add',
+                        style: TextStyle(
+                            color: EnhancedTheme.accentPurple,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

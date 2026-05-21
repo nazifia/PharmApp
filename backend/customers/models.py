@@ -12,10 +12,14 @@ class Customer(models.Model):
     is_wholesale     = models.BooleanField(default=False)
     wallet_balance   = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     outstanding_debt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    email            = models.EmailField(blank=True, default='')
-    address          = models.TextField(blank=True, default='')
-    join_date        = models.DateField(default=timezone.now)
-    last_visit       = models.DateField(null=True, blank=True)
+    email              = models.EmailField(blank=True, default='')
+    address            = models.TextField(blank=True, default='')
+    join_date          = models.DateField(default=timezone.now)
+    last_visit         = models.DateField(null=True, blank=True)
+    is_network_patient = models.BooleanField(
+        default=False,
+        help_text='Visible to all pharmacies in the same network for prescription lookup.',
+    )
 
     def total_purchases(self):
         return float(self.sales.aggregate(
@@ -26,13 +30,14 @@ class Customer(models.Model):
 
     def to_list_dict(self):
         return {
-            'id':               self.id,
-            'name':             self.name,
-            'phone':            self.phone,
-            'is_wholesale':     self.is_wholesale,
-            'wallet_balance':   float(self.wallet_balance),
-            'total_purchases':  self.total_purchases(),
-            'outstanding_debt': float(self.outstanding_debt),
+            'id':                 self.id,
+            'name':               self.name,
+            'phone':              self.phone,
+            'is_wholesale':       self.is_wholesale,
+            'is_network_patient': self.is_network_patient,
+            'wallet_balance':     float(self.wallet_balance),
+            'total_purchases':    self.total_purchases(),
+            'outstanding_debt':   float(self.outstanding_debt),
         }
 
     def to_detail_dict(self):

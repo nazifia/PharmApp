@@ -9,7 +9,7 @@ from rest_framework import status
 from authapp.utils import require_org, log_activity
 from authapp.permissions import IsPrescriptionUser, PRESCRIPTIONS_WRITE
 from authapp.models import PharmacyNetworkMembership
-from .models import Prescription, PrescriptionItem
+from .models import Prescription, PrescriptionItem, Prescriber
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -135,6 +135,20 @@ def prescription_list(request):
 
     branch_id = data.get('branch_id')
 
+    # Resolve structured prescriber FK (optional)
+    prescriber_obj = None
+    prescriber_id  = data.get('prescriber_id')
+    if prescriber_id:
+        try:
+            prescriber_obj = Prescriber.objects.get(pk=prescriber_id, organization=org)
+        except Prescriber.DoesNotExist:
+            pass  # non-fatal — fallback to doctor_name text
+
+    # Derive doctor_name: prefer prescriber name; fallback to free-text field
+    doctor_name_raw = (data.get('doctor_name') or '').strip()
+    if prescriber_obj and not doctor_name_raw:
+        doctor_name_raw = prescriber_obj.name
+
     with transaction.atomic():
         rx = Prescription.objects.create(
             organization   = org,
@@ -142,7 +156,8 @@ def prescription_list(request):
             customer       = customer_obj,
             customer_name  = customer_name,
             customer_phone = customer_phone,
-            doctor_name    = (data.get('doctor_name')  or '').strip(),
+            prescriber     = prescriber_obj,
+            doctor_name    = doctor_name_raw,
             diagnosis      = (data.get('diagnosis')    or '').strip(),
             notes          = (data.get('notes')        or '').strip(),
             created_by     = request.user,
@@ -228,6 +243,18 @@ def prescription_detail(request, pk):
         data = request.data
         changed = False
 
+        if 'prescriber_id' in data:
+            pid = data['prescriber_id']
+            if pid:
+                try:
+                    rx.prescriber = Prescriber.objects.get(pk=pid, organization=org)
+                    if not data.get('doctor_name'):
+                        rx.doctor_name = rx.prescriber.name
+                except Prescriber.DoesNotExist:
+                    pass
+            else:
+                rx.prescriber = None
+            changed = True
         if 'doctor_name' in data:
             rx.doctor_name = (data['doctor_name'] or '').strip()
             changed = True
@@ -569,3 +596,148 @@ def network_prescriptions(request):
     page_qs = qs[offset:offset + page_size]
 
     return Response({'count': total, 'results': [rx.to_api_dict() for rx in page_qs]})
+
+
+# ── Prescriber CRUD ───────────────────────────────────────────────────────────
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated, IsPrescriptionUser])
+def prescriber_list(request):
+    """
+    GET  /api/prescriptions/prescribers/
+         ?search=<str>         — filter by name / license / specialty / clinic
+         ?network_wide=true    — include prescribers shared by network peers
+
+    POST /api/prescriptions/prescribers/
+         Create a new prescriber for this org.
+    """
+    org, err = require_org(request)
+    if err:
+        return err
+
+    if request.method == 'GET':
+        search       = request.query_params.get('search', '').strip()
+        network_wide = request.query_params.get('network_wide', '').lower() in ('1', 'true')
+
+        if network_wide:
+            from authapp.models import PharmacyNetworkMembership as _NM
+            peer_ids = {org.id}
+            net_ids = list(
+                _NM.objects.filter(organization=org, status='active')
+                .values_list('network_id', flat=True)
+            )
+            if net_ids:
+                peer_ids.update(
+                    _NM.objects.filter(network_id__in=net_ids, status='active')
+                    .values_list('organization_id', flat=True)
+                )
+            qs = Prescriber.objects.filter(
+                _m.Q(organization=org) |
+                _m.Q(organization_id__in=peer_ids, is_network_shared=True)
+            ).distinct()
+        else:
+            qs = Prescriber.objects.filter(organization=org)
+
+        if search:
+            qs = qs.filter(
+                _m.Q(name__icontains=search) |
+                _m.Q(license_number__icontains=search) |
+                _m.Q(specialty__icontains=search) |
+                _m.Q(clinic__icontains=search)
+            )
+
+        return Response([p.to_api_dict() for p in qs[:100]])
+
+    # ── POST: create ──────────────────────────────────────────────────────────
+    if request.user.role not in PRESCRIPTIONS_WRITE:
+        return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    name = (request.data.get('name') or '').strip()
+    if not name:
+        return Response({'detail': 'name is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    prescriber = Prescriber.objects.create(
+        organization      = org,
+        name              = name,
+        license_number    = (request.data.get('license_number') or '').strip(),
+        specialty         = (request.data.get('specialty') or '').strip(),
+        phone             = (request.data.get('phone') or '').strip(),
+        clinic            = (request.data.get('clinic') or '').strip(),
+        address           = (request.data.get('address') or '').strip(),
+        is_network_shared = bool(request.data.get('is_network_shared', False)),
+    )
+    log_activity(
+        request,
+        action='Add Prescriber',
+        category='customers',
+        description=f'Prescriber "{prescriber.name}" registered',
+    )
+    return Response(prescriber.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated, IsPrescriptionUser])
+def prescriber_detail(request, pk):
+    """
+    GET    /api/prescriptions/prescribers/<pk>/
+    PATCH  /api/prescriptions/prescribers/<pk>/
+    DELETE /api/prescriptions/prescribers/<pk>/
+    """
+    org, err = require_org(request)
+    if err:
+        return err
+
+    try:
+        prescriber = Prescriber.objects.get(pk=pk, organization=org)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        return Response(prescriber.to_api_dict())
+
+    if request.user.role not in PRESCRIPTIONS_WRITE:
+        return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == 'PATCH':
+        data = request.data
+        if 'name' in data:
+            prescriber.name = (data['name'] or '').strip()
+        if 'license_number' in data:
+            prescriber.license_number = (data['license_number'] or '').strip()
+        if 'specialty' in data:
+            prescriber.specialty = (data['specialty'] or '').strip()
+        if 'phone' in data:
+            prescriber.phone = (data['phone'] or '').strip()
+        if 'clinic' in data:
+            prescriber.clinic = (data['clinic'] or '').strip()
+        if 'address' in data:
+            prescriber.address = (data['address'] or '').strip()
+        if 'is_network_shared' in data:
+            prescriber.is_network_shared = bool(data['is_network_shared'])
+        if 'is_verified' in data:
+            prescriber.is_verified = bool(data['is_verified'])
+        prescriber.save()
+        log_activity(
+            request,
+            action='Update Prescriber',
+            category='customers',
+            description=f'Updated prescriber "{prescriber.name}"',
+        )
+        return Response(prescriber.to_api_dict())
+
+    # DELETE — block if active prescriptions still reference this prescriber
+    rx_count = prescriber.prescriptions.count()
+    if rx_count > 0:
+        return Response(
+            {'detail': f'Cannot delete: {rx_count} prescription(s) reference this prescriber.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    name = prescriber.name
+    prescriber.delete()
+    log_activity(
+        request,
+        action='Delete Prescriber',
+        category='customers',
+        description=f'Deleted prescriber "{name}"',
+    )
+    return Response(status=status.HTTP_204_NO_CONTENT)

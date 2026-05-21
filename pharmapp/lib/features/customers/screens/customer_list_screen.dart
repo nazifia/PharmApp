@@ -70,6 +70,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     final nameCtrl  = TextEditingController();
     final phoneCtrl = TextEditingController();
     String type     = 'Retail';
+    bool isNetworkPatient = false;
     final formKey   = GlobalKey<FormState>();
 
     // Branch selection state (mutable, updated via setModal).
@@ -274,15 +275,68 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                         ),
                       ),
 
+                    const SizedBox(height: 20),
+                    // ── Network patient toggle ────────────────────────────────
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isNetworkPatient
+                            ? EnhancedTheme.accentCyan.withValues(alpha: 0.08)
+                            : ctx.cardColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isNetworkPatient
+                              ? EnhancedTheme.accentCyan.withValues(alpha: 0.4)
+                              : ctx.borderColor,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.public_rounded,
+                              color: isNetworkPatient
+                                  ? EnhancedTheme.accentCyan
+                                  : ctx.subLabelColor,
+                              size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Register as Network Patient',
+                                    style: TextStyle(
+                                        color: ctx.labelColor,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600)),
+                                Text(
+                                  'Visible to all pharmacies in your network',
+                                  style: TextStyle(
+                                      color: ctx.subLabelColor, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: isNetworkPatient,
+                            onChanged: (v) =>
+                                setModal(() => isNetworkPatient = v),
+                            activeTrackColor: EnhancedTheme.accentCyan,
+                            activeThumbColor: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
+
                     const SizedBox(height: 28),
                     SizedBox(width: double.infinity, child: ElevatedButton(
                       onPressed: () async {
                         if (!formKey.currentState!.validate()) return;
                         Navigator.of(ctx).pop();
                         final data = <String, dynamic>{
-                          'name':         nameCtrl.text.trim(),
-                          'phone':        phoneCtrl.text.trim(),
-                          'is_wholesale': type == 'Wholesale',
+                          'name':               nameCtrl.text.trim(),
+                          'phone':              phoneCtrl.text.trim(),
+                          'is_wholesale':       type == 'Wholesale',
+                          'is_network_patient': isNetworkPatient,
                         };
                         if (selectedBranch != null && selectedBranch!.id > 0) {
                           data['branch_id'] = selectedBranch!.id;

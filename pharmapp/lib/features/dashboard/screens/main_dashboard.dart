@@ -1358,7 +1358,7 @@ class _MoreFeaturesSheet extends ConsumerWidget {
               Row(children: [
                 _featureCard(context, Icons.medical_services_rounded, 'Prescriptions', EnhancedTheme.primaryTeal, '/dashboard/prescriptions'),
                 const SizedBox(width: 10),
-                const Expanded(child: SizedBox.shrink()),
+                _featureCard(context, Icons.person_search_rounded, 'Prescribers', EnhancedTheme.accentPurple, '/dashboard/prescribers'),
                 const SizedBox(width: 10),
                 const Expanded(child: SizedBox.shrink()),
               ]),

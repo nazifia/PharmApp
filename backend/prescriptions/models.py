@@ -2,6 +2,56 @@ from django.db import models
 from django.utils import timezone
 
 
+# ── Prescriber ────────────────────────────────────────────────────────────────
+
+class Prescriber(models.Model):
+    """
+    Registered doctor/prescriber. Belongs to one org but optionally shared
+    across network pharmacies (is_network_shared=True).
+    """
+    organization      = models.ForeignKey(
+        'authapp.Organization', on_delete=models.CASCADE,
+        related_name='prescribers',
+    )
+    name              = models.CharField(max_length=200)
+    license_number    = models.CharField(max_length=100, blank=True, default='')
+    specialty         = models.CharField(max_length=100, blank=True, default='')
+    phone             = models.CharField(max_length=20, blank=True, default='')
+    clinic            = models.CharField(max_length=200, blank=True, default='')
+    address           = models.TextField(blank=True, default='')
+    is_verified       = models.BooleanField(default=False)
+    is_network_shared = models.BooleanField(default=False)
+    created_at        = models.DateTimeField(auto_now_add=True)
+    updated_at        = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        indexes  = [
+            models.Index(fields=['organization', 'name']),
+            models.Index(fields=['license_number']),
+        ]
+
+    def to_api_dict(self):
+        return {
+            'id':               self.id,
+            'name':             self.name,
+            'license_number':   self.license_number or None,
+            'specialty':        self.specialty or None,
+            'phone':            self.phone or None,
+            'clinic':           self.clinic or None,
+            'address':          self.address or None,
+            'is_verified':      self.is_verified,
+            'is_network_shared': self.is_network_shared,
+            'created_at':       self.created_at.isoformat(),
+        }
+
+    def __str__(self):
+        suffix = f' ({self.license_number})' if self.license_number else ''
+        return f'{self.name}{suffix}'
+
+
+# ── Prescription ──────────────────────────────────────────────────────────────
+
 class Prescription(models.Model):
     STATUS_CHOICES = [
         ('pending',   'Pending'),
@@ -24,6 +74,11 @@ class Prescription(models.Model):
     )
     customer_name  = models.CharField(max_length=200, default='Walk-in')
     customer_phone = models.CharField(max_length=20, blank=True, default='')
+    # Structured prescriber (optional — falls back to free-text doctor_name)
+    prescriber     = models.ForeignKey(
+        Prescriber, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='prescriptions',
+    )
     doctor_name    = models.CharField(max_length=200, blank=True, default='')
     diagnosis      = models.TextField(blank=True, default='')
     notes          = models.TextField(blank=True, default='')
@@ -61,25 +116,29 @@ class Prescription(models.Model):
 
     def to_api_dict(self):
         return {
-            'id':             self.id,
-            'customer_id':    self.customer_id,
-            'customer_name':  self.customer_name,
-            'customer_phone': self.customer_phone,
-            'doctor_name':    self.doctor_name   or None,
-            'diagnosis':      self.diagnosis     or None,
-            'notes':          self.notes         or None,
-            'status':         self.status,
-            'created_at':     self.created_at.isoformat(),
-            'dispensed_at':   self.dispensed_at.isoformat() if self.dispensed_at else None,
-            'created_by_name': (
+            'id':                  self.id,
+            'customer_id':         self.customer_id,
+            'customer_name':       self.customer_name,
+            'customer_phone':      self.customer_phone,
+            'prescriber_id':       self.prescriber_id,
+            'prescriber_license_no': (
+                self.prescriber.license_number if self.prescriber_id else None
+            ),
+            'doctor_name':         self.doctor_name   or None,
+            'diagnosis':           self.diagnosis     or None,
+            'notes':               self.notes         or None,
+            'status':              self.status,
+            'created_at':          self.created_at.isoformat(),
+            'dispensed_at':        self.dispensed_at.isoformat() if self.dispensed_at else None,
+            'created_by_name':     (
                 self.created_by.get_full_name() if self.created_by_id else None
             ),
-            'created_by_id':  self.created_by_id,
-            'pharmacy_name':  self.organization.name if self.organization_id else None,
-            'pharmacy_id':    self.organization_id,
-            'branch_name':    self.branch.name if self.branch_id else None,
-            'branch_id':      self.branch_id,
-            'medications':    [m.to_api_dict() for m in self.medications.all()],
+            'created_by_id':       self.created_by_id,
+            'pharmacy_name':       self.organization.name if self.organization_id else None,
+            'pharmacy_id':         self.organization_id,
+            'branch_name':         self.branch.name if self.branch_id else None,
+            'branch_id':           self.branch_id,
+            'medications':         [m.to_api_dict() for m in self.medications.all()],
         }
 
     def __str__(self):
