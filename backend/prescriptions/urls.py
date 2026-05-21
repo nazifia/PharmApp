@@ -11,8 +11,12 @@ urlpatterns = [
     path('customer/<int:customer_pk>/',   views.customer_prescriptions,   name='customer-prescriptions'),
     path('by-phone/',                     views.prescriptions_by_phone,   name='prescriptions-by-phone'),
 
-    # Prescribers
+    # Prescribers (global — no org scope)
     path('prescribers/',                  views.prescriber_list,          name='prescriber-list'),
     path('prescribers/register/',         views.prescriber_register,      name='prescriber-register'),
     path('prescribers/<int:pk>/',         views.prescriber_detail,        name='prescriber-detail'),
+
+    # Hospitals (global)
+    path('hospitals/',                    views.hospital_list,            name='hospital-list'),
+    path('hospitals/<int:pk>/',           views.hospital_detail,          name='hospital-detail'),
 ]

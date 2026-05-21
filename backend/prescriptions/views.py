@@ -1,6 +1,7 @@
 from django.db import models as _m, transaction
 from django.db.models import Count, Case, When, IntegerField, F
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ from rest_framework import status
 from authapp.utils import require_org, log_activity
 from authapp.permissions import IsPrescriptionUser, PRESCRIPTIONS_WRITE
 from authapp.models import PharmacyNetworkMembership
-from .models import Prescription, PrescriptionItem, Prescriber
+from .models import Prescription, PrescriptionItem, Prescriber, Hospital
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -135,12 +136,12 @@ def prescription_list(request):
 
     branch_id = data.get('branch_id')
 
-    # Resolve structured prescriber FK (optional)
+    # Resolve structured prescriber FK (optional) — global, no org filter
     prescriber_obj = None
     prescriber_id  = data.get('prescriber_id')
     if prescriber_id:
         try:
-            prescriber_obj = Prescriber.objects.get(pk=prescriber_id, organization=org)
+            prescriber_obj = Prescriber.objects.get(pk=prescriber_id)
         except Prescriber.DoesNotExist:
             pass  # non-fatal — fallback to doctor_name text
 
@@ -598,73 +599,132 @@ def network_prescriptions(request):
     return Response({'count': total, 'results': [rx.to_api_dict() for rx in page_qs]})
 
 
+# ── Hospital CRUD ─────────────────────────────────────────────────────────────
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def hospital_list(request):
+    """
+    GET  /api/prescriptions/hospitals/   ?search=<str>
+    POST /api/prescriptions/hospitals/   { name, address?, phone?, city? }
+    Global — not org-scoped. Any authenticated user can list or create.
+    """
+    if request.method == 'GET':
+        search = request.query_params.get('search', '').strip()
+        qs = Hospital.objects.all()
+        if search:
+            qs = qs.filter(
+                _m.Q(name__icontains=search) |
+                _m.Q(city__icontains=search)
+            )
+        return Response([h.to_api_dict() for h in qs[:100]])
+
+    name = (request.data.get('name') or '').strip()
+    if not name:
+        return Response({'detail': 'name is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    hospital = Hospital.objects.create(
+        name    = name,
+        address = (request.data.get('address') or '').strip(),
+        phone   = (request.data.get('phone') or '').strip(),
+        city    = (request.data.get('city') or '').strip(),
+    )
+    return Response(hospital.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def hospital_detail(request, pk):
+    """
+    GET    /api/prescriptions/hospitals/<pk>/
+    PATCH  /api/prescriptions/hospitals/<pk>/
+    DELETE /api/prescriptions/hospitals/<pk>/
+    """
+    try:
+        hospital = Hospital.objects.get(pk=pk)
+    except Hospital.DoesNotExist:
+        return Response({'detail': 'Hospital not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        return Response(hospital.to_api_dict())
+
+    if request.method == 'PATCH':
+        data = request.data
+        if 'name' in data:
+            hospital.name = (data['name'] or '').strip()
+        if 'address' in data:
+            hospital.address = (data['address'] or '').strip()
+        if 'phone' in data:
+            hospital.phone = (data['phone'] or '').strip()
+        if 'city' in data:
+            hospital.city = (data['city'] or '').strip()
+        hospital.save()
+        return Response(hospital.to_api_dict())
+
+    # DELETE — block if prescribers still reference this hospital
+    count = hospital.prescribers.count()
+    if count > 0:
+        return Response(
+            {'detail': f'Cannot delete: {count} prescriber(s) linked to this hospital.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    hospital.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 # ── Prescriber CRUD ───────────────────────────────────────────────────────────
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsPrescriptionUser])
+@permission_classes([IsAuthenticated])
 def prescriber_list(request):
     """
     GET  /api/prescriptions/prescribers/
-         ?search=<str>         — filter by name / license / specialty / clinic
-         ?network_wide=true    — include prescribers shared by network peers
+         ?search=<str>       — filter by name / license / specialty / hospital
+         ?hospital_id=<int>  — scope to one hospital
 
     POST /api/prescriptions/prescribers/
-         Create a new prescriber for this org.
+         Global — no org required. Associates prescriber with a hospital.
     """
-    org, err = require_org(request)
-    if err:
-        return err
-
     if request.method == 'GET':
-        search       = request.query_params.get('search', '').strip()
-        network_wide = request.query_params.get('network_wide', '').lower() in ('1', 'true')
+        search      = request.query_params.get('search', '').strip()
+        hospital_id = request.query_params.get('hospital_id', '')
 
-        if network_wide:
-            from authapp.models import PharmacyNetworkMembership as _NM
-            peer_ids = {org.id}
-            net_ids = list(
-                _NM.objects.filter(organization=org, status='active')
-                .values_list('network_id', flat=True)
-            )
-            if net_ids:
-                peer_ids.update(
-                    _NM.objects.filter(network_id__in=net_ids, status='active')
-                    .values_list('organization_id', flat=True)
-                )
-            qs = Prescriber.objects.filter(
-                _m.Q(organization=org) |
-                _m.Q(organization_id__in=peer_ids, is_network_shared=True)
-            ).distinct()
-        else:
-            qs = Prescriber.objects.filter(organization=org)
+        qs = Prescriber.objects.select_related('hospital').all()
+
+        if hospital_id.isdigit() and int(hospital_id) > 0:
+            qs = qs.filter(hospital_id=int(hospital_id))
 
         if search:
             qs = qs.filter(
                 _m.Q(name__icontains=search) |
                 _m.Q(license_number__icontains=search) |
                 _m.Q(specialty__icontains=search) |
+                _m.Q(hospital__name__icontains=search) |
                 _m.Q(clinic__icontains=search)
             )
 
         return Response([p.to_api_dict() for p in qs[:100]])
 
     # ── POST: create ──────────────────────────────────────────────────────────
-    if request.user.role not in PRESCRIPTIONS_WRITE:
-        return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-
     name = (request.data.get('name') or '').strip()
     if not name:
         return Response({'detail': 'name is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+    hospital = None
+    hospital_id = request.data.get('hospital_id')
+    if hospital_id:
+        try:
+            hospital = Hospital.objects.get(pk=hospital_id)
+        except Hospital.DoesNotExist:
+            pass
+
     prescriber = Prescriber.objects.create(
-        organization      = org,
-        name              = name,
-        license_number    = (request.data.get('license_number') or '').strip(),
-        specialty         = (request.data.get('specialty') or '').strip(),
-        phone             = (request.data.get('phone') or '').strip(),
-        clinic            = (request.data.get('clinic') or '').strip(),
-        address           = (request.data.get('address') or '').strip(),
-        is_network_shared = bool(request.data.get('is_network_shared', False)),
+        hospital       = hospital,
+        name           = name,
+        license_number = (request.data.get('license_number') or '').strip(),
+        specialty      = (request.data.get('specialty') or '').strip(),
+        phone          = (request.data.get('phone') or '').strip(),
+        address        = (request.data.get('address') or '').strip(),
     )
     log_activity(
         request,
@@ -676,19 +736,16 @@ def prescriber_list(request):
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated, IsPrescriptionUser])
+@permission_classes([IsAuthenticated])
 def prescriber_detail(request, pk):
     """
     GET    /api/prescriptions/prescribers/<pk>/
     PATCH  /api/prescriptions/prescribers/<pk>/
     DELETE /api/prescriptions/prescribers/<pk>/
+    Global — any authenticated user can read; write requires PRESCRIPTIONS_WRITE role.
     """
-    org, err = require_org(request)
-    if err:
-        return err
-
     try:
-        prescriber = Prescriber.objects.get(pk=pk, organization=org)
+        prescriber = Prescriber.objects.select_related('hospital').get(pk=pk)
     except Prescriber.DoesNotExist:
         return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -708,12 +765,17 @@ def prescriber_detail(request, pk):
             prescriber.specialty = (data['specialty'] or '').strip()
         if 'phone' in data:
             prescriber.phone = (data['phone'] or '').strip()
-        if 'clinic' in data:
-            prescriber.clinic = (data['clinic'] or '').strip()
         if 'address' in data:
             prescriber.address = (data['address'] or '').strip()
-        if 'is_network_shared' in data:
-            prescriber.is_network_shared = bool(data['is_network_shared'])
+        if 'hospital_id' in data:
+            hid = data['hospital_id']
+            if hid:
+                try:
+                    prescriber.hospital = Hospital.objects.get(pk=hid)
+                except Hospital.DoesNotExist:
+                    pass
+            else:
+                prescriber.hospital = None
         if 'is_verified' in data:
             prescriber.is_verified = bool(data['is_verified'])
         prescriber.save()
@@ -743,29 +805,42 @@ def prescriber_detail(request, pk):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# ── Public self-registration (no auth / no org) ───────────────────────────────
+# ── Public self-registration (no auth, no org) ────────────────────────────────
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def prescriber_register(request):
     """
     POST /api/prescriptions/prescribers/register/
-    Public self-registration. Creates an unverified prescriber (organization=None)
-    pending linkage by a pharmacy admin. No JWT required.
+    Public self-registration. Creates an unverified prescriber linked to a hospital.
+    No JWT required.
     """
     name = (request.data.get('name') or '').strip()
     if not name:
         return Response({'detail': 'name is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+    password_raw = (request.data.get('password') or '').strip()
+    if not password_raw:
+        return Response({'detail': 'password is required'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(password_raw) < 8:
+        return Response({'detail': 'password must be at least 8 characters'}, status=status.HTTP_400_BAD_REQUEST)
+
+    hospital = None
+    hospital_id = request.data.get('hospital_id')
+    if hospital_id:
+        try:
+            hospital = Hospital.objects.get(pk=hospital_id)
+        except Hospital.DoesNotExist:
+            pass
+
     prescriber = Prescriber.objects.create(
-        organization=None,
-        name=name,
-        license_number=(request.data.get('license_number') or '').strip(),
-        specialty=(request.data.get('specialty') or '').strip(),
-        phone=(request.data.get('phone') or '').strip(),
-        clinic=(request.data.get('clinic') or '').strip(),
-        address=(request.data.get('address') or '').strip(),
-        is_verified=False,
-        is_network_shared=False,
+        hospital       = hospital,
+        name           = name,
+        license_number = (request.data.get('license_number') or '').strip(),
+        specialty      = (request.data.get('specialty') or '').strip(),
+        phone          = (request.data.get('phone') or '').strip(),
+        address        = (request.data.get('address') or '').strip(),
+        password       = make_password(password_raw),
+        is_verified    = False,
     )
     return Response(prescriber.to_api_dict(), status=status.HTTP_201_CREATED)

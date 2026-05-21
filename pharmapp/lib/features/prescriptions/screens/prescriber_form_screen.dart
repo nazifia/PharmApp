@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/shared/models/hospital.dart';
 import 'package:pharmapp/shared/models/prescriber.dart';
+import '../providers/hospital_provider.dart';
 import '../providers/prescriber_provider.dart';
 
 /// Bottom-sheet form for adding or editing a prescriber.
@@ -23,9 +25,8 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
   late final TextEditingController _licenseCtrl;
   late final TextEditingController _specialtyCtrl;
   late final TextEditingController _phoneCtrl;
-  late final TextEditingController _clinicCtrl;
   late final TextEditingController _addressCtrl;
-  late bool _networkShared;
+  Hospital? _selectedHospital;
   bool _saving = false;
 
   static const _specialties = [
@@ -51,13 +52,17 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
   void initState() {
     super.initState();
     final p = widget.existing;
-    _nameCtrl = TextEditingController(text: p?.name ?? '');
-    _licenseCtrl = TextEditingController(text: p?.licenseNumber ?? '');
+    _nameCtrl      = TextEditingController(text: p?.name ?? '');
+    _licenseCtrl   = TextEditingController(text: p?.licenseNumber ?? '');
     _specialtyCtrl = TextEditingController(text: p?.specialty ?? '');
-    _phoneCtrl = TextEditingController(text: p?.phone ?? '');
-    _clinicCtrl = TextEditingController(text: p?.clinic ?? '');
-    _addressCtrl = TextEditingController(text: p?.address ?? '');
-    _networkShared = p?.isNetworkShared ?? false;
+    _phoneCtrl     = TextEditingController(text: p?.phone ?? '');
+    _addressCtrl   = TextEditingController(text: p?.address ?? '');
+    if (p?.hospitalId != null) {
+      _selectedHospital = Hospital(
+        id:   p!.hospitalId!,
+        name: p.hospitalName ?? '',
+      );
+    }
   }
 
   @override
@@ -66,7 +71,6 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
     _licenseCtrl.dispose();
     _specialtyCtrl.dispose();
     _phoneCtrl.dispose();
-    _clinicCtrl.dispose();
     _addressCtrl.dispose();
     super.dispose();
   }
@@ -82,10 +86,9 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
       if (_specialtyCtrl.text.trim().isNotEmpty)
         'specialty': _specialtyCtrl.text.trim(),
       if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
-      if (_clinicCtrl.text.trim().isNotEmpty) 'clinic': _clinicCtrl.text.trim(),
+      if (_selectedHospital != null) 'hospital_id': _selectedHospital!.id,
       if (_addressCtrl.text.trim().isNotEmpty)
         'address': _addressCtrl.text.trim(),
-      'is_network_shared': _networkShared,
     };
 
     final notifier = ref.read(prescriberNotifierProvider.notifier);
@@ -127,6 +130,18 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
             style: TextStyle(color: fg, fontWeight: FontWeight.w600)),
       );
 
+  void _pickHospital() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => HospitalPickerSheet(
+        selected: _selectedHospital,
+        onSelected: (h) => setState(() => _selectedHospital = h),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
@@ -163,8 +178,7 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                         width: 44,
                         height: 5,
                         decoration: BoxDecoration(
-                          color:
-                              EnhancedTheme.accentPurple.withValues(alpha: 0.4),
+                          color: EnhancedTheme.accentPurple.withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -176,14 +190,11 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color:
-                              EnhancedTheme.accentPurple.withValues(alpha: 0.15),
+                          color: EnhancedTheme.accentPurple.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
-                          isEdit
-                              ? Icons.edit_rounded
-                              : Icons.person_add_rounded,
+                          isEdit ? Icons.edit_rounded : Icons.person_add_rounded,
                           color: EnhancedTheme.accentPurple,
                           size: 20,
                         ),
@@ -224,8 +235,7 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                     _label('Specialty'),
                     const SizedBox(height: 8),
                     Autocomplete<String>(
-                      initialValue: TextEditingValue(
-                          text: _specialtyCtrl.text),
+                      initialValue: TextEditingValue(text: _specialtyCtrl.text),
                       optionsBuilder: (v) {
                         if (v.text.isEmpty) return _specialties;
                         return _specialties.where((s) => s
@@ -246,8 +256,7 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                             Icons.medical_services_rounded,
                             context),
                       ),
-                      optionsViewBuilder: (ctx, onSel, options) =>
-                          Align(
+                      optionsViewBuilder: (ctx, onSel, options) => Align(
                         alignment: Alignment.topLeft,
                         child: Material(
                           elevation: 4,
@@ -289,67 +298,55 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                         keyboardType: TextInputType.phone),
                     const SizedBox(height: 14),
 
-                    // Clinic / Hospital
-                    _field(_clinicCtrl, 'Clinic / Hospital Name',
-                        icon: Icons.local_hospital_rounded),
+                    // Hospital picker
+                    _label('Hospital / Clinic'),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: _pickHospital,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: context.cardColor,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: context.borderColor),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.local_hospital_rounded,
+                                color: EnhancedTheme.accentPurple, size: 18),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _selectedHospital?.displayName ??
+                                    'Select hospital / clinic',
+                                style: TextStyle(
+                                  color: _selectedHospital != null
+                                      ? context.labelColor
+                                      : context.hintColor,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            if (_selectedHospital != null)
+                              GestureDetector(
+                                onTap: () =>
+                                    setState(() => _selectedHospital = null),
+                                child: Icon(Icons.close_rounded,
+                                    size: 16, color: context.subLabelColor),
+                              )
+                            else
+                              Icon(Icons.chevron_right_rounded,
+                                  size: 18, color: context.subLabelColor),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 14),
 
                     // Address
                     _field(_addressCtrl, 'Address',
                         icon: Icons.location_on_rounded, maxLines: 2),
-                    const SizedBox(height: 20),
-
-                    // Network shared toggle
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: _networkShared
-                            ? EnhancedTheme.accentCyan.withValues(alpha: 0.08)
-                            : context.cardColor,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: _networkShared
-                              ? EnhancedTheme.accentCyan
-                                  .withValues(alpha: 0.4)
-                              : context.borderColor,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.public_rounded,
-                              color: _networkShared
-                                  ? EnhancedTheme.accentCyan
-                                  : context.subLabelColor,
-                              size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Share across network',
-                                    style: TextStyle(
-                                        color: context.labelColor,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600)),
-                                Text(
-                                  'Visible to all pharmacies in your network',
-                                  style: TextStyle(
-                                      color: context.subLabelColor,
-                                      fontSize: 11),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                            value: _networkShared,
-                            onChanged: (v) =>
-                                setState(() => _networkShared = v),
-                            activeTrackColor: EnhancedTheme.accentCyan,
-                            activeThumbColor: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
                     const SizedBox(height: 28),
 
                     SizedBox(
@@ -359,8 +356,7 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: EnhancedTheme.accentPurple,
                           foregroundColor: Colors.white,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16)),
@@ -412,30 +408,368 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
         decoration: _inputDec(label, icon, context),
       );
 
-  InputDecoration _inputDec(String label, IconData? icon, BuildContext ctx) =>
+  InputDecoration _inputDec(String label, IconData? icon,
+          [BuildContext? ctx]) =>
       InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: ctx.subLabelColor, fontSize: 13),
+        labelStyle:
+            TextStyle(color: (ctx ?? context).subLabelColor, fontSize: 13),
         prefixIcon: icon != null
             ? Icon(icon, color: EnhancedTheme.accentPurple, size: 18)
             : null,
         filled: true,
-        fillColor: ctx.cardColor,
+        fillColor: (ctx ?? context).cardColor,
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: ctx.borderColor)),
+            borderSide:
+                BorderSide(color: (ctx ?? context).borderColor)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: ctx.borderColor)),
+            borderSide:
+                BorderSide(color: (ctx ?? context).borderColor)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(
                 color: EnhancedTheme.accentPurple, width: 1.5)),
         errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide:
-                const BorderSide(color: EnhancedTheme.errorRed, width: 1.5)),
+            borderSide: const BorderSide(
+                color: EnhancedTheme.errorRed, width: 1.5)),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      );
+}
+
+
+// ── Hospital picker bottom sheet ──────────────────────────────────────────────
+
+class HospitalPickerSheet extends ConsumerStatefulWidget {
+  final Hospital? selected;
+  final ValueChanged<Hospital?> onSelected;
+
+  const HospitalPickerSheet({
+    super.key,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  ConsumerState<HospitalPickerSheet> createState() =>
+      _HospitalPickerSheetState();
+}
+
+class _HospitalPickerSheetState extends ConsumerState<HospitalPickerSheet> {
+  final _searchCtrl  = TextEditingController();
+  final _nameCtrl    = TextEditingController();
+  final _cityCtrl    = TextEditingController();
+  final _phoneCtrl   = TextEditingController();
+  String _query      = '';
+  bool _showCreate   = false;
+  bool _creating     = false;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _nameCtrl.dispose();
+    _cityCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createHospital() async {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) return;
+    setState(() => _creating = true);
+
+    final h = await ref.read(hospitalNotifierProvider.notifier).createHospital({
+      'name': name,
+      if (_cityCtrl.text.trim().isNotEmpty) 'city': _cityCtrl.text.trim(),
+      if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
+    });
+
+    setState(() => _creating = false);
+    if (h != null && mounted) {
+      widget.onSelected(h);
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hospitalsAsync = ref.watch(hospitalListProvider(_query));
+
+    return Padding(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom +
+              MediaQuery.of(context).viewPadding.bottom),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Container(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75),
+          color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+          child: Column(
+            children: [
+              // Handle
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: context.borderColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Title row
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Text('Select Hospital',
+                        style: GoogleFonts.outfit(
+                            color: context.labelColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () =>
+                          setState(() => _showCreate = !_showCreate),
+                      icon: Icon(
+                        _showCreate
+                            ? Icons.list_rounded
+                            : Icons.add_rounded,
+                        size: 16,
+                        color: EnhancedTheme.primaryTeal,
+                      ),
+                      label: Text(
+                        _showCreate ? 'Browse' : 'New',
+                        style: const TextStyle(
+                            color: EnhancedTheme.primaryTeal,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              if (_showCreate) ...[
+                // ── Create hospital inline ──────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      _pickerField(_nameCtrl, 'Hospital Name *',
+                          Icons.local_hospital_rounded, context),
+                      const SizedBox(height: 10),
+                      _pickerField(_cityCtrl, 'City', Icons.location_city_rounded, context),
+                      const SizedBox(height: 10),
+                      _pickerField(_phoneCtrl, 'Phone', Icons.phone_rounded, context,
+                          keyboard: TextInputType.phone),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _creating ? null : _createHospital,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: EnhancedTheme.primaryTeal,
+                            foregroundColor: Colors.black,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: _creating
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.black))
+                              : const Text('Create & Select',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                // ── Search ─────────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: TextField(
+                    controller: _searchCtrl,
+                    style: TextStyle(color: context.labelColor, fontSize: 14),
+                    onChanged: (v) => setState(() => _query = v.trim()),
+                    decoration: InputDecoration(
+                      hintText: 'Search hospitals…',
+                      hintStyle: TextStyle(
+                          color: context.hintColor, fontSize: 13),
+                      prefixIcon:
+                          Icon(Icons.search_rounded, color: context.hintColor),
+                      filled: true,
+                      fillColor: context.cardColor,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              BorderSide(color: context.borderColor)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              BorderSide(color: context.borderColor)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: EnhancedTheme.primaryTeal)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // ── List ────────────────────────────────────────────────────
+                Expanded(
+                  child: hospitalsAsync.when(
+                    loading: () => const Center(
+                        child: CircularProgressIndicator(
+                            color: EnhancedTheme.primaryTeal)),
+                    error: (e, _) => Center(
+                        child: Text('Error: $e',
+                            style: TextStyle(color: context.subLabelColor))),
+                    data: (hospitals) {
+                      if (hospitals.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.local_hospital_outlined,
+                                  size: 48,
+                                  color: context.iconOnBg
+                                      .withValues(alpha: 0.2)),
+                              const SizedBox(height: 12),
+                              Text(
+                                _query.isEmpty
+                                    ? 'No hospitals yet'
+                                    : 'No results for "$_query"',
+                                style: TextStyle(
+                                    color: context.hintColor, fontSize: 13),
+                              ),
+                              const SizedBox(height: 12),
+                              TextButton.icon(
+                                onPressed: () =>
+                                    setState(() => _showCreate = true),
+                                icon: const Icon(Icons.add_rounded,
+                                    size: 16,
+                                    color: EnhancedTheme.primaryTeal),
+                                label: const Text('Add new hospital',
+                                    style: TextStyle(
+                                        color: EnhancedTheme.primaryTeal,
+                                        fontSize: 13)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(12, 4, 12, 20),
+                        itemCount: hospitals.length,
+                        itemBuilder: (_, i) {
+                          final h = hospitals[i];
+                          final isSelected =
+                              widget.selected?.id == h.id;
+                          return ListTile(
+                            onTap: () {
+                              widget.onSelected(h);
+                              Navigator.of(context).pop();
+                            },
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            tileColor: isSelected
+                                ? EnhancedTheme.primaryTeal
+                                    .withValues(alpha: 0.12)
+                                : null,
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: EnhancedTheme.primaryTeal
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                  Icons.local_hospital_rounded,
+                                  color: EnhancedTheme.primaryTeal,
+                                  size: 18),
+                            ),
+                            title: Text(h.name,
+                                style: TextStyle(
+                                    color: context.labelColor,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600)),
+                            subtitle: h.city != null
+                                ? Text(h.city!,
+                                    style: TextStyle(
+                                        color: context.subLabelColor,
+                                        fontSize: 12))
+                                : null,
+                            trailing: isSelected
+                                ? const Icon(Icons.check_rounded,
+                                    color: EnhancedTheme.primaryTeal,
+                                    size: 18)
+                                : null,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _pickerField(
+    TextEditingController ctrl,
+    String label,
+    IconData icon,
+    BuildContext ctx, {
+    TextInputType? keyboard,
+  }) =>
+      TextField(
+        controller: ctrl,
+        keyboardType: keyboard,
+        style: TextStyle(color: ctx.labelColor, fontSize: 14),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle:
+              TextStyle(color: ctx.subLabelColor, fontSize: 13),
+          prefixIcon:
+              Icon(icon, color: EnhancedTheme.primaryTeal, size: 18),
+          filled: true,
+          fillColor: ctx.cardColor,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: ctx.borderColor)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: ctx.borderColor)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                  color: EnhancedTheme.primaryTeal, width: 1.5)),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
       );
 }

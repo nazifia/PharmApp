@@ -22,27 +22,27 @@ class PrescriberApiClient {
 
   Future<List<Prescriber>> fetchPrescribers({
     String? query,
-    bool networkWide = false,
+    int? hospitalId,
   }) async {
-    final cacheKey =
-        '$_kPrescribersCacheKey${networkWide ? '_network' : ''}';
     try {
       final params = <String, dynamic>{};
       if (query != null && query.isNotEmpty) params['search'] = query;
-      if (networkWide) params['network_wide'] = 'true';
+      if (hospitalId != null) params['hospital_id'] = hospitalId;
       final res = await _dio.get('/prescriptions/prescribers/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
-      if (query == null || query.isEmpty) await _cache(cacheKey, list);
+      if (query == null || query.isEmpty) {
+        await _cache(_kPrescribersCacheKey, list);
+      }
       return list
           .map((e) => Prescriber.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       if (e.response != null) rethrow;
-      final cached = await _getCache(cacheKey);
+      final cached = await _getCache(_kPrescribersCacheKey);
       if (cached != null) {
         return (cached as List)
             .map((e) => Prescriber.fromJson(e as Map<String, dynamic>))
@@ -57,7 +57,7 @@ class PrescriberApiClient {
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
   }
 
-  /// Public self-registration — no org or JWT required.
+  /// Public self-registration — no JWT required.
   Future<Prescriber> registerPrescriber(Map<String, dynamic> data) async {
     final res = await _dio.post(
       '/prescriptions/prescribers/register/',

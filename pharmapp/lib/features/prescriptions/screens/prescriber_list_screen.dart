@@ -344,7 +344,7 @@ class _PrescriberCard extends StatelessWidget {
                             fontWeight: FontWeight.w500),
                       ),
                       if (prescriber.licenseNumber != null ||
-                          prescriber.clinic != null) ...[
+                          prescriber.hospitalName != null) ...[
                         const SizedBox(height: 4),
                         Row(
                           children: [
@@ -354,32 +354,15 @@ class _PrescriberCard extends StatelessWidget {
                                 label: prescriber.licenseNumber!,
                               ),
                             if (prescriber.licenseNumber != null &&
-                                prescriber.clinic != null)
+                                prescriber.hospitalName != null)
                               const SizedBox(width: 8),
-                            if (prescriber.clinic != null)
+                            if (prescriber.hospitalName != null)
                               Expanded(
                                 child: _MetaChip(
                                   icon: Icons.local_hospital_rounded,
-                                  label: prescriber.clinic!,
+                                  label: prescriber.hospitalName!,
                                 ),
                               ),
-                          ],
-                        ),
-                      ],
-                      if (prescriber.isNetworkShared) ...[
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(Icons.public_rounded,
-                                size: 12,
-                                color: EnhancedTheme.accentCyan
-                                    .withValues(alpha: 0.8)),
-                            const SizedBox(width: 4),
-                            Text('Shared across network',
-                                style: TextStyle(
-                                    color: EnhancedTheme.accentCyan
-                                        .withValues(alpha: 0.8),
-                                    fontSize: 11)),
                           ],
                         ),
                       ],

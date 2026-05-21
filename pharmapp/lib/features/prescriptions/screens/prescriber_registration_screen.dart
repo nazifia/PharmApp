@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/shared/models/hospital.dart';
 import '../providers/prescriber_provider.dart';
+import 'prescriber_form_screen.dart' show HospitalPickerSheet;
 
 class PrescriberRegistrationScreen extends ConsumerStatefulWidget {
   const PrescriberRegistrationScreen({super.key});
@@ -22,8 +24,12 @@ class _PrescriberRegistrationScreenState
   final _licenseCtrl = TextEditingController();
   final _specialtyCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _clinicCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _confirmPasswordCtrl = TextEditingController();
+  Hospital? _selectedHospital;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   late final AnimationController _animCtrl;
   late final Animation<double> _fadeAnim;
@@ -62,8 +68,9 @@ class _PrescriberRegistrationScreenState
     _licenseCtrl.dispose();
     _specialtyCtrl.dispose();
     _phoneCtrl.dispose();
-    _clinicCtrl.dispose();
     _addressCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
     _animCtrl.dispose();
     super.dispose();
   }
@@ -73,12 +80,13 @@ class _PrescriberRegistrationScreenState
 
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
+      'password': _passwordCtrl.text,
       if (_licenseCtrl.text.trim().isNotEmpty)
         'license_number': _licenseCtrl.text.trim(),
       if (_specialtyCtrl.text.trim().isNotEmpty)
         'specialty': _specialtyCtrl.text.trim(),
       if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
-      if (_clinicCtrl.text.trim().isNotEmpty) 'clinic': _clinicCtrl.text.trim(),
+      if (_selectedHospital != null) 'hospital_id': _selectedHospital!.id,
       if (_addressCtrl.text.trim().isNotEmpty) 'address': _addressCtrl.text.trim(),
     };
 
@@ -297,14 +305,94 @@ class _PrescriberRegistrationScreenState
                     keyboardType: TextInputType.phone),
                 const SizedBox(height: 14),
 
-                // Clinic
-                _field(_clinicCtrl, 'Clinic / Hospital Name',
-                    icon: Icons.local_hospital_rounded),
+                // Hospital picker
+                GestureDetector(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => HospitalPickerSheet(
+                        selected: _selectedHospital,
+                        onSelected: (h) =>
+                            setState(() => _selectedHospital = h),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: context.cardColor,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: context.borderColor),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.local_hospital_rounded,
+                            color: EnhancedTheme.accentPurple
+                                .withValues(alpha: 0.8),
+                            size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _selectedHospital?.displayName ??
+                                'Select hospital / clinic',
+                            style: TextStyle(
+                              color: _selectedHospital != null
+                                  ? context.labelColor
+                                  : context.hintColor,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        if (_selectedHospital != null)
+                          GestureDetector(
+                            onTap: () =>
+                                setState(() => _selectedHospital = null),
+                            child: Icon(Icons.close_rounded,
+                                size: 16, color: context.subLabelColor),
+                          )
+                        else
+                          Icon(Icons.chevron_right_rounded,
+                              size: 18, color: context.subLabelColor),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 14),
 
                 // Address
                 _field(_addressCtrl, 'Address',
                     icon: Icons.location_on_rounded, maxLines: 2),
+                const SizedBox(height: 14),
+
+                // Password
+                _passwordField(
+                  _passwordCtrl,
+                  'Password *',
+                  obscure: _obscurePassword,
+                  onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Required';
+                    if (v.length < 8) return 'Min 8 characters';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // Confirm password
+                _passwordField(
+                  _confirmPasswordCtrl,
+                  'Confirm Password *',
+                  obscure: _obscureConfirm,
+                  onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Required';
+                    if (v != _passwordCtrl.text) return 'Passwords do not match';
+                    return null;
+                  },
+                ),
                 const SizedBox(height: 28),
 
                 SizedBox(
@@ -360,6 +448,30 @@ class _PrescriberRegistrationScreenState
         validator: validator,
         style: TextStyle(color: context.labelColor, fontSize: 14),
         decoration: _dec(label, icon),
+      );
+
+  Widget _passwordField(
+    TextEditingController ctrl,
+    String label, {
+    required bool obscure,
+    required VoidCallback onToggle,
+    String? Function(String?)? validator,
+  }) =>
+      TextFormField(
+        controller: ctrl,
+        obscureText: obscure,
+        validator: validator,
+        style: TextStyle(color: context.labelColor, fontSize: 14),
+        decoration: _dec(label, Icons.lock_rounded).copyWith(
+          suffixIcon: IconButton(
+            icon: Icon(
+              obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+              color: context.subLabelColor,
+              size: 18,
+            ),
+            onPressed: onToggle,
+          ),
+        ),
       );
 
   InputDecoration _dec(String label, IconData? icon) => InputDecoration(

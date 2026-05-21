@@ -2,16 +2,50 @@ from django.db import models
 from django.utils import timezone
 
 
+# ── Hospital ──────────────────────────────────────────────────────────────────
+
+class Hospital(models.Model):
+    """
+    A clinic or hospital where prescribers (doctors) are based.
+    Global entity — not tied to any pharmacy organization or subscription.
+    """
+    name       = models.CharField(max_length=200)
+    address    = models.TextField(blank=True, default='')
+    phone      = models.CharField(max_length=30, blank=True, default='')
+    city       = models.CharField(max_length=100, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def to_api_dict(self):
+        return {
+            'id':      self.id,
+            'name':    self.name,
+            'address': self.address or None,
+            'phone':   self.phone or None,
+            'city':    self.city or None,
+        }
+
+    def __str__(self):
+        return self.name
+
+
 # ── Prescriber ────────────────────────────────────────────────────────────────
 
 class Prescriber(models.Model):
     """
-    Registered doctor/prescriber. Belongs to one org but optionally shared
-    across network pharmacies (is_network_shared=True).
+    Registered doctor/prescriber. Linked to a Hospital (optional).
+    Global — visible to all authenticated pharmacies; no org/subscription needed.
     """
     organization      = models.ForeignKey(
         'authapp.Organization', null=True, blank=True,
         on_delete=models.CASCADE,
+        related_name='prescribers',
+    )
+    hospital          = models.ForeignKey(
+        Hospital, null=True, blank=True,
+        on_delete=models.SET_NULL,
         related_name='prescribers',
     )
     name              = models.CharField(max_length=200)
@@ -20,6 +54,7 @@ class Prescriber(models.Model):
     phone             = models.CharField(max_length=20, blank=True, default='')
     clinic            = models.CharField(max_length=200, blank=True, default='')
     address           = models.TextField(blank=True, default='')
+    password          = models.CharField(max_length=128, blank=True, default='')
     is_verified       = models.BooleanField(default=False)
     is_network_shared = models.BooleanField(default=False)
     created_at        = models.DateTimeField(auto_now_add=True)
@@ -28,22 +63,25 @@ class Prescriber(models.Model):
     class Meta:
         ordering = ['name']
         indexes  = [
-            models.Index(fields=['organization', 'name']),
+            models.Index(fields=['name']),
             models.Index(fields=['license_number']),
         ]
 
     def to_api_dict(self):
+        hospital_name = (
+            self.hospital.name if self.hospital_id else self.clinic or None
+        )
         return {
-            'id':               self.id,
-            'name':             self.name,
-            'license_number':   self.license_number or None,
-            'specialty':        self.specialty or None,
-            'phone':            self.phone or None,
-            'clinic':           self.clinic or None,
-            'address':          self.address or None,
-            'is_verified':      self.is_verified,
-            'is_network_shared': self.is_network_shared,
-            'created_at':       self.created_at.isoformat(),
+            'id':             self.id,
+            'name':           self.name,
+            'license_number': self.license_number or None,
+            'specialty':      self.specialty or None,
+            'phone':          self.phone or None,
+            'hospital_id':    self.hospital_id,
+            'hospital_name':  hospital_name,
+            'address':        self.address or None,
+            'is_verified':    self.is_verified,
+            'created_at':     self.created_at.isoformat(),
         }
 
     def __str__(self):
