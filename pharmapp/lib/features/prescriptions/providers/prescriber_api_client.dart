@@ -85,7 +85,7 @@ class PrescriberApiClient {
     final data = res.data as Map<String, dynamic>;
     final prescriber =
         Prescriber.fromJson(data['prescriber'] as Map<String, dynamic>);
-    final token = data['token'] as String?;
+    final token = (data['access'] ?? data['token']) as String?;
     return (prescriber, token);
   }
 
