@@ -61,13 +61,12 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.08),
+                            color: context.cardColor,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.12)),
+                            border: Border.all(color: context.borderColor),
                           ),
-                          child: const Icon(Icons.arrow_back_ios_new_rounded,
-                              color: Colors.white, size: 18),
+                          child: Icon(Icons.arrow_back_ios_new_rounded,
+                              color: context.iconOnBg, size: 18),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -75,14 +74,14 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Prescribers',
+                            Text('Prescribers',
                                 style: TextStyle(
-                                    color: Colors.white,
+                                    color: context.labelColor,
                                     fontSize: 20,
                                     fontWeight: FontWeight.w700)),
                             Text('Registered prescribers & doctors',
                                 style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.55),
+                                    color: context.subLabelColor,
                                     fontSize: 12)),
                           ],
                         ),
@@ -126,18 +125,18 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                   child: TextField(
                     controller: _searchCtrl,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: context.labelColor),
                     decoration: InputDecoration(
                       hintText: 'Search by name, license, specialty…',
                       hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color: context.hintColor,
                           fontSize: 14),
                       prefixIcon: Icon(Icons.search_rounded,
-                          color: Colors.white.withValues(alpha: 0.5)),
+                          color: context.hintColor),
                       suffixIcon: _query.isNotEmpty
                           ? IconButton(
                               icon: Icon(Icons.clear_rounded,
-                                  color: Colors.white.withValues(alpha: 0.5),
+                                  color: context.hintColor,
                                   size: 20),
                               onPressed: () {
                                 _searchCtrl.clear();
@@ -146,16 +145,14 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                             )
                           : null,
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.07),
+                      fillColor: context.cardColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.12)),
+                        borderSide: BorderSide(color: context.borderColor),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.12)),
+                        borderSide: BorderSide(color: context.borderColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -178,8 +175,7 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                     ),
                     error: (e, _) => Center(
                       child: Text('Error: $e',
-                          style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.6))),
+                          style: TextStyle(color: context.subLabelColor)),
                     ),
                     data: (prescribers) {
                       if (prescribers.isEmpty) {
@@ -189,16 +185,14 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                             children: [
                               Icon(Icons.person_search_rounded,
                                   size: 64,
-                                  color:
-                                      Colors.white.withValues(alpha: 0.2)),
+                                  color: context.iconOnBg.withValues(alpha: 0.2)),
                               const SizedBox(height: 16),
                               Text(
                                 _query.isEmpty
                                     ? 'No prescribers registered yet'
                                     : 'No results for "$_query"',
                                 style: TextStyle(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.5),
+                                    color: context.hintColor,
                                     fontSize: 14),
                               ),
                               if (_query.isEmpty && canWrite) ...[
@@ -262,9 +256,9 @@ class _PrescriberCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Material(
         color: Colors.transparent,
@@ -315,8 +309,8 @@ class _PrescriberCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               prescriber.name,
-                              style: const TextStyle(
-                                  color: Colors.white,
+                              style: TextStyle(
+                                  color: context.labelColor,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600),
                             ),
@@ -394,7 +388,7 @@ class _PrescriberCard extends StatelessWidget {
                 ),
                 if (canWrite)
                   Icon(Icons.edit_rounded,
-                      color: Colors.white.withValues(alpha: 0.3), size: 18),
+                      color: context.iconOnBg.withValues(alpha: 0.3), size: 18),
               ],
             ),
           ),
@@ -414,10 +408,10 @@ class _MetaChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 11, color: Colors.white54),
+        Icon(icon, size: 11, color: context.subLabelColor),
         const SizedBox(width: 4),
         Text(label,
-            style: const TextStyle(color: Colors.white54, fontSize: 11),
+            style: TextStyle(color: context.subLabelColor, fontSize: 11),
             overflow: TextOverflow.ellipsis),
       ],
     );

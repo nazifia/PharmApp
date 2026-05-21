@@ -112,19 +112,11 @@ class _PrescriberRegistrationScreenState
     final isLoading = notifierState.isLoading;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: context.scaffoldBg,
       body: Stack(
         children: [
           // Background gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
+          Container(decoration: context.bgGradient),
 
           // Decorative blobs
           Positioned(
@@ -198,7 +190,7 @@ class _PrescriberRegistrationScreenState
         Text(
           'Prescriber Registration',
           style: GoogleFonts.outfit(
-              color: Colors.white,
+              color: context.labelColor,
               fontSize: 26,
               fontWeight: FontWeight.w700),
         ),
@@ -206,8 +198,7 @@ class _PrescriberRegistrationScreenState
         Text(
           'Register as a licensed prescriber\nNo pharmacy account needed',
           textAlign: TextAlign.center,
-          style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.55), fontSize: 13),
+          style: TextStyle(color: context.subLabelColor, fontSize: 13),
         ),
       ],
     );
@@ -221,10 +212,9 @@ class _PrescriberRegistrationScreenState
         child: Container(
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-                color: Colors.white.withValues(alpha: 0.12), width: 1.5),
+            border: Border.all(color: context.borderColor, width: 1.5),
           ),
           child: Form(
             key: _formKey,
@@ -261,7 +251,7 @@ class _PrescriberRegistrationScreenState
                     focusNode: focus,
                     onFieldSubmitted: (_) => onSubmit(),
                     onChanged: (v) => _specialtyCtrl.text = v,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(color: context.labelColor, fontSize: 14),
                     decoration: _dec(
                         'Specialty (e.g. General Practitioner)',
                         Icons.medical_services_rounded),
@@ -271,7 +261,9 @@ class _PrescriberRegistrationScreenState
                     child: Material(
                       elevation: 4,
                       borderRadius: BorderRadius.circular(12),
-                      color: const Color(0xFF1E293B),
+                      color: context.isDark
+                          ? const Color(0xFF1E293B)
+                          : Colors.white,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxHeight: 200),
                         child: ListView.builder(
@@ -286,8 +278,9 @@ class _PrescriberRegistrationScreenState
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 12),
                                 child: Text(opt,
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 14)),
+                                    style: TextStyle(
+                                        color: context.labelColor,
+                                        fontSize: 14)),
                               ),
                             );
                           },
@@ -347,7 +340,7 @@ class _PrescriberRegistrationScreenState
 
   Widget _sectionLabel(String text) => Text(text,
       style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.55),
+          color: context.subLabelColor,
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5));
@@ -365,29 +358,26 @@ class _PrescriberRegistrationScreenState
         keyboardType: keyboardType,
         maxLines: maxLines,
         validator: validator,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: TextStyle(color: context.labelColor, fontSize: 14),
         decoration: _dec(label, icon),
       );
 
   InputDecoration _dec(String label, IconData? icon) => InputDecoration(
         labelText: label,
-        labelStyle:
-            TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 13),
+        labelStyle: TextStyle(color: context.subLabelColor, fontSize: 13),
         prefixIcon: icon != null
             ? Icon(icon,
                 color: EnhancedTheme.accentPurple.withValues(alpha: 0.8),
                 size: 18)
             : null,
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.06),
+        fillColor: context.cardColor,
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide:
-                BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+            borderSide: BorderSide(color: context.borderColor)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide:
-                BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+            borderSide: BorderSide(color: context.borderColor)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(
@@ -408,7 +398,7 @@ class _SuccessDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -427,15 +417,14 @@ class _SuccessDialog extends StatelessWidget {
             const SizedBox(height: 20),
             Text('Registration Submitted',
                 style: GoogleFonts.outfit(
-                    color: Colors.white,
+                    color: context.labelColor,
                     fontSize: 20,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             Text(
               'Welcome, $name!\nYour profile is under review. A pharmacy will link you once verified.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.65), fontSize: 13),
+              style: TextStyle(color: context.subLabelColor, fontSize: 13),
             ),
             const SizedBox(height: 24),
             SizedBox(
