@@ -58,13 +58,16 @@ class PrescriptionApiClient {
     String? search,
     int? branchId,
     bool networkWide = false,
+    String? source,
   }) async {
     final cacheKey = '${_kPrescriptionsCacheKey}_${status ?? 'all'}'
-        '${networkWide ? '_network' : branchId != null ? '_b$branchId' : ''}';
+        '${networkWide ? '_network' : branchId != null ? '_b$branchId' : ''}'
+        '${source != null ? '_src$source' : ''}';
     try {
       final params = <String, dynamic>{};
       if (status != null && status.isNotEmpty) params['status'] = status;
       if (search != null && search.isNotEmpty) params['search'] = search;
+      if (source != null && source.isNotEmpty) params['source'] = source;
       if (networkWide) {
         params['network_wide'] = 'true';
       } else if (branchId != null && branchId > 0) {
@@ -285,12 +288,15 @@ class PrescriptionApiClient {
     String? search,
     int? networkId,
     int page = 1,
+    String? source,
   }) async {
-    const cacheKey = '${_kPrescriptionsCacheKey}_network';
+    final cacheKey = '${_kPrescriptionsCacheKey}_network'
+        '${source != null ? '_src$source' : ''}';
     try {
       final params = <String, dynamic>{};
       if (status != null && status.isNotEmpty) params['status'] = status;
       if (search != null && search.isNotEmpty) params['search'] = search;
+      if (source != null && source.isNotEmpty) params['source'] = source;
       if (networkId != null && networkId > 0) params['network_id'] = networkId;
       if (page > 1) params['page'] = page;
       final res = await _dio.get('/prescriptions/network/',

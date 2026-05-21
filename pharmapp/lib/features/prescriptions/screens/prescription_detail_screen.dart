@@ -167,8 +167,9 @@ class _PrescriptionDetailScreenState
                     ),
                     data: (serverRx) {
                       final rx = _localRx ?? serverRx;
-                      final isCrossOrg = rx.pharmacyId != null &&
-                          rx.pharmacyId != user?.organizationId;
+                      final isCrossOrg = rx.isPortalRx ||
+                          (rx.pharmacyId != null &&
+                          rx.pharmacyId != user?.organizationId);
                       return Stack(
                       children: [
                         ListView(
@@ -494,8 +495,9 @@ class _PrescriptionDetailScreenState
   }
 
   Future<void> _dispense(Prescription rx, {List<int>? indices}) async {
-    final isCrossOrg = rx.pharmacyId != null &&
-        rx.pharmacyId != ref.read(currentUserProvider)?.organizationId;
+    final isCrossOrg = rx.isPortalRx ||
+        (rx.pharmacyId != null &&
+        rx.pharmacyId != ref.read(currentUserProvider)?.organizationId);
     final confirm = await showDialog<bool>(
       context: context,
       useRootNavigator: false,
@@ -516,26 +518,42 @@ class _PrescriptionDetailScreenState
               style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
             ),
-            if (isCrossOrg && rx.pharmacyName != null) ...[
+            if (isCrossOrg) ...[
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                  color: rx.isPortalRx
+                      ? EnhancedTheme.accentPurple.withValues(alpha: 0.12)
+                      : EnhancedTheme.accentCyan.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                      color: EnhancedTheme.accentCyan.withValues(alpha: 0.3)),
+                      color: rx.isPortalRx
+                          ? EnhancedTheme.accentPurple.withValues(alpha: 0.3)
+                          : EnhancedTheme.accentCyan.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.swap_horiz_rounded,
-                        color: EnhancedTheme.accentCyan, size: 16),
+                    Icon(
+                      rx.isPortalRx
+                          ? Icons.send_to_mobile_rounded
+                          : Icons.swap_horiz_rounded,
+                      color: rx.isPortalRx
+                          ? EnhancedTheme.accentPurple
+                          : EnhancedTheme.accentCyan,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Written by ${rx.pharmacyName}. Dispensing at your pharmacy.',
-                        style: const TextStyle(
-                            color: EnhancedTheme.accentCyan, fontSize: 12),
+                        rx.isPortalRx
+                            ? 'Portal prescription — dispensing at your pharmacy.'
+                            : 'Written by ${rx.pharmacyName ?? 'network pharmacy'}. Dispensing at your pharmacy.',
+                        style: TextStyle(
+                            color: rx.isPortalRx
+                                ? EnhancedTheme.accentPurple
+                                : EnhancedTheme.accentCyan,
+                            fontSize: 12),
                       ),
                     ),
                   ],
@@ -702,26 +720,41 @@ class _PatientCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isCrossOrg && rx.pharmacyName != null) ...[
+          if (isCrossOrg) ...[
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                color: rx.isPortalRx
+                    ? EnhancedTheme.accentPurple.withValues(alpha: 0.12)
+                    : EnhancedTheme.accentCyan.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: EnhancedTheme.accentCyan.withValues(alpha: 0.3)),
+                    color: rx.isPortalRx
+                        ? EnhancedTheme.accentPurple.withValues(alpha: 0.3)
+                        : EnhancedTheme.accentCyan.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.swap_horiz_rounded,
-                      color: EnhancedTheme.accentCyan, size: 16),
+                  Icon(
+                    rx.isPortalRx
+                        ? Icons.send_to_mobile_rounded
+                        : Icons.swap_horiz_rounded,
+                    color: rx.isPortalRx
+                        ? EnhancedTheme.accentPurple
+                        : EnhancedTheme.accentCyan,
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Written by ${rx.pharmacyName}',
-                      style: const TextStyle(
-                          color: EnhancedTheme.accentCyan,
+                      rx.isPortalRx
+                          ? 'Submitted via Prescriber Portal'
+                          : 'Written by ${rx.pharmacyName ?? 'network pharmacy'}',
+                      style: TextStyle(
+                          color: rx.isPortalRx
+                              ? EnhancedTheme.accentPurple
+                              : EnhancedTheme.accentCyan,
                           fontSize: 12,
                           fontWeight: FontWeight.w600),
                     ),
@@ -803,6 +836,20 @@ class _PatientCard extends StatelessWidget {
                         fontSize: 13)),
               ],
             ),
+            if (rx.prescriberLicenseNo != null &&
+                rx.prescriberLicenseNo!.isNotEmpty) ...[
+              const SizedBox(height: 5),
+              Row(
+                children: [
+                  const Icon(Icons.badge_rounded,
+                      size: 14, color: Colors.black38),
+                  const SizedBox(width: 6),
+                  Text('Lic: ${rx.prescriberLicenseNo}',
+                      style: const TextStyle(
+                          color: Colors.black38, fontSize: 12)),
+                ],
+              ),
+            ],
           ],
           const SizedBox(height: 10),
           const Divider(color: Colors.white12, height: 1),

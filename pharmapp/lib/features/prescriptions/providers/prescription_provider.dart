@@ -21,18 +21,20 @@ class PrescriptionFilter {
   final String? status; // 'pending' | 'partial' | 'dispensed' | null = all
   final String? search;
   final bool networkWide; // true = ignore activeBranch, fetch entire org network
+  final String? source; // 'portal' | 'pharmacy' | null = all
 
-  const PrescriptionFilter({this.status, this.search, this.networkWide = false});
+  const PrescriptionFilter({this.status, this.search, this.networkWide = false, this.source});
 
   @override
   bool operator ==(Object other) =>
       other is PrescriptionFilter &&
       other.status == status &&
       other.search == search &&
-      other.networkWide == networkWide;
+      other.networkWide == networkWide &&
+      other.source == source;
 
   @override
-  int get hashCode => Object.hash(status, search, networkWide);
+  int get hashCode => Object.hash(status, search, networkWide, source);
 }
 
 // ── List provider ─────────────────────────────────────────────────────────────
@@ -41,7 +43,9 @@ final prescriptionListProvider =
     FutureProvider.autoDispose.family<List<Prescription>, PrescriptionFilter>(
         (ref, filter) {
   final api = ref.watch(prescriptionApiProvider);
-  if (filter.networkWide) {
+  // Portal prescriptions are always own-org scope — skip the network endpoint
+  // so that source-filtered queries hit /prescriptions/ directly.
+  if (filter.networkWide && filter.source == null) {
     // Cross-org query via PharmacyNetwork — falls back to own org if no network
     return api.fetchNetworkPrescriptions(
       status: filter.status,
@@ -54,6 +58,7 @@ final prescriptionListProvider =
     status: filter.status,
     search: filter.search,
     branchId: branchId,
+    source: filter.source,
   );
 });
 

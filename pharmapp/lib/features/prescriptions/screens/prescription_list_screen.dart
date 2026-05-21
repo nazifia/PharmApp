@@ -25,10 +25,11 @@ class _PrescriptionListScreenState
   String _debouncedSearch = '';
   Timer? _debounce;
   int _tabIndex = 1; // 0=All 1=Pending 2=Partial 3=Dispensed
-  bool _networkWide = true; // default to network-wide view
+  bool _networkWide = false; // default to own-org view
 
-  static const _tabs = ['All', 'Pending', 'Partial', 'Dispensed'];
-  static const _statusMap = [null, 'pending', 'partial', 'dispensed'];
+  static const _tabs = ['All', 'Pending', 'Partial', 'Dispensed', 'Portal'];
+  static const _statusMap = [null, 'pending', 'partial', 'dispensed', null];
+  static const _sourceMap = [null, null, null, null, 'portal'];
 
   @override
   void dispose() {
@@ -58,6 +59,7 @@ class _PrescriptionListScreenState
         status: _statusMap[_tabIndex],
         search: _debouncedSearch.isNotEmpty ? _debouncedSearch : null,
         networkWide: _networkWide,
+        source: _sourceMap[_tabIndex],
       );
 
   Color _statusColor(String status) {
@@ -329,6 +331,10 @@ class _PrescriptionListScreenState
         child: Row(
           children: List.generate(_tabs.length, (i) {
             final selected = _tabIndex == i;
+            final isPortal = i == 4;
+            final activeColor = isPortal
+                ? EnhancedTheme.accentPurple
+                : EnhancedTheme.primaryTeal;
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: GestureDetector(
@@ -339,25 +345,41 @@ class _PrescriptionListScreenState
                       horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: selected
-                        ? EnhancedTheme.primaryTeal
+                        ? activeColor
                         : Colors.white.withValues(alpha: 0.07),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: selected
-                          ? EnhancedTheme.primaryTeal
+                          ? activeColor
                           : Colors.white.withValues(alpha: 0.12),
                     ),
                   ),
-                  child: Text(
-                    _tabs[i],
-                    style: TextStyle(
-                      color:
-                          selected ? Colors.white : Colors.black54,
-                      fontSize: 13,
-                      fontWeight: selected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isPortal) ...[
+                        Icon(
+                          Icons.send_to_mobile_rounded,
+                          size: 13,
+                          color: selected ? Colors.white : EnhancedTheme.accentPurple,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        _tabs[i],
+                        style: TextStyle(
+                          color: selected
+                              ? Colors.white
+                              : isPortal
+                                  ? EnhancedTheme.accentPurple
+                                  : Colors.black54,
+                          fontSize: 13,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -678,6 +700,12 @@ class _PrescriptionCard extends StatelessWidget {
                           ? EnhancedTheme.errorRed
                           : Colors.black45,
                     ),
+                  if (rx.isPortalRx)
+                    const _InfoChip(
+                      icon: Icons.send_to_mobile_rounded,
+                      label: 'Portal Rx',
+                      color: EnhancedTheme.accentPurple,
+                    ),
                   if (rx.doctorName != null &&
                       rx.doctorName!.isNotEmpty)
                     _InfoChip(
@@ -801,6 +829,7 @@ class _EmptyView extends StatelessWidget {
       'No pending prescriptions $scope.',
       'No partially dispensed prescriptions $scope.',
       'No dispensed prescriptions $scope.',
+      'No portal prescriptions $scope.',
     ];
 
     return Center(

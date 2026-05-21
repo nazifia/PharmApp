@@ -86,6 +86,7 @@ class Prescription {
   final int refillsUsed;
   final DateTime? lastRefillDate;
   final DateTime? nextRefillDate;
+  final String? source; // 'portal' | 'pharmacy' | null
 
   const Prescription({
     required this.id,
@@ -111,11 +112,13 @@ class Prescription {
     this.refillsUsed = 0,
     this.lastRefillDate,
     this.nextRefillDate,
+    this.source,
   });
 
   bool get isPending => status == 'pending';
   bool get isPartial => status == 'partial';
   bool get isDispensed => status == 'dispensed';
+  bool get isPortalRx => source == 'portal';
   bool get canRefill => refillsUsed < refillsAllowed && !isDispensed;
   bool get isRefillDueSoon {
     if (nextRefillDate == null) return false;
@@ -158,6 +161,7 @@ class Prescription {
         refillsUsed: refillsUsed ?? this.refillsUsed,
         lastRefillDate: lastRefillDate ?? this.lastRefillDate,
         nextRefillDate: nextRefillDate ?? this.nextRefillDate,
+        source: source,
       );
 
   factory Prescription.fromJson(Map<String, dynamic> j) {
@@ -210,6 +214,7 @@ class Prescription {
       refillsUsed: (j['refills_used'] ?? j['refillsUsed'] as num?)?.toInt() ?? 0,
       lastRefillDate: parseDate(j['last_refill_date'] ?? j['lastRefillDate']),
       nextRefillDate: parseDate(j['next_refill_date'] ?? j['nextRefillDate']),
+      source: j['source'] as String?,
     );
   }
 

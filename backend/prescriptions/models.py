@@ -122,6 +122,7 @@ class Prescription(models.Model):
     diagnosis      = models.TextField(blank=True, default='')
     notes          = models.TextField(blank=True, default='')
     status         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    source         = models.CharField(max_length=30, blank=True, default='pharmacy')  # 'pharmacy' | 'portal'
     created_by     = models.ForeignKey(
         'authapp.PharmUser', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='prescriptions_written',
@@ -167,6 +168,7 @@ class Prescription(models.Model):
             'diagnosis':           self.diagnosis     or None,
             'notes':               self.notes         or None,
             'status':              self.status,
+            'source':              self.source or 'pharmacy',
             'created_at':          self.created_at.isoformat(),
             'dispensed_at':        self.dispensed_at.isoformat() if self.dispensed_at else None,
             'created_by_name':     (

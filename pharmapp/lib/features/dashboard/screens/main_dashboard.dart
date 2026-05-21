@@ -1299,7 +1299,8 @@ class _MoreFeaturesSheet extends ConsumerWidget {
             border: Border(top: BorderSide(color: context.borderColor, width: 1.5)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
             // Handle
             Container(width: 44, height: 4,
                 decoration: BoxDecoration(
@@ -1407,6 +1408,7 @@ class _MoreFeaturesSheet extends ConsumerWidget {
               ),
             ),
           ]),
+          ),
         ),
       ),
     );

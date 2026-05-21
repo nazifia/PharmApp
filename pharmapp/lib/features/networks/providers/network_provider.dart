@@ -183,8 +183,8 @@ class NetworkApiClient {
       String drugName) async {
     try {
       final res = await _dio.get(
-        '/pharmacy-networks/medication-availability/',
-        queryParameters: {'drug': drugName},
+        '/inventory/availability/',
+        queryParameters: {'name': drugName},
       );
       final data = res.data;
       final list = data is Map && data.containsKey('results')

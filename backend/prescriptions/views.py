@@ -70,10 +70,23 @@ def prescription_list(request):
         return err
 
     if request.method == 'GET':
-        qs = (Prescription.objects
-              .filter(organization=org)
-              .select_related('organization', 'created_by', 'branch')
-              .prefetch_related('medications'))
+        source = request.query_params.get('source', '').strip()
+
+        # Portal prescriptions are written by global prescribers (no org binding).
+        # Any authenticated pharmacy can view and dispense them, so drop the org
+        # filter when source=portal is explicitly requested.
+        if source == 'portal':
+            qs = (Prescription.objects
+                  .filter(source='portal')
+                  .select_related('organization', 'created_by', 'branch')
+                  .prefetch_related('medications'))
+        else:
+            qs = (Prescription.objects
+                  .filter(organization=org)
+                  .select_related('organization', 'created_by', 'branch')
+                  .prefetch_related('medications'))
+            if source:
+                qs = qs.filter(source=source)
 
         # Status filter — 'undispensed' is a convenience alias for pending+partial
         rx_status = request.query_params.get('status', '').strip()
@@ -86,7 +99,7 @@ def prescription_list(request):
         # The two are mutually exclusive; network_wide takes precedence.
         network_wide = request.query_params.get('network_wide', '').lower() in ('1', 'true')
         branch_filtered = False
-        if not network_wide:
+        if source != 'portal' and not network_wide:
             branch_id = request.query_params.get('branch_id', '')
             branch_filtered = branch_id.isdigit() and int(branch_id) > 0
             if branch_filtered:
@@ -222,7 +235,7 @@ def prescription_detail(request, pk):
         return err
 
     if request.method == 'GET':
-        # Network peer orgs may view prescriptions written by any peer.
+        # Network peer orgs and any pharmacy may view portal prescriptions.
         try:
             rx = (Prescription.objects
                   .select_related('organization', 'created_by', 'branch')
@@ -230,12 +243,13 @@ def prescription_detail(request, pk):
                   .get(pk=pk, organization=org))
         except Prescription.DoesNotExist:
             peer_org_ids = _get_peer_org_ids(org)
-            try:
-                rx = (Prescription.objects
-                      .select_related('organization', 'created_by', 'branch')
-                      .prefetch_related('medications')
-                      .get(pk=pk, organization_id__in=peer_org_ids))
-            except Prescription.DoesNotExist:
+            rx = (Prescription.objects
+                  .select_related('organization', 'created_by', 'branch')
+                  .prefetch_related('medications')
+                  .filter(pk=pk)
+                  .filter(_m.Q(organization_id__in=peer_org_ids) | _m.Q(source='portal'))
+                  .first())
+            if rx is None:
                 return Response({'detail': 'Prescription not found'},
                                 status=status.HTTP_404_NOT_FOUND)
         return Response(rx.to_api_dict())
@@ -331,14 +345,15 @@ def dispense_prescription(request, pk):
               .prefetch_related('medications')
               .get(pk=pk, organization=org))
     except Prescription.DoesNotExist:
-        # Allow network peer org to dispense cross-org prescriptions.
+        # Allow network peer orgs and any pharmacy to dispense portal Rxs.
         peer_org_ids = _get_peer_org_ids(org)
-        try:
-            rx = (Prescription.objects
-                  .select_related('organization', 'created_by', 'branch')
-                  .prefetch_related('medications')
-                  .get(pk=pk, organization_id__in=peer_org_ids))
-        except Prescription.DoesNotExist:
+        rx = (Prescription.objects
+              .select_related('organization', 'created_by', 'branch')
+              .prefetch_related('medications')
+              .filter(pk=pk)
+              .filter(_m.Q(organization_id__in=peer_org_ids) | _m.Q(source='portal'))
+              .first())
+        if rx is None:
             return Response({'detail': 'Prescription not found'},
                             status=status.HTTP_404_NOT_FOUND)
 
@@ -453,17 +468,20 @@ def prescriptions_by_phone(request):
     # Match customer phone (contains) OR customer name (contains).
     name_or_phone = _m.Q(customer_phone__icontains=q) | _m.Q(customer_name__icontains=q)
 
+    # Always include portal prescriptions (org=null) alongside org-scoped ones.
+    portal_q = _m.Q(source='portal', organization__isnull=True)
+
     # ?network=true expands the search to all active network peer orgs.
     network = request.query_params.get('network', '').lower() in ('1', 'true')
     if network:
         org_ids = _get_peer_org_ids(org)
         qs = (Prescription.objects
-              .filter(name_or_phone, organization_id__in=org_ids)
+              .filter(name_or_phone, _m.Q(organization_id__in=org_ids) | portal_q)
               .select_related('organization', 'created_by', 'branch')
               .prefetch_related('medications'))
     else:
         qs = (Prescription.objects
-              .filter(name_or_phone, organization=org)
+              .filter(name_or_phone, _m.Q(organization=org) | portal_q)
               .select_related('organization', 'created_by', 'branch')
               .prefetch_related('medications'))
 
@@ -735,7 +753,11 @@ def prescriber_list(request):
         except Hospital.DoesNotExist:
             pass
 
+    # Link prescriber to the creating pharmacy's org so portal prescriptions
+    # they write can be scoped back to this pharmacy.
+    creator_org = getattr(getattr(request.user, 'organization', None), 'id', None)
     prescriber = Prescriber.objects.create(
+        organization_id = creator_org,
         hospital       = hospital,
         name           = name,
         license_number = (request.data.get('license_number') or '').strip(),
@@ -1001,9 +1023,13 @@ def prescriber_portal_create_rx(request):
         return Response({'detail': 'At least one medication is required'},
                         status=status.HTTP_400_BAD_REQUEST)
 
+    # Resolve org: prescriber's own org first, fall back to customer's org.
+    # Prescribers created by a pharmacy admin have organization set to that pharmacy.
+    org_for_rx = prescriber.organization or customer.organization
+
     with transaction.atomic():
         rx = Prescription.objects.create(
-            organization   = customer.organization,
+            organization   = org_for_rx,
             prescriber     = prescriber,
             doctor_name    = prescriber.name,
             customer       = customer,
@@ -1012,6 +1038,7 @@ def prescriber_portal_create_rx(request):
             diagnosis      = (data.get('diagnosis') or '').strip(),
             notes          = (data.get('notes') or '').strip(),
             status         = 'pending',
+            source         = 'portal',
         )
         for item in items_data:
             item_name = (item.get('item_name') or '').strip()

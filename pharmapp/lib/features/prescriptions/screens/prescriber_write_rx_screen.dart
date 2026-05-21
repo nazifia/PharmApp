@@ -95,6 +95,7 @@ class _PrescriberWriteRxScreenState
       if (_notesCtrl.text.trim().isNotEmpty)
         'notes': _notesCtrl.text.trim(),
       'items': validMeds.map((m) => m.toMap()).toList(),
+      'source': 'portal',
     };
 
     final ok = await ref
