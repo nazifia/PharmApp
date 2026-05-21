@@ -364,6 +364,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13),
                   ),
                 ),
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () => context.go('/register-prescriber'),
+                  child: const Text(
+                    'Are you a prescriber? Register here',
+                    style: TextStyle(
+                        color: EnhancedTheme.accentPurple, fontSize: 13),
+                  ),
+                ),
               ],
             ),
           ),

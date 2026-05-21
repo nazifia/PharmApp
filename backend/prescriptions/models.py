@@ -10,7 +10,8 @@ class Prescriber(models.Model):
     across network pharmacies (is_network_shared=True).
     """
     organization      = models.ForeignKey(
-        'authapp.Organization', on_delete=models.CASCADE,
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE,
         related_name='prescribers',
     )
     name              = models.CharField(max_length=200)

@@ -58,6 +58,7 @@ import 'package:pharmapp/features/prescriptions/screens/prescription_list_screen
 import 'package:pharmapp/features/prescriptions/screens/prescription_detail_screen.dart';
 import 'package:pharmapp/features/prescriptions/screens/write_prescription_screen.dart';
 import 'package:pharmapp/features/prescriptions/screens/prescriber_list_screen.dart';
+import 'package:pharmapp/features/prescriptions/screens/prescriber_registration_screen.dart';
 import 'package:pharmapp/features/networks/screens/network_list_screen.dart';
 import 'package:pharmapp/features/networks/screens/network_detail_screen.dart';
 import 'package:pharmapp/features/networks/screens/create_network_screen.dart';
@@ -93,7 +94,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ref.read(hasFeatureProvider(SaasFeature.multiBranch)) &&
           ref.read(activeBranchProvider) == null;
 
-      const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org'];
+      const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org', '/register-prescriber'];
 
       if (publicRoutes.contains(loc)) {
         if (isAuthenticated) {
@@ -275,7 +276,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/verify-code',    name: 'verify_code',  builder: (_, __) => const VerifyCodeScreen()),
       GoRoute(path: '/role-selection', name: 'role_select',  builder: (_, __) => const RoleSelectionScreen()),
       GoRoute(path: '/setup',          name: 'setup',        builder: (_, __) => const SetupScreen()),
-      GoRoute(path: '/register-org',   name: 'register_org',  builder: (_, __) => const RegisterOrgScreen()),
+      GoRoute(path: '/register-org',          name: 'register_org',          builder: (_, __) => const RegisterOrgScreen()),
+      GoRoute(path: '/register-prescriber',   name: 'register_prescriber',   builder: (_, __) => const PrescriberRegistrationScreen()),
       GoRoute(path: '/select-branch',  name: 'select_branch', builder: (_, __) => const BranchSelectionScreen()),
       GoRoute(path: '/subscription',   name: 'subscription',  builder: (_, __) => const SubscriptionScreen()),
       GoRoute(path: '/billing',        name: 'billing',       builder: (_, __) => const BillingScreen()),

@@ -57,6 +57,16 @@ class PrescriberApiClient {
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
   }
 
+  /// Public self-registration — no org or JWT required.
+  Future<Prescriber> registerPrescriber(Map<String, dynamic> data) async {
+    final res = await _dio.post(
+      '/prescribers/register/',
+      data: data,
+      options: Options(headers: {'skip_auth': true}),
+    );
+    return Prescriber.fromJson(res.data as Map<String, dynamic>);
+  }
+
   Future<Prescriber> updatePrescriber(int id, Map<String, dynamic> data) async {
     final res = await _dio.patch('/prescribers/$id/', data: data);
     return Prescriber.fromJson(res.data as Map<String, dynamic>);

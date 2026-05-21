@@ -54,6 +54,26 @@ class PrescriberNotifier extends StateNotifier<_PrescriberState> {
     }
   }
 
+  Future<Prescriber?> registerPrescriber(Map<String, dynamic> data) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final p = await _client.registerPrescriber(data);
+      state = state.copyWith(isLoading: false);
+      return p;
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? (e.response!.data['detail'] ??
+              e.response!.data['non_field_errors']?.toString() ??
+              e.message)
+          : e.message;
+      state = state.copyWith(isLoading: false, error: msg);
+      return null;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return null;
+    }
+  }
+
   Future<Prescriber?> updatePrescriber(
       int id, Map<String, dynamic> data) async {
     state = state.copyWith(isLoading: true, clearError: true);
