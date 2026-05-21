@@ -13,15 +13,12 @@ class PrescriberApiClient {
   PrescriberApiClient(this._dio, {this.prescriberToken});
 
   // Used for the portal endpoint — carries the prescriber signed token.
-  Options _portalOpts() {
-    if (prescriberToken != null) {
-      return Options(headers: {
+  // Token goes in X-Prescriber-Token, NOT Authorization, so that simplejwt's
+  // JWTAuthentication doesn't try to validate it and return 401.
+  Options _portalOpts() => Options(headers: {
         'skip_auth': true,
-        'Authorization': 'Bearer $prescriberToken',
+        if (prescriberToken != null) 'X-Prescriber-Token': prescriberToken,
       });
-    }
-    return Options(headers: {'skip_auth': true});
-  }
 
   // Used for AllowAny endpoints — must send NO Authorization header so that
   // simplejwt's JWTAuthentication doesn't raise InvalidToken and return 401.

@@ -34,4 +34,5 @@ CORS_ALLOW_HEADERS = [
     *default_headers,
     "skip_auth",
     "skip-auth",
+    "x-prescriber-token",
 ]

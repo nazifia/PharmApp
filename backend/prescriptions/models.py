@@ -99,8 +99,8 @@ class Prescription(models.Model):
     ]
 
     organization   = models.ForeignKey(
-        'authapp.Organization', on_delete=models.CASCADE,
-        related_name='prescriptions',
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='prescriptions',
     )
     branch         = models.ForeignKey(
         'branches.Branch', null=True, blank=True,

@@ -979,8 +979,7 @@ def prescriber_portal_create_rx(request):
     Authenticated via 'Authorization: Bearer <prescriber_signed_token>' header.
     Body: { customer, diagnosis?, notes?, items: [{item_name, quantity, unit, dosage?, duration?, instructions?}] }
     """
-    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-    token = auth_header.removeprefix('Bearer ').strip() if auth_header.startswith('Bearer ') else ''
+    token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
     prescriber = _verify_prescriber_token(token) if token else None
     if prescriber is None:
         return Response({'detail': 'Invalid or missing prescriber token.'},

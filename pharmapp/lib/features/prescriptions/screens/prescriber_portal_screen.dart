@@ -91,13 +91,15 @@ class PrescriberPortalScreen extends ConsumerWidget {
                           children: [
                             Row(
                               children: [
-                                Text('Verification Status',
-                                    style: TextStyle(
-                                        color: context.subLabelColor,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 0.5)),
-                                const Spacer(),
+                                Flexible(
+                                  child: Text('Verification Status',
+                                      style: TextStyle(
+                                          color: context.subLabelColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5)),
+                                ),
+                                const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 4),
