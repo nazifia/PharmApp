@@ -10,6 +10,8 @@ final hospitalApiClientProvider = Provider<HospitalApiClient>(
 
 final hospitalListProvider =
     FutureProvider.autoDispose.family<List<Hospital>, String>((ref, query) {
+  final token = ref.watch(authTokenProvider);
+  if (token == null) return [];
   return ref.read(hospitalApiClientProvider).fetchHospitals(query: query);
 });
 
