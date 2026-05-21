@@ -805,6 +805,70 @@ def prescriber_detail(request, pk):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# ── Prescriber's patient list ─────────────────────────────────────────────────
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def prescriber_patients(request, pk):
+    """
+    GET  /api/prescriptions/prescribers/<pk>/patients/
+    POST /api/prescriptions/prescribers/<pk>/patients/
+    No pharmacy JWT required — scoped to the prescriber's own patients.
+    POST body: { name, phone, is_network_patient?, blood_group?, date_of_birth?,
+                 allergies?, chronic_conditions?, email?, address? }
+    """
+    try:
+        prescriber = Prescriber.objects.get(pk=pk)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    from customers.models import Customer
+
+    if request.method == 'GET':
+        qs = Customer.objects.filter(prescriber=prescriber)
+        return Response([c.to_list_dict() for c in qs])
+
+    # POST — register a new patient under this prescriber
+    name  = (request.data.get('name') or '').strip()
+    phone = (request.data.get('phone') or '').strip()
+    if not name:
+        return Response({'detail': 'name is required'}, status=status.HTTP_400_BAD_REQUEST)
+    if not phone:
+        return Response({'detail': 'phone is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Prevent duplicate phone under same prescriber
+    if Customer.objects.filter(prescriber=prescriber, phone=phone).exists():
+        return Response(
+            {'detail': 'A patient with this phone number is already registered under this prescriber.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    dob = None
+    dob_raw = (request.data.get('date_of_birth') or '').strip()
+    if dob_raw:
+        from datetime import date
+        try:
+            parts = dob_raw.split('-')
+            dob = date(int(parts[0]), int(parts[1]), int(parts[2]))
+        except (ValueError, IndexError):
+            dob = None
+
+    customer = Customer.objects.create(
+        prescriber         = prescriber,
+        name               = name,
+        phone              = phone,
+        organization       = None,
+        is_network_patient = bool(request.data.get('is_network_patient', True)),
+        blood_group        = (request.data.get('blood_group') or '').strip(),
+        date_of_birth      = dob,
+        allergies          = request.data.get('allergies') or [],
+        chronic_conditions = request.data.get('chronic_conditions') or [],
+        email              = (request.data.get('email') or '').strip(),
+        address            = (request.data.get('address') or '').strip(),
+    )
+    return Response(customer.to_list_dict(), status=status.HTTP_201_CREATED)
+
+
 # ── Public self-registration (no auth, no org) ────────────────────────────────
 
 @api_view(['POST'])

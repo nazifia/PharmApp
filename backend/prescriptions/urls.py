@@ -16,6 +16,7 @@ urlpatterns = [
     path('prescribers/register/',         views.prescriber_register,      name='prescriber-register'),
     path('prescribers/login/',            views.prescriber_login,         name='prescriber-login'),
     path('prescribers/<int:pk>/',         views.prescriber_detail,        name='prescriber-detail'),
+    path('prescribers/<int:pk>/patients/', views.prescriber_patients,      name='prescriber-patients'),
 
     # Hospitals (global)
     path('hospitals/',                    views.hospital_list,            name='hospital-list'),

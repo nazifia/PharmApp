@@ -20,6 +20,16 @@ class Customer(models.Model):
         default=False,
         help_text='Visible to all pharmacies in the same network for prescription lookup.',
     )
+    prescriber = models.ForeignKey(
+        'prescriptions.Prescriber',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='patients',
+    )
+    blood_group        = models.CharField(max_length=5, blank=True, default='')
+    date_of_birth      = models.DateField(null=True, blank=True)
+    allergies          = models.JSONField(default=list, blank=True)
+    chronic_conditions = models.JSONField(default=list, blank=True)
 
     def total_purchases(self):
         return float(self.sales.aggregate(
@@ -30,14 +40,18 @@ class Customer(models.Model):
 
     def to_list_dict(self):
         return {
-            'id':                 self.id,
-            'name':               self.name,
-            'phone':              self.phone,
-            'is_wholesale':       self.is_wholesale,
-            'is_network_patient': self.is_network_patient,
-            'wallet_balance':     float(self.wallet_balance),
-            'total_purchases':    self.total_purchases(),
-            'outstanding_debt':   float(self.outstanding_debt),
+            'id':                  self.id,
+            'name':                self.name,
+            'phone':               self.phone,
+            'is_wholesale':        self.is_wholesale,
+            'is_network_patient':  self.is_network_patient,
+            'wallet_balance':      float(self.wallet_balance),
+            'total_purchases':     self.total_purchases(),
+            'outstanding_debt':    float(self.outstanding_debt),
+            'blood_group':         self.blood_group or None,
+            'date_of_birth':       self.date_of_birth.isoformat() if self.date_of_birth else None,
+            'allergies':           self.allergies or [],
+            'chronic_conditions':  self.chronic_conditions or [],
         }
 
     def to_detail_dict(self):
