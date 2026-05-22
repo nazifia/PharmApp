@@ -225,6 +225,20 @@ class AuthRepository {
     }
   }
 
+  /// Updates the caller's organisation address.
+  /// Calls PATCH /auth/org/ and returns the new address string.
+  Future<String> updateOrgAddress(String address) async {
+    if (_isLocal) return address;
+    try {
+      final res = await _dio!.patch('/auth/org/', data: {'address': address});
+      return (res.data as Map<String, dynamic>)['address'] as String? ?? address;
+    } on DioException catch (e) {
+      final body = e.response?.data;
+      if (body is Map) throw Exception(body['detail'] ?? 'Update failed');
+      throw Exception('Network error — check server connection');
+    }
+  }
+
   /// Uploads a new logo for the caller's organisation.
   /// Returns the absolute URL of the uploaded logo.
   Future<String> uploadOrgLogo(XFile imageFile) async {

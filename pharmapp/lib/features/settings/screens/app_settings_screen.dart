@@ -364,6 +364,29 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                 ]),
               ),
             ),
+            Divider(height: 1, indent: 16, endIndent: 16, color: context.dividerColor),
+            // ── Org address row ───────────────────────────────────────────────
+            Builder(builder: (context) {
+              final orgAddress = user?.organizationAddress as String? ?? '';
+              return InkWell(
+                onTap: () => _showOrgAddressDialog(orgAddress),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(children: [
+                    _tileIcon(Icons.location_on_outlined, EnhancedTheme.accentCyan),
+                    const SizedBox(width: 14),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Address',
+                          style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w500)),
+                      Text(orgAddress.isNotEmpty ? orgAddress : 'Not set',
+                          style: TextStyle(color: context.hintColor, fontSize: 12),
+                          overflow: TextOverflow.ellipsis),
+                    ])),
+                    Icon(Icons.edit_outlined, color: context.hintColor, size: 18),
+                  ]),
+                ),
+              );
+            }),
             const SizedBox(height: 4),
           ]),
         ),
@@ -427,6 +450,83 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
           Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
           SizedBox(width: 10),
           Text('Organisation name updated',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+        ]),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: Row(children: [
+          const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(e.toString().replaceFirst('Exception: ', ''),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+        ]),
+      ));
+    }
+  }
+
+  Future<void> _showOrgAddressDialog(String current) async {
+    final ctrl = TextEditingController(text: current);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text('Organisation Address', style: TextStyle(color: context.labelColor)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLines: 3,
+          style: TextStyle(color: context.labelColor, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'Enter organisation address',
+            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+            filled: true,
+            fillColor: context.isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.04),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: context.borderColor)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: context.borderColor)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: EnhancedTheme.accentCyan)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: TextStyle(color: context.hintColor))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save',
+                  style: TextStyle(color: EnhancedTheme.accentCyan))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final address = ctrl.text.trim();
+    if (address == current) return;
+    try {
+      await ref.read(authFlowProvider.notifier).updateOrgAddress(address);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: const Row(children: [
+          Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+          SizedBox(width: 10),
+          Text('Address updated',
               style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
         ]),
       ));
