@@ -778,6 +778,22 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
     if (confirmed != true || !mounted) return;
     final url = controller.text.trim();
     if (url.isEmpty) return;
+    final uri = Uri.tryParse(url);
+    if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https')) || uri.host.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: const Row(children: [
+          Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('Invalid URL. Must start with http:// or https://', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+        ]),
+      ));
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('api_base_url', url);
     ref.read(baseUrlProvider.notifier).state = url;

@@ -20,10 +20,6 @@ class PrescriberApiClient {
         if (prescriberToken != null) 'X-Prescriber-Token': prescriberToken,
       });
 
-  // Used for AllowAny endpoints — must send NO Authorization header so that
-  // simplejwt's JWTAuthentication doesn't raise InvalidToken and return 401.
-  static final _noAuthOpts = Options(headers: {'skip_auth': true});
-
   Future<void> _cache(String key, dynamic data) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, jsonEncode(data));
@@ -105,7 +101,7 @@ class PrescriberApiClient {
   Future<List<Customer>> fetchPatients(int prescriberId) async {
     final res = await _dio.get(
       '/prescriptions/prescribers/$prescriberId/patients/',
-      options: _noAuthOpts,
+      options: _portalOpts(),
     );
     final data = res.data;
     final list = data is Map && data.containsKey('results')
@@ -121,7 +117,7 @@ class PrescriberApiClient {
     final res = await _dio.post(
       '/prescriptions/prescribers/$prescriberId/patients/',
       data: data,
-      options: _noAuthOpts,
+      options: _portalOpts(),
     );
     return Customer.fromJson(res.data as Map<String, dynamic>);
   }

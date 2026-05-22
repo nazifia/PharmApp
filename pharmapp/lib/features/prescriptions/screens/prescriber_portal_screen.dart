@@ -266,6 +266,7 @@ class PrescriberPortalScreen extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       onPressed: () {
                         ref.read(currentPrescriberProvider.notifier).state = null;
+                        ref.read(prescriberTokenProvider.notifier).state = null;
                         context.go('/login');
                       },
                       icon: const Icon(Icons.logout_rounded, size: 18),

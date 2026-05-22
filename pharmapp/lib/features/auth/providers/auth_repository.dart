@@ -163,11 +163,11 @@ class AuthRepository {
 
     final user = User.fromJson(jsonDecode(offlineUserData) as Map<String, dynamic>);
 
-    // Reuse the stored token if still present; otherwise issue a temporary
-    // offline token so navigation works. The real token will be refreshed
-    // on the next successful online login.
-    final token = await AuthStorage.read('auth_token')
-        ?? 'offline_${DateTime.now().millisecondsSinceEpoch}';
+    // Reuse the stored token if still present. If no token exists (e.g. it was
+    // wiped by a prior 401), surface null so the caller knows not to make
+    // authenticated API calls — never fabricate a placeholder token.
+    final token = await AuthStorage.read('auth_token');
+    if (token == null) return null;
     return {'token': token, 'user': user};
   }
 

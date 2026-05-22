@@ -198,6 +198,11 @@ class SyncService {
   /// `Idempotency-Key` header so the backend can safely ignore a retry that
   /// was already applied (e.g. when the response was lost mid-flight).
   Future<void> _syncMutation(PendingMutation mut) async {
+    // Reject any path that isn't a relative API path — prevents a tampered
+    // SharedPreferences entry from redirecting a sync to an arbitrary host.
+    if (!mut.path.startsWith('/')) {
+      throw ArgumentError('Rejected mutation with non-relative path: ${mut.path}');
+    }
     final dio = ref.read(dioProvider);
     switch (mut.method) {
       case 'POST':
