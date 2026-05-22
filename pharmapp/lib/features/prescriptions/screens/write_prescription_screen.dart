@@ -243,26 +243,33 @@ class _WritePrescriptionScreenState
 
   Future<List<DrugWarning>> _gatherWarnings(List<String> drugNames) async {
     final patient = _selectedPatient;
-    if (patient == null || patient.id == null || patient.id! <= 0) return [];
+    final allWarnings = <DrugWarning>[];
+
+    // Cross-check drugs within this prescription against each other.
+    final valid = drugNames.where((d) => d.trim().isNotEmpty).toList();
+    for (int i = 0; i < valid.length; i++) {
+      for (int j = i + 1; j < valid.length; j++) {
+        allWarnings.addAll(DrugInteractionService.checkInteractions(
+          valid[i],
+          [valid[j]],
+          const [],
+        ));
+      }
+    }
+
+    if (patient == null || patient.id == null || patient.id! <= 0) return allWarnings;
     try {
       final customer = await ref.read(customerDetailProvider(patient.id!).future);
-      if (customer.allergies.isEmpty && customer.currentMedications.isEmpty) {
-        return [];
-      }
-      final allWarnings = <DrugWarning>[];
-      for (final drug in drugNames) {
-        if (drug.trim().isEmpty) continue;
-        final warnings = DrugInteractionService.checkInteractions(
+      for (final drug in valid) {
+        allWarnings.addAll(DrugInteractionService.checkInteractions(
           drug,
           customer.currentMedications,
           customer.allergies,
-        );
-        allWarnings.addAll(warnings);
+        ));
       }
-      return allWarnings;
-    } catch (_) {
-      return [];
-    }
+    } catch (_) {}
+
+    return allWarnings;
   }
 
   Future<bool> _showWarningDialog(List<DrugWarning> warnings) async {

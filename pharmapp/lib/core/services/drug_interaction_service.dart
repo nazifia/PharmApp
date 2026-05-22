@@ -77,80 +77,91 @@ class DrugInteractionService {
     String existingDisplay,
     List<DrugWarning> warnings,
   ) {
-    if (_isWarfarin(existing) && _isNsaidDrug(drug)) {
+    // Returns true if classA and classB match in either direction.
+    bool pair(bool Function(String) classA, bool Function(String) classB) =>
+        (classA(existing) && classB(drug)) || (classA(drug) && classB(existing));
+
+    if (pair(_isWarfarin, _isNsaidDrug)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.major,
         message: '$drugDisplay + $existingDisplay: Increased bleeding risk. NSAIDs potentiate anticoagulant effect.',
       ));
     }
 
-    if (_isWarfarin(existing) && _isAntibioticAffectingWarfarin(drug)) {
+    if (pair(_isWarfarin, _isAntibioticAffectingWarfarin)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.major,
         message: '$drugDisplay + $existingDisplay: Antibiotic may enhance anticoagulant effect, raising INR.',
       ));
     }
 
-    if (_isMetformin(existing) && _isContrastedOrAlcohol(drug)) {
+    if (pair(_isMetformin, _isContrastedOrAlcohol)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.moderate,
-        message: '$drugDisplay combined with metformin may increase risk of lactic acidosis.',
+        message: '$drugDisplay + $existingDisplay: Combined with metformin may increase risk of lactic acidosis.',
       ));
     }
 
-    if (_isMaoi(existing) && _isSsriOrTriptan(drug)) {
+    if (pair(_isMaoi, _isSsriOrTriptan)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.major,
         message: '$drugDisplay + $existingDisplay: Risk of serotonin syndrome. Potentially life-threatening.',
       ));
     }
 
-    if (_isSsri(existing) && _isSsriOrTriptan(drug)) {
+    // SSRI+serotonergic check — skip if MAOI already flagged above to avoid duplicate.
+    if (pair(_isSsri, _isSsriOrTriptan) && !_isMaoi(existing) && !_isMaoi(drug)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.moderate,
         message: '$drugDisplay + $existingDisplay: Combining serotonergic agents may increase serotonin syndrome risk.',
       ));
     }
 
-    if (_isAceInhibitor(existing) && _isNsaidDrug(drug)) {
+    if (pair(_isAceInhibitor, _isNsaidDrug)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.moderate,
-        message: '$drugDisplay may reduce the antihypertensive effect of $existingDisplay and worsen kidney function.',
+        message: '$drugDisplay + $existingDisplay: NSAID may reduce antihypertensive effect of ACE inhibitor and worsen kidney function.',
       ));
     }
 
-    if (_isDigoxin(existing) && _isMacrolideDrug(drug)) {
+    if (pair(_isDigoxin, _isMacrolideDrug)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.major,
-        message: '$drugDisplay may increase digoxin levels, risking toxicity (nausea, arrhythmias).',
+        message: '$drugDisplay + $existingDisplay: Macrolide may increase digoxin levels, risking toxicity (nausea, arrhythmias).',
       ));
     }
 
-    if (_isStatinDrug(existing) && _isCyp3a4Inhibitor(drug)) {
+    if (pair(_isStatinDrug, _isCyp3a4Inhibitor)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.major,
-        message: '$drugDisplay inhibits CYP3A4 and may increase $existingDisplay levels, raising myopathy risk.',
+        message: '$drugDisplay + $existingDisplay: CYP3A4 inhibitor may increase statin levels, raising myopathy risk.',
       ));
     }
 
-    if (_isLithium(existing) && _isNsaidDrug(drug)) {
+    if (pair(_isLithium, _isNsaidDrug)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.major,
-        message: '$drugDisplay may reduce lithium excretion, increasing risk of lithium toxicity.',
+        message: '$drugDisplay + $existingDisplay: NSAID may reduce lithium excretion, increasing risk of lithium toxicity.',
       ));
     }
 
-    if (_isAnticoagulant(existing) && _isAntiplatelet(drug)) {
+    if (pair(_isAnticoagulant, _isAntiplatelet)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.moderate,
         message: '$drugDisplay + $existingDisplay: Additive bleeding risk when combining anticoagulant and antiplatelet therapy.',
       ));
     }
 
+    // Absorption interactions — direction-specific messages.
     if (_isTetracycline(drug) && _isCalciumOrAntacid(existing)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.minor,
         message: '$existingDisplay reduces absorption of $drugDisplay. Administer at least 2 hours apart.',
+      ));
+    } else if (_isTetracycline(existing) && _isCalciumOrAntacid(drug)) {
+      warnings.add(DrugWarning(
+        severity: WarningSeverity.minor,
+        message: '$drugDisplay reduces absorption of $existingDisplay. Administer at least 2 hours apart.',
       ));
     }
 
@@ -159,16 +170,21 @@ class DrugInteractionService {
         severity: WarningSeverity.moderate,
         message: '$existingDisplay may chelate $drugDisplay and reduce its absorption.',
       ));
+    } else if (_isQuinolone(existing) && _isCalciumOrAntacid(drug)) {
+      warnings.add(DrugWarning(
+        severity: WarningSeverity.moderate,
+        message: '$drugDisplay may chelate $existingDisplay and reduce its absorption.',
+      ));
     }
 
-    if (_isBetaBlocker(existing) && _isCalciumChannelBlocker(drug)) {
+    if (pair(_isBetaBlocker, _isCalciumChannelBlocker)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.moderate,
         message: '$drugDisplay + $existingDisplay: Combination may cause excessive bradycardia or heart block.',
       ));
     }
 
-    if (_isSildenafil(drug) && _isNitrate(existing)) {
+    if (pair(_isSildenafil, _isNitrate)) {
       warnings.add(DrugWarning(
         severity: WarningSeverity.major,
         message: '$drugDisplay + $existingDisplay: Severe hypotension risk. Combination is contraindicated.',
