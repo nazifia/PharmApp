@@ -50,6 +50,9 @@ def customer_list(request):
         is_network_patient=bool(data.get("is_network_patient", False)),
         email=data.get("email", ""),
         address=data.get("address", ""),
+        allergies=data.get("allergies") or [],
+        chronic_conditions=data.get("chronic_conditions") or [],
+        current_medications=data.get("current_medications") or [],
     )
     log_activity(request, action='Create Customer', category='customers',
                  description=f'New customer "{customer.name}" registered')
@@ -76,6 +79,12 @@ def customer_detail(request, pk):
             customer.is_network_patient = bool(data["is_network_patient"])
         customer.email = data.get("email", customer.email)
         customer.address = data.get("address", customer.address)
+        if "allergies" in data:
+            customer.allergies = data["allergies"] or []
+        if "chronic_conditions" in data:
+            customer.chronic_conditions = data["chronic_conditions"] or []
+        if "current_medications" in data:
+            customer.current_medications = data["current_medications"] or []
         customer.save()
         log_activity(request, action='Update Customer', category='customers',
                      description=f'Updated customer "{customer.name}"')

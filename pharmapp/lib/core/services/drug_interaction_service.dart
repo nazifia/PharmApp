@@ -14,11 +14,11 @@ class DrugInteractionService {
     List<String> currentMedications,
     List<String> allergies,
   ) {
-    final drug = newDrug.toLowerCase().trim();
+    final drug = _normalize(newDrug.toLowerCase().trim());
     final warnings = <DrugWarning>[];
 
     for (final allergy in allergies) {
-      final a = allergy.toLowerCase().trim();
+      final a = _normalize(allergy.toLowerCase().trim());
       if (_isPenicillinAllergy(a) && _isPenicillinDrug(drug)) {
         warnings.add(DrugWarning(
           severity: WarningSeverity.allergy,
@@ -63,7 +63,7 @@ class DrugInteractionService {
     }
 
     for (final med in currentMedications) {
-      final m = med.toLowerCase().trim();
+      final m = _normalize(med.toLowerCase().trim());
       _checkDrugInteraction(drug, m, newDrug, med, warnings);
     }
 
@@ -191,6 +191,114 @@ class DrugInteractionService {
       ));
     }
   }
+
+  static String _normalize(String drug) {
+    if (_brandToGeneric.containsKey(drug)) return _brandToGeneric[drug]!;
+    for (final entry in _brandToGeneric.entries) {
+      if (drug.contains(entry.key)) return entry.value;
+    }
+    return drug;
+  }
+
+  static const _brandToGeneric = <String, String>{
+    // NSAIDs
+    'brufen': 'ibuprofen',     'nurofen': 'ibuprofen',
+    'advil': 'ibuprofen',      'motrin': 'ibuprofen',
+    'naprosyn': 'naproxen',    'aleve': 'naproxen',
+    'voltaren': 'diclofenac',  'cataflam': 'diclofenac',
+    'celebrex': 'celecoxib',   'mobic': 'meloxicam',
+    'feldene': 'piroxicam',    'ponstan': 'mefenamic acid',
+    // Analgesics / antipyretics
+    'panadol': 'paracetamol',  'tylenol': 'paracetamol',
+    'calpol': 'paracetamol',   'efferalgan': 'paracetamol',
+    // Penicillins
+    'amoxil': 'amoxicillin',   'trimox': 'amoxicillin',
+    'augmentin': 'amoxicillin','ampiclox': 'ampicillin',
+    // Cephalosporins
+    'rocephin': 'ceftriaxone', 'zinnat': 'cefuroxime',
+    'keflex': 'cefalexin',     'cephalexin': 'cefalexin',
+    // Macrolides
+    'zithromax': 'azithromycin','z-pak': 'azithromycin',
+    'zpak': 'azithromycin',    'biaxin': 'clarithromycin',
+    'rulid': 'roxithromycin',
+    // Quinolones
+    'cipro': 'ciprofloxacin',  'ciprobay': 'ciprofloxacin',
+    'levaquin': 'levofloxacin','noroxin': 'norfloxacin',
+    'avelox': 'moxifloxacin',  'floxin': 'ofloxacin',
+    // Other antibiotics
+    'flagyl': 'metronidazole',
+    'septrin': 'cotrimoxazole','bactrim': 'cotrimoxazole',
+    'vibramycin': 'doxycycline','oracea': 'doxycycline',
+    // Anticoagulants
+    'coumadin': 'warfarin',    'sinthrome': 'acenocoumarol',
+    'xarelto': 'rivaroxaban',  'eliquis': 'apixaban',
+    'pradaxa': 'dabigatran',   'lovenox': 'enoxaparin',
+    'clexane': 'enoxaparin',
+    // Antiplatelets
+    'plavix': 'clopidogrel',   'brilinta': 'ticagrelor',
+    'effient': 'prasugrel',    'persantine': 'dipyridamole',
+    'ecotrin': 'aspirin',
+    // Statins
+    'lipitor': 'atorvastatin', 'zocor': 'simvastatin',
+    'crestor': 'rosuvastatin', 'pravachol': 'pravastatin',
+    'mevacor': 'lovastatin',   'lescol': 'fluvastatin',
+    // Antidiabetics
+    'glucophage': 'metformin', 'daonil': 'glibenclamide',
+    'glucotrol': 'glipizide',
+    // ACE inhibitors
+    'zestril': 'lisinopril',   'prinivil': 'lisinopril',
+    'altace': 'ramipril',      'vasotec': 'enalapril',
+    'capoten': 'captopril',    'coversyl': 'perindopril',
+    // Beta blockers
+    'tenormin': 'atenolol',    'lopressor': 'metoprolol',
+    'toprol': 'metoprolol',    'inderal': 'propranolol',
+    'zebeta': 'bisoprolol',    'coreg': 'carvedilol',
+    // Calcium channel blockers
+    'calan': 'verapamil',      'isoptin': 'verapamil',
+    'cardizem': 'diltiazem',   'norvasc': 'amlodipine',
+    'procardia': 'nifedipine', 'adalat': 'nifedipine',
+    // Cardiac / diuretic
+    'lanoxin': 'digoxin',      'lasix': 'furosemide',
+    // Nitrates
+    'nitrostat': 'nitroglycerin','nitrolingual': 'nitroglycerin',
+    'imdur': 'isosorbide',     'ismo': 'isosorbide',
+    'isordil': 'isosorbide',
+    // PDE5 inhibitors
+    'viagra': 'sildenafil',    'revatio': 'sildenafil',
+    'cialis': 'tadalafil',     'levitra': 'vardenafil',
+    'stendra': 'avanafil',
+    // CYP3A4 inhibitors / antifungals
+    'nizoral': 'ketoconazole', 'sporanox': 'itraconazole',
+    'diflucan': 'fluconazole', 'norvir': 'ritonavir',
+    // SSRIs / SNRIs
+    'prozac': 'fluoxetine',    'sarafem': 'fluoxetine',
+    'zoloft': 'sertraline',    'celexa': 'citalopram',
+    'lexapro': 'escitalopram', 'cipralex': 'escitalopram',
+    'paxil': 'paroxetine',     'seroxat': 'paroxetine',
+    'luvox': 'fluvoxamine',    'effexor': 'venlafaxine',
+    'cymbalta': 'duloxetine',
+    // MAOIs
+    'nardil': 'phenelzine',    'parnate': 'tranylcypromine',
+    'eldepryl': 'selegiline',  'azilect': 'rasagiline',
+    'manerix': 'moclobemide',
+    // Triptans
+    'imitrex': 'sumatriptan',  'imigran': 'sumatriptan',
+    'zomig': 'zolmitriptan',
+    // Opioids
+    'ultram': 'tramadol',      'ms contin': 'morphine',
+    'oramorph': 'morphine',    'oxycontin': 'oxycodone',
+    'duragesic': 'fentanyl',   'demerol': 'pethidine',
+    // Lithium
+    'lithobid': 'lithium',     'eskalith': 'lithium',
+    // Antacids / chelation agents
+    'tums': 'calcium',         'caltrate': 'calcium',
+    'amphojel': 'aluminium',   'milk of magnesia': 'magnesium',
+    'feosol': 'iron',          'ferrous sulfate': 'iron',
+    'carafate': 'sucralfate',
+    // Anticonvulsants
+    'tegretol': 'carbamazepine','dilantin': 'phenytoin',
+    'epilim': 'sodium valproate',
+  };
 
   static bool _isPenicillinAllergy(String a) =>
       a.contains('penicillin') || a.contains('amoxicillin') || a.contains('ampicillin');

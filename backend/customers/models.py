@@ -28,8 +28,9 @@ class Customer(models.Model):
     )
     blood_group        = models.CharField(max_length=5, blank=True, default='')
     date_of_birth      = models.DateField(null=True, blank=True)
-    allergies          = models.JSONField(default=list, blank=True)
-    chronic_conditions = models.JSONField(default=list, blank=True)
+    allergies            = models.JSONField(default=list, blank=True)
+    chronic_conditions   = models.JSONField(default=list, blank=True)
+    current_medications  = models.JSONField(default=list, blank=True)
 
     def total_purchases(self):
         return float(self.sales.aggregate(
@@ -50,8 +51,9 @@ class Customer(models.Model):
             'outstanding_debt':    float(self.outstanding_debt),
             'blood_group':         self.blood_group or None,
             'date_of_birth':       self.date_of_birth.isoformat() if self.date_of_birth else None,
-            'allergies':           self.allergies or [],
-            'chronic_conditions':  self.chronic_conditions or [],
+            'allergies':            self.allergies or [],
+            'chronic_conditions':   self.chronic_conditions or [],
+            'current_medications':  self.current_medications or [],
         }
 
     def to_detail_dict(self):
