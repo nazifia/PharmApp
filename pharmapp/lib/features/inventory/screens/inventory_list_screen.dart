@@ -678,16 +678,14 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       drawer: const AppDrawer(),
-      floatingActionButton: canAddItem
-          ? FloatingActionButton.extended(
-              onPressed: () => _showAddItemSheet(context),
-              backgroundColor: EnhancedTheme.primaryTeal,
-              foregroundColor: Colors.black,
-              elevation: 4,
-              icon: const Icon(Icons.add_rounded),
-              label: Text('Add Item', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: canAddItem ? () => _showAddItemSheet(context) : null,
+        backgroundColor: canAddItem ? EnhancedTheme.primaryTeal : Colors.grey.shade700,
+        foregroundColor: canAddItem ? Colors.black : Colors.grey.shade400,
+        elevation: canAddItem ? 4 : 0,
+        icon: const Icon(Icons.add_rounded),
+        label: Text('Add Item', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+      ),
       body: Stack(children: [
         Container(decoration: context.bgGradient),
         // Decorative blobs

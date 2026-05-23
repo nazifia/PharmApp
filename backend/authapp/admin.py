@@ -543,8 +543,8 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
             eff_style = 'color:#10b981;font-weight:600' if effective else 'color:#475569'
 
             rows_html += (
-                f'<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">'
-                f'<td style="padding:5px 10px;font-size:12px;color:#94a3b8">{label}</td>'
+                f'<tr style="border-bottom:1px solid var(--border-color,#dee2e6)">'
+                f'<td style="padding:5px 10px;font-size:12px;color:var(--body-quiet-color,#555);opacity:0.85">{label}</td>'
                 f'<td style="padding:5px 10px;text-align:center;font-size:13px;{def_style}">{def_icon}</td>'
                 f'<td style="padding:5px 10px;text-align:center">{override_cell}</td>'
                 f'<td style="padding:5px 10px;text-align:center;font-size:13px;{eff_style}">{eff_icon}</td>'
@@ -565,26 +565,26 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <span style="background:{color};color:#fff;padding:5px 18px;border-radius:20px;
                  font-size:13px;font-weight:700;letter-spacing:0.03em">{role}</span>
-    <span style="font-size:11px;color:#64748b;background:rgba(255,255,255,0.04);
-                 padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08)">
+    <span style="font-size:11px;color:var(--body-quiet-color,#666);background:var(--darkened-bg,rgba(0,0,0,0.04));
+                 padding:4px 10px;border-radius:6px;border:1px solid var(--border-color,#dee2e6)">
       Wholesale Operator: <strong style="color:{ws_color}">{ws_flag}</strong>
     </span>
     {override_note}
   </div>
   <table style="width:100%;max-width:540px;border-collapse:collapse;
-                background:rgba(255,255,255,0.03);border-radius:8px;overflow:hidden;
-                border:1px solid rgba(255,255,255,0.08)">
+                background:var(--darkened-bg,rgba(0,0,0,0.02));border-radius:8px;overflow:hidden;
+                border:1px solid var(--border-color,#dee2e6)">
     <thead>
-      <tr style="background:rgba(255,255,255,0.06)">
-        <th style="padding:6px 10px;text-align:left;font-size:10px;color:#64748b;letter-spacing:0.08em;text-transform:uppercase">Module</th>
-        <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748b;letter-spacing:0.08em;text-transform:uppercase">Role Default</th>
-        <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748b;letter-spacing:0.08em;text-transform:uppercase">Override</th>
-        <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748b;letter-spacing:0.08em;text-transform:uppercase">Effective</th>
+      <tr style="background:var(--darkened-bg,rgba(0,0,0,0.06))">
+        <th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--body-quiet-color,#666);letter-spacing:0.08em;text-transform:uppercase">Module</th>
+        <th style="padding:6px 10px;text-align:center;font-size:10px;color:var(--body-quiet-color,#666);letter-spacing:0.08em;text-transform:uppercase">Role Default</th>
+        <th style="padding:6px 10px;text-align:center;font-size:10px;color:var(--body-quiet-color,#666);letter-spacing:0.08em;text-transform:uppercase">Override</th>
+        <th style="padding:6px 10px;text-align:center;font-size:10px;color:var(--body-quiet-color,#666);letter-spacing:0.08em;text-transform:uppercase">Effective</th>
       </tr>
     </thead>
     <tbody>{rows_html}</tbody>
   </table>
-  <p style="margin-top:8px;font-size:10.5px;color:#475569">
+  <p style="margin-top:8px;font-size:10.5px;color:var(--body-quiet-color,#666)">
     Add overrides in the <em>Individual Permission Overrides</em> section below.
     Changes take effect on next login.
   </p>
