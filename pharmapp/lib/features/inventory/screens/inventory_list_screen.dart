@@ -287,6 +287,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
       ));
       return;
     }
+    final canViewCostPrice = Rbac.can(user, AppPermission.viewCostPrice);
     final nameCtrl         = TextEditingController();
     final brandCtrl        = TextEditingController();
     final costCtrl         = TextEditingController();
@@ -347,16 +348,18 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                   _sheetField(brandCtrl, 'Brand / Manufacturer'),
                   const SizedBox(height: 12),
                   Row(children: [
-                    Expanded(child: _sheetField(costCtrl, 'Cost Price (₦)',
-                        keyboardType: TextInputType.number,
-                        onChanged: (v) {
-                          final cost = double.tryParse(v) ?? 0;
-                          if (cost > 0 && markup > 0) {
-                            priceCtrl.text = (cost * (1 + markup / 100)).toStringAsFixed(0);
-                            setModal(() {});
-                          }
-                        })),
-                    const SizedBox(width: 12),
+                    if (canViewCostPrice) ...[
+                      Expanded(child: _sheetField(costCtrl, 'Cost Price (₦)',
+                          keyboardType: TextInputType.number,
+                          onChanged: (v) {
+                            final cost = double.tryParse(v) ?? 0;
+                            if (cost > 0 && markup > 0) {
+                              priceCtrl.text = (cost * (1 + markup / 100)).toStringAsFixed(0);
+                              setModal(() {});
+                            }
+                          })),
+                      const SizedBox(width: 12),
+                    ],
                     Expanded(child: _sheetField(stockCtrl, 'Stock Qty *',
                         keyboardType: TextInputType.number,
                         validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid' : null)),

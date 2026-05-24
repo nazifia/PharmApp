@@ -24,9 +24,10 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   // Local override updated after stock-adjust / edit saves.
   Item? _itemOverride;
 
-  bool get _canEdit        => Rbac.can(ref.read(currentUserProvider), AppPermission.writeInventory);
-  bool get _canAdjustStock => Rbac.can(ref.read(currentUserProvider), AppPermission.adjustStock);
-  bool get _canDelete      => Rbac.can(ref.read(currentUserProvider), AppPermission.writeInventory);
+  bool get _canEdit          => Rbac.can(ref.read(currentUserProvider), AppPermission.writeInventory);
+  bool get _canAdjustStock   => Rbac.can(ref.read(currentUserProvider), AppPermission.adjustStock);
+  bool get _canDelete        => Rbac.can(ref.read(currentUserProvider), AppPermission.writeInventory);
+  bool get _canViewCostPrice => Rbac.can(ref.read(currentUserProvider), AppPermission.viewCostPrice);
 
   void _showNoPermissionSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -128,9 +129,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     Expanded(child: _field(priceCtrl, 'Retail Price (₦) *',
                         keyboardType: TextInputType.number,
                         validator: (v) => double.tryParse(v ?? '') == null ? 'Invalid' : null)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _field(costCtrl, 'Cost Price (₦)',
-                        keyboardType: TextInputType.number)),
+                    if (_canViewCostPrice) ...[
+                      const SizedBox(width: 12),
+                      Expanded(child: _field(costCtrl, 'Cost Price (₦)',
+                          keyboardType: TextInputType.number)),
+                    ],
                   ]),
                   const SizedBox(height: 12),
                   Row(children: [
@@ -1287,7 +1290,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 child: Column(children: [
                   _detailRow('Retail Price', '₦${item.price.toStringAsFixed(2)}',
                       Icons.sell_rounded, EnhancedTheme.primaryTeal),
-                  if (item.costPrice > 0) ...[
+                  if (_canViewCostPrice && item.costPrice > 0) ...[
                     _divider(),
                     _detailRow('Cost Price', '₦${item.costPrice.toStringAsFixed(2)}',
                         Icons.shopping_bag_rounded, EnhancedTheme.accentCyan),

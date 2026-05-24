@@ -50,6 +50,9 @@ abstract class AppPermission {
   // Wholesale section visibility
   static const String viewWholesale    = 'viewWholesale';
 
+  // Finance visibility
+  static const String viewCostPrice    = 'viewCostPrice';
+
   // Transfers
   static const String manageTransfers  = 'manageTransfers';
 }
@@ -78,6 +81,7 @@ const _prescriptionsWrite = {'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech'};
 const _prescriptionsRead  = {
   'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech', 'Salesperson', 'Cashier',
 };
+const _costPriceRoles = {'Admin', 'Manager'};
 const _expensesRoles  = {'Admin', 'Manager', 'Wholesale Manager'};
 const _suppliersRoles = {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager'};
 const _paymentsRoles  = {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager', 'Cashier'};
@@ -105,6 +109,7 @@ const Map<String, Set<String>> _matrix = {
   AppPermission.viewWholesale:     _wholesalePOS,
   AppPermission.writeCustomers:      _customersWrite,
   AppPermission.readCustomers:       _allStaff,
+  AppPermission.viewCostPrice:       _costPriceRoles,
   AppPermission.manageTransfers:     _transfersRoles,
   AppPermission.writePrescriptions:  _prescriptionsWrite,
   AppPermission.readPrescriptions:   _prescriptionsRead,
@@ -133,6 +138,7 @@ const List<String> allPermissions = [
   AppPermission.writeCustomers,
   AppPermission.readCustomers,
   AppPermission.viewWholesale,
+  AppPermission.viewCostPrice,
   AppPermission.manageTransfers,
   AppPermission.writePrescriptions,
   AppPermission.readPrescriptions,
@@ -160,6 +166,7 @@ const Map<String, String> permissionLabels = {
   AppPermission.writeCustomers:      'Edit Customers',
   AppPermission.readCustomers:       'View Customers',
   AppPermission.viewWholesale:       'Wholesale Access',
+  AppPermission.viewCostPrice:       'View Cost Price',
   AppPermission.manageTransfers:     'Manage Transfers',
   AppPermission.writePrescriptions:  'Write Prescriptions',
   AppPermission.readPrescriptions:   'View Prescriptions',

@@ -133,8 +133,8 @@ def register_org_view(request):
 def org_view(request):
     """
     PATCH /auth/org/
-    Body: { org_name: string }
-    Updates the caller's organisation name.
+    Body: { org_name?: string, address?: string }
+    Updates org name and/or address. At least one field required.
     """
     org = request.user.organization
     if org is None:
@@ -142,13 +142,22 @@ def org_view(request):
                         status=status.HTTP_400_BAD_REQUEST)
 
     org_name = request.data.get('org_name', '').strip()
-    if not org_name:
-        return Response({'detail': 'org_name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    address = request.data.get('address')
 
-    org.name = org_name
-    org.save(update_fields=['name'])
+    if not org_name and address is None:
+        return Response({'detail': 'org_name or address is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response({'org_name': org.name})
+    update_fields = []
+    if org_name:
+        org.name = org_name
+        update_fields.append('name')
+    if address is not None:
+        org.address = address.strip()
+        update_fields.append('address')
+
+    org.save(update_fields=update_fields)
+
+    return Response({'org_name': org.name, 'address': org.address})
 
 
 @api_view(['PATCH'])
