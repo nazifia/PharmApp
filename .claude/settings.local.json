@@ -129,7 +129,8 @@
       "PowerShell(Split-Path *)",
       "PowerShell(Test-Path *)",
       "Bash(venv\\\\Scripts\\\\python.exe manage.py migrate --check)",
-      "Bash(dir *)"
+      "Bash(dir *)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\build\\\\web\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object Name, Extension | Sort-Object Extension | Format-Table -AutoSize)"
     ]
   }
 }
