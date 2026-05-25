@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
@@ -1139,7 +1140,7 @@ class _StoreInventoryView extends ConsumerWidget {
                 ])),
                 const SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text('₦${item.price.toStringAsFixed(0)}',
+                  Text(fmtN(item.price),
                       style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal, fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
@@ -1210,7 +1211,7 @@ class _StoreInventoryView extends ConsumerWidget {
               const SizedBox(height: 3),
               Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
               const Spacer(),
-              Text('₦${item.price.toStringAsFixed(0)}',
+              Text(fmtN(item.price),
                   style: GoogleFonts.outfit(
                       color: EnhancedTheme.primaryTeal, fontSize: 14, fontWeight: FontWeight.w800)),
             ]),

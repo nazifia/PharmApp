@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../providers/drug_interaction_provider.dart';
@@ -584,8 +585,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                     const Text('Total Amount', style: TextStyle(color: Colors.black87, fontSize: 12)),
                   ])),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    const Text('₦', style: TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11)),
-                    Text(cartTotal.toStringAsFixed(2),
+                    Text(fmtN(cartTotal),
                         style: GoogleFonts.outfit(
                             color: Colors.black, fontSize: 22, fontWeight: FontWeight.w800)),
                   ]),
@@ -728,12 +728,12 @@ class _CartItemRowState extends ConsumerState<_CartItemRow> {
                 RichText(text: TextSpan(
                   style: TextStyle(color: context.subLabelColor, fontSize: 11),
                   children: [
-                    TextSpan(text: '₦${c.item.price.toStringAsFixed(0)}'),
+                    TextSpan(text: fmtN(c.item.price)),
                     const TextSpan(text: ' × '),
                     TextSpan(text: '${c.quantity}',
                         style: const TextStyle(color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
                     const TextSpan(text: ' = '),
-                    TextSpan(text: '₦${c.total.toStringAsFixed(0)}',
+                    TextSpan(text: fmtN(c.total),
                         style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
                   ],
                 )),

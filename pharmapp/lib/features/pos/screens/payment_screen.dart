@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/models/sale.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/offline/offline_queue.dart';
@@ -530,10 +531,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.8)),
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Text('₦',
-                            style: GoogleFonts.outfit(color: EnhancedTheme.accentCyan, fontSize: 24, fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 4),
-                        Text(total.toStringAsFixed(2),
+                        Text(fmtN(total),
                             style: GoogleFonts.outfit(
                                 color: Colors.black, fontSize: 42, fontWeight: FontWeight.w800,
                                 letterSpacing: -1.5)),
@@ -548,12 +546,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                                 style: const TextStyle(color: Colors.black54, fontSize: 12),
                                 overflow: TextOverflow.ellipsis)),
                             if (c.discount > 0)
-                              Text('-₦${c.discount.toStringAsFixed(0)}  ',
+                              Text('-${fmtN(c.discount)}  ',
                                   style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 11)),
                             Text('×${c.quantity}',
                                 style: const TextStyle(color: Colors.black45, fontSize: 11)),
                             const SizedBox(width: 12),
-                            Text('₦${c.total.toStringAsFixed(0)}',
+                            Text(fmtN(c.total),
                                 style: const TextStyle(
                                     color: EnhancedTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.w600)),
                           ]),
@@ -594,7 +592,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                             const Icon(Icons.account_balance_wallet_rounded, size: 11, color: EnhancedTheme.accentCyan),
                             const SizedBox(width: 4),
                             Text(
-                              'Wallet: ₦${selected.walletBalance.toStringAsFixed(0)}',
+                              'Wallet: ${fmtN(selected.walletBalance)}',
                               style: TextStyle(
                                 color: selected.walletBalance < 0
                                     ? EnhancedTheme.errorRed
@@ -679,8 +677,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               if (selected != null && _method == _PayMethod.wallet && selected.walletBalance < total) ...[
                 const SizedBox(height: 8),
                 _warningBanner(
-                  'Balance ₦${selected.walletBalance.toStringAsFixed(0)} — wallet will go to '
-                  '₦${(selected.walletBalance - total).toStringAsFixed(0)} after this sale.',
+                  'Balance ${fmtN(selected.walletBalance)} — wallet will go to '
+                  '${fmtN(selected.walletBalance - total)} after this sale.',
                 ),
               ],
 
@@ -688,8 +686,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               if (selected != null && _method == _PayMethod.split && _splitWallet > selected.walletBalance) ...[
                 const SizedBox(height: 8),
                 _warningBanner(
-                  'Wallet portion ₦${_splitWallet.toStringAsFixed(0)} exceeds balance '
-                  '₦${selected.walletBalance.toStringAsFixed(0)} — wallet will run negative.',
+                  'Wallet portion ${fmtN(_splitWallet)} exceeds balance '
+                  '${fmtN(selected.walletBalance)} — wallet will run negative.',
                 ),
               ],
 
@@ -699,7 +697,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 Text('Split Amounts',
                     style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text('Amounts must sum to ₦${total.toStringAsFixed(2)}.',
+                Text('Amounts must sum to ${fmtN(total)}.',
                     style: TextStyle(color: context.hintColor, fontSize: 12)),
                 const SizedBox(height: 14),
                 _splitField(_cashCtrl,  'Cash',          Icons.payments_rounded,                    EnhancedTheme.successGreen),
@@ -718,8 +716,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   final label = ok
                       ? 'Balanced ✓'
                       : diff > 0
-                          ? 'Over by ₦${diff.toStringAsFixed(2)}'
-                          : 'Remaining: ₦${(-diff).toStringAsFixed(2)}';
+                          ? 'Over by ${fmtN(diff)}'
+                          : 'Remaining: ${fmtN(-diff)}';
                   final color = ok ? EnhancedTheme.successGreen : EnhancedTheme.errorRed;
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -735,7 +733,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         Text(label, style: TextStyle(
                             color: color, fontSize: 13, fontWeight: FontWeight.w700)),
                       ]),
-                      Text('Sum: ₦${_splitSum.toStringAsFixed(2)}',
+                      Text('Sum: ${fmtN(_splitSum)}',
                           style: TextStyle(color: context.subLabelColor, fontSize: 12)),
                     ]),
                   );
@@ -778,7 +776,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                           Icon(_method.icon, size: 20, color: Colors.black),
                           const SizedBox(width: 10),
-                          Text('Confirm Payment  ₦${total.toStringAsFixed(2)}',
+                          Text('Confirm Payment  ${fmtN(total)}',
                               style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black)),
                         ]),
                 )),
@@ -969,9 +967,8 @@ class _SuccessSheet extends StatelessWidget {
               text: TextSpan(
                 style: TextStyle(color: context.subLabelColor, fontSize: 14),
                 children: [
-                  const TextSpan(text: '₦'),
                   TextSpan(
-                    text: total.toStringAsFixed(2),
+                    text: fmtN(total),
                     style: const TextStyle(color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700, fontSize: 16),
                   ),
                   const TextSpan(text: '  via'),

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -26,7 +27,7 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
   String _fmt(double v) {
     if (v >= 100000) return '₦${(v / 100000).toStringAsFixed(1)}L';
     if (v >= 1000)   return '₦${(v / 1000).toStringAsFixed(0)}K';
-    return '₦${v.toStringAsFixed(0)}';
+    return fmtN(v);
   }
 
   void _logout() {

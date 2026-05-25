@@ -16,6 +16,7 @@ import '../providers/drug_interaction_provider.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'retail_cart_screen.dart';
 
 class RetailPOSScreen extends ConsumerStatefulWidget {
@@ -377,7 +378,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                               subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text(c.phone, style: TextStyle(color: ctx.subLabelColor, fontSize: 12)),
                                 if (c.walletBalance > 0)
-                                  Text('Wallet: ₦${c.walletBalance.toStringAsFixed(0)}',
+                                  Text('Wallet: ${fmtN(c.walletBalance)}',
                                       style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
                               ]),
                               trailing: isSelected
@@ -630,7 +631,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                     Row(children: [
                       const Icon(Icons.account_balance_wallet_rounded, color: EnhancedTheme.successGreen, size: 11),
                       const SizedBox(width: 4),
-                      Text('₦${selected.walletBalance.toStringAsFixed(0)}',
+                      Text(fmtN(selected.walletBalance),
                           style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
                     ]),
                   ])
@@ -914,7 +915,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   Text('₦', style: TextStyle(
                     color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                     fontSize: 11, fontWeight: FontWeight.w600)),
-                  Text(item.price.toStringAsFixed(0),
+                  Text(fmtNum(item.price),
                       style: TextStyle(
                         color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal,
                         fontSize: 15, fontWeight: FontWeight.w800,
@@ -1029,7 +1030,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   ),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
-              Text('₦${item.price.toStringAsFixed(0)}',
+              Text(fmtN(item.price),
                   style: TextStyle(
                     color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal,
                     fontSize: 14, fontWeight: FontWeight.w800,
@@ -1418,12 +1419,12 @@ class _RetailCartItemState extends ConsumerState<_RetailCartItem> {
                 RichText(text: TextSpan(
                   style: TextStyle(color: context.subLabelColor, fontSize: 11),
                   children: [
-                    TextSpan(text: '₦${c.item.price.toStringAsFixed(0)}'),
+                    TextSpan(text: fmtN(c.item.price)),
                     const TextSpan(text: ' × '),
                     TextSpan(text: '${c.quantity}',
                         style: const TextStyle(color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
                     const TextSpan(text: ' = '),
-                    TextSpan(text: '₦${c.total.toStringAsFixed(0)}',
+                    TextSpan(text: fmtN(c.total),
                         style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
                   ],
                 )),

@@ -9,6 +9,7 @@ import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -718,7 +719,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
                   children: [
                     if (total != null)
                       Text(
-                        'N${total.toStringAsFixed(2)}',
+                        fmtN(total),
                         style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal,
                           fontSize: 15,

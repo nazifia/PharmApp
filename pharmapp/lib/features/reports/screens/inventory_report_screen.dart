@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -28,7 +29,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
     if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
     if (v >= 100000) return '₦${(v / 100000).toStringAsFixed(1)}L';
     if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
+    return fmtN(v);
   }
 
   @override

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -717,7 +718,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
   String _fmtNaira(double v) {
     if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}M';
     if (v >= 1000)    return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
+    return fmtN(v);
   }
 
   String _formatDateTime(String raw) {
@@ -1130,7 +1131,7 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
   String _fmtNaira(double v) {
     if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}M';
     if (v >= 1000)    return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
+    return fmtN(v);
   }
 
   String _formatDateTime(String raw) {

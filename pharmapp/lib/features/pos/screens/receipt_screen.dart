@@ -10,6 +10,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/services/hardware_printer_service.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 
 // ── Public helper ─────────────────────────────────────────────────────────────
 
@@ -538,8 +539,7 @@ class _ReceiptShareButtonState extends State<ReceiptShareButton> {
   String _buildReceiptText() {
     final data = widget.saleData;
 
-    String fmt(double v) =>
-        v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+    String fmt(double v) => fmtNum(v);
 
     String methodLabel(String m) {
       switch (m.toLowerCase()) {
@@ -1277,10 +1277,7 @@ class _ReceiptCard extends StatelessWidget {
     ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.05);
   }
 
-  static String _fmt(double v) {
-    if (v == v.truncateToDouble()) return v.toStringAsFixed(0);
-    return v.toStringAsFixed(2);
-  }
+  static String _fmt(double v) => fmtNum(v);
 
   static String _formatDateTime(String raw) {
     try {
@@ -1443,8 +1440,7 @@ Future<Uint8List> buildReceiptPdf(
     if (pw2 > 0) payments['wallet']   = pw2;
   }
 
-  String fmtAmt(double v) =>
-      v == v.truncateToDouble() ? '₦${v.toStringAsFixed(0)}' : '₦${v.toStringAsFixed(2)}';
+  String fmtAmt(double v) => fmtN(v);
 
   String methodLabel(String m) {
     switch (m.toLowerCase()) {

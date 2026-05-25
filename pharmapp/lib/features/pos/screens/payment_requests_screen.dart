@@ -10,6 +10,7 @@ import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/shared/models/sale.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../providers/pos_api_provider.dart';
@@ -490,7 +491,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Total Amount', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
                       const SizedBox(height: 6),
-                      Text('₦${totalAmount.toStringAsFixed(2)}',
+                      Text(fmtN(totalAmount),
                           style: GoogleFonts.outfit(
                               color: EnhancedTheme.primaryTeal, fontSize: 28, fontWeight: FontWeight.w900)),
                       const SizedBox(height: 4),
@@ -682,14 +683,14 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                     style: GoogleFonts.outfit(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Row(children: [
-                  Text('₦${price.toStringAsFixed(2)}',
+                  Text(fmtN(price),
                       style: TextStyle(color: context.subLabelColor, fontSize: 12)),
                   Text(' × ${qty % 1 == 0 ? qty.toInt() : qty.toStringAsFixed(2)}',
                       style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12,
                           fontWeight: FontWeight.w700)),
                 ]),
               ])),
-              Text('₦${subtotal.toStringAsFixed(2)}',
+              Text(fmtN(subtotal),
                   style: GoogleFonts.outfit(
                       color: EnhancedTheme.primaryTeal, fontSize: 15, fontWeight: FontWeight.w800)),
             ]),
@@ -945,7 +946,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('₦${totalAmount.toStringAsFixed(2)}',
+                  Text(fmtN(totalAmount),
                       style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal, fontSize: 20, fontWeight: FontWeight.w900)),
                   const Row(children: [
@@ -1073,7 +1074,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
               const SizedBox(height: 14),
 
               // ── Amount ───────────────────────────────────────────────────────
-              Text('₦${total.toStringAsFixed(2)}',
+              Text(fmtN(total),
                   style: GoogleFonts.outfit(
                       color: EnhancedTheme.primaryTeal,
                       fontSize: 20,
@@ -1331,7 +1332,7 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Amount Due', style: TextStyle(color: context.hintColor, fontSize: 11)),
                   const SizedBox(height: 4),
-                  Text('₦${widget.totalAmount.toStringAsFixed(2)}',
+                  Text(fmtN(widget.totalAmount),
                       style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal, fontSize: 24, fontWeight: FontWeight.w900)),
                 ]),
@@ -1413,10 +1414,10 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
                     const SizedBox(width: 8),
                     Expanded(child: Text(
                       _splitValid
-                          ? 'Split balanced — total ₦${_splitSum.toStringAsFixed(2)}'
+                          ? 'Split balanced — total ${fmtN(_splitSum)}'
                           : _remaining > 0
-                              ? 'Remaining: ₦${_remaining.toStringAsFixed(2)}'
-                              : 'Over by: ₦${(-_remaining).toStringAsFixed(2)}',
+                              ? 'Remaining: ${fmtN(_remaining)}'
+                              : 'Over by: ${fmtN(-_remaining)}',
                       style: TextStyle(
                         color: _splitValid ? EnhancedTheme.successGreen : EnhancedTheme.errorRed,
                         fontSize: 12, fontWeight: FontWeight.w600),

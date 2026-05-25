@@ -21,6 +21,7 @@ import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
 import 'package:pharmapp/shared/widgets/hardware_scanner_listener.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'receipt_screen.dart';
 
 const _kWalkInId = -1;
@@ -520,10 +521,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                                 Text(c.phone,
                                     style: TextStyle(color: ctx.subLabelColor, fontSize: 12)),
                                 if (c.walletBalance > 0)
-                                  Text('Wallet: ₦${c.walletBalance.toStringAsFixed(0)}',
+                                  Text('Wallet: ${fmtN(c.walletBalance)}',
                                       style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
                                 if (c.outstandingDebt > 0)
-                                  Text('Debt: ₦${c.outstandingDebt.toStringAsFixed(0)}',
+                                  Text('Debt: ${fmtN(c.outstandingDebt)}',
                                       style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 11, fontWeight: FontWeight.w600)),
                               ]),
                               trailing: isSelected
@@ -1204,7 +1205,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                     Row(children: [
                       const Icon(Icons.account_balance_wallet_rounded, color: EnhancedTheme.successGreen, size: 11),
                       const SizedBox(width: 4),
-                      Text('₦${_selectedCustomerWallet.toStringAsFixed(0)}',
+                      Text(fmtN(_selectedCustomerWallet),
                           style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
                     ]),
                   ])
@@ -1456,7 +1457,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                 Text('₦', style: TextStyle(
                   color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                   fontSize: 11, fontWeight: FontWeight.w600)),
-                Text(item.price.toStringAsFixed(0),
+                Text(fmtNum(item.price),
                     style: TextStyle(
                       color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                       fontSize: 15, fontWeight: FontWeight.w800,
@@ -1560,7 +1561,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   ),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
-              Text('₦${item.price.toStringAsFixed(0)}',
+              Text(fmtN(item.price),
                   style: TextStyle(
                     color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                     fontSize: 14, fontWeight: FontWeight.w800,
@@ -1666,8 +1667,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                       const Text('Order Total', style: TextStyle(color: Colors.black87, fontSize: 12)),
                     ]),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      const Text('₦', style: TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11)),
-                      Text(_cartTotal.toStringAsFixed(2),
+                      Text(fmtN(_cartTotal),
                           style: GoogleFonts.outfit(
                               color: Colors.black, fontSize: 22, fontWeight: FontWeight.w800)),
                     ]),
@@ -1889,7 +1889,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
   String _fmtNaira(double v) {
     if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}M';
     if (v >= 1000)    return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(2)}';
+    return fmtN(v);
   }
 
   @override
@@ -2004,8 +2004,8 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                     const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.warningAmber, size: 16),
                     const SizedBox(width: 8),
                     Expanded(child: Text(
-                      'Balance ₦${widget.walletBalance.toStringAsFixed(0)} — wallet will go to '
-                      '₦${(widget.walletBalance - widget.total).toStringAsFixed(0)} after this sale.',
+                      'Balance ${fmtN(widget.walletBalance)} — wallet will go to '
+                      '${fmtN(widget.walletBalance - widget.total)} after this sale.',
                       style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 11),
                     )),
                   ]),
@@ -2033,8 +2033,8 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                   final label = ok
                       ? 'Balanced ✓'
                       : diff > 0
-                          ? 'Over by ₦${diff.toStringAsFixed(0)}'
-                          : 'Under by ₦${(-diff).toStringAsFixed(0)}';
+                          ? 'Over by ${fmtN(diff)}'
+                          : 'Under by ${fmtN(-diff)}';
                   final color = ok ? EnhancedTheme.successGreen : EnhancedTheme.errorRed;
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -2049,7 +2049,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                         const SizedBox(width: 6),
                         Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
                       ]),
-                      Text('Sum: ₦${sum.toStringAsFixed(0)}',
+                      Text('Sum: ${fmtN(sum)}',
                           style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                     ]),
                   );
@@ -2198,7 +2198,7 @@ class _WholesaleSuccessSheet extends StatelessWidget {
   String _fmtNaira(double v) {
     if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}M';
     if (v >= 1000)    return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(2)}';
+    return fmtN(v);
   }
 
   (IconData, Color) get _methodMeta {
@@ -2416,12 +2416,12 @@ class _WsCartItemWidgetState extends State<_WsCartItemWidget> {
                 RichText(text: TextSpan(
                   style: TextStyle(color: context.subLabelColor, fontSize: 11),
                   children: [
-                    TextSpan(text: '₦${line.price.toStringAsFixed(0)}'),
+                    TextSpan(text: fmtN(line.price)),
                     const TextSpan(text: ' × '),
                     TextSpan(text: _fmtQty(line.qty),
                         style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700)),
                     const TextSpan(text: ' = '),
-                    TextSpan(text: '₦${line.total.toStringAsFixed(0)}',
+                    TextSpan(text: fmtN(line.total),
                         style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
                   ],
                 )),

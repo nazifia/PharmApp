@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
@@ -607,7 +608,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
   String _fmtNaira(double v) {
     if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}M';
     if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
+    return fmtN(v);
   }
 
   String _formatDateTime(String raw) {
@@ -1104,7 +1105,7 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
   String _fmtNaira(double v) {
     if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}M';
     if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
+    return fmtN(v);
   }
 
   String _formatDateTime(String raw) {

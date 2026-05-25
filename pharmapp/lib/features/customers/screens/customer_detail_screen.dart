@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import '../providers/customer_provider.dart';
 import '../providers/customer_api_client.dart' show SaleItemDetail;
@@ -211,13 +212,13 @@ class CustomerDetailScreen extends ConsumerWidget {
           // ── Key metrics ─────────────────────────────────────────────────────
           Row(children: [
             Expanded(child: _metricCard(context, 'Total Spent',
-                customer.totalSpent != null ? '₦${customer.totalSpent!.toStringAsFixed(0)}' : '—',
+                customer.totalSpent != null ? fmtN(customer.totalSpent!) : '—',
                 EnhancedTheme.primaryTeal, Icons.payments_rounded)),
             const SizedBox(width: 10),
             Expanded(child: _metricCard(
                 context,
                 'Wallet',
-                '${customer.walletBalance < 0 ? '-' : ''}₦${customer.walletBalance.abs().toStringAsFixed(0)}',
+                '${customer.walletBalance < 0 ? '-' : ''}${fmtN(customer.walletBalance.abs())}',
                 customer.walletBalance < 0 ? EnhancedTheme.errorRed : EnhancedTheme.successGreen,
                 Icons.account_balance_wallet_rounded)),
             const SizedBox(width: 10),
@@ -259,7 +260,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       const Text('Outstanding Balance',
                           style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 11, fontWeight: FontWeight.w600)),
-                      Text('₦${customer.outstandingDebt.toStringAsFixed(2)}',
+                      Text(fmtN(customer.outstandingDebt),
                           style: GoogleFonts.outfit(
                               color: EnhancedTheme.errorRed, fontSize: 18, fontWeight: FontWeight.w800)),
                     ])),
@@ -907,7 +908,7 @@ class CustomerDetailScreen extends ConsumerWidget {
               child: Row(children: [
                 const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.errorRed, size: 16),
                 const SizedBox(width: 8),
-                Text('Outstanding: ₦${customer.outstandingDebt.toStringAsFixed(2)}',
+                Text('Outstanding: ${fmtN(customer.outstandingDebt)}',
                     style: const TextStyle(color: EnhancedTheme.errorRed, fontWeight: FontWeight.w700, fontSize: 13)),
               ]),
             ),
@@ -960,7 +961,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                     content: Row(children: [
                       Icon(success ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.black, size: 20),
                       const SizedBox(width: 10),
-                      Expanded(child: Text(success ? 'Payment of ₦${amount.toStringAsFixed(2)} recorded' : 'Payment failed', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                      Expanded(child: Text(success ? 'Payment of ${fmtN(amount)} recorded' : 'Payment failed', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                     ]),
                   ));
                 }
@@ -1474,7 +1475,7 @@ class _PurchaseCardState extends State<_PurchaseCard>
                       ]),
                     ])),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text('₦${p.total.toStringAsFixed(0)}',
+                      Text(fmtN(p.total),
                           style: const TextStyle(
                               color: EnhancedTheme.primaryTeal,
                               fontSize: 14,
@@ -1638,7 +1639,7 @@ class _PurchaseCardState extends State<_PurchaseCard>
                       isReturned ? TextDecoration.lineThrough : null),
               maxLines: 2,
             )),
-            Text('₦${item.subtotal.toStringAsFixed(0)}',
+            Text(fmtN(item.subtotal),
                 style: TextStyle(
                     color: isReturned
                         ? context.hintColor
@@ -1649,7 +1650,7 @@ class _PurchaseCardState extends State<_PurchaseCard>
                         isReturned ? TextDecoration.lineThrough : null)),
           ]),
           Text(
-            '${item.quantity} × ₦${item.price.toStringAsFixed(0)}'
+            '${item.quantity} × ${fmtN(item.price)}'
             '${isReturned ? '  (returned)' : ''}',
             style: TextStyle(color: context.hintColor, fontSize: 10),
           ),

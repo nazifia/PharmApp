@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -856,7 +857,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     final sign = v < 0 ? '-' : '';
     if (abs >= 1000000) return '$sign₦${(abs / 1000000).toStringAsFixed(1)}M';
     if (abs >= 1000) return '$sign₦${(abs / 1000).toStringAsFixed(1)}K';
-    return '$sign₦${abs.toStringAsFixed(0)}';
+    return '$sign${fmtN(abs.toDouble())}';
   }
 
   Widget _summaryCard(String label, String value, Color color, IconData icon) {

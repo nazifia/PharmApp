@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -1215,7 +1216,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
 
           // Key metrics
           Row(children: [
-            Expanded(child: _metricCard('Price', '₦${item.price.toStringAsFixed(0)}',
+            Expanded(child: _metricCard('Price', fmtN(item.price),
                 EnhancedTheme.primaryTeal, Icons.sell_rounded)),
             const SizedBox(width: 12),
             Expanded(child: _metricCard('Stock', '${item.stock}',
@@ -1288,11 +1289,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   border: Border.all(color: context.borderColor),
                 ),
                 child: Column(children: [
-                  _detailRow('Retail Price', '₦${item.price.toStringAsFixed(2)}',
+                  _detailRow('Retail Price', fmtN(item.price),
                       Icons.sell_rounded, EnhancedTheme.primaryTeal),
                   if (_canViewCostPrice && item.costPrice > 0) ...[
                     _divider(),
-                    _detailRow('Cost Price', '₦${item.costPrice.toStringAsFixed(2)}',
+                    _detailRow('Cost Price', fmtN(item.costPrice),
                         Icons.shopping_bag_rounded, EnhancedTheme.accentCyan),
                     if (item.markup > 0) ...[
                       _divider(),
@@ -1300,7 +1301,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           Icons.percent_rounded, EnhancedTheme.warningAmber),
                     ],
                     _divider(),
-                    _detailRow('Margin', '₦${(item.price - item.costPrice).toStringAsFixed(2)}',
+                    _detailRow('Margin', fmtN(item.price - item.costPrice),
                         Icons.trending_up_rounded, EnhancedTheme.successGreen),
                   ],
                 ]),

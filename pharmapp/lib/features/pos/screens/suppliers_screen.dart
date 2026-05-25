@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 import '../providers/pos_api_provider.dart';
@@ -897,7 +898,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                         ],
                       ]),
                       const SizedBox(height: 6),
-                      Text('₦${total.toStringAsFixed(2)}',
+                      Text(fmtN(total),
                           style: GoogleFonts.outfit(color: context.labelColor,
                               fontSize: 16, fontWeight: FontWeight.w800)),
                     ])),
@@ -1309,7 +1310,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
                     style: GoogleFonts.outfit(color: context.labelColor,
                         fontSize: 14, fontWeight: FontWeight.w600)),
               ]),
-              Text('₦${_total.toStringAsFixed(2)}',
+              Text(fmtN(_total),
                   style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                       fontSize: 18, fontWeight: FontWeight.w800)),
             ]),
@@ -1510,7 +1511,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
                           style: GoogleFonts.inter(
                               color: context.subLabelColor, fontSize: 12)),
                     ]),
-                    Text('₦${selling.toStringAsFixed(2)}',
+                    Text(fmtN(selling),
                         style: GoogleFonts.outfit(
                             color: EnhancedTheme.successGreen,
                             fontSize: 13, fontWeight: FontWeight.w700)),
@@ -1586,7 +1587,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: Text('Subtotal: ₦${line.subtotal.toStringAsFixed(2)}',
+                  child: Text('Subtotal: ${fmtN(line.subtotal)}',
                       style: GoogleFonts.outfit(color: context.subLabelColor,
                           fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
@@ -1844,7 +1845,7 @@ class _ProcurementDetailSheetState
             _miniStat('Status', isDraft ? 'Draft' : 'Dispatched', statusColor),
             Container(width: 1, height: 24,
                 color: Colors.white.withValues(alpha: 0.1)),
-            _miniStat('Total', '₦${total.toStringAsFixed(0)}',
+            _miniStat('Total', fmtN(total),
                 EnhancedTheme.primaryTeal),
           ]),
         ),
@@ -1875,7 +1876,7 @@ class _ProcurementDetailSheetState
             Text('Total Cost',
                 style: GoogleFonts.outfit(color: context.labelColor,
                     fontSize: 14, fontWeight: FontWeight.w600)),
-            Text('₦${total.toStringAsFixed(2)}',
+            Text(fmtN(total),
                 style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                     fontSize: 20, fontWeight: FontWeight.w800)),
           ]),
@@ -2040,9 +2041,9 @@ class _ProcurementDetailSheetState
               ]),
               const SizedBox(height: 10),
               Wrap(spacing: 6, runSpacing: 6, children: [
-                _infoChip('Cost', '₦${cost.toStringAsFixed(2)}',
+                _infoChip('Cost', fmtN(cost),
                     EnhancedTheme.warningAmber),
-                _infoChip('Sell', '₦${selling.toStringAsFixed(2)}',
+                _infoChip('Sell', fmtN(selling),
                     EnhancedTheme.successGreen),
                 _infoChip('Markup', '${markup.toStringAsFixed(0)}%',
                     EnhancedTheme.accentCyan),
@@ -2054,7 +2055,7 @@ class _ProcurementDetailSheetState
               const SizedBox(height: 6),
               Align(
                 alignment: Alignment.centerRight,
-                child: Text('Subtotal: ₦${subtotal.toStringAsFixed(2)}',
+                child: Text('Subtotal: ${fmtN(subtotal)}',
                     style: GoogleFonts.outfit(color: context.subLabelColor,
                         fontSize: 11, fontWeight: FontWeight.w700)),
               ),
