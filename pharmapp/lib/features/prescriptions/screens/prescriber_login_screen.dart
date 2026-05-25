@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -66,14 +65,14 @@ class _PrescriberLoginScreenState extends ConsumerState<PrescriberLoginScreen>
     final isLoading = ref.watch(prescriberNotifierProvider).isLoading;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFFF5F3FF),
       body: Stack(
         children: [
           // Background gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0F172A), Color(0xFF1A0A2E), Color(0xFF0F172A)],
+                colors: [Color(0xFFEDE9FE), Color(0xFFF5F3FF), Color(0xFFEFF6FF)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -87,7 +86,7 @@ class _PrescriberLoginScreenState extends ConsumerState<PrescriberLoginScreen>
               width: 280, height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+                color: EnhancedTheme.accentPurple.withValues(alpha: 0.10),
               ),
             ),
           ),
@@ -97,7 +96,7 @@ class _PrescriberLoginScreenState extends ConsumerState<PrescriberLoginScreen>
               width: 320, height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: EnhancedTheme.accentPurple.withValues(alpha: 0.07),
+                color: EnhancedTheme.accentPurple.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -118,13 +117,20 @@ class _PrescriberLoginScreenState extends ConsumerState<PrescriberLoginScreen>
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.08),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.12)),
+                                color: EnhancedTheme.accentPurple.withValues(alpha: 0.2)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: EnhancedTheme.accentPurple.withValues(alpha: 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          child: const Icon(Icons.arrow_back_ios_new_rounded,
-                              color: Colors.white70, size: 16),
+                          child: Icon(Icons.arrow_back_ios_new_rounded,
+                              color: EnhancedTheme.accentPurple.withValues(alpha: 0.7), size: 16),
                         ),
                       ),
                     ),
@@ -137,13 +143,13 @@ class _PrescriberLoginScreenState extends ConsumerState<PrescriberLoginScreen>
                       height: 88,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: EnhancedTheme.accentPurple.withValues(alpha: 0.15),
+                        color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
                         border: Border.all(
-                            color: EnhancedTheme.accentPurple.withValues(alpha: 0.3),
+                            color: EnhancedTheme.accentPurple.withValues(alpha: 0.25),
                             width: 1.5),
                         boxShadow: [
                           BoxShadow(
-                            color: EnhancedTheme.accentPurple.withValues(alpha: 0.25),
+                            color: EnhancedTheme.accentPurple.withValues(alpha: 0.18),
                             blurRadius: 28,
                             offset: const Offset(0, 8),
                           ),
@@ -158,116 +164,119 @@ class _PrescriberLoginScreenState extends ConsumerState<PrescriberLoginScreen>
                     Text(
                       'Prescriber Sign In',
                       style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: const Color(0xFF1E1B4B),
                           fontSize: 28,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.5),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Access your prescriber portal',
-                      style: TextStyle(color: Colors.white54, fontSize: 14),
+                      style: TextStyle(
+                          color: EnhancedTheme.accentPurple.withValues(alpha: 0.6),
+                          fontSize: 14),
                     ),
 
                     const SizedBox(height: 40),
 
                     // Login card
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                        child: Container(
-                          padding: const EdgeInsets.all(28),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.12),
-                                width: 1.5),
+                    Container(
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                            color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+                            width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: EnhancedTheme.accentPurple.withValues(alpha: 0.08),
+                            blurRadius: 32,
+                            offset: const Offset(0, 8),
                           ),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // Phone
-                                TextFormField(
-                                  controller: _phoneCtrl,
-                                  keyboardType: TextInputType.phone,
-                                  style: const TextStyle(color: Colors.white),
-                                  decoration: _inputDeco(
-                                    label: 'Phone Number',
-                                    icon: Icons.phone_rounded,
-                                  ),
-                                  validator: (v) =>
-                                      (v == null || v.trim().isEmpty)
-                                          ? 'Enter your phone number'
-                                          : null,
-                                ),
-
-                                const SizedBox(height: 16),
-
-                                // Password
-                                TextFormField(
-                                  controller: _passwordCtrl,
-                                  obscureText: _obscure,
-                                  style: const TextStyle(color: Colors.white),
-                                  decoration: _inputDeco(
-                                    label: 'Password',
-                                    icon: Icons.lock_rounded,
-                                    suffix: IconButton(
-                                      icon: Icon(
-                                        _obscure
-                                            ? Icons.visibility_off_rounded
-                                            : Icons.visibility_rounded,
-                                        color: Colors.white38,
-                                        size: 18,
-                                      ),
-                                      onPressed: () =>
-                                          setState(() => _obscure = !_obscure),
-                                    ),
-                                  ),
-                                  validator: (v) =>
-                                      (v == null || v.isEmpty)
-                                          ? 'Enter your password'
-                                          : null,
-                                ),
-
-                                const SizedBox(height: 28),
-
-                                // Sign In button
-                                SizedBox(
-                                  height: 52,
-                                  child: ElevatedButton(
-                                    onPressed: isLoading ? null : _handleLogin,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: EnhancedTheme.accentPurple,
-                                      foregroundColor: Colors.white,
-                                      disabledBackgroundColor:
-                                          EnhancedTheme.accentPurple.withValues(alpha: 0.5),
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14)),
-                                    ),
-                                    child: isLoading
-                                        ? const SizedBox(
-                                            width: 22,
-                                            height: 22,
-                                            child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 2.5),
-                                          )
-                                        : const Text(
-                                            'Sign In',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 15),
-                                          ),
-                                  ),
-                                ),
-                              ],
+                        ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Phone
+                            TextFormField(
+                              controller: _phoneCtrl,
+                              keyboardType: TextInputType.phone,
+                              style: const TextStyle(color: Color(0xFF1E1B4B)),
+                              decoration: _inputDeco(
+                                label: 'Phone Number',
+                                icon: Icons.phone_rounded,
+                              ),
+                              validator: (v) =>
+                                  (v == null || v.trim().isEmpty)
+                                      ? 'Enter your phone number'
+                                      : null,
                             ),
-                          ),
+
+                            const SizedBox(height: 16),
+
+                            // Password
+                            TextFormField(
+                              controller: _passwordCtrl,
+                              obscureText: _obscure,
+                              style: const TextStyle(color: Color(0xFF1E1B4B)),
+                              decoration: _inputDeco(
+                                label: 'Password',
+                                icon: Icons.lock_rounded,
+                                suffix: IconButton(
+                                  icon: Icon(
+                                    _obscure
+                                        ? Icons.visibility_off_rounded
+                                        : Icons.visibility_rounded,
+                                    color: EnhancedTheme.accentPurple.withValues(alpha: 0.4),
+                                    size: 18,
+                                  ),
+                                  onPressed: () =>
+                                      setState(() => _obscure = !_obscure),
+                                ),
+                              ),
+                              validator: (v) =>
+                                  (v == null || v.isEmpty)
+                                      ? 'Enter your password'
+                                      : null,
+                            ),
+
+                            const SizedBox(height: 28),
+
+                            // Sign In button
+                            SizedBox(
+                              height: 52,
+                              child: ElevatedButton(
+                                onPressed: isLoading ? null : _handleLogin,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: EnhancedTheme.accentPurple,
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor:
+                                      EnhancedTheme.accentPurple.withValues(alpha: 0.4),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14)),
+                                ),
+                                child: isLoading
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2.5),
+                                      )
+                                    : const Text(
+                                        'Sign In',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 15),
+                                      ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -278,9 +287,10 @@ class _PrescriberLoginScreenState extends ConsumerState<PrescriberLoginScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Don't have an account?",
-                            style:
-                                TextStyle(color: Colors.white38, fontSize: 13)),
+                        Text("Don't have an account?",
+                            style: TextStyle(
+                                color: const Color(0xFF1E1B4B).withValues(alpha: 0.5),
+                                fontSize: 13)),
                         TextButton(
                           onPressed: () => context.go('/register-prescriber'),
                           child: const Text(
@@ -312,19 +322,19 @@ class _PrescriberLoginScreenState extends ConsumerState<PrescriberLoginScreen>
   }) =>
       InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54),
+        labelStyle: TextStyle(color: const Color(0xFF1E1B4B).withValues(alpha: 0.5)),
         prefixIcon:
             Icon(icon, color: EnhancedTheme.accentPurple, size: 18),
         suffixIcon: suffix,
         filled: true,
-        fillColor: const Color(0xFF0F172A),
-        border: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(14)),
-          borderSide: BorderSide(color: Colors.white12),
+        fillColor: const Color(0xFFF5F3FF),
+        border: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(Radius.circular(14)),
+          borderSide: BorderSide(color: EnhancedTheme.accentPurple.withValues(alpha: 0.15)),
         ),
-        enabledBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(14)),
-          borderSide: BorderSide(color: Colors.white12),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(Radius.circular(14)),
+          borderSide: BorderSide(color: EnhancedTheme.accentPurple.withValues(alpha: 0.15)),
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(14)),
