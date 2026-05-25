@@ -17,6 +17,8 @@ import '../../customers/providers/customer_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
+import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
+import 'package:pharmapp/shared/widgets/hardware_scanner_listener.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'receipt_screen.dart';
@@ -114,6 +116,41 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
 
   void _removeFromCart(int id) =>
       setState(() => _cart.removeWhere((l) => l.id == id));
+
+  void _onBarcodeScannedWholesale(String code) {
+    final items =
+        ref.read(wholesaleInventoryProvider).valueOrNull ?? [];
+    final match = items.where((i) => i.barcode == code).firstOrNull;
+    if (match == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Item not found for barcode: $code'),
+        backgroundColor: const Color(0xFFEF4444),
+      ));
+      return;
+    }
+    if (match.stock == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${match.name} is out of stock'),
+        backgroundColor: const Color(0xFFEF4444),
+      ));
+      return;
+    }
+    final inCart = _cart
+        .where((l) => l.id == match.id)
+        .fold<double>(0, (s, l) => s + l.qty);
+    if (inCart >= match.stock) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${match.name} — maximum stock in cart'),
+        backgroundColor: const Color(0xFFEF4444),
+      ));
+      return;
+    }
+    _addToCart(match);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('${match.name} added to cart'),
+      backgroundColor: const Color(0xFF10B981),
+    ));
+  }
 
   void _updateQty(int id, double qty) {
     if (qty < 0.5) { _removeFromCart(id); return; }
@@ -966,23 +1003,26 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           i.barcode.toLowerCase().contains(q)).toList();
     });
 
-    return Scaffold(
-      backgroundColor: context.scaffoldBg,
-      drawer: const AppDrawer(),
-      body: Stack(children: [
-        Container(decoration: context.bgGradient),
-        SafeArea(child: Column(children: [
-          _header(context),
-          _customerRow(context, customersAsync),
-          Expanded(child: wide
-              ? Row(children: [
-                  Expanded(flex: 3, child: _itemsPanel(filteredAsync)),
-                  VerticalDivider(width: 1, color: context.borderColor),
-                  Expanded(flex: 2, child: _cartPanel()),
-                ])
-              : _mobileLayout(filteredAsync)),
-        ])),
-      ]),
+    return HardwareScannerListener(
+      onBarcodeScanned: _onBarcodeScannedWholesale,
+      child: Scaffold(
+        backgroundColor: context.scaffoldBg,
+        drawer: const AppDrawer(),
+        body: Stack(children: [
+          Container(decoration: context.bgGradient),
+          SafeArea(child: Column(children: [
+            _header(context),
+            _customerRow(context, customersAsync),
+            Expanded(child: wide
+                ? Row(children: [
+                    Expanded(flex: 3, child: _itemsPanel(filteredAsync)),
+                    VerticalDivider(width: 1, color: context.borderColor),
+                    Expanded(flex: 2, child: _cartPanel()),
+                  ])
+                : _mobileLayout(filteredAsync)),
+          ])),
+        ]),
+      ),
     );
   }
 
@@ -1216,25 +1256,43 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     return Column(children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-        child: TextField(
-          controller: _searchCtrl,
-          onChanged: (_) => setState(() {}),
-          style: TextStyle(color: context.labelColor),
-          decoration: InputDecoration(
-            hintText: 'Search items by name, brand, barcode…',
-            hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
-            prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
-            suffixIcon: _searchCtrl.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(Icons.close_rounded, color: context.hintColor, size: 16),
-                    onPressed: () => setState(() => _searchCtrl.clear()))
-                : null,
-            filled: true, fillColor: context.cardColor,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(vertical: 13),
+        child: Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: (_) => setState(() {}),
+              style: TextStyle(color: context.labelColor),
+              decoration: InputDecoration(
+                hintText: 'Search items by name, brand, barcode…',
+                hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
+                prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
+                suffixIcon: _searchCtrl.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.close_rounded, color: context.hintColor, size: 16),
+                        onPressed: () => setState(() => _searchCtrl.clear()))
+                    : null,
+                filled: true, fillColor: context.cardColor,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => showBarcodeScannerSheet(context, _onBarcodeScannedWholesale),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35)),
+              ),
+              child: const Icon(Icons.qr_code_scanner_rounded,
+                  color: EnhancedTheme.primaryTeal, size: 22),
+            ),
+          ),
+        ]),
       ),
       Expanded(child: filtered.when(
         loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [

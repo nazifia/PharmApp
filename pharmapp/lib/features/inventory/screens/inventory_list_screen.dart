@@ -11,6 +11,7 @@ import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
+import 'package:pharmapp/shared/widgets/hardware_scanner_listener.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/branch.dart';
@@ -678,7 +679,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   @override
   Widget build(BuildContext context) {
     final canAddItem = Rbac.can(ref.watch(currentUserProvider), AppPermission.createInventory);
-    return Scaffold(
+    return HardwareScannerListener(
+      onBarcodeScanned: _onBarcodeScannedInventory,
+      child: Scaffold(
       backgroundColor: context.scaffoldBg,
       drawer: const AppDrawer(),
       floatingActionButton: FloatingActionButton.extended(
@@ -772,6 +775,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
           ),
         ])),
       ]),
+      ),
     );
   }
 

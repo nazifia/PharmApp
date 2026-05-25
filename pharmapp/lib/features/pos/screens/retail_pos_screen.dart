@@ -10,6 +10,7 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/cart_item.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
+import 'package:pharmapp/shared/widgets/hardware_scanner_listener.dart';
 import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../providers/cart_provider.dart';
@@ -605,23 +606,26 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           i.barcode.toLowerCase().contains(q)).toList();
     });
 
-    return Scaffold(
-      backgroundColor: context.scaffoldBg,
-      drawer: const AppDrawer(),
-      body: Stack(children: [
-        Container(decoration: context.bgGradient),
-        SafeArea(child: Column(children: [
-          _header(context, cartCount),
-          _customerRow(context, customersAsync),
-          Expanded(child: wide
-              ? Row(children: [
-                  Expanded(flex: 3, child: _itemsPanel(filteredAsync, cart)),
-                  VerticalDivider(width: 1, color: context.borderColor),
-                  Expanded(flex: 2, child: _cartPanel(cart, cartTotal)),
-                ])
-              : _mobileLayout(filteredAsync, cart, cartTotal)),
-        ])),
-      ]),
+    return HardwareScannerListener(
+      onBarcodeScanned: _onBarcodeScannedPOS,
+      child: Scaffold(
+        backgroundColor: context.scaffoldBg,
+        drawer: const AppDrawer(),
+        body: Stack(children: [
+          Container(decoration: context.bgGradient),
+          SafeArea(child: Column(children: [
+            _header(context, cartCount),
+            _customerRow(context, customersAsync),
+            Expanded(child: wide
+                ? Row(children: [
+                    Expanded(flex: 3, child: _itemsPanel(filteredAsync, cart)),
+                    VerticalDivider(width: 1, color: context.borderColor),
+                    Expanded(flex: 2, child: _cartPanel(cart, cartTotal)),
+                  ])
+                : _mobileLayout(filteredAsync, cart, cartTotal)),
+          ])),
+        ]),
+      ),
     );
   }
 

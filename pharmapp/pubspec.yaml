@@ -51,6 +51,7 @@ dependencies:
   # Receipt / PDF printing
   printing: ^5.13.1
   pdf: ^3.11.1
+  print_bluetooth_thermal: ^1.2.2
 
 dev_dependencies:
   flutter_test:

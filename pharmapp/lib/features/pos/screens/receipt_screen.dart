@@ -9,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/services/hardware_printer_service.dart';
 
 // ── Public helper ─────────────────────────────────────────────────────────────
 
@@ -117,7 +118,7 @@ class _ReceiptSheetState extends State<ReceiptSheet> {
 
 // ── Print format ──────────────────────────────────────────────────────────────
 
-enum PrintFormat { thermal, a4 }
+enum PrintFormat { thermal, a4, bluetoothThermal }
 
 // ── Print button ──────────────────────────────────────────────────────────────
 
@@ -138,13 +139,26 @@ class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
     if (fmt == null || !mounted) return;
     setState(() => _printing = true);
     try {
-      final pageFormat =
-          fmt == PrintFormat.a4 ? PdfPageFormat.a4 : PdfPageFormat.roll80;
-      await Printing.layoutPdf(
-        name: widget.saleData['receiptId'] as String? ?? 'Receipt',
-        format: pageFormat,
-        onLayout: (_) => buildReceiptPdf(widget.saleData, fmt),
-      );
+      if (fmt == PrintFormat.bluetoothThermal) {
+        final mac = await _showBluetoothPicker(context);
+        if (mac == null) { setState(() => _printing = false); return; }
+        if (!mounted) return;
+        await HardwarePrinterService.printReceipt(mac, widget.saleData);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Printed successfully'),
+            backgroundColor: EnhancedTheme.successGreen,
+          ));
+        }
+      } else {
+        final pageFormat =
+            fmt == PrintFormat.a4 ? PdfPageFormat.a4 : PdfPageFormat.roll80;
+        await Printing.layoutPdf(
+          name: widget.saleData['receiptId'] as String? ?? 'Receipt',
+          format: pageFormat,
+          onLayout: (_) => buildReceiptPdf(widget.saleData, fmt),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -224,9 +238,17 @@ Future<PrintFormat?> _showFormatPicker(BuildContext context) {
           icon: Icons.receipt_long_rounded,
           iconColor: EnhancedTheme.primaryTeal,
           label: 'Thermal Receipt (80mm)',
-          subtitle: 'For POS thermal printers',
+          subtitle: 'For USB/network thermal printers via system',
           onTap: () => Navigator.pop(context, PrintFormat.thermal),
         ),
+        if (HardwarePrinterService.isBtSupported)
+          _FormatOption(
+            icon: Icons.bluetooth_rounded,
+            iconColor: EnhancedTheme.accentCyan,
+            label: 'Bluetooth Thermal',
+            subtitle: 'Direct ESC/POS to paired BT printer',
+            onTap: () => Navigator.pop(context, PrintFormat.bluetoothThermal),
+          ),
         _FormatOption(
           icon: Icons.picture_as_pdf_rounded,
           iconColor: EnhancedTheme.accentPurple,
@@ -285,6 +307,216 @@ class _FormatOption extends StatelessWidget {
           Icon(Icons.chevron_right_rounded, color: context.hintColor, size: 20),
         ]),
       ),
+    );
+  }
+}
+
+// ── Bluetooth printer picker ──────────────────────────────────────────────────
+
+Future<String?> _showBluetoothPicker(BuildContext context) {
+  return showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (_) => const _BluetoothPrinterSheet(),
+  );
+}
+
+class _BluetoothPrinterSheet extends StatefulWidget {
+  const _BluetoothPrinterSheet();
+
+  @override
+  State<_BluetoothPrinterSheet> createState() =>
+      _BluetoothPrinterSheetState();
+}
+
+class _BluetoothPrinterSheetState extends State<_BluetoothPrinterSheet> {
+  List<BluetoothInfo>? _devices;
+  String? _error;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; _devices = null; });
+    try {
+      final enabled = await HardwarePrinterService.isBluetoothEnabled();
+      if (!mounted) return;
+      if (!enabled) {
+        setState(() { _loading = false; _error = 'Bluetooth is off. Enable it in Settings.'; });
+        return;
+      }
+      final devices = await HardwarePrinterService.pairedPrinters();
+      if (!mounted) return;
+      setState(() { _loading = false; _devices = devices; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _loading = false; _error = 'Error: $e'; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 8),
+          child: Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(2)),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 8, 8),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: EnhancedTheme.accentCyan.withValues(alpha: 0.2)),
+              ),
+              child: const Icon(Icons.bluetooth_rounded,
+                  color: EnhancedTheme.accentCyan, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text('Bluetooth Printers',
+                    style: TextStyle(
+                        color: context.labelColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800)),
+                Text('Select a paired thermal printer',
+                    style: TextStyle(
+                        color: context.subLabelColor, fontSize: 11)),
+              ]),
+            ),
+            IconButton(
+              icon: Icon(Icons.refresh_rounded, color: context.hintColor),
+              onPressed: _loading ? null : _load,
+              tooltip: 'Refresh',
+            ),
+          ]),
+        ),
+        const Divider(height: 1),
+        if (_loading) ...[
+          const SizedBox(height: 28),
+          const SizedBox(
+            width: 28, height: 28,
+            child: CircularProgressIndicator(
+                strokeWidth: 2.5, color: EnhancedTheme.primaryTeal),
+          ),
+          const SizedBox(height: 10),
+          Text('Loading paired devices…',
+              style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+          const SizedBox(height: 28),
+        ] else if (_error != null) ...[
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.error_outline_rounded,
+                  color: EnhancedTheme.errorRed, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(_error!,
+                    style: const TextStyle(
+                        color: EnhancedTheme.errorRed, fontSize: 13)),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 16),
+        ] else if (_devices!.isEmpty) ...[
+          const SizedBox(height: 20),
+          const Icon(Icons.bluetooth_disabled_rounded,
+              size: 36, color: Colors.grey),
+          const SizedBox(height: 8),
+          Text('No paired printers found',
+              style: TextStyle(
+                  color: context.subLabelColor,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Pair your thermal printer in Bluetooth Settings first.',
+              textAlign: TextAlign.center,
+              style:
+                  TextStyle(color: context.hintColor, fontSize: 12),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ] else ...[
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 320),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _devices!.length,
+              itemBuilder: (_, i) {
+                final dev = _devices![i];
+                return InkWell(
+                  onTap: () => Navigator.pop(context, dev.macAdress),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 13),
+                    child: Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: EnhancedTheme.primaryTeal
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.print_rounded,
+                            color: EnhancedTheme.primaryTeal, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Text(
+                            dev.name,
+                            style: TextStyle(
+                                color: context.labelColor,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            dev.macAdress,
+                            style: TextStyle(
+                                color: context.subLabelColor,
+                                fontSize: 11),
+                          ),
+                        ]),
+                      ),
+                      Icon(Icons.chevron_right_rounded,
+                          color: context.hintColor, size: 18),
+                    ]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+      ]),
     );
   }
 }
