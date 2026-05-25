@@ -1567,112 +1567,126 @@ Future<Uint8List> buildReceiptPdf(
 
         pw.SizedBox(height: 20),
 
-        // ── Items table header
+        // ── Items table
         pw.Container(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: pw.BoxDecoration(
-            color: teal,
+            border: pw.Border.all(color: light, width: 0.8),
             borderRadius: pw.BorderRadius.circular(4),
           ),
-          child: pw.Row(children: [
-            pw.Expanded(flex: 5,
-                child: pw.Text('ITEM',
-                    style: pw.TextStyle(font: fontBold, fontSize: 9,
-                        color: white, letterSpacing: 0.8))),
-            pw.SizedBox(
-                width: 40,
-                child: pw.Text('QTY',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(font: fontBold, fontSize: 9,
-                        color: white, letterSpacing: 0.8))),
-            pw.SizedBox(
-                width: 70,
-                child: pw.Text('UNIT PRICE',
-                    textAlign: pw.TextAlign.right,
-                    style: pw.TextStyle(font: fontBold, fontSize: 9,
-                        color: white, letterSpacing: 0.8))),
-            pw.SizedBox(
-                width: 60,
-                child: pw.Text('DISCOUNT',
-                    textAlign: pw.TextAlign.right,
-                    style: pw.TextStyle(font: fontBold, fontSize: 9,
-                        color: white, letterSpacing: 0.8))),
-            pw.SizedBox(
-                width: 70,
-                child: pw.Text('AMOUNT',
-                    textAlign: pw.TextAlign.right,
-                    style: pw.TextStyle(font: fontBold, fontSize: 9,
-                        color: white, letterSpacing: 0.8))),
-          ]),
-        ),
-
-        // ── Item rows
-        ...items.asMap().entries.map((entry) {
-          final idx  = entry.key;
-          final i    = entry.value as Map<String, dynamic>;
-          final name  = i['name']  as String? ?? '';
-          final brand = i['brand'] as String? ?? '';
-          final form  = i['dosageForm'] as String? ?? '';
-          final unit  = i['unit']  as String? ?? '';
-          final qty   = (i['quantity'] as num?)?.toInt() ?? 0;
-          final price = (i['price'] as num?)?.toDouble() ?? 0;
-          final disc  = (i['discount'] as num?)?.toDouble() ?? 0;
-          final sub   = (i['subtotal'] as num?)?.toDouble() ?? (price * qty - disc);
-          final desc  = [if (brand.isNotEmpty) brand,
-                         if (form.isNotEmpty)  form,
-                         if (unit.isNotEmpty)  unit].join(' · ');
-          final rowBg = idx.isEven
-              ? const PdfColor(0.97, 0.98, 1.0)
-              : white;
-          return pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: pw.BoxDecoration(
-              color: rowBg,
-              border: const pw.Border(
-                bottom: pw.BorderSide(color: light, width: 0.5),
-              ),
-            ),
-            child: pw.Row(children: [
-              pw.Expanded(
-                flex: 5,
-                child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                  pw.Text(name,
-                      style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
-                  if (desc.isNotEmpty)
-                    pw.Text(desc,
-                        style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+          child: pw.Column(
+            children: [
+              // header
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: const pw.BoxDecoration(
+                  color: teal,
+                  borderRadius: pw.BorderRadius.only(
+                    topLeft: pw.Radius.circular(4),
+                    topRight: pw.Radius.circular(4),
+                  ),
+                ),
+                child: pw.Row(children: [
+                  pw.Expanded(flex: 5,
+                      child: pw.Text('ITEM',
+                          style: pw.TextStyle(font: fontBold, fontSize: 9,
+                              color: white, letterSpacing: 0.8))),
+                  pw.SizedBox(
+                      width: 40,
+                      child: pw.Text('QTY',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(font: fontBold, fontSize: 9,
+                              color: white, letterSpacing: 0.8))),
+                  pw.SizedBox(
+                      width: 70,
+                      child: pw.Text('UNIT PRICE',
+                          textAlign: pw.TextAlign.right,
+                          style: pw.TextStyle(font: fontBold, fontSize: 9,
+                              color: white, letterSpacing: 0.8))),
+                  pw.SizedBox(
+                      width: 60,
+                      child: pw.Text('DISCOUNT',
+                          textAlign: pw.TextAlign.right,
+                          style: pw.TextStyle(font: fontBold, fontSize: 9,
+                              color: white, letterSpacing: 0.8))),
+                  pw.SizedBox(
+                      width: 70,
+                      child: pw.Text('AMOUNT',
+                          textAlign: pw.TextAlign.right,
+                          style: pw.TextStyle(font: fontBold, fontSize: 9,
+                              color: white, letterSpacing: 0.8))),
                 ]),
               ),
-              pw.SizedBox(
-                width: 40,
-                child: pw.Text('$qty',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
-              ),
-              pw.SizedBox(
-                width: 70,
-                child: pw.Text(fmtAmt(price),
-                    textAlign: pw.TextAlign.right,
-                    style: pw.TextStyle(font: font, fontSize: 10, color: grey)),
-              ),
-              pw.SizedBox(
-                width: 60,
-                child: pw.Text(disc > 0 ? fmtAmt(disc) : '—',
-                    textAlign: pw.TextAlign.right,
-                    style: pw.TextStyle(font: font, fontSize: 10,
-                        color: disc > 0 ? const PdfColor(0.96, 0.62, 0.04) : grey)),
-              ),
-              pw.SizedBox(
-                width: 70,
-                child: pw.Text(fmtAmt(sub),
-                    textAlign: pw.TextAlign.right,
-                    style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
-              ),
-            ]),
-          );
-        }),
+              // item rows
+              ...items.asMap().entries.map((entry) {
+                final idx  = entry.key;
+                final i    = entry.value as Map<String, dynamic>;
+                final name  = i['name']  as String? ?? '';
+                final brand = i['brand'] as String? ?? '';
+                final form  = i['dosageForm'] as String? ?? '';
+                final unit  = i['unit']  as String? ?? '';
+                final qty   = (i['quantity'] as num?)?.toInt() ?? 0;
+                final price = (i['price'] as num?)?.toDouble() ?? 0;
+                final disc  = (i['discount'] as num?)?.toDouble() ?? 0;
+                final sub   = (i['subtotal'] as num?)?.toDouble() ?? (price * qty - disc);
+                final desc  = [if (brand.isNotEmpty) brand,
+                               if (form.isNotEmpty)  form,
+                               if (unit.isNotEmpty)  unit].join(' · ');
+                final isLast = idx == items.length - 1;
+                final rowBg = idx.isEven
+                    ? const PdfColor(0.97, 0.98, 1.0)
+                    : white;
+                return pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: pw.BoxDecoration(
+                    color: rowBg,
+                    border: isLast ? null : const pw.Border(
+                      bottom: pw.BorderSide(color: light, width: 0.5),
+                    ),
+                  ),
+                  child: pw.Row(children: [
+                    pw.Expanded(
+                      flex: 5,
+                      child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                        pw.Text(name,
+                            style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
+                        if (desc.isNotEmpty)
+                          pw.Text(desc,
+                              style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+                      ]),
+                    ),
+                    pw.SizedBox(
+                      width: 40,
+                      child: pw.Text('$qty',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
+                    ),
+                    pw.SizedBox(
+                      width: 70,
+                      child: pw.Text(fmtAmt(price),
+                          textAlign: pw.TextAlign.right,
+                          style: pw.TextStyle(font: font, fontSize: 10, color: grey)),
+                    ),
+                    pw.SizedBox(
+                      width: 60,
+                      child: pw.Text(disc > 0 ? fmtAmt(disc) : '—',
+                          textAlign: pw.TextAlign.right,
+                          style: pw.TextStyle(font: font, fontSize: 10,
+                              color: disc > 0 ? const PdfColor(0.96, 0.62, 0.04) : grey)),
+                    ),
+                    pw.SizedBox(
+                      width: 70,
+                      child: pw.Text(fmtAmt(sub),
+                          textAlign: pw.TextAlign.right,
+                          style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
+                    ),
+                  ]),
+                );
+              }),
+            ],
+          ),
+        ),
 
         pw.SizedBox(height: 12),
 
