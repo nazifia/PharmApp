@@ -262,7 +262,6 @@ class PlanFeatureMatrixNotifier
     final current = state.valueOrNull;
     if (current == null) return;
     final order = List<String>.from(current.featureOrder);
-    if (newIndex > oldIndex) newIndex -= 1;
     final item = order.removeAt(oldIndex);
     order.insert(newIndex, item);
     state = AsyncValue.data(current.withReorderedFeatures(order));

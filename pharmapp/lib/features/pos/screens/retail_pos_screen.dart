@@ -1,11 +1,9 @@
 ﻿import 'dart:ui';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/cart_item.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -15,7 +13,6 @@ import '../../inventory/providers/inventory_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/drug_interaction_provider.dart';
-import '../providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
@@ -36,185 +33,6 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
-  }
-
-  void _checkout() {
-    final cart = ref.read(cartProvider);
-    if (cart.isEmpty) {
-      _showSnackBar('Cart is empty', type: _SnackType.error);
-      return;
-    }
-    context.push('/payment');
-  }
-
-  Future<void> _sendToCashier() async {
-    final cart = ref.read(cartProvider);
-    if (cart.isEmpty) {
-      _showSnackBar('Cart is empty', type: _SnackType.error);
-      return;
-    }
-
-    // Ask dispenser for patient/customer name before sending.
-    // Controller lives entirely inside the dialog to avoid _dependents assertion.
-    final patientName = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        final ctrl = TextEditingController();
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.10), width: 1.5),
-                ),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Gradient top strip
-                    Container(
-                      height: 3,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.send_rounded, color: EnhancedTheme.primaryTeal, size: 18),
-                      ),
-                      const SizedBox(width: 12),
-                      Text('Send to Cashier',
-                          style: GoogleFonts.outfit(color: Colors.black87, fontSize: 17, fontWeight: FontWeight.w700)),
-                    ]),
-                    const SizedBox(height: 16),
-                    const Text('Patient / Customer name (optional)',
-                        style: TextStyle(color: Colors.black54, fontSize: 13)),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: ctrl,
-                      autofocus: true,
-                      style: const TextStyle(color: Colors.black87),
-                      decoration: InputDecoration(
-                        hintText: 'e.g. John Doe',
-                        hintStyle: const TextStyle(color: Colors.black38),
-                        prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.black38, size: 18),
-                        filled: true,
-                        fillColor: Colors.black.withValues(alpha: 0.04),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(children: [
-                      Expanded(child: TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
-                          ),
-                        ),
-                        child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
-                      )),
-                      const SizedBox(width: 12),
-                      Expanded(child: Container(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [EnhancedTheme.primaryTeal, EnhancedTheme.accentCyan]),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-                          child: const Text('Send', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
-                        ),
-                      )),
-                    ]),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    // null means cancelled (tapped Cancel or dismissed dialog)
-    if (patientName == null || !mounted) return;
-
-    final items = cart.map((c) => {
-      'itemId': c.item.id,
-      'barcode': c.item.barcode,
-      'quantity': c.quantity,
-      'price': c.item.price,
-      'discount': c.discount,
-    }).toList();
-    final customerId = ref.read(selectedCustomerProvider)?.id;
-    try {
-      await ref.read(posApiProvider).sendToCashier(
-        items,
-        customerId: customerId,
-        patientName: patientName.isEmpty ? null : patientName,
-      );
-      if (!mounted) return;
-      ref.read(cartProvider.notifier).clearCart();
-      ref.read(prescriptionCartBindingsProvider.notifier).state = {};
-      ref.read(selectedCustomerProvider.notifier).state = null;
-      _showSnackBar('Payment request sent to cashier', type: _SnackType.success);
-    } on DioException catch (e) {
-      if (!mounted) return;
-      if (e.response == null) {
-        await ref.read(offlineMutationQueueProvider.notifier).enqueue(
-          'POST', '/pos/payment-requests/',
-          body: {
-            'items': items,
-            if (customerId != null) 'customer_id': customerId,
-            'payment_type': 'retail',
-            if (patientName.isNotEmpty) 'patientName': patientName,
-          },
-          description: 'Send payment request to cashier${patientName.isNotEmpty ? ' for $patientName' : ''}',
-        );
-        ref.read(cartProvider.notifier).clearCart();
-        ref.read(prescriptionCartBindingsProvider.notifier).state = {};
-        ref.read(selectedCustomerProvider.notifier).state = null;
-        _showSnackBar('Offline — request queued for sync', type: _SnackType.warning);
-      } else {
-        _showSnackBar(e.response?.data?['detail']?.toString() ?? '$e', type: _SnackType.error);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _showSnackBar('$e', type: _SnackType.error);
-    }
   }
 
   void _onBarcodeScannedPOS(String code) {

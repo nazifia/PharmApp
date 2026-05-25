@@ -313,7 +313,7 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.local_hospital_rounded,
+                            const Icon(Icons.local_hospital_rounded,
                                 color: EnhancedTheme.accentPurple, size: 18),
                             const SizedBox(width: 10),
                             Expanded(

@@ -407,7 +407,7 @@ class _MatrixBody extends StatelessWidget {
                   padding: const EdgeInsets.only(
                       left: 16, right: 16, bottom: 100),
                   itemCount: featureKeys.length,
-                  onReorder: onReorder,
+                  onReorderItem: onReorder,
                   itemBuilder: (_, i) {
                     final key   = featureKeys[i];
                     final label = matrix.labelFor(key);
