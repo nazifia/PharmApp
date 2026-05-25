@@ -361,9 +361,6 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: _selectedCustomerId == _kWalkInId
-                            ? EnhancedTheme.accentOrange.withValues(alpha: 0.1)
-                            : ctx.cardColor,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _selectedCustomerId == _kWalkInId
@@ -371,37 +368,42 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                               : ctx.borderColor,
                         ),
                       ),
-                      child: ListTile(
-                        onTap: () {
-                          setState(() {
-                            _selectedCustomerId = _kWalkInId;
-                            _selectedCustomerName = _kWalkInName;
-                            _selectedCustomerWallet = 0;
-                          });
-                          Navigator.pop(ctx);
-                        },
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: EnhancedTheme.accentOrange.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: ListTile(
+                          tileColor: _selectedCustomerId == _kWalkInId
+                              ? EnhancedTheme.accentOrange.withValues(alpha: 0.1)
+                              : ctx.cardColor,
+                          onTap: () {
+                            setState(() {
+                              _selectedCustomerId = _kWalkInId;
+                              _selectedCustomerName = _kWalkInName;
+                              _selectedCustomerWallet = 0;
+                            });
+                            Navigator.pop(ctx);
+                          },
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: EnhancedTheme.accentOrange.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.person_outline_rounded, color: EnhancedTheme.accentOrange, size: 18),
                           ),
-                          child: const Icon(Icons.person_outline_rounded, color: EnhancedTheme.accentOrange, size: 18),
+                          title: Text(_kWalkInName,
+                              style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                          subtitle: Text('No account required',
+                              style: TextStyle(color: ctx.hintColor, fontSize: 12)),
+                          trailing: _selectedCustomerId == _kWalkInId
+                              ? Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: EnhancedTheme.accentOrange.withValues(alpha: 0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.check_rounded, color: EnhancedTheme.accentOrange, size: 14))
+                              : null,
                         ),
-                        title: Text(_kWalkInName,
-                            style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
-                        subtitle: Text('No account required',
-                            style: TextStyle(color: ctx.hintColor, fontSize: 12)),
-                        trailing: _selectedCustomerId == _kWalkInId
-                            ? Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: EnhancedTheme.accentOrange.withValues(alpha: 0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.check_rounded, color: EnhancedTheme.accentOrange, size: 14))
-                            : null,
                       ),
                     ),
                   ),
@@ -445,9 +447,6 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 6),
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? EnhancedTheme.accentCyan.withValues(alpha: 0.1)
-                                : ctx.cardColor,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSelected
@@ -455,44 +454,51 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                                   : ctx.borderColor,
                             ),
                           ),
-                          child: ListTile(
-                            onTap: () {
-                              setState(() {
-                                _selectedCustomerId = c.id;
-                                _selectedCustomerName = c.name;
-                                _selectedCustomerWallet = c.walletBalance;
-                              });
-                              Navigator.pop(ctx);
-                            },
-                            leading: CircleAvatar(
-                              backgroundColor: EnhancedTheme.accentCyan.withValues(alpha: 0.2),
-                              child: Text(
-                                c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
-                                style: GoogleFonts.outfit(
-                                    color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: ListTile(
+                              tileColor: isSelected
+                                  ? EnhancedTheme.accentCyan.withValues(alpha: 0.1)
+                                  : ctx.cardColor,
+                              onTap: () {
+                                setState(() {
+                                  _selectedCustomerId = c.id;
+                                  _selectedCustomerName = c.name;
+                                  _selectedCustomerWallet = c.walletBalance;
+                                });
+                                Navigator.pop(ctx);
+                              },
+                              leading: CircleAvatar(
+                                backgroundColor: EnhancedTheme.accentCyan.withValues(alpha: 0.2),
+                                child: Text(
+                                  c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                                  style: GoogleFonts.outfit(
+                                      color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700),
+                                ),
                               ),
+                              title: Text(c.name,
+                                  style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                              isThreeLine: c.walletBalance > 0 && c.outstandingDebt > 0,
+                              subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(c.phone,
+                                    style: TextStyle(color: ctx.subLabelColor, fontSize: 12)),
+                                if (c.walletBalance > 0)
+                                  Text('Wallet: ₦${c.walletBalance.toStringAsFixed(0)}',
+                                      style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
+                                if (c.outstandingDebt > 0)
+                                  Text('Debt: ₦${c.outstandingDebt.toStringAsFixed(0)}',
+                                      style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 11, fontWeight: FontWeight.w600)),
+                              ]),
+                              trailing: isSelected
+                                  ? Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: EnhancedTheme.accentCyan.withValues(alpha: 0.15),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.check_rounded, color: EnhancedTheme.accentCyan, size: 14))
+                                  : null,
                             ),
-                            title: Text(c.name,
-                                style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
-                            subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(c.phone,
-                                  style: TextStyle(color: ctx.subLabelColor, fontSize: 12)),
-                              if (c.walletBalance > 0)
-                                Text('Wallet: ₦${c.walletBalance.toStringAsFixed(0)}',
-                                    style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
-                              if (c.outstandingDebt > 0)
-                                Text('Debt: ₦${c.outstandingDebt.toStringAsFixed(0)}',
-                                    style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 11, fontWeight: FontWeight.w600)),
-                            ]),
-                            trailing: isSelected
-                                ? Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: EnhancedTheme.accentCyan.withValues(alpha: 0.15),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.check_rounded, color: EnhancedTheme.accentCyan, size: 14))
-                                : null,
                           ),
                         );
                       },

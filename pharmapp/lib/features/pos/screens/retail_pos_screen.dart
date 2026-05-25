@@ -527,9 +527,6 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 6),
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? EnhancedTheme.primaryTeal.withValues(alpha: 0.1)
-                                : ctx.cardColor,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSelected
@@ -537,37 +534,43 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                                   : ctx.borderColor,
                             ),
                           ),
-                          child: ListTile(
-                            onTap: () {
-                              ref.read(selectedCustomerProvider.notifier).state = SelectedCustomer(
-                                id: c.id, name: c.name, walletBalance: c.walletBalance);
-                              Navigator.pop(ctx);
-                            },
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            leading: CircleAvatar(
-                              backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
-                              child: Text(
-                                c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
-                                style: GoogleFonts.outfit(
-                                    color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: ListTile(
+                              tileColor: isSelected
+                                  ? EnhancedTheme.primaryTeal.withValues(alpha: 0.1)
+                                  : ctx.cardColor,
+                              onTap: () {
+                                ref.read(selectedCustomerProvider.notifier).state = SelectedCustomer(
+                                  id: c.id, name: c.name, walletBalance: c.walletBalance);
+                                Navigator.pop(ctx);
+                              },
+                              leading: CircleAvatar(
+                                backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
+                                child: Text(
+                                  c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                                  style: GoogleFonts.outfit(
+                                      color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
+                              ),
+                              title: Text(c.name,
+                                  style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                              isThreeLine: c.walletBalance > 0,
+                              subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(c.phone, style: TextStyle(color: ctx.subLabelColor, fontSize: 12)),
+                                if (c.walletBalance > 0)
+                                  Text('Wallet: ₦${c.walletBalance.toStringAsFixed(0)}',
+                                      style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
+                              ]),
+                              trailing: isSelected
+                                  ? Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.check_rounded, color: EnhancedTheme.primaryTeal, size: 14))
+                                  : null,
                             ),
-                            title: Text(c.name,
-                                style: TextStyle(color: ctx.labelColor, fontSize: 14, fontWeight: FontWeight.w600)),
-                            subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(c.phone, style: TextStyle(color: ctx.subLabelColor, fontSize: 12)),
-                              if (c.walletBalance > 0)
-                                Text('Wallet: ₦${c.walletBalance.toStringAsFixed(0)}',
-                                    style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
-                            ]),
-                            trailing: isSelected
-                                ? Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.check_rounded, color: EnhancedTheme.primaryTeal, size: 14))
-                                : null,
                           ),
                         );
                       },

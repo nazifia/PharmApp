@@ -115,6 +115,10 @@ class _ReceiptSheetState extends State<ReceiptSheet> {
   }
 }
 
+// ── Print format ──────────────────────────────────────────────────────────────
+
+enum PrintFormat { thermal, a4 }
+
 // ── Print button ──────────────────────────────────────────────────────────────
 
 /// Public print button — usable from any screen (e.g. payment success sheet).
@@ -129,12 +133,17 @@ class ReceiptPrintButton extends StatefulWidget {
 class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
   bool _printing = false;
 
-  Future<void> _print() async {
+  Future<void> _pickFormatAndPrint() async {
+    final fmt = await _showFormatPicker(context);
+    if (fmt == null || !mounted) return;
     setState(() => _printing = true);
     try {
+      final pageFormat =
+          fmt == PrintFormat.a4 ? PdfPageFormat.a4 : PdfPageFormat.roll80;
       await Printing.layoutPdf(
         name: widget.saleData['receiptId'] as String? ?? 'Receipt',
-        onLayout: (format) => buildReceiptPdf(widget.saleData, format),
+        format: pageFormat,
+        onLayout: (_) => buildReceiptPdf(widget.saleData, fmt),
       );
     } catch (e) {
       if (mounted) {
@@ -161,7 +170,7 @@ class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
         border: _printing ? Border.all(color: Colors.white.withValues(alpha: 0.1)) : null,
       ),
       child: TextButton.icon(
-        onPressed: _printing ? null : _print,
+        onPressed: _printing ? null : _pickFormatAndPrint,
         icon: _printing
             ? const SizedBox(
                 width: 14, height: 14,
@@ -179,6 +188,106 @@ class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
 }
 
 typedef _PrintButton = ReceiptPrintButton;
+
+// ── Format picker ─────────────────────────────────────────────────────────────
+
+Future<PrintFormat?> _showFormatPicker(BuildContext context) {
+  return showModalBottomSheet<PrintFormat>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 4),
+          child: Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(2)),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+          child: Text('Select Print Format',
+              style: TextStyle(
+                  color: context.labelColor,
+                  fontSize: 16, fontWeight: FontWeight.w800)),
+        ),
+        const SizedBox(height: 8),
+        _FormatOption(
+          icon: Icons.receipt_long_rounded,
+          iconColor: EnhancedTheme.primaryTeal,
+          label: 'Thermal Receipt (80mm)',
+          subtitle: 'For POS thermal printers',
+          onTap: () => Navigator.pop(context, PrintFormat.thermal),
+        ),
+        _FormatOption(
+          icon: Icons.picture_as_pdf_rounded,
+          iconColor: EnhancedTheme.accentPurple,
+          label: 'A4 Document',
+          subtitle: 'Full-page PDF for laser/inkjet printers',
+          onTap: () => Navigator.pop(context, PrintFormat.a4),
+        ),
+        const SizedBox(height: 16),
+      ]),
+    ),
+  );
+}
+
+class _FormatOption extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _FormatOption({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: iconColor.withValues(alpha: 0.2)),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label,
+                style: TextStyle(
+                    color: context.labelColor,
+                    fontSize: 14, fontWeight: FontWeight.w700)),
+            Text(subtitle,
+                style: TextStyle(
+                    color: context.subLabelColor, fontSize: 11)),
+          ]),
+          const Spacer(),
+          Icon(Icons.chevron_right_rounded, color: context.hintColor, size: 20),
+        ]),
+      ),
+    );
+  }
+}
 
 // ── Share button ──────────────────────────────────────────────────────────────
 
@@ -1039,39 +1148,39 @@ class _PayMethodIcon extends StatelessWidget {
 
 // ── PDF builder ───────────────────────────────────────────────────────────────
 
-/// Public PDF builder — call directly when you need a Uint8List for printing.
+/// Public PDF builder. Pass [printFormat] to control output size.
 Future<Uint8List> buildReceiptPdf(
-    Map<String, dynamic> data, PdfPageFormat format) async {
+    Map<String, dynamic> data, PrintFormat printFormat) async {
   final doc = pw.Document();
-  final font = await PdfGoogleFonts.nunitoRegular();
+  final font     = await PdfGoogleFonts.nunitoRegular();
   final fontBold = await PdfGoogleFonts.nunitoBold();
   final fontMono = await PdfGoogleFonts.sourceCodeProRegular();
 
-  final receiptId = data['receiptId'] as String? ?? '#${data['id']}';
-  final orgName    = data['organizationName']    as String? ?? 'PharmApp';
-  final orgAddress = data['organizationAddress'] as String? ?? '';
-  final orgPhone   = data['organizationPhone']   as String? ?? '';
-  final branchName    = data['branchName']    as String? ?? '';
-  final branchAddress = data['branchAddress'] as String? ?? '';
-  final branchPhone   = data['branchPhone']   as String? ?? '';
+  // ── Shared field extraction ────────────────────────────────────────────────
+  final receiptId      = data['receiptId'] as String? ?? '#${data['id']}';
+  final orgName        = data['organizationName']    as String? ?? 'PharmApp';
+  final orgAddress     = data['organizationAddress'] as String? ?? '';
+  final orgPhone       = data['organizationPhone']   as String? ?? '';
+  final branchName     = data['branchName']    as String? ?? '';
+  final branchAddress  = data['branchAddress'] as String? ?? '';
+  final branchPhone    = data['branchPhone']   as String? ?? '';
   final displayAddress = branchAddress.isNotEmpty ? branchAddress : orgAddress;
   final displayPhone   = branchPhone.isNotEmpty   ? branchPhone   : orgPhone;
-  final customerName = data['customerName'] as String? ??
-      data['customer_name'] as String? ??
-      data['patientName'] as String? ??
-      data['patient_name'] as String? ??
-      data['buyerName'] as String? ??
-      'Walk-in';
-  final cashierName    = data['cashierName']  as String? ?? '';
+  final customerName   = data['customerName']   as String? ??
+      data['customer_name']  as String? ??
+      data['patientName']    as String? ??
+      data['patient_name']   as String? ??
+      data['buyerName']      as String? ?? 'Walk-in';
+  final cashierName    = data['cashierName']   as String? ?? '';
   final dispenserName  = data['dispenserName'] as String? ?? '';
-  final isWholesale   = data['isWholesale'] as bool? ?? false;
-  final status        = data['status'] as String? ?? 'completed';
-  final total         = (data['totalAmount'] as num?)?.toDouble() ?? 0;
-  final discountTotal = (data['discountTotal'] as num?)?.toDouble() ?? 0;
-  final items         = data['items'] as List<dynamic>? ?? [];
+  final isWholesale    = data['isWholesale']   as bool?   ?? false;
+  final status         = data['status']        as String? ?? 'completed';
+  final total          = (data['totalAmount']  as num?)?.toDouble() ?? 0;
+  final discountTotal  = (data['discountTotal'] as num?)?.toDouble() ?? 0;
+  final items          = data['items'] as List<dynamic>? ?? [];
 
   final raw = data['created'] as String? ??
-      data['createdAt'] as String? ??
+      data['createdAt']  as String? ??
       data['created_at'] as String? ?? '';
   String dateStr = raw;
   try {
@@ -1079,14 +1188,14 @@ Future<Uint8List> buildReceiptPdf(
     const months = ['Jan','Feb','Mar','Apr','May','Jun',
                     'Jul','Aug','Sep','Oct','Nov','Dec'];
     dateStr = '${months[dt.month-1]} ${dt.day}, ${dt.year}  '
-        '${dt.hour % 12 == 0 ? 12 : dt.hour % 12}:${dt.minute.toString().padLeft(2,'0')} ${dt.hour < 12 ? 'AM' : 'PM'}';
+        '${dt.hour % 12 == 0 ? 12 : dt.hour % 12}:'
+        '${dt.minute.toString().padLeft(2,'0')} ${dt.hour < 12 ? 'AM' : 'PM'}';
   } catch (_) {}
 
-  // Build payments map
   final payments = <String, double>{};
   final list = data['payments'] as List<dynamic>? ?? [];
   for (final p in list) {
-    final pm = p as Map<String, dynamic>;
+    final pm     = p as Map<String, dynamic>;
     final method = pm['paymentMethod'] as String? ?? 'cash';
     final amount = (pm['amount'] as num?)?.toDouble() ?? 0;
     if (amount > 0) payments[method] = (payments[method] ?? 0) + amount;
@@ -1102,205 +1211,670 @@ Future<Uint8List> buildReceiptPdf(
     if (pw2 > 0) payments['wallet']   = pw2;
   }
 
-  String fmt(double v) =>
+  String fmtAmt(double v) =>
       v == v.truncateToDouble() ? '₦${v.toStringAsFixed(0)}' : '₦${v.toStringAsFixed(2)}';
 
   String methodLabel(String m) {
     switch (m.toLowerCase()) {
       case 'pos':
-      case 'card': return 'Card / POS';
+      case 'card':           return 'Card / POS';
       case 'transfer':
-      case 'bank_transfer': return 'Bank Transfer';
-      case 'wallet': return 'Wallet';
-      default: return 'Cash';
+      case 'bank_transfer':  return 'Bank Transfer';
+      case 'wallet':         return 'Wallet';
+      default:               return 'Cash';
     }
   }
 
   const teal  = PdfColor(0.051, 0.580, 0.533);
-  const grey  = PdfColor(0.28, 0.35, 0.44);
-  const light = PdfColor(0.88, 0.92, 0.96);
-  const black = PdfColor(0.06, 0.09, 0.16);
+  const grey  = PdfColor(0.28,  0.35,  0.44);
+  const light = PdfColor(0.88,  0.92,  0.96);
+  const black = PdfColor(0.06,  0.09,  0.16);
+  const white = PdfColors.white;
 
-  doc.addPage(pw.Page(
-    pageFormat: PdfPageFormat.roll80,
-    margin: const pw.EdgeInsets.all(12),
-    build: (ctx) => pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: [
+  // ── Dispatch to layout ────────────────────────────────────────────────────
+  if (printFormat == PrintFormat.a4) {
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 28),
+      header: (ctx) => _a4Header(
+        ctx: ctx,
+        orgName: orgName,
+        branchName: branchName,
+        displayAddress: displayAddress,
+        displayPhone: displayPhone,
+        receiptId: receiptId,
+        dateStr: dateStr,
+        isWholesale: isWholesale,
+        status: status,
+        font: font,
+        fontBold: fontBold,
+        teal: teal,
+        grey: grey,
+        light: light,
+        black: black,
+        white: white,
+      ),
+      footer: (ctx) => _a4Footer(
+        ctx: ctx,
+        receiptId: receiptId,
+        font: font,
+        fontBold: fontBold,
+        fontMono: fontMono,
+        teal: teal,
+        grey: grey,
+        light: light,
+        black: black,
+      ),
+      build: (ctx) => [
+        pw.SizedBox(height: 16),
 
-        // ── Header
-        pw.Center(child: pw.Column(children: [
-          pw.Text(orgName,
-              style: pw.TextStyle(font: fontBold, fontSize: 18, color: teal)),
-          if (branchName.isNotEmpty)
-            pw.Text(branchName,
-                style: pw.TextStyle(font: fontBold, fontSize: 9, color: teal)),
-          if (displayAddress.isNotEmpty)
-            pw.Text(displayAddress,
-                style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          if (displayPhone.isNotEmpty)
-            pw.Text(displayPhone,
-                style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
-          pw.SizedBox(height: 8),
-          pw.Divider(color: light),
-        ])),
+        // ── Bill-To + Receipt Details row
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+              child: pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor(0.95, 0.98, 0.99),
+                  borderRadius: pw.BorderRadius.circular(6),
+                  border: pw.Border.all(color: light, width: 0.8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('BILL TO',
+                        style: pw.TextStyle(font: fontBold, fontSize: 8,
+                            color: teal, letterSpacing: 1.5)),
+                    pw.SizedBox(height: 6),
+                    pw.Text(customerName,
+                        style: pw.TextStyle(font: fontBold, fontSize: 12, color: black)),
+                    if (dispenserName.isNotEmpty) ...[
+                      pw.SizedBox(height: 4),
+                      pw.Text('Dispenser: $dispenserName',
+                          style: pw.TextStyle(font: font, fontSize: 9, color: grey)),
+                    ],
+                    if (cashierName.isNotEmpty) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Text('Cashier: $cashierName',
+                          style: pw.TextStyle(font: font, fontSize: 9, color: grey)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            pw.SizedBox(width: 12),
+            pw.Expanded(
+              child: pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor(0.95, 0.98, 0.99),
+                  borderRadius: pw.BorderRadius.circular(6),
+                  border: pw.Border.all(color: light, width: 0.8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('RECEIPT DETAILS',
+                        style: pw.TextStyle(font: fontBold, fontSize: 8,
+                            color: teal, letterSpacing: 1.5)),
+                    pw.SizedBox(height: 6),
+                    _a4MetaRow('Receipt No', receiptId, font, fontBold, grey, teal),
+                    _a4MetaRow('Date', dateStr, font, font, grey, black),
+                    _a4MetaRow('Type',
+                        isWholesale ? 'Wholesale' : 'Retail',
+                        font, fontBold, grey, teal),
+                    _a4MetaRow('Status', status.toUpperCase(),
+                        font, fontBold, grey, black),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
 
-        // ── Meta
-        pw.SizedBox(height: 6),
-        pw.Row(children: [
-          pw.Text('Receipt No:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          pw.Spacer(),
-          pw.Text(receiptId,
-              style: pw.TextStyle(font: fontBold, fontSize: 8, color: teal)),
-        ]),
-        pw.Row(children: [
-          pw.Text('Date:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          pw.Spacer(),
-          pw.Text(dateStr, style: pw.TextStyle(font: fontMono, fontSize: 7, color: black)),
-        ]),
-        pw.Row(children: [
-          pw.Text('Customer:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          pw.Spacer(),
-          pw.Text(customerName, style: pw.TextStyle(font: fontBold, fontSize: 8, color: black)),
-        ]),
-        if (dispenserName.isNotEmpty)
-          pw.Row(children: [
-            pw.Text('Dispenser:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-            pw.Spacer(),
-            pw.Text(dispenserName, style: pw.TextStyle(font: font, fontSize: 8, color: black)),
+        pw.SizedBox(height: 20),
+
+        // ── Items table header
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: pw.BoxDecoration(
+            color: teal,
+            borderRadius: pw.BorderRadius.circular(4),
+          ),
+          child: pw.Row(children: [
+            pw.Expanded(flex: 5,
+                child: pw.Text('ITEM',
+                    style: pw.TextStyle(font: fontBold, fontSize: 9,
+                        color: white, letterSpacing: 0.8))),
+            pw.SizedBox(
+                width: 40,
+                child: pw.Text('QTY',
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(font: fontBold, fontSize: 9,
+                        color: white, letterSpacing: 0.8))),
+            pw.SizedBox(
+                width: 70,
+                child: pw.Text('UNIT PRICE',
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(font: fontBold, fontSize: 9,
+                        color: white, letterSpacing: 0.8))),
+            pw.SizedBox(
+                width: 60,
+                child: pw.Text('DISCOUNT',
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(font: fontBold, fontSize: 9,
+                        color: white, letterSpacing: 0.8))),
+            pw.SizedBox(
+                width: 70,
+                child: pw.Text('AMOUNT',
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(font: fontBold, fontSize: 9,
+                        color: white, letterSpacing: 0.8))),
           ]),
-        if (cashierName.isNotEmpty)
-          pw.Row(children: [
-            pw.Text('Cashier:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-            pw.Spacer(),
-            pw.Text(cashierName, style: pw.TextStyle(font: font, fontSize: 8, color: black)),
-          ]),
-        pw.Row(children: [
-          pw.Text('Type:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          pw.Spacer(),
-          pw.Text(isWholesale ? 'Wholesale' : 'Retail',
-              style: pw.TextStyle(font: fontBold, fontSize: 8, color: teal)),
-        ]),
-        pw.Row(children: [
-          pw.Text('Status:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          pw.Spacer(),
-          pw.Text(status.toUpperCase(),
-              style: pw.TextStyle(font: fontBold, fontSize: 8, color: black)),
-        ]),
+        ),
 
-        // ── Items
-        pw.SizedBox(height: 8),
-        pw.Divider(color: light),
-        pw.Text('ITEMS',
-            style: pw.TextStyle(font: fontBold, fontSize: 8,
-                color: grey, letterSpacing: 1.5)),
-        pw.SizedBox(height: 4),
-        ...items.map((i) {
-          final item  = i as Map<String, dynamic>;
-          final name  = item['name']  as String? ?? '';
-          final brand = item['brand'] as String? ?? '';
-          final qty   = (item['quantity'] as num?)?.toInt() ?? 0;
-          final price = (item['price'] as num?)?.toDouble() ?? 0;
-          final disc  = (item['discount'] as num?)?.toDouble() ?? 0;
-          final sub   = (item['subtotal'] as num?)?.toDouble()
-              ?? (price * qty - disc);
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Row(children: [
-                pw.Expanded(
-                  child: pw.Text(name,
-                      style: pw.TextStyle(font: fontBold, fontSize: 9, color: black))),
-                pw.Text(fmt(sub),
-                    style: pw.TextStyle(font: fontBold, fontSize: 9, color: black)),
-              ]),
-              pw.Row(children: [
-                if (brand.isNotEmpty)
-                  pw.Text('$brand  ',
-                      style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
-                pw.Text('$qty × ${fmt(price)}',
-                    style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
-                if (disc > 0)
-                  pw.Text('  -${fmt(disc)} disc',
-                      style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
-              ]),
-              pw.SizedBox(height: 4),
-            ],
+        // ── Item rows
+        ...items.asMap().entries.map((entry) {
+          final idx  = entry.key;
+          final i    = entry.value as Map<String, dynamic>;
+          final name  = i['name']  as String? ?? '';
+          final brand = i['brand'] as String? ?? '';
+          final form  = i['dosageForm'] as String? ?? '';
+          final unit  = i['unit']  as String? ?? '';
+          final qty   = (i['quantity'] as num?)?.toInt() ?? 0;
+          final price = (i['price'] as num?)?.toDouble() ?? 0;
+          final disc  = (i['discount'] as num?)?.toDouble() ?? 0;
+          final sub   = (i['subtotal'] as num?)?.toDouble() ?? (price * qty - disc);
+          final desc  = [if (brand.isNotEmpty) brand,
+                         if (form.isNotEmpty)  form,
+                         if (unit.isNotEmpty)  unit].join(' · ');
+          final rowBg = idx.isEven
+              ? const PdfColor(0.97, 0.98, 1.0)
+              : white;
+          return pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: pw.BoxDecoration(
+              color: rowBg,
+              border: const pw.Border(
+                bottom: pw.BorderSide(color: light, width: 0.5),
+              ),
+            ),
+            child: pw.Row(children: [
+              pw.Expanded(
+                flex: 5,
+                child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                  pw.Text(name,
+                      style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
+                  if (desc.isNotEmpty)
+                    pw.Text(desc,
+                        style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+                ]),
+              ),
+              pw.SizedBox(
+                width: 40,
+                child: pw.Text('$qty',
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
+              ),
+              pw.SizedBox(
+                width: 70,
+                child: pw.Text(fmtAmt(price),
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(font: font, fontSize: 10, color: grey)),
+              ),
+              pw.SizedBox(
+                width: 60,
+                child: pw.Text(disc > 0 ? fmtAmt(disc) : '—',
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(font: font, fontSize: 10,
+                        color: disc > 0 ? const PdfColor(0.96, 0.62, 0.04) : grey)),
+              ),
+              pw.SizedBox(
+                width: 70,
+                child: pw.Text(fmtAmt(sub),
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
+              ),
+            ]),
           );
         }),
 
-        // ── Totals
-        pw.Divider(color: light),
-        if (discountTotal > 0) ...[
-          pw.Row(children: [
-            pw.Text('Subtotal:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-            pw.Spacer(),
-            pw.Text(fmt(total + discountTotal),
-                style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          ]),
-          pw.Row(children: [
-            pw.Text('Discount:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-            pw.Spacer(),
-            pw.Text('-${fmt(discountTotal)}',
-                style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          ]),
-          pw.SizedBox(height: 2),
-        ],
-        pw.Container(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: pw.BoxDecoration(
-            color: PdfColors.white,
-            borderRadius: pw.BorderRadius.circular(4),
-            border: pw.Border.all(color: teal, width: 1.2),
+        pw.SizedBox(height: 12),
+
+        // ── Totals (right-aligned block)
+        pw.Align(
+          alignment: pw.Alignment.centerRight,
+          child: pw.SizedBox(
+            width: 260,
+            child: pw.Column(children: [
+              if (discountTotal > 0) ...[
+                _a4TotalRow('Subtotal', fmtAmt(total + discountTotal),
+                    font, font, grey, grey, light),
+                _a4TotalRow('Discount', '-${fmtAmt(discountTotal)}',
+                    font, fontBold, grey,
+                    const PdfColor(0.96, 0.62, 0.04), light),
+              ],
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                margin: const pw.EdgeInsets.only(top: 4),
+                decoration: pw.BoxDecoration(
+                  color: teal,
+                  borderRadius: pw.BorderRadius.circular(6),
+                ),
+                child: pw.Row(children: [
+                  pw.Expanded(child: pw.Text('TOTAL AMOUNT',
+                      style: pw.TextStyle(font: fontBold, fontSize: 10,
+                          color: white, letterSpacing: 1))),
+                  pw.Text(fmtAmt(total),
+                      style: pw.TextStyle(font: fontBold, fontSize: 16,
+                          color: white)),
+                ]),
+              ),
+            ]),
           ),
-          child: pw.Row(children: [
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
+        ),
+
+        pw.SizedBox(height: 16),
+        pw.Divider(color: light),
+        pw.SizedBox(height: 8),
+
+        // ── Payment breakdown
+        pw.Text('PAYMENT METHOD',
+            style: pw.TextStyle(font: fontBold, fontSize: 8,
+                color: grey, letterSpacing: 1.5)),
+        pw.SizedBox(height: 6),
+        pw.Table(
+          border: pw.TableBorder.all(color: light, width: 0.5),
+          columnWidths: {
+            0: const pw.FlexColumnWidth(3),
+            1: const pw.FlexColumnWidth(2),
+          },
+          children: [
+            pw.TableRow(
+              decoration: const pw.BoxDecoration(color: PdfColor(0.93, 0.97, 0.97)),
               children: [
-                pw.Text('TOTAL AMOUNT',
-                    style: pw.TextStyle(font: fontBold, fontSize: 8, color: teal,
-                        letterSpacing: 1.2)),
-                pw.Text(isWholesale ? 'Wholesale Sale' : 'Retail Sale',
-                    style: pw.TextStyle(font: fontBold, fontSize: 7, color: black)),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('Method',
+                      style: pw.TextStyle(font: fontBold, fontSize: 9, color: teal)),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('Amount',
+                      textAlign: pw.TextAlign.right,
+                      style: pw.TextStyle(font: fontBold, fontSize: 9, color: teal)),
+                ),
               ],
             ),
-            pw.Spacer(),
-            pw.Text(fmt(total),
-                style: pw.TextStyle(font: fontBold, fontSize: 16, color: black)),
-          ]),
+            ...payments.entries.map((e) => pw.TableRow(
+              children: [
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: pw.Text(methodLabel(e.key),
+                      style: pw.TextStyle(font: font, fontSize: 10, color: black)),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: pw.Text(fmtAmt(e.value),
+                      textAlign: pw.TextAlign.right,
+                      style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
+                ),
+              ],
+            )),
+          ],
         ),
-
-        // ── Payment
-        pw.SizedBox(height: 6),
-        pw.Divider(color: light),
-        pw.Text('PAYMENT',
-            style: pw.TextStyle(font: fontBold, fontSize: 8, color: grey, letterSpacing: 1.5)),
-        pw.SizedBox(height: 4),
-        ...payments.entries.map((e) => pw.Row(children: [
-          pw.Text(methodLabel(e.key),
-              style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-          pw.Spacer(),
-          pw.Text(fmt(e.value),
-              style: pw.TextStyle(font: fontBold, fontSize: 8, color: black)),
-        ])),
-
-        // ── Footer
-        pw.SizedBox(height: 10),
-        pw.Divider(color: light),
-        pw.Center(
-          child: pw.Column(children: [
-            pw.Text('Thank you for your purchase!',
-                style: pw.TextStyle(font: fontBold, fontSize: 9, color: black)),
-            pw.Text('Keep this receipt for returns & reference.',
-                style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
-            pw.SizedBox(height: 4),
-            pw.Text(receiptId,
-                style: pw.TextStyle(font: fontMono, fontSize: 7, color: light)),
-          ]),
-        ),
+        pw.SizedBox(height: 24),
       ],
-    ),
-  ));
+    ));
+  } else {
+    // ── Thermal (80mm roll) layout ─────────────────────────────────────────
+    doc.addPage(pw.Page(
+      pageFormat: PdfPageFormat.roll80,
+      margin: const pw.EdgeInsets.all(12),
+      build: (ctx) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+
+          // Header
+          pw.Center(child: pw.Column(children: [
+            pw.Text(orgName,
+                style: pw.TextStyle(font: fontBold, fontSize: 18, color: teal)),
+            if (branchName.isNotEmpty)
+              pw.Text(branchName,
+                  style: pw.TextStyle(font: fontBold, fontSize: 9, color: teal)),
+            if (displayAddress.isNotEmpty)
+              pw.Text(displayAddress,
+                  style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            if (displayPhone.isNotEmpty)
+              pw.Text(displayPhone,
+                  style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+            pw.SizedBox(height: 8),
+            pw.Divider(color: light),
+          ])),
+
+          // Meta
+          pw.SizedBox(height: 6),
+          pw.Row(children: [
+            pw.Text('Receipt No:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            pw.Spacer(),
+            pw.Text(receiptId,
+                style: pw.TextStyle(font: fontBold, fontSize: 8, color: teal)),
+          ]),
+          pw.Row(children: [
+            pw.Text('Date:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            pw.Spacer(),
+            pw.Text(dateStr, style: pw.TextStyle(font: fontMono, fontSize: 7, color: black)),
+          ]),
+          pw.Row(children: [
+            pw.Text('Customer:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            pw.Spacer(),
+            pw.Text(customerName, style: pw.TextStyle(font: fontBold, fontSize: 8, color: black)),
+          ]),
+          if (dispenserName.isNotEmpty)
+            pw.Row(children: [
+              pw.Text('Dispenser:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+              pw.Spacer(),
+              pw.Text(dispenserName, style: pw.TextStyle(font: font, fontSize: 8, color: black)),
+            ]),
+          if (cashierName.isNotEmpty)
+            pw.Row(children: [
+              pw.Text('Cashier:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+              pw.Spacer(),
+              pw.Text(cashierName, style: pw.TextStyle(font: font, fontSize: 8, color: black)),
+            ]),
+          pw.Row(children: [
+            pw.Text('Type:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            pw.Spacer(),
+            pw.Text(isWholesale ? 'Wholesale' : 'Retail',
+                style: pw.TextStyle(font: fontBold, fontSize: 8, color: teal)),
+          ]),
+          pw.Row(children: [
+            pw.Text('Status:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            pw.Spacer(),
+            pw.Text(status.toUpperCase(),
+                style: pw.TextStyle(font: fontBold, fontSize: 8, color: black)),
+          ]),
+
+          // Items
+          pw.SizedBox(height: 8),
+          pw.Divider(color: light),
+          pw.Text('ITEMS',
+              style: pw.TextStyle(font: fontBold, fontSize: 8,
+                  color: grey, letterSpacing: 1.5)),
+          pw.SizedBox(height: 4),
+          ...items.map((i) {
+            final item  = i as Map<String, dynamic>;
+            final name  = item['name']  as String? ?? '';
+            final brand = item['brand'] as String? ?? '';
+            final qty   = (item['quantity'] as num?)?.toInt() ?? 0;
+            final price = (item['price'] as num?)?.toDouble() ?? 0;
+            final disc  = (item['discount'] as num?)?.toDouble() ?? 0;
+            final sub   = (item['subtotal'] as num?)?.toDouble()
+                ?? (price * qty - disc);
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Row(children: [
+                  pw.Expanded(
+                    child: pw.Text(name,
+                        style: pw.TextStyle(font: fontBold, fontSize: 9, color: black))),
+                  pw.Text(fmtAmt(sub),
+                      style: pw.TextStyle(font: fontBold, fontSize: 9, color: black)),
+                ]),
+                pw.Row(children: [
+                  if (brand.isNotEmpty)
+                    pw.Text('$brand  ',
+                        style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+                  pw.Text('$qty × ${fmtAmt(price)}',
+                      style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+                  if (disc > 0)
+                    pw.Text('  -${fmtAmt(disc)} disc',
+                        style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+                ]),
+                pw.SizedBox(height: 4),
+              ],
+            );
+          }),
+
+          // Totals
+          pw.Divider(color: light),
+          if (discountTotal > 0) ...[
+            pw.Row(children: [
+              pw.Text('Subtotal:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+              pw.Spacer(),
+              pw.Text(fmtAmt(total + discountTotal),
+                  style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            ]),
+            pw.Row(children: [
+              pw.Text('Discount:', style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+              pw.Spacer(),
+              pw.Text('-${fmtAmt(discountTotal)}',
+                  style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            ]),
+            pw.SizedBox(height: 2),
+          ],
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: pw.BoxDecoration(
+              color: white,
+              borderRadius: pw.BorderRadius.circular(4),
+              border: pw.Border.all(color: teal, width: 1.2),
+            ),
+            child: pw.Row(children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('TOTAL AMOUNT',
+                      style: pw.TextStyle(font: fontBold, fontSize: 8, color: teal,
+                          letterSpacing: 1.2)),
+                  pw.Text(isWholesale ? 'Wholesale Sale' : 'Retail Sale',
+                      style: pw.TextStyle(font: fontBold, fontSize: 7, color: black)),
+                ],
+              ),
+              pw.Spacer(),
+              pw.Text(fmtAmt(total),
+                  style: pw.TextStyle(font: fontBold, fontSize: 16, color: black)),
+            ]),
+          ),
+
+          // Payment
+          pw.SizedBox(height: 6),
+          pw.Divider(color: light),
+          pw.Text('PAYMENT',
+              style: pw.TextStyle(font: fontBold, fontSize: 8, color: grey, letterSpacing: 1.5)),
+          pw.SizedBox(height: 4),
+          ...payments.entries.map((e) => pw.Row(children: [
+            pw.Text(methodLabel(e.key),
+                style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+            pw.Spacer(),
+            pw.Text(fmtAmt(e.value),
+                style: pw.TextStyle(font: fontBold, fontSize: 8, color: black)),
+          ])),
+
+          // Footer
+          pw.SizedBox(height: 10),
+          pw.Divider(color: light),
+          pw.Center(
+            child: pw.Column(children: [
+              pw.Text('Thank you for your purchase!',
+                  style: pw.TextStyle(font: fontBold, fontSize: 9, color: black)),
+              pw.Text('Keep this receipt for returns & reference.',
+                  style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+              pw.SizedBox(height: 4),
+              pw.Text(receiptId,
+                  style: pw.TextStyle(font: fontMono, fontSize: 7, color: light)),
+            ]),
+          ),
+        ],
+      ),
+    ));
+  }
 
   return doc.save();
+}
+
+// ── A4 helpers ────────────────────────────────────────────────────────────────
+
+pw.Widget _a4Header({
+  required pw.Context ctx,
+  required String orgName,
+  required String branchName,
+  required String displayAddress,
+  required String displayPhone,
+  required String receiptId,
+  required String dateStr,
+  required bool isWholesale,
+  required String status,
+  required pw.Font font,
+  required pw.Font fontBold,
+  required PdfColor teal,
+  required PdfColor grey,
+  required PdfColor light,
+  required PdfColor black,
+  required PdfColor white,
+}) {
+  return pw.Column(children: [
+    // Teal top bar
+    pw.Container(
+      padding: const pw.EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: pw.BoxDecoration(
+        color: teal,
+        borderRadius: pw.BorderRadius.circular(6),
+      ),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Org info (left)
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(orgName,
+                    style: pw.TextStyle(font: fontBold, fontSize: 20, color: white)),
+                if (branchName.isNotEmpty)
+                  pw.Text(branchName,
+                      style: pw.TextStyle(font: fontBold, fontSize: 10, color: white)),
+                if (displayAddress.isNotEmpty)
+                  pw.Text(displayAddress,
+                      style: pw.TextStyle(font: font, fontSize: 9, color: white)),
+                if (displayPhone.isNotEmpty)
+                  pw.Text(displayPhone,
+                      style: pw.TextStyle(font: font, fontSize: 9, color: white)),
+              ],
+            ),
+          ),
+          // Receipt label (right)
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              pw.Text('RECEIPT',
+                  style: pw.TextStyle(font: fontBold, fontSize: 22, color: white,
+                      letterSpacing: 2)),
+              pw.SizedBox(height: 4),
+              pw.Text(receiptId,
+                  style: pw.TextStyle(font: fontBold, fontSize: 11, color: white)),
+              pw.Text(dateStr,
+                  style: pw.TextStyle(font: font, fontSize: 8, color: white)),
+              pw.SizedBox(height: 4),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: pw.BoxDecoration(
+                  color: white,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text(
+                    '${isWholesale ? 'WHOLESALE' : 'RETAIL'} · ${status.toUpperCase()}',
+                    style: pw.TextStyle(font: fontBold, fontSize: 8, color: teal)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+    pw.SizedBox(height: 4),
+  ]);
+}
+
+pw.Widget _a4Footer({
+  required pw.Context ctx,
+  required String receiptId,
+  required pw.Font font,
+  required pw.Font fontBold,
+  required pw.Font fontMono,
+  required PdfColor teal,
+  required PdfColor grey,
+  required PdfColor light,
+  required PdfColor black,
+}) {
+  return pw.Column(children: [
+    pw.Divider(color: light),
+    pw.SizedBox(height: 6),
+    pw.Row(children: [
+      pw.Expanded(
+        child: pw.Text('Thank you for your purchase! Keep this receipt for returns & reference.',
+            style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+      ),
+      pw.Text(receiptId,
+          style: pw.TextStyle(font: fontMono, fontSize: 8, color: light)),
+    ]),
+    pw.SizedBox(height: 2),
+    pw.Row(children: [
+      pw.Expanded(
+        child: pw.Text('Powered by PharmApp',
+            style: pw.TextStyle(font: font, fontSize: 7, color: light)),
+      ),
+      pw.Text('Page ${ctx.pageNumber} of ${ctx.pagesCount}',
+          style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+    ]),
+    pw.SizedBox(height: 4),
+  ]);
+}
+
+pw.Widget _a4MetaRow(
+  String label,
+  String value,
+  pw.Font labelFont,
+  pw.Font valueFont,
+  PdfColor labelColor,
+  PdfColor valueColor,
+) {
+  return pw.Padding(
+    padding: const pw.EdgeInsets.only(bottom: 3),
+    child: pw.Row(children: [
+      pw.Expanded(
+        child: pw.Text(label,
+            style: pw.TextStyle(font: labelFont, fontSize: 9, color: labelColor)),
+      ),
+      pw.Text(value,
+          style: pw.TextStyle(font: valueFont, fontSize: 9, color: valueColor)),
+    ]),
+  );
+}
+
+pw.Widget _a4TotalRow(
+  String label,
+  String value,
+  pw.Font labelFont,
+  pw.Font valueFont,
+  PdfColor labelColor,
+  PdfColor valueColor,
+  PdfColor borderColor,
+) {
+  return pw.Container(
+    padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: pw.BoxDecoration(
+      border: pw.Border(bottom: pw.BorderSide(color: borderColor, width: 0.5)),
+    ),
+    child: pw.Row(children: [
+      pw.Expanded(
+        child: pw.Text(label,
+            style: pw.TextStyle(font: labelFont, fontSize: 10, color: labelColor)),
+      ),
+      pw.Text(value,
+          style: pw.TextStyle(font: valueFont, fontSize: 10, color: valueColor)),
+    ]),
+  );
 }
