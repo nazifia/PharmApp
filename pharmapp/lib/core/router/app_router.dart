@@ -68,6 +68,7 @@ import 'package:pharmapp/features/suppliers/screens/purchase_order_list_screen.d
 import 'package:pharmapp/features/suppliers/screens/purchase_order_detail_screen.dart';
 import 'package:pharmapp/features/suppliers/screens/purchase_order_form_screen.dart';
 import 'package:pharmapp/features/suppliers/screens/receive_order_screen.dart';
+import 'package:pharmapp/features/prescriptions/screens/prescriber_login_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -95,7 +96,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ref.read(hasFeatureProvider(SaasFeature.multiBranch)) &&
           ref.read(activeBranchProvider) == null;
 
-      const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org', '/register-prescriber', '/prescriber-portal'];
+      const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org', '/register-prescriber', '/prescriber-login', '/prescriber-portal'];
 
       if (publicRoutes.contains(loc)) {
         if (isAuthenticated) {
@@ -279,6 +280,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/setup',          name: 'setup',        builder: (_, __) => const SetupScreen()),
       GoRoute(path: '/register-org',          name: 'register_org',          builder: (_, __) => const RegisterOrgScreen()),
       GoRoute(path: '/register-prescriber',   name: 'register_prescriber',   builder: (_, __) => const PrescriberRegistrationScreen()),
+      GoRoute(path: '/prescriber-login',      name: 'prescriber_login',      builder: (_, __) => const PrescriberLoginScreen()),
       GoRoute(path: '/prescriber-portal',     name: 'prescriber_portal',     builder: (_, __) => const PrescriberPortalScreen()),
       GoRoute(path: '/select-branch',  name: 'select_branch', builder: (_, __) => const BranchSelectionScreen()),
       GoRoute(path: '/subscription',   name: 'subscription',  builder: (_, __) => const SubscriptionScreen()),

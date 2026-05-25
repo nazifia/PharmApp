@@ -8,7 +8,6 @@ import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
-import 'package:pharmapp/features/prescriptions/providers/prescriber_provider.dart';
 import 'package:pharmapp/shared/widgets/custom_button.dart';
 import 'package:pharmapp/shared/widgets/custom_textfield.dart';
 
@@ -79,191 +78,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       default:
         context.go('/dashboard');
     }
-  }
-
-  void _showPrescriberLoginSheet(BuildContext ctx) {
-    final phoneCtrl    = TextEditingController();
-    final passwordCtrl = TextEditingController();
-    final formKey      = GlobalKey<FormState>();
-    bool obscure       = true;
-
-    showModalBottomSheet(
-      context: ctx,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => StatefulBuilder(
-        builder: (sheetCtx, setState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(28),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E293B),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.medical_services_rounded,
-                            color: EnhancedTheme.accentPurple, size: 22),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Prescriber Sign In',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded,
-                              color: Colors.white54),
-                          onPressed: () => Navigator.of(sheetCtx).pop(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: phoneCtrl,
-                      keyboardType: TextInputType.phone,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'Phone Number',
-                        labelStyle: TextStyle(color: Colors.white54),
-                        prefixIcon: Icon(Icons.phone_rounded,
-                            color: EnhancedTheme.accentPurple, size: 18),
-                        filled: true,
-                        fillColor: Color(0xFF0F172A),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(14)),
-                          borderSide: BorderSide(color: Colors.white12),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(14)),
-                          borderSide: BorderSide(color: Colors.white12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(14)),
-                          borderSide: BorderSide(
-                              color: EnhancedTheme.accentPurple, width: 1.5),
-                        ),
-                      ),
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Enter your phone number'
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: passwordCtrl,
-                      obscureText: obscure,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        labelStyle: const TextStyle(color: Colors.white54),
-                        prefixIcon: const Icon(Icons.lock_rounded,
-                            color: EnhancedTheme.accentPurple, size: 18),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            obscure
-                                ? Icons.visibility_off_rounded
-                                : Icons.visibility_rounded,
-                            color: Colors.white38,
-                            size: 18,
-                          ),
-                          onPressed: () => setState(() => obscure = !obscure),
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFF0F172A),
-                        border: const OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(14)),
-                          borderSide: BorderSide(color: Colors.white12),
-                        ),
-                        enabledBorder: const OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(14)),
-                          borderSide: BorderSide(color: Colors.white12),
-                        ),
-                        focusedBorder: const OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(14)),
-                          borderSide: BorderSide(
-                              color: EnhancedTheme.accentPurple, width: 1.5),
-                        ),
-                      ),
-                      validator: (v) => (v == null || v.isEmpty)
-                          ? 'Enter your password'
-                          : null,
-                    ),
-                    const SizedBox(height: 24),
-                    Consumer(builder: (_, ref, __) {
-                      final loading =
-                          ref.watch(prescriberNotifierProvider).isLoading;
-                      return SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: loading
-                              ? null
-                              : () async {
-                                  if (!formKey.currentState!.validate()) return;
-                                  final p = await ref
-                                      .read(prescriberNotifierProvider.notifier)
-                                      .loginPrescriber(
-                                        phoneCtrl.text.trim(),
-                                        passwordCtrl.text,
-                                      );
-                                  if (!sheetCtx.mounted) return;
-                                  if (p != null) {
-                                    Navigator.of(sheetCtx).pop();
-                                    ctx.go('/prescriber-portal');
-                                  } else {
-                                    final err = ref
-                                        .read(prescriberNotifierProvider)
-                                        .error
-                                        ?.toString() ??
-                                        'Login failed';
-                                    ScaffoldMessenger.of(ctx).showSnackBar(
-                                      SnackBar(
-                                        content: Text(err),
-                                        backgroundColor: EnhancedTheme.errorRed,
-                                      ),
-                                    );
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: EnhancedTheme.accentPurple,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: loading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2.5))
-                              : const Text('Sign In',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15)),
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 
   // ── Light-mode constants ──────────────────────────────────────────────────
@@ -563,7 +377,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 TextButton(
                   onPressed: isLoading
                       ? null
-                      : () => _showPrescriberLoginSheet(context),
+                      : () => context.go('/prescriber-login'),
                   child: const Text(
                     'Prescriber? Sign in here',
                     style: TextStyle(
