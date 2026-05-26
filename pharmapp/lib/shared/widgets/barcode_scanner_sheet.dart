@@ -14,13 +14,21 @@ class BarcodeScannerSheet extends StatefulWidget {
 }
 
 class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
-  final MobileScannerController _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-    facing: CameraFacing.back,
-  );
+  late final MobileScannerController _controller;
   final TextEditingController _manualCtrl = TextEditingController();
   bool _scanned = false;
   bool _cameraFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Web desktops have no back camera — front maps to the webcam.
+    _controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: kIsWeb ? CameraFacing.front : CameraFacing.back,
+      autoStart: true,
+    );
+  }
 
   @override
   void dispose() {
@@ -32,7 +40,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
   void _onDetect(BarcodeCapture capture) {
     if (_scanned) return;
     final barcode = capture.barcodes.firstOrNull;
-    final raw = barcode?.rawValue;
+    final raw = barcode?.rawValue?.trim();
     if (raw == null || raw.isEmpty) return;
     _scanned = true;
     widget.onBarcodeScanned(raw);

@@ -36,11 +36,16 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     super.dispose();
   }
 
-  void _onBarcodeScannedPOS(String code) {
+  Future<void> _onBarcodeScannedPOS(String code) async {
+    final trimmed = code.trim();
     final items = ref.read(retailInventoryProvider).valueOrNull ?? [];
-    final match = items.where((i) => i.barcode == code).firstOrNull;
+    Item? match = items
+        .where((i) => i.barcode.toLowerCase() == trimmed.toLowerCase())
+        .firstOrNull;
+    match ??= await ref.read(inventoryApiProvider).fetchItemByBarcode(trimmed);
+    if (!mounted) return;
     if (match == null) {
-      _showSnackBar('Item not found for barcode: $code', type: _SnackType.error);
+      _showSnackBar('Item not found for barcode: $trimmed', type: _SnackType.error);
       return;
     }
     if (match.stock == 0) {
@@ -48,7 +53,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       return;
     }
     final cart = ref.read(cartProvider);
-    final inCart = cart.where((c) => c.item.id == match.id).fold<int>(0, (s, c) => s + c.quantity);
+    final inCart = cart.where((c) => c.item.id == match!.id).fold<int>(0, (s, c) => s + c.quantity);
     if (inCart >= match.stock) {
       _showSnackBar('${match.name} — maximum stock in cart', type: _SnackType.error);
       return;

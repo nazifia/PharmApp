@@ -118,13 +118,17 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   void _removeFromCart(int id) =>
       setState(() => _cart.removeWhere((l) => l.id == id));
 
-  void _onBarcodeScannedWholesale(String code) {
-    final items =
-        ref.read(wholesaleInventoryProvider).valueOrNull ?? [];
-    final match = items.where((i) => i.barcode == code).firstOrNull;
+  Future<void> _onBarcodeScannedWholesale(String code) async {
+    final trimmed = code.trim();
+    final items = ref.read(wholesaleInventoryProvider).valueOrNull ?? [];
+    Item? match = items
+        .where((i) => i.barcode.toLowerCase() == trimmed.toLowerCase())
+        .firstOrNull;
+    match ??= await ref.read(inventoryApiProvider).fetchItemByBarcode(trimmed);
+    if (!mounted) return;
     if (match == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Item not found for barcode: $code'),
+        content: Text('Item not found for barcode: $trimmed'),
         backgroundColor: const Color(0xFFEF4444),
       ));
       return;
@@ -137,7 +141,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       return;
     }
     final inCart = _cart
-        .where((l) => l.id == match.id)
+        .where((l) => l.id == match!.id)
         .fold<double>(0, (s, l) => s + l.qty);
     if (inCart >= match.stock) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
