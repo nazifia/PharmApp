@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/features/pos/providers/cart_provider.dart';
@@ -1707,7 +1708,7 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet> {
               ),
               const SizedBox(height: 2),
               Text(
-                '₦${item.price.toStringAsFixed(2)}',
+                fmtN(item.price),
                 style: const TextStyle(
                     color: Colors.white54, fontSize: 11),
               ),

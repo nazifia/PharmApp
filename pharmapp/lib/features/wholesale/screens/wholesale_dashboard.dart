@@ -728,7 +728,7 @@ class _WholesaleDashboardState extends ConsumerState<WholesaleDashboard> {
         Expanded(child: Text(item.name,
             style: GoogleFonts.inter(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w500),
             maxLines: 1, overflow: TextOverflow.ellipsis)),
-        Text(item.stock == 0 ? 'Out of Stock' : '${item.stock} left',
+        Text(item.stock == 0 ? 'Out of Stock' : '${fmtNum(item.stock.toDouble())} left',
             style: GoogleFonts.inter(
               color: item.stock == 0 ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber,
               fontSize: 12, fontWeight: FontWeight.w700)),

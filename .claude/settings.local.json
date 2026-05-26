@@ -130,7 +130,12 @@
       "PowerShell(Test-Path *)",
       "Bash(venv\\\\Scripts\\\\python.exe manage.py migrate --check)",
       "Bash(dir *)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\build\\\\web\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object Name, Extension | Sort-Object Extension | Format-Table -AutoSize)"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\build\\\\web\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object Name, Extension | Sort-Object Extension | Format-Table -AutoSize)",
+      "Bash(rg -n \"\\\\$\\\\{\\(item|stock|price|cost|reorder|threshold\\)\" --type dart inventory/ reports/screens/inventory_report)",
+      "Bash(rg -n \"\\\\\\\\\\\\$\\\\{.*\\\\.\\(stock|price|costPrice|reorderLevel|lowStockThreshold\\)\" features/inventory features/reports --type dart)",
+      "Bash(rg -n \"\\\\\\\\\\\\$\\\\{.*\\\\.stock\" features/wholesale/screens/wholesale_dashboard.dart --type dart)",
+      "Bash(rg -n \"\\\\\\\\\\\\$\\\\{.*\\\\.stock\" features/admin/screens/admin_dashboard.dart --type dart)",
+      "Bash(rg -n \"Text\\\\\\('.*\\\\\\\\\\\\$\" features/inventory features/reports/screens/inventory_report --type dart)"
     ]
   }
 }

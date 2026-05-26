@@ -584,12 +584,12 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                           valueColor: AlwaysStoppedAnimation<Color>(c),
                           minHeight: 6)),
                   const SizedBox(height: 4),
-                  Text('Threshold: ${item.lowStockThreshold} units',
+                  Text('Threshold: ${fmtNum(item.lowStockThreshold.toDouble())} units',
                       style: TextStyle(color: context.hintColor, fontSize: 10)),
                 ])),
             const SizedBox(width: 14),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('${item.stock}',
+              Text(fmtNum(item.stock.toDouble()),
                   style: TextStyle(
                       color: c, fontSize: 18, fontWeight: FontWeight.w800)),
               const Text('in stock',

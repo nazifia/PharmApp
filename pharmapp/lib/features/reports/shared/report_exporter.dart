@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../providers/reports_api_client.dart';
@@ -275,8 +276,8 @@ class ReportExporter {
                           item.stock == 0 ? 'Out of Stock' : 'Low Stock';
                       return _tableDataRow([
                         item.name,
-                        '${item.stock}',
-                        '${item.lowStockThreshold}',
+                        fmtNum(item.stock.toDouble()),
+                        fmtNum(item.lowStockThreshold.toDouble()),
                         status,
                       ], shaded: e.key.isOdd);
                     }),

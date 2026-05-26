@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/inventory/providers/inventory_provider.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
@@ -967,7 +968,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                   color: alertColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(a.item.stock == 0 ? 'Out' : '${a.item.stock} left',
+                child: Text(a.item.stock == 0 ? 'Out' : '${fmtNum(a.item.stock.toDouble())} left',
                     style: TextStyle(
                         color: alertColor,
                         fontSize: 11,

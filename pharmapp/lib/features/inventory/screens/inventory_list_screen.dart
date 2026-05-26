@@ -1227,11 +1227,11 @@ class _StoreInventoryView extends ConsumerWidget {
     if (item.stock == 0) {
       label = 'Out of Stock';
     } else if (item.reorderLevel != null && item.stock <= item.reorderLevel!) {
-      label = '${item.stock} reorder';
+      label = '${fmtNum(item.stock.toDouble())} reorder';
     } else if (item.stock <= item.lowStockThreshold) {
-      label = '${item.stock} low';
+      label = '${fmtNum(item.stock.toDouble())} low';
     } else {
-      label = '${item.stock} in stock';
+      label = '${fmtNum(item.stock.toDouble())} in stock';
     }
     return _chip(label, c);
   }

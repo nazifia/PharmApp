@@ -586,7 +586,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     child: Row(children: [
                       const Icon(Icons.inventory_2_rounded, color: EnhancedTheme.infoBlue, size: 14),
                       const SizedBox(width: 8),
-                      Text('Available: ${item.stock} units · ${item.name}',
+                      Text('Available: ${fmtNum(item.stock.toDouble())} units · ${item.name}',
                           style: const TextStyle(color: EnhancedTheme.infoBlue, fontSize: 12, fontWeight: FontWeight.w600)),
                     ]),
                   ),
@@ -819,7 +819,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     child: Row(children: [
                       const Icon(Icons.inventory_2_rounded, color: EnhancedTheme.infoBlue, size: 14),
                       const SizedBox(width: 8),
-                      Text('Current stock: $current units',
+                      Text('Current stock: ${fmtNum(current.toDouble())} units',
                           style: const TextStyle(color: EnhancedTheme.infoBlue, fontSize: 13, fontWeight: FontWeight.w600)),
                     ]),
                   ),
@@ -936,7 +936,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             content: Row(children: [
                               const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
                               const SizedBox(width: 10),
-                              Expanded(child: Text('Stock updated to ${updated.stock} units ($reason)', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                              Expanded(child: Text('Stock updated to ${fmtNum(updated.stock.toDouble())} units ($reason)', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                             ]),
                           ));
                         } else if (notifierState is AsyncData) {
@@ -1219,7 +1219,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
             Expanded(child: _metricCard('Price', fmtN(item.price),
                 EnhancedTheme.primaryTeal, Icons.sell_rounded)),
             const SizedBox(width: 12),
-            Expanded(child: _metricCard('Stock', '${item.stock}',
+            Expanded(child: _metricCard('Stock', fmtNum(item.stock.toDouble()),
                 stockColor, Icons.inventory_2_rounded)),
             const SizedBox(width: 12),
             Expanded(child: _metricCard('Expiry',
@@ -1251,11 +1251,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   _divider(),
                   _detailRow('Barcode', item.barcode, Icons.qr_code_rounded, EnhancedTheme.infoBlue),
                   _divider(),
-                  _detailRow('Low Stock Alert', '${item.lowStockThreshold} units',
+                  _detailRow('Low Stock Alert', '${fmtNum(item.lowStockThreshold.toDouble())} units',
                       Icons.warning_amber_rounded, EnhancedTheme.warningAmber),
                   if (item.reorderLevel != null) ...[
                     _divider(),
-                    _detailRow('Reorder Level', '${item.reorderLevel} units',
+                    _detailRow('Reorder Level', '${fmtNum(item.reorderLevel!.toDouble())} units',
                         Icons.refresh_rounded, EnhancedTheme.accentOrange),
                   ],
                   if (item.batchNumber != null && item.batchNumber!.isNotEmpty) ...[
