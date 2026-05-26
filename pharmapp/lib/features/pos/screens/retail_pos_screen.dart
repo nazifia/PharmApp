@@ -367,7 +367,10 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                                   : ctx.cardColor,
                               onTap: () {
                                 ref.read(selectedCustomerProvider.notifier).state = SelectedCustomer(
-                                  id: c.id, name: c.name, walletBalance: c.walletBalance);
+                                  id: c.id, name: c.name, walletBalance: c.walletBalance,
+                                  hmoProvider: c.hmoProvider,
+                                  hmoCardNumber: c.hmoCardNumber,
+                                  hmoCoveragePercent: c.hmoCoveragePercent);
                                 Navigator.pop(ctx);
                               },
                               leading: CircleAvatar(

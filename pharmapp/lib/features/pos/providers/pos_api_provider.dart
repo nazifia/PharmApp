@@ -11,6 +11,7 @@ import '../../../core/rbac/rbac.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../../../shared/models/sale.dart';
+import 'cart_provider.dart' show selectedCustomerProvider;
 
 const _kSalesCacheKey           = 'cache_sales_list';
 const _kPaymentRequestsCacheKey = 'cache_payment_requests';
@@ -43,6 +44,10 @@ class PosApiClient {
   Future<Map<String, dynamic>> submitCheckout(
     CheckoutPayload payload, {
     int? branchId,
+    String? hmoCardNumber,
+    double? hmoCoveragePercent,
+    double? hmoAmount,
+    String? hmoProvider,
   }) async {
     if (_isLocal) {
       // Explicitly deep-serialize nested models — freezed toJson() does not
@@ -62,6 +67,12 @@ class PosApiClient {
       final body = {
         ...payload.toJson(),
         if (branchId != null && branchId > 0) 'branch_id': branchId,
+        if (hmoCardNumber != null && hmoCardNumber.isNotEmpty) ...{
+          'hmo_card_number': hmoCardNumber,
+          'hmo_coverage_percent': hmoCoveragePercent ?? 0.0,
+          'hmo_amount': hmoAmount ?? 0.0,
+          if (hmoProvider != null) 'hmo_provider': hmoProvider,
+        },
       };
       final res = await _dio!.post('/pos/checkout/', data: body);
       return res.data as Map<String, dynamic>;
@@ -1867,10 +1878,18 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
       return {'offline': true};
     }
 
+    final selectedCustomer = _ref.read(selectedCustomerProvider);
+
     try {
       final result = await _ref.read(posApiProvider).submitCheckout(
         payload,
         branchId: branchId,
+        hmoCardNumber: selectedCustomer?.hmoCardNumber,
+        hmoCoveragePercent: selectedCustomer?.hmoCoveragePercent,
+        hmoAmount: selectedCustomer?.hasHmo == true
+            ? selectedCustomer!.hmoAmount(payload.totalAmount)
+            : null,
+        hmoProvider: selectedCustomer?.hmoProvider,
       );
       await _saveLocalDispensingEntries(result);
       state = const AsyncValue.data(null);

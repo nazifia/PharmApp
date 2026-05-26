@@ -26,6 +26,7 @@ import 'package:pharmapp/features/reports/screens/profit_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/monthly_report_screen.dart';
 import 'package:pharmapp/features/reports/screens/cashier_sales_screen.dart';
 import 'package:pharmapp/features/reports/screens/commission_report_screen.dart';
+import 'package:pharmapp/features/reports/screens/shift_report_screen.dart';
 import 'package:pharmapp/features/settings/screens/app_settings_screen.dart';
 import 'package:pharmapp/features/settings/screens/edit_profile_screen.dart';
 import 'package:pharmapp/features/inventory/screens/item_detail_screen.dart';
@@ -318,6 +319,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'reports/monthly',       name: 'monthly_report',        builder: (_, __) => const MonthlyReportScreen()),
               GoRoute(path: 'reports/cashier-sales', name: 'cashier_sales_report',  builder: (_, __) => const CashierSalesScreen()),
               GoRoute(path: 'reports/commissions',  name: 'commission_report',     builder: (_, __) => const CommissionReportScreen()),
+              GoRoute(path: 'reports/shifts',       name: 'shift_report',          builder: (_, __) => const ShiftReportScreen()),
               GoRoute(
                 path: 'settings',
                 name: 'settings',

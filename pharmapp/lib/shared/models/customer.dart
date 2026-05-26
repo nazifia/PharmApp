@@ -24,6 +24,15 @@ class Customer {
   final String? bloodGroup;
   final DateTime? dateOfBirth;
 
+  // HMO / Insurance fields
+  final String? hmoProvider;
+  final String? hmoPlanName;
+  final String? hmoCardNumber;
+  final double? hmoCoveragePercent;
+  final String? hmoExpiryDate;
+
+  bool get hasHmo => hmoCardNumber != null && hmoCardNumber!.isNotEmpty;
+
   const Customer({
     required this.id,
     required this.name,
@@ -43,6 +52,11 @@ class Customer {
     this.currentMedications = const <String>[],
     this.bloodGroup,
     this.dateOfBirth,
+    this.hmoProvider,
+    this.hmoPlanName,
+    this.hmoCardNumber,
+    this.hmoCoveragePercent,
+    this.hmoExpiryDate,
   });
 
   String get type => isWholesale ? 'Wholesale' : 'Retail';
@@ -69,6 +83,11 @@ class Customer {
         dateOfBirth:     json['date_of_birth'] != null
             ? DateTime.tryParse(json['date_of_birth'] as String)
             : null,
+        hmoProvider:        json['hmo_provider'] as String?,
+        hmoPlanName:        json['hmo_plan_name'] as String?,
+        hmoCardNumber:      json['hmo_card_number'] as String?,
+        hmoCoveragePercent: (json['hmo_coverage_percent'] as num?)?.toDouble(),
+        hmoExpiryDate:      json['hmo_expiry_date'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -86,6 +105,11 @@ class Customer {
             '${dateOfBirth!.year.toString().padLeft(4, '0')}-'
             '${dateOfBirth!.month.toString().padLeft(2, '0')}-'
             '${dateOfBirth!.day.toString().padLeft(2, '0')}',
+        if (hmoProvider != null)       'hmo_provider':        hmoProvider,
+        if (hmoPlanName != null)       'hmo_plan_name':       hmoPlanName,
+        if (hmoCardNumber != null)     'hmo_card_number':     hmoCardNumber,
+        if (hmoCoveragePercent != null) 'hmo_coverage_percent': hmoCoveragePercent,
+        if (hmoExpiryDate != null)     'hmo_expiry_date':     hmoExpiryDate,
       };
 
   Customer copyWith({
@@ -109,6 +133,12 @@ class Customer {
     DateTime? dateOfBirth,
     bool clearBloodGroup = false,
     bool clearDateOfBirth = false,
+    String? hmoProvider,
+    String? hmoPlanName,
+    String? hmoCardNumber,
+    double? hmoCoveragePercent,
+    String? hmoExpiryDate,
+    bool clearHmo = false,
   }) =>
       Customer(
         id:               id              ?? this.id,
@@ -129,5 +159,10 @@ class Customer {
         currentMedications: currentMedications ?? this.currentMedications,
         bloodGroup:       clearBloodGroup  ? null : (bloodGroup  ?? this.bloodGroup),
         dateOfBirth:      clearDateOfBirth ? null : (dateOfBirth ?? this.dateOfBirth),
+        hmoProvider:        clearHmo ? null : (hmoProvider        ?? this.hmoProvider),
+        hmoPlanName:        clearHmo ? null : (hmoPlanName        ?? this.hmoPlanName),
+        hmoCardNumber:      clearHmo ? null : (hmoCardNumber      ?? this.hmoCardNumber),
+        hmoCoveragePercent: clearHmo ? null : (hmoCoveragePercent ?? this.hmoCoveragePercent),
+        hmoExpiryDate:      clearHmo ? null : (hmoExpiryDate      ?? this.hmoExpiryDate),
       );
 }

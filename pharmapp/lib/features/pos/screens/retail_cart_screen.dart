@@ -424,10 +424,11 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cart           = ref.watch(cartProvider);
-    final cartTotal      = cart.fold(0.0, (s, c) => s + c.total);
-    final cartCount      = cart.fold<int>(0, (s, c) => s + c.quantity);
+    final cart              = ref.watch(cartProvider);
+    final cartTotal         = cart.fold(0.0, (s, c) => s + c.total);
+    final cartCount         = cart.fold<int>(0, (s, c) => s + c.quantity);
     final interactionsAsync = ref.watch(combinedPosWarningsProvider);
+    final selectedCustomer  = ref.watch(selectedCustomerProvider);
 
     final filtered = _searchQuery.isEmpty
         ? cart
@@ -458,11 +459,17 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                         item: filtered[i],
                       ).animate(delay: (i * 30).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0),
                     )),
-          _buildFooter(cart, cartTotal),
+          _buildFooter(cart, cartTotal, selectedCustomer),
         ])),
       ]),
     );
   }
+
+  Widget _hmoLineRow(String label, double amount, Color color) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(label, style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10)),
+    Text(fmtN(amount), style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+  ]);
 
   Widget _buildHeader(BuildContext context, int lineCount, int unitCount) {
     return Container(
@@ -553,7 +560,11 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
     ]));
   }
 
-  Widget _buildFooter(List<CartItem> cart, double cartTotal) {
+  Widget _buildFooter(List<CartItem> cart, double cartTotal, SelectedCustomer? selectedCustomer) {
+    final hmoAmt    = selectedCustomer?.hmoAmount(cartTotal) ?? 0.0;
+    final patientAmt = selectedCustomer?.patientAmount(cartTotal) ?? cartTotal;
+    final hasHmo    = (selectedCustomer?.hasHmo ?? false) && hmoAmt > 0;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
       child: ClipRRect(
@@ -568,6 +579,35 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
               border: Border.all(color: context.borderColor),
             ),
             child: Column(children: [
+              // HMO coverage banner
+              if (hasHmo) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: EnhancedTheme.accentCyan.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha: 0.25)),
+                  ),
+                  child: Column(children: [
+                    Row(children: [
+                      const Icon(Icons.health_and_safety_rounded, color: EnhancedTheme.accentCyan, size: 14),
+                      const SizedBox(width: 6),
+                      Text(selectedCustomer!.hmoProvider ?? 'HMO',
+                          style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12, fontWeight: FontWeight.w600)),
+                      const Spacer(),
+                      Text('${selectedCustomer.hmoCoveragePercent?.toStringAsFixed(0)}% coverage',
+                          style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11)),
+                    ]),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      Expanded(child: _hmoLineRow('HMO covers', hmoAmt, EnhancedTheme.accentCyan)),
+                      const SizedBox(width: 10),
+                      Expanded(child: _hmoLineRow('Patient pays', patientAmt, EnhancedTheme.successGreen)),
+                    ]),
+                  ]),
+                ),
+                const SizedBox(height: 10),
+              ],
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
@@ -582,7 +622,8 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('${cart.length} lines · ${cart.fold<int>(0, (s, c) => s + c.quantity)} units',
                         style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                    const Text('Total Amount', style: TextStyle(color: Colors.black87, fontSize: 12)),
+                    Text(hasHmo ? 'Total  (incl. HMO)' : 'Total Amount',
+                        style: const TextStyle(color: Colors.black87, fontSize: 12)),
                   ])),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text(fmtN(cartTotal),

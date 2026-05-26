@@ -65,7 +65,21 @@ class SelectedCustomer {
   final int    id;
   final String name;
   final double walletBalance;
-  const SelectedCustomer({required this.id, required this.name, required this.walletBalance});
+  final String? hmoProvider;
+  final String? hmoCardNumber;
+  final double? hmoCoveragePercent;
+  const SelectedCustomer({
+    required this.id,
+    required this.name,
+    required this.walletBalance,
+    this.hmoProvider,
+    this.hmoCardNumber,
+    this.hmoCoveragePercent,
+  });
+
+  bool get hasHmo => hmoCardNumber != null && hmoCardNumber!.isNotEmpty;
+  double hmoAmount(double total) => hasHmo ? total * (hmoCoveragePercent ?? 0) / 100 : 0.0;
+  double patientAmount(double total) => total - hmoAmount(total);
 }
 
 final selectedCustomerProvider = StateProvider<SelectedCustomer?>((ref) => null);

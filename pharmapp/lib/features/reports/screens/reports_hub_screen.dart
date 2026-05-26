@@ -69,6 +69,15 @@ class ReportsHubScreen extends ConsumerWidget {
       'route':    '/dashboard/reports/commissions',
       'advanced': false,
     },
+    {
+      'title':    'Shift Reports',
+      'sub':      'Open/close shifts, per-shift revenue & cash reconciliation',
+      'icon':     Icons.schedule_rounded,
+      'color':    EnhancedTheme.accentPurple,
+      'route':    '/dashboard/reports/shifts',
+      'advanced': false,
+      'allRoles': true,
+    },
   ];
 
   String _fmt(double v) {

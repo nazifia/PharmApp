@@ -10,6 +10,7 @@ import 'package:pharmapp/shared/models/customer.dart';
 import '../providers/customer_provider.dart';
 import '../providers/customer_api_client.dart' show SaleItemDetail;
 import '../../pos/providers/cart_provider.dart';
+import '../../notifications/providers/sms_api_client.dart';
 
 const List<String> _kBloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -290,12 +291,19 @@ class CustomerDetailScreen extends ConsumerWidget {
               colors: [EnhancedTheme.successGreen, EnhancedTheme.primaryTeal],
               onTap: () => context.push('/customer/${customer.id}/wallet'),
             )),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(child: _actionButton(
               label: 'New Sale',
               icon: Icons.point_of_sale_rounded,
               colors: [accentColor, accentColor.withValues(alpha: 0.7)],
               onTap: () => _startNewSale(context, ref, customer),
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: _actionButton(
+              label: 'SMS',
+              icon: Icons.sms_rounded,
+              colors: [EnhancedTheme.accentPurple, EnhancedTheme.accentPurple.withValues(alpha: 0.7)],
+              onTap: () => _showSmsSheet(context, ref, customer),
             )),
           ]).animate().fadeIn(duration: 400.ms, delay: 160.ms).slideY(begin: 0.2, end: 0),
           const SizedBox(height: 20),
@@ -329,6 +337,13 @@ class CustomerDetailScreen extends ConsumerWidget {
             customer: customer,
             ref: ref,
             onEdit: () => _showMedicalEditSheet(context, ref, customer),
+          ),
+          const SizedBox(height: 20),
+
+          // ── HMO / Insurance ─────────────────────────────────────────────────
+          _HmoSection(
+            customer: customer,
+            onEdit: () => _showHmoEditSheet(context, ref, customer),
           ),
           const SizedBox(height: 20),
 
@@ -402,6 +417,9 @@ class CustomerDetailScreen extends ConsumerWidget {
       id: customer.id,
       name: customer.name,
       walletBalance: customer.walletBalance,
+      hmoProvider: customer.hmoProvider,
+      hmoCardNumber: customer.hmoCardNumber,
+      hmoCoveragePercent: customer.hmoCoveragePercent,
     );
 
     final posRoute = customer.isWholesale ? '/dashboard/wholesale-pos' : '/dashboard/pos';
@@ -823,6 +841,304 @@ class CustomerDetailScreen extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  // ── SMS compose sheet ──────────────────────────────────────────────────────
+
+  void _showSmsSheet(BuildContext context, WidgetRef ref, Customer customer) {
+    SmsTemplate selectedTemplate = SmsTemplate.prescriptionReady;
+    final msgCtrl = TextEditingController(
+        text: selectedTemplate.defaultMessage('Pharmacy'));
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: context.cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  border: Border(top: BorderSide(color: EnhancedTheme.accentPurple.withValues(alpha: 0.3), width: 1.5)),
+                ),
+                child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Center(child: Container(width: 44, height: 5,
+                      decoration: BoxDecoration(color: context.hintColor.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(3)))),
+                  const SizedBox(height: 20),
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.accentPurple.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.sms_rounded, color: EnhancedTheme.accentPurple, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Send SMS', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+                      Text('To: ${customer.name}  ·  ${customer.phone}',
+                          style: TextStyle(color: context.hintColor, fontSize: 12)),
+                    ])),
+                  ]),
+                  const SizedBox(height: 20),
+
+                  Text('Template', style: TextStyle(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 8, children: SmsTemplate.values.map((t) =>
+                    GestureDetector(
+                      onTap: () => setSheetState(() {
+                        selectedTemplate = t;
+                        if (t != SmsTemplate.custom) {
+                          msgCtrl.text = t.defaultMessage('Pharmacy');
+                        }
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: selectedTemplate == t
+                              ? EnhancedTheme.accentPurple.withValues(alpha: 0.15)
+                              : context.cardColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: selectedTemplate == t
+                                ? EnhancedTheme.accentPurple.withValues(alpha: 0.5)
+                                : context.borderColor,
+                          ),
+                        ),
+                        child: Text(t.displayName,
+                            style: TextStyle(
+                              color: selectedTemplate == t ? EnhancedTheme.accentPurple : context.labelColor,
+                              fontSize: 12, fontWeight: FontWeight.w600,
+                            )),
+                      ),
+                    ),
+                  ).toList()),
+                  const SizedBox(height: 16),
+
+                  Text('Message', style: TextStyle(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: msgCtrl,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: 'Enter message...',
+                      filled: true,
+                      fillColor: context.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.borderColor)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.borderColor)),
+                      contentPadding: const EdgeInsets.all(14),
+                    ),
+                    style: TextStyle(color: context.labelColor, fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+
+                  SizedBox(width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final msg = msgCtrl.text.trim();
+                        if (msg.isEmpty) return;
+                        Navigator.pop(ctx);
+                        final ok = await ref.read(smsNotifierProvider.notifier).sendSms(
+                          customerId: customer.id,
+                          message: msg,
+                          template: selectedTemplate.apiKey,
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: (ok ? EnhancedTheme.successGreen : EnhancedTheme.errorRed).withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              Icon(ok ? Icons.check_circle_rounded : Icons.error_rounded, color: Colors.black, size: 18),
+                              const SizedBox(width: 10),
+                              Text(ok ? 'SMS sent to ${customer.name}' : 'Failed to send SMS',
+                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+                            ]),
+                          ));
+                        }
+                      },
+                      icon: const Icon(Icons.send_rounded, size: 16),
+                      label: Text('Send SMS', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: EnhancedTheme.accentPurple,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    )),
+                  const SizedBox(height: 8),
+                ])),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── HMO edit sheet ─────────────────────────────────────────────────────────
+
+  static const _kHmoProviders = [
+    'NHIS', 'AXA Mansard', 'Reliance HMO', 'Hygeia HMO', 'Avon HMO',
+    'Total Health Trust', 'Clearline HMO', 'AIICO Multishield', 'CareFront HMO', 'Other',
+  ];
+
+  void _showHmoEditSheet(BuildContext context, WidgetRef ref, Customer customer) {
+    String? provider    = customer.hmoProvider;
+    final planCtrl      = TextEditingController(text: customer.hmoPlanName ?? '');
+    final cardCtrl      = TextEditingController(text: customer.hmoCardNumber ?? '');
+    final coverageCtrl  = TextEditingController(
+        text: customer.hmoCoveragePercent != null
+            ? customer.hmoCoveragePercent!.toStringAsFixed(0)
+            : '');
+    final expiryCtrl    = TextEditingController(text: customer.hmoExpiryDate ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: context.cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  border: Border(top: BorderSide(color: EnhancedTheme.accentCyan.withValues(alpha: 0.3), width: 1.5))),
+                child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Center(child: Container(width: 44, height: 5,
+                      decoration: BoxDecoration(color: context.hintColor.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(3)))),
+                  const SizedBox(height: 20),
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.accentCyan.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.health_and_safety_rounded, color: EnhancedTheme.accentCyan, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text('HMO / Insurance Details',
+                        style: GoogleFonts.outfit(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 20),
+
+                  Text('HMO Provider', style: TextStyle(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: _kHmoProviders.contains(provider) ? provider : null,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: context.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.borderColor)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.borderColor)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      prefixIcon: Icon(Icons.local_hospital_rounded, color: context.hintColor, size: 18),
+                    ),
+                    hint: Text('Select provider', style: TextStyle(color: context.hintColor, fontSize: 13)),
+                    dropdownColor: context.cardColor,
+                    style: TextStyle(color: context.labelColor, fontSize: 13),
+                    items: _kHmoProviders.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                    onChanged: (v) => setSheetState(() => provider = v),
+                  ),
+                  const SizedBox(height: 14),
+                  _sheetField(planCtrl, 'Plan Name (e.g. Standard, Premium)', Icons.card_membership_rounded, context),
+                  const SizedBox(height: 14),
+                  _sheetField(cardCtrl, 'HMO Card Number', Icons.credit_card_rounded, context),
+                  const SizedBox(height: 14),
+                  _sheetField(coverageCtrl, 'Coverage % (0–100)', Icons.percent_rounded, context,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: false)),
+                  const SizedBox(height: 14),
+                  _sheetField(expiryCtrl, 'Expiry Date (YYYY-MM-DD)', Icons.event_rounded, context),
+                  const SizedBox(height: 20),
+
+                  Row(children: [
+                    Expanded(child: OutlinedButton(
+                      onPressed: () async {
+                        final updated = await ref.read(customerNotifierProvider.notifier)
+                            .updateCustomer(customer.id, {'hmo_card_number': '', 'hmo_provider': '', 'hmo_plan_name': '', 'hmo_coverage_percent': null, 'hmo_expiry_date': ''});
+                        if (context.mounted) {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: (updated != null ? EnhancedTheme.successGreen : EnhancedTheme.warningAmber).withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Text(updated != null ? 'HMO info cleared' : 'Queued for sync',
+                                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+                          ));
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: EnhancedTheme.errorRed,
+                        side: BorderSide(color: EnhancedTheme.errorRed.withValues(alpha: 0.4)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Clear HMO'),
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: ElevatedButton(
+                      onPressed: () async {
+                        final coveragePct = double.tryParse(coverageCtrl.text.trim());
+                        final data = <String, dynamic>{
+                          if (provider != null) 'hmo_provider': provider,
+                          if (planCtrl.text.trim().isNotEmpty) 'hmo_plan_name': planCtrl.text.trim(),
+                          if (cardCtrl.text.trim().isNotEmpty) 'hmo_card_number': cardCtrl.text.trim(),
+                          if (coveragePct != null) 'hmo_coverage_percent': coveragePct.clamp(0, 100),
+                          if (expiryCtrl.text.trim().isNotEmpty) 'hmo_expiry_date': expiryCtrl.text.trim(),
+                        };
+                        final updated = await ref.read(customerNotifierProvider.notifier)
+                            .updateCustomer(customer.id, data);
+                        final notifierState = ref.read(customerNotifierProvider);
+                        if (context.mounted) {
+                          Navigator.pop(ctx);
+                          final Color bg = updated != null ? EnhancedTheme.successGreen
+                              : notifierState is AsyncData ? EnhancedTheme.warningAmber
+                              : EnhancedTheme.errorRed;
+                          final String msg = updated != null ? 'HMO info updated'
+                              : notifierState is AsyncData ? 'Offline — queued for sync'
+                              : 'Update failed';
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: bg.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Text(msg, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+                          ));
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: EnhancedTheme.accentCyan,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: Text('Save HMO Info', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14)),
+                    )),
+                  ]),
+                  const SizedBox(height: 8),
+                ])),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1352,6 +1668,116 @@ class _MedicalHistorySectionState extends State<_MedicalHistorySection>
       ),
     ]);
   }
+}
+
+// ── HMO / Insurance section ───────────────────────────────────────────────────
+
+class _HmoSection extends StatelessWidget {
+  final Customer customer;
+  final VoidCallback onEdit;
+  const _HmoSection({required this.customer, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = customer;
+    final hasHmo = c.hasHmo;
+    const color = EnhancedTheme.accentCyan;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(width: 3, height: 18,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 10),
+        const Icon(Icons.health_and_safety_rounded, color: EnhancedTheme.accentCyan, size: 16),
+        const SizedBox(width: 8),
+        Expanded(child: Text('HMO / Insurance', style: GoogleFonts.outfit(
+            color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700))),
+        GestureDetector(
+          onTap: onEdit,
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color.withValues(alpha: 0.3)),
+            ),
+            child: Icon(hasHmo ? Icons.edit_outlined : Icons.add_rounded, color: color, size: 14),
+          ),
+        ),
+      ]),
+      const SizedBox(height: 10),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: hasHmo ? color.withValues(alpha: 0.06) : context.cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: hasHmo ? color.withValues(alpha: 0.25) : context.borderColor),
+            ),
+            child: hasHmo ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.verified_rounded, color: color, size: 13),
+                    const SizedBox(width: 5),
+                    Text(c.hmoProvider ?? 'HMO Enrolled',
+                        style: const TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+                if (c.hmoCoveragePercent != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text('${c.hmoCoveragePercent!.toStringAsFixed(0)}% covered',
+                        style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ]),
+              const SizedBox(height: 12),
+              if (c.hmoPlanName != null && c.hmoPlanName!.isNotEmpty) ...[
+                _hmoRow(context, Icons.card_membership_rounded, 'Plan', c.hmoPlanName!),
+                const SizedBox(height: 8),
+              ],
+              _hmoRow(context, Icons.credit_card_rounded, 'Card No.', c.hmoCardNumber!),
+              if (c.hmoExpiryDate != null && c.hmoExpiryDate!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _hmoRow(context, Icons.event_rounded, 'Expiry', c.hmoExpiryDate!),
+              ],
+            ]) : Row(children: [
+              Icon(Icons.health_and_safety_outlined, color: context.hintColor, size: 18),
+              const SizedBox(width: 10),
+              Text('No HMO / insurance registered',
+                  style: TextStyle(color: context.hintColor, fontSize: 13, fontStyle: FontStyle.italic)),
+              const Spacer(),
+              GestureDetector(
+                onTap: onEdit,
+                child: const Text('Add', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _hmoRow(BuildContext context, IconData icon, String label, String value) => Row(children: [
+    Icon(icon, color: context.hintColor, size: 14),
+    const SizedBox(width: 8),
+    Text('$label: ', style: TextStyle(color: context.hintColor, fontSize: 12)),
+    Expanded(child: Text(value, style: TextStyle(color: context.labelColor, fontSize: 12, fontWeight: FontWeight.w600))),
+  ]);
 }
 
 // ── Expandable purchase card ──────────────────────────────────────────────────
