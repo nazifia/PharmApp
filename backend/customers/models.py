@@ -32,6 +32,16 @@ class Customer(models.Model):
     chronic_conditions   = models.JSONField(default=list, blank=True)
     current_medications  = models.JSONField(default=list, blank=True)
 
+    # HMO / Insurance
+    hmo_provider        = models.CharField(max_length=100, blank=True, default='')
+    hmo_plan_name       = models.CharField(max_length=100, blank=True, default='')
+    hmo_card_number     = models.CharField(max_length=100, blank=True, default='')
+    hmo_coverage_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text='Percentage (0–100) of sale total covered by HMO'
+    )
+    hmo_expiry_date     = models.DateField(null=True, blank=True)
+
     def total_purchases(self):
         return float(self.sales.aggregate(
             total=models.Sum('total_amount'))['total'] or 0)
@@ -39,8 +49,17 @@ class Customer(models.Model):
     def total_spent(self):
         return self.total_purchases()
 
-    def to_list_dict(self):
+    def _hmo_dict(self):
         return {
+            'hmo_provider':         self.hmo_provider or None,
+            'hmo_plan_name':        self.hmo_plan_name or None,
+            'hmo_card_number':      self.hmo_card_number or None,
+            'hmo_coverage_percent': float(self.hmo_coverage_percent) if self.hmo_coverage_percent is not None else None,
+            'hmo_expiry_date':      self.hmo_expiry_date.isoformat() if self.hmo_expiry_date else None,
+        }
+
+    def to_list_dict(self):
+        d = {
             'id':                  self.id,
             'name':                self.name,
             'phone':               self.phone,
@@ -55,6 +74,8 @@ class Customer(models.Model):
             'chronic_conditions':   self.chronic_conditions or [],
             'current_medications':  self.current_medications or [],
         }
+        d.update(self._hmo_dict())
+        return d
 
     def to_detail_dict(self):
         d = self.to_list_dict()

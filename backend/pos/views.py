@@ -35,6 +35,7 @@ from .models import (
     StockCheck,
     StockCheckItem,
     Notification,
+    Shift,
 )
 
 
@@ -192,6 +193,12 @@ def checkout(request):
             pass
 
     try:
+      # HMO / insurance
+      hmo_card_number      = data.get('hmo_card_number', '')
+      hmo_provider         = data.get('hmo_provider', '')
+      hmo_coverage_percent = data.get('hmo_coverage_percent')
+      hmo_amount           = Decimal(str(data.get('hmo_amount', 0) or 0))
+
       with transaction.atomic():
         sale = Sale.objects.create(
             organization=org,
@@ -209,6 +216,10 @@ def checkout(request):
             is_wholesale=is_wholesale,
             buyer_name=buyer_name,
             buyer_address=buyer_address,
+            hmo_card_number=hmo_card_number or '',
+            hmo_provider=hmo_provider or '',
+            hmo_coverage_percent=hmo_coverage_percent if hmo_coverage_percent is not None else None,
+            hmo_amount=hmo_amount,
         )
 
         for ri in resolved:
@@ -1366,3 +1377,203 @@ def change_password(request, pk):
     user.set_password(new_password)
     user.save()
     return Response({"detail": "Password changed"})
+
+
+# ── Shifts ────────────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def shift_list(request):
+    """GET /pos/shifts/ — list shifts for org, optionally filtered."""
+    org, err = require_org(request)
+    if err:
+        return err
+
+    from datetime import date
+    qs = Shift.objects.filter(organization=org).select_related('staff', 'branch')
+
+    from_date = request.query_params.get('from')
+    to_date   = request.query_params.get('to')
+    staff_id  = request.query_params.get('staff_id')
+    branch_id = request.query_params.get('branch_id')
+
+    if from_date:
+        try:
+            qs = qs.filter(opened_at__date__gte=date.fromisoformat(from_date))
+        except ValueError:
+            pass
+    if to_date:
+        try:
+            qs = qs.filter(opened_at__date__lte=date.fromisoformat(to_date))
+        except ValueError:
+            pass
+    if staff_id:
+        qs = qs.filter(staff_id=staff_id)
+    if branch_id:
+        qs = qs.filter(branch_id=branch_id)
+
+    return Response([s.to_api_dict() for s in qs[:200]])
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def shift_current(request):
+    """GET /pos/shifts/current/ — the caller's currently open shift, or 204."""
+    org, err = require_org(request)
+    if err:
+        return err
+    shift = Shift.objects.filter(
+        organization=org, staff=request.user, status=Shift.STATUS_OPEN
+    ).first()
+    if not shift:
+        return Response(status=204)
+    return Response(shift.to_api_dict())
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def shift_open(request):
+    """POST /pos/shifts/open/ — open a new shift (one open shift per user)."""
+    org, err = require_org(request)
+    if err:
+        return err
+
+    # Prevent double-open
+    if Shift.objects.filter(organization=org, staff=request.user, status=Shift.STATUS_OPEN).exists():
+        return Response({"detail": "You already have an open shift."}, status=400)
+
+    branch_id    = request.data.get('branch_id')
+    opening_cash = request.data.get('opening_cash', 0)
+    try:
+        opening_cash = float(opening_cash)
+    except (TypeError, ValueError):
+        opening_cash = 0.0
+
+    from branches.models import Branch
+    branch = Branch.objects.filter(pk=branch_id, organization=org).first() if branch_id else None
+
+    shift = Shift.objects.create(
+        organization=org,
+        staff=request.user,
+        branch=branch,
+        opening_cash=opening_cash,
+        status=Shift.STATUS_OPEN,
+    )
+    log_activity(request, action='Open Shift', category='pos',
+                 description=f'Shift #{shift.id} opened with ₦{opening_cash:,.0f} opening cash')
+    return Response(shift.to_api_dict(), status=201)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def shift_close(request, pk):
+    """POST /pos/shifts/<pk>/close/ — close a shift."""
+    org, err = require_org(request)
+    if err:
+        return err
+
+    shift = Shift.objects.filter(pk=pk, organization=org, staff=request.user).first()
+    if not shift:
+        return Response({"detail": "Shift not found."}, status=404)
+    if shift.status == Shift.STATUS_CLOSED:
+        return Response({"detail": "Shift is already closed."}, status=400)
+
+    closing_cash = request.data.get('closing_cash', 0)
+    try:
+        closing_cash = float(closing_cash)
+    except (TypeError, ValueError):
+        closing_cash = 0.0
+
+    from django.utils import timezone as tz
+    shift.status       = Shift.STATUS_CLOSED
+    shift.closed_at    = tz.now()
+    shift.closing_cash = closing_cash
+    shift.save()
+
+    log_activity(request, action='Close Shift', category='pos',
+                 description=f'Shift #{shift.id} closed with ₦{closing_cash:,.0f} closing cash')
+    return Response(shift.to_api_dict())
+
+
+# ── SMS Alerts ────────────────────────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_sms(request):
+    """
+    POST /pos/send-sms/
+    Body: { customer_id, message, template? }
+    Sends an SMS to the customer's phone number.
+    Requires SMS_PROVIDER_URL + SMS_API_KEY in settings (optional).
+    Falls back to logging if not configured.
+    """
+    org, err = require_org(request)
+    if err:
+        return err
+
+    from customers.models import Customer as _Customer
+    customer_id = request.data.get('customer_id')
+    message     = (request.data.get('message') or '').strip()
+    template    = request.data.get('template', 'custom')
+
+    if not customer_id:
+        return Response({"detail": "customer_id is required."}, status=400)
+    if not message:
+        return Response({"detail": "message is required."}, status=400)
+
+    customer = _Customer.objects.filter(pk=customer_id, organization=org).first()
+    if not customer:
+        return Response({"detail": "Customer not found."}, status=404)
+
+    phone = customer.phone.strip()
+    if not phone:
+        return Response({"detail": "Customer has no phone number."}, status=400)
+
+    # Normalize phone to international format (Nigeria: 0XXXXXXXXXX → +234XXXXXXXXXX)
+    if phone.startswith('0') and len(phone) == 11:
+        phone = '+234' + phone[1:]
+    elif not phone.startswith('+'):
+        phone = '+234' + phone
+
+    import logging
+    logger = logging.getLogger('pharmapp.sms')
+
+    from django.conf import settings as djsettings
+    sms_url = getattr(djsettings, 'SMS_PROVIDER_URL', None)
+    sms_key = getattr(djsettings, 'SMS_API_KEY', None)
+    sender  = getattr(djsettings, 'SMS_SENDER_ID', 'PharmApp')
+
+    if sms_url and sms_key:
+        import requests as _requests
+        try:
+            resp = _requests.post(sms_url, json={
+                'to':      phone,
+                'from':    sender,
+                'sms':     message,
+                'type':    'plain',
+                'api_key': sms_key,
+                'channel': 'generic',
+            }, timeout=10)
+            if resp.status_code not in (200, 201):
+                logger.warning("SMS send failed: %s %s", resp.status_code, resp.text)
+                return Response({"detail": f"SMS provider error: {resp.text}"}, status=502)
+        except Exception as exc:
+            logger.error("SMS exception: %s", exc)
+            return Response({"detail": "SMS provider unreachable."}, status=502)
+    else:
+        # No SMS config — log and return success (dev/staging fallback)
+        logger.info("SMS (no provider configured) → %s: %s", phone, message)
+
+    log_activity(request, action='Send SMS', category='customers',
+                 description=f'SMS ({template}) sent to {customer.name} ({phone})')
+
+    # Optionally create an in-app notification for the customer's user (if linked)
+    Notification.objects.create(
+        user=request.user,
+        notif_type='system',
+        priority='low',
+        title=f'SMS sent to {customer.name}',
+        message=message[:200],
+    )
+
+    return Response({"detail": "SMS sent.", "phone": phone})

@@ -85,6 +85,33 @@ def customer_detail(request, pk):
             customer.chronic_conditions = data["chronic_conditions"] or []
         if "current_medications" in data:
             customer.current_medications = data["current_medications"] or []
+        if "blood_group" in data:
+            customer.blood_group = data["blood_group"] or ''
+        if "date_of_birth" in data:
+            from datetime import date
+            try:
+                customer.date_of_birth = date.fromisoformat(data["date_of_birth"]) if data["date_of_birth"] else None
+            except (ValueError, TypeError):
+                pass
+        # HMO fields
+        if "hmo_provider" in data:
+            customer.hmo_provider = data["hmo_provider"] or ''
+        if "hmo_plan_name" in data:
+            customer.hmo_plan_name = data["hmo_plan_name"] or ''
+        if "hmo_card_number" in data:
+            customer.hmo_card_number = data["hmo_card_number"] or ''
+        if "hmo_coverage_percent" in data:
+            try:
+                val = data["hmo_coverage_percent"]
+                customer.hmo_coverage_percent = max(0, min(100, float(val))) if val is not None else None
+            except (ValueError, TypeError):
+                pass
+        if "hmo_expiry_date" in data:
+            from datetime import date
+            try:
+                customer.hmo_expiry_date = date.fromisoformat(data["hmo_expiry_date"]) if data["hmo_expiry_date"] else None
+            except (ValueError, TypeError):
+                pass
         customer.save()
         log_activity(request, action='Update Customer', category='customers',
                      description=f'Updated customer "{customer.name}"')

@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class Cashier(models.Model):
@@ -101,6 +102,11 @@ class Sale(models.Model):
     buyer_name = models.CharField(max_length=200, blank=True, default="")
     buyer_address = models.CharField(max_length=300, blank=True, default="")
     notes = models.TextField(blank=True, default="")
+    # HMO / Insurance
+    hmo_card_number     = models.CharField(max_length=100, blank=True, default='')
+    hmo_provider        = models.CharField(max_length=100, blank=True, default='')
+    hmo_coverage_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    hmo_amount          = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -143,6 +149,10 @@ class Sale(models.Model):
             "buyerName": self.buyer_name,
             "buyerAddress": self.buyer_address,
             "notes": self.notes,
+            "hmoCardNumber":      self.hmo_card_number or None,
+            "hmoProvider":        self.hmo_provider or None,
+            "hmoCoveragePercent": float(self.hmo_coverage_percent) if self.hmo_coverage_percent is not None else None,
+            "hmoAmount":          float(self.hmo_amount),
             "created": self.created.isoformat(),
             "items": [i.to_api_dict() for i in self.items.all()],
         }
@@ -793,3 +803,88 @@ class TransferRequest(models.Model):
             "notes": self.notes,
             "createdAt": self.created_at.isoformat(),
         }
+
+
+# ── Shift ─────────────────────────────────────────────────────────────────────
+
+class Shift(models.Model):
+    """Tracks a staff member's work shift for cash reconciliation and sales reporting."""
+
+    STATUS_OPEN   = 'open'
+    STATUS_CLOSED = 'closed'
+    STATUS_CHOICES = [(STATUS_OPEN, 'Open'), (STATUS_CLOSED, 'Closed')]
+
+    organization = models.ForeignKey(
+        'authapp.Organization', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='shifts'
+    )
+    staff = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='shifts',
+    )
+    branch = models.ForeignKey(
+        'branches.Branch',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='shifts',
+    )
+    status       = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    opened_at    = models.DateTimeField(default=timezone.now)
+    closed_at    = models.DateTimeField(null=True, blank=True)
+    opening_cash = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    closing_cash = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ['-opened_at']
+
+    @property
+    def sales_in_shift(self):
+        if not self.opened_at:
+            return Sale.objects.none()
+        qs = Sale.objects.filter(
+            organization=self.organization,
+            dispenser=self.staff,
+            created__gte=self.opened_at,
+        )
+        if self.closed_at:
+            qs = qs.filter(created__lte=self.closed_at)
+        return qs
+
+    def compute_totals(self):
+        from django.db.models import Sum
+        sales = self.sales_in_shift
+        agg = sales.aggregate(
+            total_sales=Sum('total_amount'),
+            total_cash=Sum('payment_cash'),
+            total_pos=Sum('payment_pos'),
+            total_transfer=Sum('payment_transfer'),
+            total_wallet=Sum('payment_wallet'),
+            sales_count=models.Count('id'),
+        )
+        return {
+            'total_sales':   float(agg['total_sales'] or 0),
+            'total_cash':    float(agg['total_cash'] or 0),
+            'total_pos':     float(agg['total_pos'] or 0),
+            'total_transfer': float(agg['total_transfer'] or 0),
+            'total_wallet':  float(agg['total_wallet'] or 0),
+            'sales_count':   agg['sales_count'] or 0,
+        }
+
+    def to_api_dict(self):
+        totals = self.compute_totals()
+        return {
+            'id':          self.id,
+            'staff_id':    self.staff_id,
+            'staff_name':  getattr(self.staff, 'full_name', '') or getattr(self.staff, 'phone_number', ''),
+            'branch_name': self.branch.name if self.branch else None,
+            'status':      self.status,
+            'opened_at':   self.opened_at.isoformat(),
+            'closed_at':   self.closed_at.isoformat() if self.closed_at else None,
+            'opening_cash': float(self.opening_cash),
+            'closing_cash': float(self.closing_cash),
+            **totals,
+        }
+
+    def __str__(self):
+        return f"Shift #{self.id} — {self.staff} ({self.status})"

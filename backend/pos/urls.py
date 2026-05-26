@@ -83,6 +83,13 @@ urlpatterns = [
         views.change_password,
         name="user-change-password",
     ),
+    # Shifts
+    path("shifts/", views.shift_list, name="shift-list"),
+    path("shifts/current/", views.shift_current, name="shift-current"),
+    path("shifts/open/", views.shift_open, name="shift-open"),
+    path("shifts/<int:pk>/close/", views.shift_close, name="shift-close"),
+    # SMS
+    path("send-sms/", views.send_sms, name="send-sms"),
     # ── Wholesale ──────────────────────────────────────────────────────────────
     path(
         "wholesale/dashboard/", wholesale_views.wholesale_dashboard, name="ws-dashboard"
