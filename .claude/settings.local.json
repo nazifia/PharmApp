@@ -135,7 +135,9 @@
       "Bash(rg -n \"\\\\\\\\\\\\$\\\\{.*\\\\.\\(stock|price|costPrice|reorderLevel|lowStockThreshold\\)\" features/inventory features/reports --type dart)",
       "Bash(rg -n \"\\\\\\\\\\\\$\\\\{.*\\\\.stock\" features/wholesale/screens/wholesale_dashboard.dart --type dart)",
       "Bash(rg -n \"\\\\\\\\\\\\$\\\\{.*\\\\.stock\" features/admin/screens/admin_dashboard.dart --type dart)",
-      "Bash(rg -n \"Text\\\\\\('.*\\\\\\\\\\\\$\" features/inventory features/reports/screens/inventory_report --type dart)"
+      "Bash(rg -n \"Text\\\\\\('.*\\\\\\\\\\\\$\" features/inventory features/reports/screens/inventory_report --type dart)",
+      "Bash(awk '{print $NF}')",
+      "Bash(xargs -I {} sh -c 'echo \"{}:\" && head -20 {} | tail -5')"
     ]
   }
 }

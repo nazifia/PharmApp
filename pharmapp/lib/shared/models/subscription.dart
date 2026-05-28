@@ -179,7 +179,7 @@ class SaasFeature {
   static Set<String> forPlan(SubscriptionPlan plan) {
     final base = {pos, inventory};
 
-    // Trial gets full Professional feature set for 14-day evaluation.
+    // Trial gets full Professional feature set for 2-month evaluation.
     final effectivePlan = plan == SubscriptionPlan.trial
         ? SubscriptionPlan.professional
         : plan;
@@ -757,6 +757,6 @@ class Subscription {
         limits:   UsageLimits.forPlan(SubscriptionPlan.trial),
         features: SaasFeature.forPlan(SubscriptionPlan.trial),
         usage:    const CurrentUsage(),
-        trialEndsAt: DateTime.now().add(const Duration(days: 14)),
+        trialEndsAt: DateTime.now().add(const Duration(days: 60)),
       );
 }

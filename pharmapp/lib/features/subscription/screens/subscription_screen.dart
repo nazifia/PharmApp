@@ -405,7 +405,7 @@ class _CurrentPlanCard extends StatelessWidget {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
-                              value: (14 - days) / 14,
+                              value: (60 - days) / 60,
                               backgroundColor: planColor.withValues(alpha: 0.15),
                               valueColor: AlwaysStoppedAnimation(planColor),
                               minHeight: 5,

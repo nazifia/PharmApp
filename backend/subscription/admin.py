@@ -253,12 +253,12 @@ def activate_enterprise(modeladmin, request, queryset):
     modeladmin.message_user(request, f'{queryset.count()} subscription(s) → Enterprise (active).', messages.SUCCESS)
 
 
-@admin.action(description='🔄  Reset to 14-day trial')
+@admin.action(description='🔄  Reset to 2-month trial')
 def reset_to_trial(modeladmin, request, queryset):
     for sub in queryset:
         old = f"{sub.plan}/{sub.status}"
         sub.plan = 'trial'; sub.status = 'trial'; sub.billing_cycle = 'monthly'
-        sub.trial_ends_at = timezone.now() + timedelta(days=14)
+        sub.trial_ends_at = timezone.now() + timedelta(days=60)
         sub.current_period_end = None; sub.external_subscription_id = ''
         sub.save()
         SubscriptionEvent.objects.create(
@@ -312,12 +312,12 @@ def reactivate_subscriptions(modeladmin, request, queryset):
 def approve_registration(modeladmin, request, queryset):
     """
     Approve brand-new pharmacy sign-ups that are in 'pending/trial' state.
-    Starts the 14-day free trial clock from today.
+    Starts the 2-month free trial clock from today.
     """
     n = 0
     for sub in queryset.filter(status='pending', plan='trial'):
         sub.status = 'trial'
-        sub.trial_ends_at = timezone.now() + timedelta(days=14)
+        sub.trial_ends_at = timezone.now() + timedelta(days=60)
         sub.save()
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
@@ -400,12 +400,12 @@ class PendingByPlanFilter(SimpleListFilter):
 
 # ── Per-plan pending approval bulk actions ────────────────────────────────────
 
-@admin.action(description='⏳  Approve pending — Free Trial (start 14-day trial)')
+@admin.action(description='⏳  Approve pending — Free Trial (start 2-month trial)')
 def approve_pending_trial(modeladmin, request, queryset):
     n = 0
     for sub in queryset.filter(status='pending', plan='trial'):
         sub.status        = 'trial'
-        sub.trial_ends_at = timezone.now() + timedelta(days=14)
+        sub.trial_ends_at = timezone.now() + timedelta(days=60)
         sub.save()
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
@@ -789,7 +789,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
             obj.plan                    = 'trial'
             obj.status                  = 'trial'
             obj.billing_cycle           = 'monthly'
-            obj.trial_ends_at           = timezone.now() + timedelta(days=14)
+            obj.trial_ends_at           = timezone.now() + timedelta(days=60)
             obj.current_period_end      = None
             obj.external_subscription_id = ''
             obj.save()
@@ -799,7 +799,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 performed_by=actor, note=note,
             )
             return _redirect(
-                f"Subscription reset to 14-day trial. "
+                f"Subscription reset to 2-month trial. "
                 f"Ends {obj.trial_ends_at.strftime('%Y-%m-%d')}."
             )
 
@@ -811,7 +811,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
                     messages.WARNING,
                 )
             obj.status = 'trial'
-            obj.trial_ends_at = timezone.now() + timedelta(days=14)
+            obj.trial_ends_at = timezone.now() + timedelta(days=60)
             obj.save()
             SubscriptionEvent.objects.create(
                 subscription=obj, event_type='activated',
