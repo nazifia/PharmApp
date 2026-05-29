@@ -401,6 +401,18 @@ def dispense_prescription(request, pk):
             rx.status = 'partial'
         rx.save()
 
+        # For portal prescriptions whose items were written without an
+        # inventory FK (self-registered prescribers have no org), resolve
+        # item_id against the dispensing pharmacy's org so commission
+        # calculation can look up prices.
+        if rx.source == 'portal':
+            for med in newly_dispensed:
+                if not med.item_id:
+                    resolved = _resolve_item(org, med.item_name, med.brand or '')
+                    if resolved:
+                        med.item_id = resolved
+                        PrescriptionItem.objects.filter(pk=med.pk).update(item_id=resolved)
+
         # ── Auto-generate commission if prescriber has a non-zero rate ────────
         _create_commission_for_dispense(rx, newly_dispensed)
 
