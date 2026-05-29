@@ -158,7 +158,7 @@ class _PrescriberRegistrationScreenState
                     Align(
                       alignment: Alignment.centerLeft,
                       child: GestureDetector(
-                        onTap: () => context.go('/login'),
+                        onTap: () => context.go('/prescriber-login'),
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -178,7 +178,7 @@ class _PrescriberRegistrationScreenState
                     _buildCard(isLoading),
                     const SizedBox(height: 24),
                     TextButton(
-                      onPressed: () => context.go('/login'),
+                      onPressed: () => context.go('/prescriber-login'),
                       child: const Text(
                         'Already registered? Sign in',
                         style: TextStyle(

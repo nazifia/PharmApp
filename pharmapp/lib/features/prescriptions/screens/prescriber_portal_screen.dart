@@ -45,7 +45,7 @@ class PrescriberPortalScreen extends ConsumerWidget {
                   Row(
                     children: [
                       GestureDetector(
-                        onTap: () => context.go('/login'),
+                        onTap: () => context.go('/prescriber-login'),
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(

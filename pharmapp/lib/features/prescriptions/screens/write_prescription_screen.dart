@@ -499,7 +499,17 @@ class _WritePrescriptionScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: _step == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _step == 1) {
+          setState(() {
+            _step = 0;
+            _selectedPatient = null;
+          });
+        }
+      },
+      child: Scaffold(
       backgroundColor: context.scaffoldBg,
       body: Stack(
         children: [
@@ -532,15 +542,15 @@ class _WritePrescriptionScreenState
                                 color: Colors.white.withValues(alpha: 0.12)),
                           ),
                           child: const Icon(Icons.arrow_back_rounded,
-                              color: Colors.black87, size: 22),
+                              color: Colors.white70, size: 22),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _step == 0 ? 'Find Patient' : 'Write Prescription',
-                          style: const TextStyle(
-                              color: Colors.black87,
+                          style: TextStyle(
+                              color: context.labelColor,
                               fontSize: 20,
                               fontWeight: FontWeight.w700),
                         ),
@@ -558,6 +568,7 @@ class _WritePrescriptionScreenState
           ),
         ],
       ),
+    ),
     );
   }
 
