@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/offline/app_restart_service.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart'
     show isOnlineProvider, checkConnectivityNow;
 import 'package:pharmapp/core/offline/web_online_listener.dart';
+import 'package:pharmapp/core/offline/web_install_prompt.dart';
 import 'package:pharmapp/core/offline/web_reload.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
@@ -28,6 +31,9 @@ import 'package:pharmapp/core/inactivity/inactivity_provider.dart';
 /// Tracks whether an automatic sync is in flight so the offline banner can
 /// reflect real state without polling [_AppShellState]'s private fields.
 final autoSyncingProvider = StateProvider<bool>((ref) => false);
+
+/// Tracks whether the user has permanently dismissed the install-native-app banner.
+final _installBannerDismissedProvider = StateProvider<bool>((ref) => false);
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
 
@@ -430,6 +436,7 @@ class _AppShellState extends ConsumerState<AppShell>
         if (!isOnline || pending > 0) const _OfflineBanner(),
         const _EagerSyncBanner(),
         const TrialBanner(),
+        const _InstallNativeBanner(),
         Expanded(child: widget.child),
       ]),
       bottomNavigationBar: _AppBottomNav(
@@ -474,6 +481,240 @@ class _EagerSyncBanner extends ConsumerWidget {
         ),
       ]),
     );
+  }
+}
+
+// ── Install native app banner (web only) ──────────────────────────────────────
+
+class _InstallNativeBanner extends ConsumerStatefulWidget {
+  const _InstallNativeBanner();
+
+  @override
+  ConsumerState<_InstallNativeBanner> createState() =>
+      _InstallNativeBannerState();
+}
+
+class _InstallNativeBannerState extends ConsumerState<_InstallNativeBanner> {
+  static const _prefKey = 'install_banner_dismissed';
+  bool _promptReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      if (prefs.getBool(_prefKey) == true) {
+        ref.read(_installBannerDismissedProvider.notifier).state = true;
+      }
+    });
+    // Register beforeinstallprompt listener; rebuild when prompt becomes ready.
+    initInstallPrompt(() {
+      if (mounted) setState(() => _promptReady = true);
+    });
+  }
+
+  Future<void> _dismiss() async {
+    ref.read(_installBannerDismissedProvider.notifier).state = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey, true);
+  }
+
+  void _install() {
+    promptInstall();
+    // Hide after triggering — user accepted or dismissed the browser dialog.
+    _dismiss();
+  }
+
+  void _showIosInstructions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _IosInstallSheet(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsWeb) return const SizedBox.shrink();
+    final dismissed = ref.watch(_installBannerDismissedProvider);
+    if (dismissed || isInstalledAsPwa()) return const SizedBox.shrink();
+
+    final canInstall = _promptReady && canPromptInstall();
+    final ios = isIosBrowser();
+    if (!canInstall && !ios) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF1E3A5F),
+            EnhancedTheme.primaryTeal.withValues(alpha: 0.85),
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(children: [
+        const Icon(Icons.install_mobile, color: Colors.white, size: 18),
+        const SizedBox(width: 10),
+        const Expanded(
+          child: Text(
+            'Install PharmApp for a faster, offline-capable experience.',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: canInstall ? _install : _showIosInstructions,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(
+                canInstall ? Icons.download_rounded : Icons.info_outline,
+                color: Colors.white,
+                size: 13,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                canInstall ? 'Install' : 'How to install',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ]),
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: _dismiss,
+          child: const Icon(Icons.close, color: Colors.white60, size: 18),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── iOS install instructions sheet ────────────────────────────────────────────
+
+class _IosInstallSheet extends StatelessWidget {
+  const _IosInstallSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B).withValues(alpha: 0.95),
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withValues(alpha: 0.15),
+                width: 1.5,
+              ),
+            ),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Row(children: [
+              Icon(Icons.install_mobile, color: Color(0xFF0D9488), size: 24),
+              SizedBox(width: 10),
+              Text(
+                'Install PharmApp',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ]),
+            const SizedBox(height: 20),
+            const _IosStep(
+              step: 1,
+              icon: Icons.ios_share,
+              text: "Tap the Share button at the bottom of Safari",
+            ),
+            const SizedBox(height: 14),
+            const _IosStep(
+              step: 2,
+              icon: Icons.add_box_outlined,
+              text: 'Scroll down and tap "Add to Home Screen"',
+            ),
+            const SizedBox(height: 14),
+            const _IosStep(
+              step: 3,
+              icon: Icons.check_circle_outline,
+              text: 'Tap "Add" — the app icon will appear on your home screen',
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _IosStep extends StatelessWidget {
+  final int step;
+  final IconData icon;
+  final String text;
+
+  const _IosStep({
+    required this.step,
+    required this.icon,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: 24,
+        height: 24,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: EnhancedTheme.primaryTeal.withValues(alpha: 0.25),
+          shape: BoxShape.circle,
+          border: Border.all(color: EnhancedTheme.primaryTeal, width: 1),
+        ),
+        child: Text(
+          '$step',
+          style: const TextStyle(
+            color: Color(0xFF0D9488),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Icon(icon, color: Colors.white70, size: 20),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          text,
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+      ),
+    ]);
   }
 }
 
