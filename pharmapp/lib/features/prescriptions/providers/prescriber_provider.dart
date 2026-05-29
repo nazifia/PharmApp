@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/prescriber.dart';
+import '../../../shared/models/prescriber_commission.dart';
 import '../../../shared/models/customer.dart';
 import 'prescriber_api_client.dart';
 
@@ -193,4 +194,69 @@ class PrescriberPatientNotifier extends StateNotifier<_PrescriberState> {
 final prescriberPatientNotifierProvider =
     StateNotifierProvider<PrescriberPatientNotifier, _PrescriberState>((ref) {
   return PrescriberPatientNotifier(ref);
+});
+
+// ── Commission providers ──────────────────────────────────────────────────────
+
+final prescriberCommissionSummaryProvider =
+    FutureProvider.autoDispose.family<CommissionSummary, int>((ref, prescriberId) {
+  return ref.read(prescriberApiClientProvider).fetchCommissionSummary(prescriberId);
+});
+
+final prescriberCommissionsProvider =
+    FutureProvider.autoDispose.family<List<PrescriberCommission>, int>((ref, prescriberId) {
+  return ref.read(prescriberApiClientProvider).fetchCommissions(prescriberId);
+});
+
+// ── Commission notifier (admin: mark paid) ───────────────────────────────────
+
+class CommissionNotifier extends StateNotifier<_PrescriberState> {
+  final Ref _ref;
+  CommissionNotifier(this._ref) : super(const _PrescriberState());
+
+  Future<bool> markPaid(int prescriberId, int commissionId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _ref.read(prescriberApiClientProvider).markCommissionPaid(prescriberId, commissionId);
+      state = state.copyWith(isLoading: false);
+      _ref.invalidate(prescriberCommissionsProvider(prescriberId));
+      _ref.invalidate(prescriberCommissionSummaryProvider(prescriberId));
+      return true;
+    } on DioException catch (e) {
+      state = state.copyWith(
+          isLoading: false,
+          error: e.response?.data?['detail'] ?? e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  /// Marks all pending commissions paid. Returns (paidCount, totalAmount) or null on error.
+  Future<(int, double)?> markAllPaid(int prescriberId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final data = await _ref.read(prescriberApiClientProvider).markAllCommissionsPaid(prescriberId);
+      state = state.copyWith(isLoading: false);
+      _ref.invalidate(prescriberCommissionsProvider(prescriberId));
+      _ref.invalidate(prescriberCommissionSummaryProvider(prescriberId));
+      final count  = (data['paid_count'] as num?)?.toInt() ?? 0;
+      final amount = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
+      return (count, amount);
+    } on DioException catch (e) {
+      state = state.copyWith(
+          isLoading: false,
+          error: e.response?.data?['detail'] ?? e.message);
+      return null;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return null;
+    }
+  }
+}
+
+final commissionNotifierProvider =
+    StateNotifierProvider<CommissionNotifier, _PrescriberState>((ref) {
+  return CommissionNotifier(ref);
 });

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Hospital, Prescriber, Prescription, PrescriptionItem
+from .models import Hospital, Prescriber, Prescription, PrescriptionItem, PrescriberCommission
 
 
 # ── Hospital admin ─────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ class PrescriberAdmin(admin.ModelAdmin):
             ),
         }),
         ('Status', {
-            'fields': ('is_verified',),
+            'fields': ('is_verified', 'commission_rate'),
         }),
         ('Registration', {
             'fields': ('reg_source_display', 'password_status'),
@@ -203,3 +203,27 @@ class PrescriptionItemAdmin(admin.ModelAdmin):
     list_filter   = ('is_dispensed',)
     search_fields = ('item_name', 'brand')
     readonly_fields = ('dispensed_at',)
+
+
+@admin.register(PrescriberCommission)
+class PrescriberCommissionAdmin(admin.ModelAdmin):
+    list_display    = (
+        'id', 'prescriber', 'prescription', 'patient_name',
+        'commission_amount', 'status', 'paid_at', 'created_at',
+    )
+    list_filter     = ('status', 'created_at')
+    search_fields   = ('prescriber__name', 'patient_name')
+    readonly_fields = ('created_at', 'sales_amount', 'commission_rate', 'commission_amount')
+    raw_id_fields   = ('prescriber', 'prescription')
+    actions         = ['action_mark_paid', 'action_mark_pending']
+
+    @admin.action(description='Mark selected commissions as paid')
+    def action_mark_paid(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='pending').update(status='paid', paid_at=timezone.now())
+        self.message_user(request, f'{updated} commission(s) marked as paid.')
+
+    @admin.action(description='Mark selected commissions as pending')
+    def action_mark_pending(self, request, queryset):
+        updated = queryset.filter(status='paid').update(status='pending', paid_at=None)
+        self.message_user(request, f'{updated} commission(s) reset to pending.')

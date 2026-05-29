@@ -180,6 +180,7 @@ class Rbac {
   /// Null user / unknown role → false.
   static bool can(User? user, String permission) {
     if (user == null) return false;
+    if (user.isSuperuser) return true;
 
     // Individual override takes precedence over role default
     if (user.permissions.containsKey(permission)) {

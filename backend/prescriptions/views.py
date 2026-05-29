@@ -27,7 +27,7 @@ def _verify_prescriber_token(token: str):
 from authapp.utils import require_org, log_activity
 from authapp.permissions import IsPrescriptionUser, PRESCRIPTIONS_WRITE
 from authapp.models import PharmacyNetworkMembership
-from .models import Prescription, PrescriptionItem, Prescriber, Hospital
+from .models import Prescription, PrescriptionItem, Prescriber, Hospital, PrescriberCommission
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -279,7 +279,7 @@ def prescription_detail(request, pk):
             pid = data['prescriber_id']
             if pid:
                 try:
-                    rx.prescriber = Prescriber.objects.get(pk=pid, organization=org)
+                    rx.prescriber = Prescriber.objects.get(pk=pid)
                     if not data.get('doctor_name'):
                         rx.doctor_name = rx.prescriber.name
                 except Prescriber.DoesNotExist:
@@ -341,14 +341,14 @@ def dispense_prescription(request, pk):
 
     try:
         rx = (Prescription.objects
-              .select_related('organization', 'created_by', 'branch')
+              .select_related('organization', 'created_by', 'branch', 'prescriber')
               .prefetch_related('medications')
               .get(pk=pk, organization=org))
     except Prescription.DoesNotExist:
         # Allow network peer orgs and any pharmacy to dispense portal Rxs.
         peer_org_ids = _get_peer_org_ids(org)
         rx = (Prescription.objects
-              .select_related('organization', 'created_by', 'branch')
+              .select_related('organization', 'created_by', 'branch', 'prescriber')
               .prefetch_related('medications')
               .filter(pk=pk)
               .filter(_m.Q(organization_id__in=peer_org_ids) | _m.Q(source='portal'))
@@ -361,9 +361,10 @@ def dispense_prescription(request, pk):
         return Response({'detail': 'All medications are already dispensed.'},
                         status=status.HTTP_400_BAD_REQUEST)
 
-    item_indices = request.data.get('item_indices')  # list[int] or None
-    medications  = list(rx.medications.all())
-    now          = timezone.now()
+    item_indices    = request.data.get('item_indices')  # list[int] or None
+    medications     = list(rx.medications.all())
+    now             = timezone.now()
+    newly_dispensed = []
 
     with transaction.atomic():
         if item_indices:
@@ -375,6 +376,7 @@ def dispense_prescription(request, pk):
                     med.dispensed_at = now
                     med.dispensed_by = request.user
                     med.save()
+                    newly_dispensed.append(med)
         else:
             # Dispense everything still pending
             for med in medications:
@@ -383,6 +385,7 @@ def dispense_prescription(request, pk):
                     med.dispensed_at = now
                     med.dispensed_by = request.user
                     med.save()
+                    newly_dispensed.append(med)
 
         # Compute status from the in-memory medications list (avoids stale
         # prefetch cache that refresh_from_db() does not clear).
@@ -398,6 +401,9 @@ def dispense_prescription(request, pk):
             rx.status = 'partial'
         rx.save()
 
+        # ── Auto-generate commission if prescriber has a non-zero rate ────────
+        _create_commission_for_dispense(rx, newly_dispensed)
+
     log_activity(
         request,
         action='Dispense Prescription',
@@ -407,7 +413,7 @@ def dispense_prescription(request, pk):
 
     # Return fresh data — use pk only (org already verified above)
     rx = (Prescription.objects
-          .select_related('organization', 'created_by', 'branch')
+          .select_related('organization', 'created_by', 'branch', 'prescriber')
           .prefetch_related('medications')
           .get(pk=pk))
     return Response(rx.to_api_dict())
@@ -756,14 +762,22 @@ def prescriber_list(request):
     # Link prescriber to the creating pharmacy's org so portal prescriptions
     # they write can be scoped back to this pharmacy.
     creator_org = getattr(getattr(request.user, 'organization', None), 'id', None)
+    try:
+        commission_rate = float(request.data.get('commission_rate') or 0)
+        if not (0 <= commission_rate <= 100):
+            commission_rate = 0.0
+    except (TypeError, ValueError):
+        commission_rate = 0.0
+
     prescriber = Prescriber.objects.create(
         organization_id = creator_org,
-        hospital       = hospital,
-        name           = name,
-        license_number = (request.data.get('license_number') or '').strip(),
-        specialty      = (request.data.get('specialty') or '').strip(),
-        phone          = (request.data.get('phone') or '').strip(),
-        address        = (request.data.get('address') or '').strip(),
+        hospital        = hospital,
+        name            = name,
+        license_number  = (request.data.get('license_number') or '').strip(),
+        specialty       = (request.data.get('specialty') or '').strip(),
+        phone           = (request.data.get('phone') or '').strip(),
+        address         = (request.data.get('address') or '').strip(),
+        commission_rate = commission_rate,
     )
     log_activity(
         request,
@@ -817,6 +831,13 @@ def prescriber_detail(request, pk):
                 prescriber.hospital = None
         if 'is_verified' in data:
             prescriber.is_verified = bool(data['is_verified'])
+        if 'commission_rate' in data:
+            try:
+                rate = float(data['commission_rate'])
+                if 0 <= rate <= 100:
+                    prescriber.commission_rate = rate
+            except (TypeError, ValueError):
+                pass
         prescriber.save()
         log_activity(
             request,
@@ -993,6 +1014,54 @@ def prescriber_login(request):
 
 # ── Prescriber portal — create prescription (no pharmacy JWT) ─────────────────
 
+def _create_commission_for_dispense(rx, newly_dispensed_items):
+    """
+    Called inside dispense_prescription's atomic block.
+    Creates one PrescriberCommission for the newly-dispensed items.
+    Skips silently if: no prescriber, commission_rate == 0, no items with price.
+    """
+    if not rx.prescriber_id:
+        return
+    prescriber = rx.prescriber
+    if not prescriber.commission_rate or prescriber.commission_rate <= 0:
+        return
+    if not newly_dispensed_items:
+        return
+
+    # Sum selling price * quantity for items that have an inventory FK.
+    # Items without item_id have no known price — excluded from calculation.
+    from decimal import Decimal
+    from inventory.models import Item as InventoryItem
+
+    item_ids = [m.item_id for m in newly_dispensed_items if m.item_id]
+    prices   = {}
+    if item_ids:
+        for inv_item in InventoryItem.objects.filter(pk__in=item_ids).only('id', 'price'):
+            prices[inv_item.id] = inv_item.price
+
+    sales_amount = Decimal('0')
+    for med in newly_dispensed_items:
+        if med.item_id and med.item_id in prices:
+            sales_amount += prices[med.item_id] * Decimal(str(med.quantity))
+
+    if sales_amount <= 0:
+        return
+
+    commission_amount = (sales_amount * prescriber.commission_rate / Decimal('100')).quantize(
+        Decimal('0.01')
+    )
+
+    PrescriberCommission.objects.create(
+        prescriber        = prescriber,
+        prescription      = rx,
+        patient_name      = rx.customer_name,
+        sales_amount      = sales_amount,
+        commission_rate   = prescriber.commission_rate,
+        commission_amount = commission_amount,
+        status            = 'pending',
+    )
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def prescriber_portal_create_rx(request):
@@ -1044,9 +1113,16 @@ def prescriber_portal_create_rx(request):
             item_name = (item.get('item_name') or '').strip()
             if not item_name:
                 continue
+            brand   = (item.get('brand') or '').strip()
+            # Resolve inventory FK so commission calculation can look up prices.
+            item_id = None
+            if org_for_rx:
+                item_id = _resolve_item(org_for_rx, item_name, brand)
             PrescriptionItem.objects.create(
                 prescription = rx,
+                item_id      = item_id,
                 item_name    = item_name,
+                brand        = brand,
                 quantity     = float(item.get('quantity', 1)),
                 unit         = (item.get('unit') or 'unit(s)').strip(),
                 dosage       = (item.get('dosage') or '').strip(),
@@ -1055,3 +1131,173 @@ def prescriber_portal_create_rx(request):
             )
 
     return Response(rx.to_api_dict(), status=status.HTTP_201_CREATED)
+
+
+# ── Commission endpoints ──────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def prescriber_commissions(request, pk):
+    """
+    GET /api/prescriptions/prescribers/<pk>/commissions/
+    Pharmacy staff (IsAuthenticated) or prescriber portal token both accepted.
+    ?status=pending|paid
+    """
+    try:
+        prescriber = Prescriber.objects.get(pk=pk)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not request.user.is_authenticated:
+        token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
+        if not token or _verify_prescriber_token(token) is None:
+            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    qs = PrescriberCommission.objects.filter(prescriber=prescriber).select_related('prescriber')
+
+    status_filter = request.query_params.get('status', '').strip()
+    if status_filter in ('pending', 'paid'):
+        qs = qs.filter(status=status_filter)
+
+    page_size = 50
+    try:
+        page = max(1, int(request.query_params.get('page', '1')))
+    except (ValueError, TypeError):
+        page = 1
+    total  = qs.count()
+    offset = (page - 1) * page_size
+
+    return Response({
+        'count':   total,
+        'results': [c.to_api_dict() for c in qs[offset:offset + page_size]],
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def prescriber_commission_summary(request, pk):
+    """
+    GET /api/prescriptions/prescribers/<pk>/commissions/summary/
+    Returns aggregate totals: total_earned, pending_amount, paid_amount,
+    pending_count, paid_count, total_prescriptions.
+    """
+    try:
+        prescriber = Prescriber.objects.get(pk=pk)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not request.user.is_authenticated:
+        token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
+        if not token or _verify_prescriber_token(token) is None:
+            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    from django.db.models import Sum
+    from decimal import Decimal
+
+    qs = PrescriberCommission.objects.filter(prescriber=prescriber)
+
+    agg = qs.aggregate(
+        total_earned=Sum('commission_amount'),
+        pending_amount=Sum(
+            'commission_amount',
+            filter=_m.Q(status='pending'),
+        ),
+        paid_amount=Sum(
+            'commission_amount',
+            filter=_m.Q(status='paid'),
+        ),
+    )
+
+    pending_count = qs.filter(status='pending').count()
+    paid_count    = qs.filter(status='paid').count()
+
+    return Response({
+        'total_earned':        float(agg['total_earned'] or Decimal('0')),
+        'pending_amount':      float(agg['pending_amount'] or Decimal('0')),
+        'paid_amount':         float(agg['paid_amount'] or Decimal('0')),
+        'pending_count':       pending_count,
+        'paid_count':          paid_count,
+        'total_prescriptions': qs.values('prescription_id').distinct().count(),
+    })
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def prescriber_commission_mark_paid(request, pk, commission_id):
+    """
+    PATCH /api/prescriptions/prescribers/<pk>/commissions/<commission_id>/
+    Body: { "status": "paid" }
+    Restricted to PRESCRIPTIONS_WRITE roles (pharmacy admin / manager).
+    """
+    if not request.user.is_superuser and request.user.role not in PRESCRIPTIONS_WRITE:
+        return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        commission = PrescriberCommission.objects.select_related('prescriber').get(
+            pk=commission_id, prescriber_id=pk
+        )
+    except PrescriberCommission.DoesNotExist:
+        return Response({'detail': 'Commission record not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    new_status = (request.data.get('status') or '').strip()
+    if new_status not in ('pending', 'paid'):
+        return Response(
+            {'detail': 'status must be "pending" or "paid"'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    commission.status = new_status
+    if new_status == 'paid' and not commission.paid_at:
+        commission.paid_at = timezone.now()
+    elif new_status == 'pending':
+        commission.paid_at = None
+    commission.save()
+
+    log_activity(
+        request,
+        action='Commission Paid Out',
+        category='customers',
+        description=(
+            f'Commission #{commission.id} for {commission.prescriber.name} '
+            f'(NGN {commission.commission_amount}) marked as {new_status}'
+        ),
+    )
+    return Response(commission.to_api_dict())
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def prescriber_commission_pay_all(request, pk):
+    """
+    POST /api/prescriptions/prescribers/<pk>/commissions/pay-all/
+    Marks ALL pending commissions for this prescriber as paid in a single call.
+    Restricted to PRESCRIPTIONS_WRITE roles.
+    Returns { "paid_count": N, "total_amount": X }.
+    """
+    if not request.user.is_superuser and request.user.role not in PRESCRIPTIONS_WRITE:
+        return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        prescriber = Prescriber.objects.get(pk=pk)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Prescriber not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    from django.db.models import Sum
+    from decimal import Decimal
+
+    now = timezone.now()
+    pending_qs = PrescriberCommission.objects.filter(prescriber=prescriber, status='pending')
+    agg = pending_qs.aggregate(total=Sum('commission_amount'))
+    total_amount = float(agg['total'] or Decimal('0'))
+    paid_count   = pending_qs.update(status='paid', paid_at=now)
+
+    log_activity(
+        request,
+        action='Commission Bulk Pay Out',
+        category='customers',
+        description=(
+            f'Marked {paid_count} pending commission(s) as paid for {prescriber.name} '
+            f'(NGN {total_amount})'
+        ),
+    )
+    return Response({'paid_count': paid_count, 'total_amount': total_amount})

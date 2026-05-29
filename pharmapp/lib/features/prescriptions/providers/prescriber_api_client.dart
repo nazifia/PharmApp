@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/prescriber.dart';
+import '../../../shared/models/prescriber_commission.dart';
 import '../../../shared/models/customer.dart';
 
 const _kPrescribersCacheKey = 'cache_prescribers';
@@ -128,6 +129,56 @@ class PrescriberApiClient {
       '/prescriptions/portal/',
       data: data,
       options: _portalOpts(),
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<CommissionSummary> fetchCommissionSummary(int prescriberId) async {
+    try {
+      final res = await _dio.get(
+        '/prescriptions/prescribers/$prescriberId/commissions/summary/',
+        options: prescriberToken != null ? _portalOpts() : null,
+      );
+      return CommissionSummary.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      // Auth/permission errors should surface — only swallow network/timeout.
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) rethrow;
+      return CommissionSummary.zero;
+    }
+  }
+
+  Future<List<PrescriberCommission>> fetchCommissions(int prescriberId) async {
+    try {
+      final res = await _dio.get(
+        '/prescriptions/prescribers/$prescriberId/commissions/',
+        options: prescriberToken != null ? _portalOpts() : null,
+      );
+      final data = res.data;
+      final list = data is Map && data.containsKey('results')
+          ? data['results'] as List
+          : data as List;
+      return list
+          .map((e) => PrescriberCommission.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException {
+      rethrow;
+    }
+  }
+
+  Future<PrescriberCommission?> markCommissionPaid(
+      int prescriberId, int commissionId) async {
+    final res = await _dio.patch(
+      '/prescriptions/prescribers/$prescriberId/commissions/$commissionId/',
+      data: {'status': 'paid'},
+    );
+    return PrescriberCommission.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// Returns number of commissions marked paid and total amount.
+  Future<Map<String, dynamic>> markAllCommissionsPaid(int prescriberId) async {
+    final res = await _dio.post(
+      '/prescriptions/prescribers/$prescriberId/commissions/pay-all/',
     );
     return res.data as Map<String, dynamic>;
   }

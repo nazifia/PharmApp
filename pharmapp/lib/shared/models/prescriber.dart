@@ -9,6 +9,7 @@ class Prescriber {
   final String? address;
   final bool isVerified;
   final String? createdAt;
+  final double commissionRate; // percentage, e.g. 5.0 = 5%
 
   const Prescriber({
     required this.id,
@@ -21,6 +22,7 @@ class Prescriber {
     this.address,
     this.isVerified = false,
     this.createdAt,
+    this.commissionRate = 0.0,
   });
 
   String get displayName =>
@@ -29,19 +31,21 @@ class Prescriber {
   String get specialtyLabel => specialty ?? 'General Practitioner';
 
   factory Prescriber.fromJson(Map<String, dynamic> j) => Prescriber(
-        id:           (j['id'] as num?)?.toInt() ?? 0,
-        name:         (j['name'] as String?) ?? '',
-        licenseNumber: (j['license_number'] ?? j['licenseNumber']) as String?,
-        specialty:    j['specialty'] as String?,
-        phone:        j['phone'] as String?,
-        hospitalId:   (j['hospital_id'] as num?)?.toInt(),
-        hospitalName: (j['hospital_name'] ??
-                       j['hospitalName'] ??
-                       j['clinic'] ??
-                       j['clinic_name']) as String?,
-        address:      j['address'] as String?,
-        isVerified:   (j['is_verified'] ?? j['isVerified'] as bool?) ?? false,
-        createdAt:    (j['created_at'] ?? j['createdAt']) as String?,
+        id:             (j['id'] as num?)?.toInt() ?? 0,
+        name:           (j['name'] as String?) ?? '',
+        licenseNumber:  (j['license_number'] ?? j['licenseNumber']) as String?,
+        specialty:      j['specialty'] as String?,
+        phone:          j['phone'] as String?,
+        hospitalId:     (j['hospital_id'] as num?)?.toInt(),
+        hospitalName:   (j['hospital_name'] ??
+                         j['hospitalName'] ??
+                         j['clinic'] ??
+                         j['clinic_name']) as String?,
+        address:        j['address'] as String?,
+        isVerified:     (j['is_verified'] ?? j['isVerified'] as bool?) ?? false,
+        createdAt:      (j['created_at'] ?? j['createdAt']) as String?,
+        commissionRate: ((j['commission_rate'] ?? j['commissionRate']) as num?)
+                            ?.toDouble() ?? 0.0,
       );
 
   Map<String, dynamic> toJson() => {
@@ -52,6 +56,7 @@ class Prescriber {
         if (phone != null && phone!.isNotEmpty) 'phone': phone,
         if (hospitalId != null) 'hospital_id': hospitalId,
         if (address != null && address!.isNotEmpty) 'address': address,
+        'commission_rate': commissionRate,
       };
 
   Prescriber copyWith({
@@ -65,17 +70,19 @@ class Prescriber {
     String? address,
     bool? isVerified,
     String? createdAt,
+    double? commissionRate,
   }) =>
       Prescriber(
-        id:           id ?? this.id,
-        name:         name ?? this.name,
-        licenseNumber: licenseNumber ?? this.licenseNumber,
-        specialty:    specialty ?? this.specialty,
-        phone:        phone ?? this.phone,
-        hospitalId:   hospitalId ?? this.hospitalId,
-        hospitalName: hospitalName ?? this.hospitalName,
-        address:      address ?? this.address,
-        isVerified:   isVerified ?? this.isVerified,
-        createdAt:    createdAt ?? this.createdAt,
+        id:             id ?? this.id,
+        name:           name ?? this.name,
+        licenseNumber:  licenseNumber ?? this.licenseNumber,
+        specialty:      specialty ?? this.specialty,
+        phone:          phone ?? this.phone,
+        hospitalId:     hospitalId ?? this.hospitalId,
+        hospitalName:   hospitalName ?? this.hospitalName,
+        address:        address ?? this.address,
+        isVerified:     isVerified ?? this.isVerified,
+        createdAt:      createdAt ?? this.createdAt,
+        commissionRate: commissionRate ?? this.commissionRate,
       );
 }

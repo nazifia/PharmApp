@@ -17,7 +17,11 @@ urlpatterns = [
     path('prescribers/register/',         views.prescriber_register,      name='prescriber-register'),
     path('prescribers/login/',            views.prescriber_login,         name='prescriber-login'),
     path('prescribers/<int:pk>/',         views.prescriber_detail,        name='prescriber-detail'),
-    path('prescribers/<int:pk>/patients/', views.prescriber_patients,      name='prescriber-patients'),
+    path('prescribers/<int:pk>/patients/', views.prescriber_patients,          name='prescriber-patients'),
+    path('prescribers/<int:pk>/commissions/',         views.prescriber_commissions,          name='prescriber-commissions'),
+    path('prescribers/<int:pk>/commissions/summary/', views.prescriber_commission_summary,    name='prescriber-commission-summary'),
+    path('prescribers/<int:pk>/commissions/<int:commission_id>/', views.prescriber_commission_mark_paid, name='prescriber-commission-mark-paid'),
+    path('prescribers/<int:pk>/commissions/pay-all/',             views.prescriber_commission_pay_all,   name='prescriber-commission-pay-all'),
 
     # Hospitals (global)
     path('hospitals/',                    views.hospital_list,            name='hospital-list'),

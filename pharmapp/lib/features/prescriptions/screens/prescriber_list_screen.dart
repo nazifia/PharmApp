@@ -7,6 +7,7 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/models/prescriber.dart';
 import '../providers/prescriber_provider.dart';
+import 'prescriber_commissions_screen.dart';
 import 'prescriber_form_screen.dart';
 
 class PrescriberListScreen extends ConsumerStatefulWidget {
@@ -223,6 +224,15 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                           prescriber: prescribers[i],
                           canWrite: canWrite,
                           onEdit: () => _openForm(prescriber: prescribers[i]),
+                          onViewCommissions: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PrescriberCommissionsScreen(
+                                prescriber: prescribers[i],
+                                isAdminView: true,
+                              ),
+                            ),
+                          ),
                         ).animate().fadeIn(
                             delay: Duration(milliseconds: i * 40)),
                       );
@@ -244,11 +254,13 @@ class _PrescriberCard extends StatelessWidget {
   final Prescriber prescriber;
   final bool canWrite;
   final VoidCallback onEdit;
+  final VoidCallback onViewCommissions;
 
   const _PrescriberCard({
     required this.prescriber,
     required this.canWrite,
     required this.onEdit,
+    required this.onViewCommissions,
   });
 
   @override
@@ -366,6 +378,60 @@ class _PrescriberCard extends StatelessWidget {
                           ],
                         ),
                       ],
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          if (prescriber.commissionRate > 0) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: EnhancedTheme.accentOrange
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                    color: EnhancedTheme.accentOrange
+                                        .withValues(alpha: 0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.percent_rounded,
+                                      size: 10,
+                                      color: EnhancedTheme.accentOrange),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '${prescriber.commissionRate.toStringAsFixed(prescriber.commissionRate % 1 == 0 ? 0 : 1)}%',
+                                    style: const TextStyle(
+                                        color: EnhancedTheme.accentOrange,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          GestureDetector(
+                            onTap: onViewCommissions,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.monetization_on_outlined,
+                                    size: 11,
+                                    color: context.subLabelColor),
+                                const SizedBox(width: 3),
+                                Text('Commissions',
+                                    style: TextStyle(
+                                        color: context.subLabelColor,
+                                        fontSize: 10,
+                                        decoration:
+                                            TextDecoration.underline)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

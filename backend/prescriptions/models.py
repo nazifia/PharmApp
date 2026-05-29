@@ -57,6 +57,10 @@ class Prescriber(models.Model):
     password          = models.CharField(max_length=128, blank=True, default='')
     is_verified       = models.BooleanField(default=False)
     is_network_shared = models.BooleanField(default=False)
+    commission_rate   = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        help_text='Commission percentage (0–100) earned on dispensed prescription sales',
+    )
     created_at        = models.DateTimeField(auto_now_add=True)
     updated_at        = models.DateTimeField(auto_now=True)
 
@@ -72,16 +76,17 @@ class Prescriber(models.Model):
             self.hospital.name if self.hospital_id else self.clinic or None
         )
         return {
-            'id':             self.id,
-            'name':           self.name,
-            'license_number': self.license_number or None,
-            'specialty':      self.specialty or None,
-            'phone':          self.phone or None,
-            'hospital_id':    self.hospital_id,
-            'hospital_name':  hospital_name,
-            'address':        self.address or None,
-            'is_verified':    self.is_verified,
-            'created_at':     self.created_at.isoformat(),
+            'id':              self.id,
+            'name':            self.name,
+            'license_number':  self.license_number or None,
+            'specialty':       self.specialty or None,
+            'phone':           self.phone or None,
+            'hospital_id':     self.hospital_id,
+            'hospital_name':   hospital_name,
+            'address':         self.address or None,
+            'is_verified':     self.is_verified,
+            'commission_rate': float(self.commission_rate),
+            'created_at':      self.created_at.isoformat(),
         }
 
     def __str__(self):
@@ -226,3 +231,55 @@ class PrescriptionItem(models.Model):
 
     def __str__(self):
         return f"{self.item_name} × {self.quantity} (Rx#{self.prescription_id})"
+
+
+# ── Prescriber Commission ─────────────────────────────────────────────────────
+
+class PrescriberCommission(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('paid',    'Paid'),
+    ]
+
+    prescriber        = models.ForeignKey(
+        Prescriber, on_delete=models.CASCADE, related_name='commissions',
+    )
+    prescription      = models.ForeignKey(
+        Prescription, on_delete=models.CASCADE, related_name='commissions',
+    )
+    # Snapshot fields — preserve values even if items/prices change later
+    patient_name      = models.CharField(max_length=200, default='Unknown')
+    sales_amount      = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    commission_rate   = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status            = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    paid_at           = models.DateTimeField(null=True, blank=True)
+    created_at        = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes  = [
+            models.Index(fields=['prescriber', 'status']),
+            models.Index(fields=['prescription']),
+        ]
+
+    def to_api_dict(self):
+        return {
+            'id':                self.id,
+            'prescriber_id':     self.prescriber_id,
+            'prescriber_name':   self.prescriber.name,
+            'prescription_id':   self.prescription_id,
+            'patient_name':      self.patient_name,
+            'sales_amount':      float(self.sales_amount),
+            'commission_rate':   float(self.commission_rate),
+            'commission_amount': float(self.commission_amount),
+            'status':            self.status,
+            'paid_at':           self.paid_at.isoformat() if self.paid_at else None,
+            'created_at':        self.created_at.isoformat(),
+        }
+
+    def __str__(self):
+        return (
+            f"Commission #{self.id} — {self.prescriber.name} "
+            f"({self.commission_rate}%) on Rx#{self.prescription_id}"
+        )

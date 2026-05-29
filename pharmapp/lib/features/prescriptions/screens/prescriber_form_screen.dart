@@ -26,6 +26,7 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
   late final TextEditingController _specialtyCtrl;
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _addressCtrl;
+  late final TextEditingController _commissionCtrl;
   Hospital? _selectedHospital;
   bool _saving = false;
 
@@ -52,11 +53,17 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
   void initState() {
     super.initState();
     final p = widget.existing;
-    _nameCtrl      = TextEditingController(text: p?.name ?? '');
-    _licenseCtrl   = TextEditingController(text: p?.licenseNumber ?? '');
-    _specialtyCtrl = TextEditingController(text: p?.specialty ?? '');
-    _phoneCtrl     = TextEditingController(text: p?.phone ?? '');
-    _addressCtrl   = TextEditingController(text: p?.address ?? '');
+    _nameCtrl       = TextEditingController(text: p?.name ?? '');
+    _licenseCtrl    = TextEditingController(text: p?.licenseNumber ?? '');
+    _specialtyCtrl  = TextEditingController(text: p?.specialty ?? '');
+    _phoneCtrl      = TextEditingController(text: p?.phone ?? '');
+    _addressCtrl    = TextEditingController(text: p?.address ?? '');
+    _commissionCtrl = TextEditingController(
+      text: (p?.commissionRate ?? 0) > 0
+          ? p!.commissionRate.toStringAsFixed(
+              p.commissionRate % 1 == 0 ? 0 : 2)
+          : '',
+    );
     if (p?.hospitalId != null) {
       _selectedHospital = Hospital(
         id:   p!.hospitalId!,
@@ -72,12 +79,16 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
     _specialtyCtrl.dispose();
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
+    _commissionCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
+
+    final commissionVal =
+        double.tryParse(_commissionCtrl.text.trim()) ?? 0.0;
 
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
@@ -89,6 +100,7 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
       if (_selectedHospital != null) 'hospital_id': _selectedHospital!.id,
       if (_addressCtrl.text.trim().isNotEmpty)
         'address': _addressCtrl.text.trim(),
+      'commission_rate': commissionVal,
     };
 
     final notifier = ref.read(prescriberNotifierProvider.notifier);
@@ -347,6 +359,40 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                     // Address
                     _field(_addressCtrl, 'Address',
                         icon: Icons.location_on_rounded, maxLines: 2),
+                    const SizedBox(height: 14),
+
+                    // Commission rate
+                    _label('Commission Rate (%)'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _commissionCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      style: TextStyle(
+                          color: context.labelColor, fontSize: 14),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return null;
+                        final n = double.tryParse(v);
+                        if (n == null || n < 0 || n > 100) {
+                          return 'Enter a value between 0 and 100';
+                        }
+                        return null;
+                      },
+                      decoration: _inputDec(
+                        'e.g. 5 for 5% commission',
+                        Icons.percent_rounded,
+                        context,
+                      ).copyWith(
+                        suffixText: '%',
+                        suffixStyle: TextStyle(
+                            color: context.subLabelColor,
+                            fontWeight: FontWeight.w600),
+                        helperText:
+                            'Leave empty or 0 for no commission',
+                        helperStyle: TextStyle(
+                            color: context.subLabelColor, fontSize: 11),
+                      ),
+                    ),
                     const SizedBox(height: 28),
 
                     SizedBox(

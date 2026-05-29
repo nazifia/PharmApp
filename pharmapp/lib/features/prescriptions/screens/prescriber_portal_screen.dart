@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import '../providers/prescriber_provider.dart';
+import 'prescriber_commissions_screen.dart';
 import 'prescriber_patients_screen.dart';
 import 'prescriber_write_rx_screen.dart';
 
@@ -220,7 +221,7 @@ class PrescriberPortalScreen extends ConsumerWidget {
 
                   const SizedBox(height: 16),
 
-                  // Action cards
+                  // Action cards — row 1
                   Row(
                     children: [
                       Expanded(
@@ -256,6 +257,28 @@ class PrescriberPortalScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+
+                  const SizedBox(height: 12),
+
+                  // Action cards — row 2
+                  if (prescriber.commissionRate > 0)
+                    SizedBox(
+                      width: double.infinity,
+                      child: _ActionCard(
+                        icon: Icons.monetization_on_rounded,
+                        label: 'My Earnings',
+                        subtitle: 'Commission from dispensed Rx',
+                        color: EnhancedTheme.accentOrange,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PrescriberCommissionsScreen(
+                              prescriber: prescriber,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
 
                   const SizedBox(height: 28),
 
