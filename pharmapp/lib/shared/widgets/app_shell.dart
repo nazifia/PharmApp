@@ -1216,6 +1216,14 @@ class _MoreSheet extends StatelessWidget {
     final pendingTotal = pendingSales.length + pendingMuts.length;
 
     final tiles = [
+      _MoreTile(Icons.storefront_rounded, 'Retail',
+          EnhancedTheme.primaryTeal, () => nav('/dashboard')),
+      if (isAdmin)
+        _MoreTile(Icons.admin_panel_settings_rounded, 'Admin',
+            EnhancedTheme.errorRed, () => nav('/admin-dashboard')),
+      if (isWholesale)
+        _MoreTile(Icons.store_rounded, 'Wholesale',
+            EnhancedTheme.accentCyan, () => nav('/wholesale-dashboard')),
       if (canReports)
         _MoreTile(Icons.analytics_rounded, 'Reports',
             EnhancedTheme.accentPurple, () => nav('/dashboard/reports')),

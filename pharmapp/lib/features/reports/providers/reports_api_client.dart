@@ -24,12 +24,24 @@ class TopItem {
         revenue: (j['revenue'] as num?)?.toDouble() ?? 0);
 }
 
+/// One data point in a daily revenue breakdown (returned by week/month reports).
+class DailySale {
+  final String date;
+  final double revenue;
+  DailySale({required this.date, required this.revenue});
+  factory DailySale.fromJson(Map<String, dynamic> j) => DailySale(
+        date: (j['date'] as String?) ?? '',
+        revenue: (j['revenue'] as num?)?.toDouble() ?? 0);
+}
+
 class SalesReportData {
   final String period; final double totalRevenue; final double totalRetail;
   final double totalWholesale; final int totalSales; final List<TopItem> topItems;
+  final List<DailySale> dailySales;
   SalesReportData({required this.period, required this.totalRevenue,
       required this.totalRetail, required this.totalWholesale,
-      required this.totalSales, required this.topItems});
+      required this.totalSales, required this.topItems,
+      this.dailySales = const []});
   factory SalesReportData.fromJson(Map<String, dynamic> j) => SalesReportData(
         period: (j['period'] as String?) ?? 'month',
         totalRevenue: (j['totalRevenue'] as num?)?.toDouble() ?? 0,
@@ -37,7 +49,9 @@ class SalesReportData {
         totalWholesale: (j['totalWholesale'] as num?)?.toDouble() ?? 0,
         totalSales: (j['totalSales'] as num?)?.toInt() ?? 0,
         topItems: (j['topItems'] as List? ?? [])
-            .map((e) => TopItem.fromJson(e as Map<String, dynamic>)).toList());
+            .map((e) => TopItem.fromJson(e as Map<String, dynamic>)).toList(),
+        dailySales: (j['dailyBreakdown'] as List? ?? [])
+            .map((e) => DailySale.fromJson(e as Map<String, dynamic>)).toList());
 }
 
 class LowStockItem {

@@ -139,6 +139,22 @@ def item_detail(request, pk):
                                "Only Admin or Manager can change the low stock alert threshold.")
             if err:
                 return err
+
+        # Capture what changed for the audit trail.
+        changes = []
+        old_price = float(item.price)
+        old_cost  = float(item.cost)
+        old_stock = float(item.stock)
+        if price != old_price:
+            changes.append(f'price ₦{old_price:,.2f}→₦{price:,.2f}')
+        if cost != old_cost:
+            changes.append(f'cost ₦{old_cost:,.2f}→₦{cost:,.2f}')
+        if stock != old_stock:
+            changes.append(f'stock {old_stock:g}→{stock:g}')
+        if name != item.name:
+            changes.append(f'name "{item.name}"→"{name}"')
+        audit_desc = f'Updated "{name}": {"; ".join(changes)}' if changes else f'Updated "{name}" (no field changes)'
+
         item.name = name
         item.brand = data.get("brand", item.brand)
         item.dosage_form = data.get("dosageForm", item.dosage_form)
@@ -154,7 +170,7 @@ def item_detail(request, pk):
         )
         item.save()
         log_activity(request, action='Update Item', category='inventory',
-                     description=f'Updated "{item.name}"')
+                     description=audit_desc)
         return Response(item.to_api_dict())
 
     # DELETE
@@ -229,9 +245,12 @@ def adjust_stock(request, pk):
         return Response(
             {"detail": "Invalid adjustment value"}, status=status.HTTP_400_BAD_REQUEST
         )
+    old_stock = float(item.stock)
     item.stock = max(0, item.stock + adjustment)
     item.save()
     sign = '+' if adjustment >= 0 else ''
+    reason = request.data.get('reason', '')
+    reason_part = f' — reason: {reason}' if reason else ''
     log_activity(request, action='Adjust Stock', category='inventory',
-                 description=f'Stock adjusted for "{item.name}" ({sign}{adjustment} units)')
+                 description=f'Stock for "{item.name}": {old_stock:g}→{float(item.stock):g} ({sign}{adjustment}){reason_part}')
     return Response(item.to_api_dict())

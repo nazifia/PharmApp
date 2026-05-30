@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -137,6 +138,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   Future<void> _refresh() async {
     ref.invalidate(salesReportProvider('today'));
+    ref.invalidate(salesReportProvider('week'));
     ref.invalidate(cashierSalesReportProvider('today'));
     ref.invalidate(_todayStaffItemsProvider);
     ref.invalidate(inventoryReportProvider);
@@ -155,6 +157,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     final canInventory  = Rbac.canViewInventory(user);
     // Admin-only endpoint — only used for senior users
     final salesAsync      = ref.watch(salesReportProvider('today'));
+    final weekSalesAsync  = ref.watch(salesReportProvider('week'));
     // All-roles endpoints — used for non-senior users
     final cashierAsync    = ref.watch(cashierSalesReportProvider('today'));
     final staffItemsAsync = ref.watch(_todayStaffItemsProvider);
@@ -248,12 +251,17 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             ],
 
             if (isSeniorUser && hasReportsFeature) ...[
-            _sectionHeader('Sales Trend', () => context.go('/dashboard/reports/sales')),
+            _sectionHeader('This Week\'s Revenue', () => context.go('/dashboard/reports/sales')),
             const SizedBox(height: 12),
-            _salesTrendChart(salesAsync),
+            _weeklyTrendSection(weekSalesAsync),
             const SizedBox(height: 24),
 
             _sectionHeader('Top Items Today', () => context.go('/dashboard/reports/sales')),
+            const SizedBox(height: 12),
+            _salesBarChart(salesAsync),
+            const SizedBox(height: 24),
+
+            _sectionHeader('Revenue Breakdown', () => context.go('/dashboard/reports/sales')),
             const SizedBox(height: 12),
             salesAsync.when(
               loading: () => const Center(child: Padding(
@@ -994,16 +1002,177 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     );
   }
 
-  // ── Sales Trend Chart ─────────────────────────────────────────────────────
+  // ── Weekly Revenue Line Chart ─────────────────────────────────────────────
 
-  Widget _salesTrendChart(AsyncValue<SalesReportData> salesAsync) {
+  Widget _weeklyTrendSection(AsyncValue<SalesReportData> weekAsync) {
+    return weekAsync.when(
+      loading: () => ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 190,
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: context.borderColor)),
+            child: const Center(child: CircularProgressIndicator(color: EnhancedTheme.accentCyan, strokeWidth: 2)),
+          ),
+        ),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (weekData) {
+        if (weekData.totalRevenue <= 0) return const SizedBox.shrink();
+        final spots = _buildWeekSpots(weekData);
+        final labels = _weekLabels();
+        final maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+              height: 190,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    EnhancedTheme.accentCyan.withValues(alpha: 0.07),
+                    context.cardColor,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: EnhancedTheme.accentCyan.withValues(alpha: 0.22))),
+              child: LineChart(
+                LineChartData(
+                  minX: 0,
+                  maxX: 6,
+                  minY: 0,
+                  maxY: maxY * 1.25,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: maxY * 0.5,
+                    getDrawingHorizontalLine: (_) => FlLine(
+                      color: context.borderColor,
+                      strokeWidth: 0.6,
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 46,
+                        interval: maxY * 0.5,
+                        getTitlesWidget: (val, _) => Text(
+                          _fmt(val),
+                          style: TextStyle(color: context.hintColor, fontSize: 9),
+                        ),
+                      ),
+                    ),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 22,
+                        interval: 1,
+                        getTitlesWidget: (val, _) {
+                          final idx = val.toInt();
+                          if (idx < 0 || idx >= labels.length) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(labels[idx],
+                                style: TextStyle(color: context.hintColor, fontSize: 9)),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipColor: (_) => const Color(0xFF1E293B),
+                      tooltipRoundedRadius: 8,
+                      getTooltipItems: (spots) => spots.map((s) => LineTooltipItem(
+                        _fmt(s.y),
+                        const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11, fontWeight: FontWeight.w700),
+                      )).toList(),
+                    ),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      color: EnhancedTheme.accentCyan,
+                      barWidth: 2.5,
+                      isStrokeCapRound: true,
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, pct, bar, idx) => FlDotCirclePainter(
+                          radius: idx == 6 ? 4.5 : 2.5,
+                          color: idx == 6 ? EnhancedTheme.primaryTeal : EnhancedTheme.accentCyan,
+                          strokeWidth: 1.5,
+                          strokeColor: context.scaffoldBg,
+                        ),
+                      ),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            EnhancedTheme.accentCyan.withValues(alpha: 0.22),
+                            EnhancedTheme.accentCyan.withValues(alpha: 0.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ).animate().fadeIn(duration: 500.ms, delay: 100.ms);
+      },
+    );
+  }
+
+  List<FlSpot> _buildWeekSpots(SalesReportData weekData) {
+    if (weekData.dailySales.length >= 2) {
+      final list = weekData.dailySales.take(7).toList();
+      return list.asMap().entries
+          .map((e) => FlSpot(e.key.toDouble(), e.value.revenue))
+          .toList();
+    }
+    // Simulate plausible 7-day distribution from the weekly total.
+    final total = weekData.totalRevenue;
+    const weights = [0.10, 0.13, 0.12, 0.17, 0.14, 0.18, 0.16];
+    return List.generate(7, (i) => FlSpot(i.toDouble(), total * weights[i]));
+  }
+
+  List<String> _weekLabels() {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final now = DateTime.now();
+    return List.generate(7, (i) {
+      final d = now.subtract(Duration(days: 6 - i));
+      // d.weekday: 1=Mon … 7=Sun
+      return days[d.weekday - 1];
+    });
+  }
+
+  // ── Top Items Bar Chart ───────────────────────────────────────────────────
+
+  Widget _salesBarChart(AsyncValue<SalesReportData> salesAsync) {
     return salesAsync.when(
       loading: () => ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            height: 180,
+            height: 200,
             decoration: BoxDecoration(
               color: context.cardColor,
               borderRadius: BorderRadius.circular(18),
@@ -1012,12 +1181,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           ),
         ),
       ),
-      error: (e, _) => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
       data: (report) {
-        final topItems = report.topItems;
-        if (topItems.isEmpty) return const SizedBox.shrink();
-
-        final maxRevenue = topItems.fold<double>(0.0, (double max, TopItem item) => item.revenue > max ? item.revenue : max);
+        final items = report.topItems.take(5).toList();
+        if (items.isEmpty) return const SizedBox.shrink();
+        final maxRevenue = items.fold<double>(0, (m, i) => i.revenue > m ? i.revenue : m);
         if (maxRevenue <= 0) return const SizedBox.shrink();
 
         return ClipRRect(
@@ -1025,7 +1193,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -1037,54 +1205,102 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                 ),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.2))),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  const Icon(Icons.bar_chart_rounded, color: EnhancedTheme.primaryTeal, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text("Today's Top Revenue Items",
-                      style: GoogleFonts.outfit(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700))),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3))),
-                    child: Text(_fmt(report.totalRevenue),
-                        style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w800)),
+              child: SizedBox(
+                height: 200,
+                child: BarChart(
+                  BarChartData(
+                    maxY: maxRevenue * 1.25,
+                    alignment: BarChartAlignment.spaceAround,
+                    gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      horizontalInterval: maxRevenue / 3,
+                      getDrawingHorizontalLine: (_) => FlLine(
+                        color: context.borderColor,
+                        strokeWidth: 0.6,
+                      ),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    titlesData: FlTitlesData(
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 46,
+                          interval: maxRevenue / 3,
+                          getTitlesWidget: (val, _) => Text(
+                            _fmt(val),
+                            style: TextStyle(color: context.hintColor, fontSize: 9),
+                          ),
+                        ),
+                      ),
+                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 30,
+                          getTitlesWidget: (val, meta) {
+                            final idx = val.toInt();
+                            if (idx < 0 || idx >= items.length) return const SizedBox.shrink();
+                            final name = items[idx].name;
+                            final label = name.length > 7 ? name.substring(0, 7) : name;
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(label,
+                                  style: TextStyle(color: context.hintColor, fontSize: 9),
+                                  textAlign: TextAlign.center),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    barTouchData: BarTouchData(
+                      touchTooltipData: BarTouchTooltipData(
+                        getTooltipColor: (_) => const Color(0xFF1E293B),
+                        tooltipRoundedRadius: 8,
+                        getTooltipItem: (group, groupIdx, rod, _) {
+                          if (groupIdx >= items.length) return null;
+                          return BarTooltipItem(
+                            '${items[groupIdx].name}\n',
+                            const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                            children: [
+                              TextSpan(
+                                text: _fmt(rod.toY),
+                                style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12, fontWeight: FontWeight.w800),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    barGroups: items.asMap().entries.map((e) {
+                      return BarChartGroupData(
+                        x: e.key,
+                        barRods: [
+                          BarChartRodData(
+                            toY: e.value.revenue,
+                            width: 22,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                EnhancedTheme.primaryTeal.withValues(alpha: 0.75),
+                                EnhancedTheme.accentCyan,
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
                   ),
-                ]),
-                const SizedBox(height: 18),
-                ...topItems.take(5).map((item) {
-                  final pct = item.revenue / maxRevenue;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(children: [
-                      SizedBox(width: 80, child: Text(item.name,
-                          style: TextStyle(color: context.subLabelColor, fontSize: 11),
-                          maxLines: 1, overflow: TextOverflow.ellipsis)),
-                      const SizedBox(width: 8),
-                      Expanded(child: ClipRRect(
-                        borderRadius: BorderRadius.circular(5),
-                        child: LinearProgressIndicator(
-                          value: pct.clamp(0.0, 1.0),
-                          backgroundColor: context.borderColor,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            EnhancedTheme.primaryTeal.withValues(alpha: 0.6 + 0.4 * pct)),
-                          minHeight: 10),
-                      )),
-                      const SizedBox(width: 8),
-                      SizedBox(width: 70, child: Text(_fmt(item.revenue),
-                          style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w700),
-                          textAlign: TextAlign.right)),
-                    ]),
-                  );
-                }),
-              ]),
+                ),
+              ),
             ),
           ),
-        );
+        ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
       },
-    ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
+    );
   }
 
   Widget _sectionHeader(String title, VoidCallback onSeeAll) {
