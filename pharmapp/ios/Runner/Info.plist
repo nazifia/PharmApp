@@ -4,6 +4,10 @@
 <dict>
 	<key>NSCameraUsageDescription</key>
 	<string>PharmApp uses the camera to scan barcodes and QR codes for inventory and POS.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>PharmApp uses Bluetooth to connect to thermal receipt printers.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>PharmApp uses Bluetooth to connect to thermal receipt printers.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

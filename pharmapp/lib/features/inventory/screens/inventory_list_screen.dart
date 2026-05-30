@@ -243,12 +243,25 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
     ),
   );
 
-  void _onBarcodeScannedInventory(String code) {
+  Future<void> _onBarcodeScannedInventory(String code) async {
+    final trimmed = code.trim();
+    final lower = trimmed.toLowerCase();
     final retailItems = ref.read(retailInventoryProvider).valueOrNull ?? [];
     final wholesaleItems = ref.read(wholesaleInventoryProvider).valueOrNull ?? [];
     final allItems = [...retailItems, ...wholesaleItems];
-    final matches = allItems.where((i) => i.barcode == code).toList();
+    // Deduplicate by id in case item appears in both retail + wholesale lists
+    final seen = <int>{};
+    final matches = allItems
+        .where((i) => i.barcode.toLowerCase() == lower && seen.add(i.id))
+        .toList();
     if (matches.isEmpty) {
+      // Fallback: hit the API (item may not be in current page of cache)
+      final apiItem = await ref.read(inventoryApiProvider).fetchItemByBarcode(trimmed);
+      if (!mounted) return;
+      if (apiItem != null) {
+        context.push('/item/${apiItem.id}');
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
         behavior: SnackBarBehavior.floating,
@@ -257,7 +270,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
         content: Row(children: [
           const Icon(Icons.error_rounded, color: Colors.black, size: 20),
           const SizedBox(width: 10),
-          Expanded(child: Text('Item not found for barcode: $code',
+          Expanded(child: Text('Item not found for barcode: $trimmed',
               style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
         ]),
       ));
@@ -267,7 +280,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
       context.push('/item/${matches.first.id}');
       return;
     }
-    setState(() => _searchCtrl.text = code);
+    setState(() => _searchCtrl.text = trimmed);
   }
 
   void _showAddItemSheet(BuildContext context) {
