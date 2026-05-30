@@ -613,10 +613,13 @@ class _ReceiptShareButtonState extends State<ReceiptShareButton> {
       final item = i as Map<String, dynamic>;
       final name = item['name'] as String? ?? '';
       final qty  = (item['quantity'] as num?)?.toInt() ?? 0;
+      final unit = item['unitOfDispensing'] as String?
+          ?? item['unit'] as String? ?? '';
       final price = (item['price'] as num?)?.toDouble() ?? 0;
       final disc  = (item['discount'] as num?)?.toDouble() ?? 0;
       final sub   = (item['subtotal'] as num?)?.toDouble() ?? (price * qty - disc);
-      sb.writeln('${name.padRight(18)}x$qty  ₦${fmt(sub)}');
+      final qtyLabel = unit.isNotEmpty ? 'x$qty $unit' : 'x$qty';
+      sb.writeln('${name.padRight(18)}$qtyLabel  ₦${fmt(sub)}');
     }
     sb.writeln('----------------------------');
     if (discountTotal > 0) {
@@ -1087,7 +1090,8 @@ class _ReceiptCard extends StatelessWidget {
                   final name = item['name'] as String? ?? '';
                   final brand = item['brand'] as String? ?? '';
                   final form  = item['dosageForm'] as String? ?? '';
-                  final unit  = item['unit'] as String? ?? '';
+                  final unit  = item['unitOfDispensing'] as String?
+                      ?? item['unit'] as String? ?? '';
                   final qty   = (item['quantity'] as num?)?.toInt() ?? 0;
                   final price = (item['price'] as num?)?.toDouble() ?? 0;
                   final disc  = (item['discount'] as num?)?.toDouble() ?? 0;
@@ -1131,7 +1135,7 @@ class _ReceiptCard extends StatelessWidget {
                             color: EnhancedTheme.accentCyan.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(5),
                           ),
-                          child: Text('×$qty',
+                          child: Text('×$qty${unit.isNotEmpty ? ' $unit' : ''}',
                               style: const TextStyle(color: EnhancedTheme.accentCyan,
                                   fontSize: 11, fontWeight: FontWeight.w700)),
                         ),
@@ -1619,7 +1623,8 @@ Future<Uint8List> buildReceiptPdf(
                 final name  = i['name']  as String? ?? '';
                 final brand = i['brand'] as String? ?? '';
                 final form  = i['dosageForm'] as String? ?? '';
-                final unit  = i['unit']  as String? ?? '';
+                final unit  = i['unitOfDispensing'] as String?
+                    ?? i['unit'] as String? ?? '';
                 final qty   = (i['quantity'] as num?)?.toInt() ?? 0;
                 final price = (i['price'] as num?)?.toDouble() ?? 0;
                 final disc  = (i['discount'] as num?)?.toDouble() ?? 0;
@@ -1654,7 +1659,7 @@ Future<Uint8List> buildReceiptPdf(
                     ),
                     pw.SizedBox(
                       width: 40,
-                      child: pw.Text('$qty',
+                      child: pw.Text(unit.isNotEmpty ? '$qty\n$unit' : '$qty',
                           textAlign: pw.TextAlign.center,
                           style: pw.TextStyle(font: fontBold, fontSize: 10, color: black)),
                     ),
@@ -1851,6 +1856,8 @@ Future<Uint8List> buildReceiptPdf(
             final item  = i as Map<String, dynamic>;
             final name  = item['name']  as String? ?? '';
             final brand = item['brand'] as String? ?? '';
+            final unit  = item['unitOfDispensing'] as String?
+                ?? item['unit'] as String? ?? '';
             final qty   = (item['quantity'] as num?)?.toInt() ?? 0;
             final price = (item['price'] as num?)?.toDouble() ?? 0;
             final disc  = (item['discount'] as num?)?.toDouble() ?? 0;
@@ -1870,7 +1877,8 @@ Future<Uint8List> buildReceiptPdf(
                   if (brand.isNotEmpty)
                     pw.Text('$brand  ',
                         style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
-                  pw.Text('$qty × ${fmtAmt(price)}',
+                  pw.Text(
+                      '${unit.isNotEmpty ? '$qty $unit' : '$qty'} × ${fmtAmt(price)}',
                       style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
                   if (disc > 0)
                     pw.Text('  -${fmtAmt(disc)} disc',
