@@ -24,7 +24,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
     super.initState();
     // Web desktops have no back camera — front maps to the webcam.
     _controller = MobileScannerController(
-      detectionSpeed: DetectionSpeed.normal,
+      detectionSpeed: DetectionSpeed.noDuplicates,
       facing: kIsWeb ? CameraFacing.front : CameraFacing.back,
       autoStart: true,
     );

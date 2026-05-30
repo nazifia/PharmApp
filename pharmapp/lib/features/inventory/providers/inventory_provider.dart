@@ -76,6 +76,17 @@ final itemDetailProvider = FutureProvider.autoDispose.family<Item, int>((ref, id
   return ref.watch(inventoryApiProvider).fetchById(id);
 });
 
+/// O(1) barcode → Item lookup maps, rebuilt only when inventory reloads.
+final retailBarcodeLookupProvider = Provider<Map<String, Item>>((ref) {
+  final items = ref.watch(retailInventoryProvider).valueOrNull ?? [];
+  return {for (final i in items) i.barcode.toLowerCase(): i};
+});
+
+final wholesaleBarcodeLookupProvider = Provider<Map<String, Item>>((ref) {
+  final items = ref.watch(wholesaleInventoryProvider).valueOrNull ?? [];
+  return {for (final i in items) i.barcode.toLowerCase(): i};
+});
+
 // ── Inventory write notifier (offline-aware) ─────────────────────────────────
 
 class InventoryNotifier extends StateNotifier<AsyncValue<void>> {

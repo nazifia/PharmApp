@@ -120,10 +120,8 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
 
   Future<void> _onBarcodeScannedWholesale(String code) async {
     final trimmed = code.trim();
-    final items = ref.read(wholesaleInventoryProvider).valueOrNull ?? [];
-    Item? match = items
-        .where((i) => i.barcode.toLowerCase() == trimmed.toLowerCase())
-        .firstOrNull;
+    final lower = trimmed.toLowerCase();
+    Item? match = ref.read(wholesaleBarcodeLookupProvider)[lower];
     match ??= await ref.read(inventoryApiProvider).fetchItemByBarcode(trimmed);
     if (!mounted) return;
     if (match == null) {

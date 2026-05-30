@@ -31,7 +31,7 @@ class _HardwareScannerListenerState extends State<HardwareScannerListener> {
   // Scanners: < 40 ms per char. Humans: > 80 ms per char.
   static const int _maxAvgMsPerChar = 40;
   static const int _minBarcodeLen = 4;
-  static const int _bufferTimeoutMs = 300;
+  static const int _bufferTimeoutMs = 150;
 
   @override
   void initState() {

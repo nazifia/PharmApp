@@ -38,10 +38,8 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
 
   Future<void> _onBarcodeScannedPOS(String code) async {
     final trimmed = code.trim();
-    final items = ref.read(retailInventoryProvider).valueOrNull ?? [];
-    Item? match = items
-        .where((i) => i.barcode.toLowerCase() == trimmed.toLowerCase())
-        .firstOrNull;
+    final lower = trimmed.toLowerCase();
+    Item? match = ref.read(retailBarcodeLookupProvider)[lower];
     match ??= await ref.read(inventoryApiProvider).fetchItemByBarcode(trimmed);
     if (!mounted) return;
     if (match == null) {
