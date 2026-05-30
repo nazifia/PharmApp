@@ -110,6 +110,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           id: item.id, name: item.name,
           price: item.price, qty: 1.0, barcode: item.barcode,
           stock: item.stock,
+          unitOfDispensing: item.unitOfDispensing,
         ));
       }
     });
@@ -2422,6 +2423,8 @@ class _WsCartItemWidgetState extends State<_WsCartItemWidget> {
                     const TextSpan(text: ' × '),
                     TextSpan(text: _fmtQty(line.qty),
                         style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w700)),
+                    if (line.unitOfDispensing.isNotEmpty)
+                      TextSpan(text: ' ${line.unitOfDispensing}'),
                     const TextSpan(text: ' = '),
                     TextSpan(text: fmtN(line.total),
                         style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
@@ -2527,6 +2530,7 @@ class _CartLine {
   final String barcode;
   final double discount;
   final int    stock;
+  final String unitOfDispensing;
 
   const _CartLine({
     required this.id,
@@ -2536,12 +2540,14 @@ class _CartLine {
     required this.barcode,
     this.discount = 0,
     this.stock = 9999,
+    this.unitOfDispensing = '',
   });
 
   double get total => (price * qty) - discount;
 
   _CartLine copyWith({double? qty, double? discount}) => _CartLine(
     id: id, name: name, price: price, barcode: barcode, stock: stock,
+    unitOfDispensing: unitOfDispensing,
     qty: qty ?? this.qty,
     discount: discount ?? this.discount,
   );
