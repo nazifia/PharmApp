@@ -137,7 +137,15 @@
       "Bash(rg -n \"\\\\\\\\\\\\$\\\\{.*\\\\.stock\" features/admin/screens/admin_dashboard.dart --type dart)",
       "Bash(rg -n \"Text\\\\\\('.*\\\\\\\\\\\\$\" features/inventory features/reports/screens/inventory_report --type dart)",
       "Bash(awk '{print $NF}')",
-      "Bash(xargs -I {} sh -c 'echo \"{}:\" && head -20 {} | tail -5')"
+      "Bash(xargs -I {} sh -c 'echo \"{}:\" && head -20 {} | tail -5')",
+      "Bash(venv\\\\Scripts\\\\python.exe manage.py showmigrations prescriptions)",
+      "PowerShell(Start-Sleep -Seconds 3; Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/auth/login/\" -Method Post -ContentType \"application/json\" -Body '{\"phone_number\":\"admin\",\"password\":\"admin\"}' -ErrorAction SilentlyContinue 2>&1 | ConvertTo-Json -Depth 3)",
+      "PowerShell($login = Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/auth/login/\" -Method Post -ContentType \"application/json\" -Body '{\"phone_number\":\"08000000000\",\"password\":\"Test1234!\"}'; $token = $login.access; $user = $login.user; Write-Host \"Token OK, role=$\\($user.role\\), org=$\\($user.organizationId\\)\")",
+      "PowerShell($login = Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/auth/login/\" -Method Post -ContentType \"application/json\" -Body '{\"phone_number\":\"08000000000\",\"password\":\"Test1234!\"}'; $global:TOKEN = $login.access; $global:HDR = @{Authorization=\"Bearer $global:TOKEN\"; \"Content-Type\"=\"application/json\"}; Write-Host \"Auth ready\")",
+      "PowerShell($prescribers = Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/prescriptions/prescribers/\" -Headers $global:HDR; Write-Host \"Count: $\\($prescribers.Count\\)\"; $prescribers | Select-Object id,name,commission_rate | Format-Table)",
+      "PowerShell($prescribers = Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/prescriptions/prescribers/\" -Method Get -Headers @{Authorization=\"Bearer $global:TOKEN\"}; Write-Host \"Count: $\\($prescribers.Count\\)\"; $prescribers | Select-Object id,name,commission_rate | Format-Table)",
+      "PowerShell(Get-Process *)",
+      "Bash(git *)"
     ]
   }
 }

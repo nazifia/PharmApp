@@ -169,6 +169,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           const SizedBox(height: 4),
                           const _SectionDivider(label: 'Clinical'),
                           _NavItem(icon: Icons.medical_services_rounded, label: 'Prescriptions', route: '/dashboard/prescriptions', onTap: navigate),
+                          _NavItem(icon: Icons.person_search_rounded, label: 'Prescribers', route: '/dashboard/prescribers', onTap: navigate),
                         ],
 
                         // ══ INVENTORY ════════════════════════════════════════

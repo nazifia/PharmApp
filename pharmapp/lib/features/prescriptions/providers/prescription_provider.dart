@@ -41,7 +41,7 @@ class PrescriptionFilter {
 
 final prescriptionListProvider =
     FutureProvider.autoDispose.family<List<Prescription>, PrescriptionFilter>(
-        (ref, filter) {
+        (ref, filter) async {
   final api = ref.watch(prescriptionApiProvider);
   // Portal prescriptions are always own-org scope — skip the network endpoint
   // so that source-filtered queries hit /prescriptions/ directly.
@@ -54,6 +54,33 @@ final prescriptionListProvider =
   }
   final branch = ref.watch(activeBranchProvider);
   final branchId = (branch == null || branch.id <= 0) ? null : branch.id;
+
+  // When no source filter (All/Pending/Partial/Dispensed tabs), fetch pharmacy
+  // and portal prescriptions in parallel and merge — backend may exclude portal
+  // Rxs from the default queryset.
+  if (filter.source == null) {
+    final results = await Future.wait([
+      api.fetchPrescriptions(
+        status: filter.status,
+        search: filter.search,
+        branchId: branchId,
+      ),
+      api.fetchPrescriptions(
+        status: filter.status,
+        search: filter.search,
+        branchId: branchId,
+        source: 'portal',
+      ),
+    ]);
+    final seen = <int>{};
+    final merged = <Prescription>[];
+    for (final rx in [...results[0], ...results[1]]) {
+      if (seen.add(rx.id)) merged.add(rx);
+    }
+    merged.sort((a, b) => b.id.compareTo(a.id));
+    return merged;
+  }
+
   return api.fetchPrescriptions(
     status: filter.status,
     search: filter.search,
