@@ -214,11 +214,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           enrichedResult['patient_name'] == null) {
         enrichedResult['customerName'] = selected.name;
       }
+      final capturedTotal = _total;
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
       _buyerNameCtrl.clear();
       _autoDispensePrescriptions();
-      _showSuccessSheet(enrichedResult);
+      _showSuccessSheet(enrichedResult, total: capturedTotal);
     } else {
       final err = ref.read(checkoutProvider).error;
       String errMsg = 'Checkout failed';
@@ -313,14 +314,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     ));
   }
 
-  void _showSuccessSheet(Map<String, dynamic> saleData) {
+  void _showSuccessSheet(Map<String, dynamic> saleData, {required double total}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       isDismissible: false,
       builder: (_) => _SuccessSheet(
-        total:    _total,
+        total:    total,
         method:   _method,
         saleData: saleData,
         onDone: () {

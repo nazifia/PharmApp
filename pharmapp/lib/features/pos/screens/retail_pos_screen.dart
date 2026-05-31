@@ -1429,6 +1429,8 @@ class _RetailCartItemState extends ConsumerState<_RetailCartItem> {
                     const TextSpan(text: ' × '),
                     TextSpan(text: '${c.quantity}',
                         style: const TextStyle(color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
+                    if (c.item.unitOfDispensing.isNotEmpty)
+                      TextSpan(text: ' ${c.item.unitOfDispensing}'),
                     const TextSpan(text: ' = '),
                     TextSpan(text: fmtN(c.total),
                         style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
