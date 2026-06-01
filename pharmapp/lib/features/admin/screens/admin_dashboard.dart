@@ -220,26 +220,20 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
               child: Column(children: [
             // ── Header ─────────────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: Row(children: [
                 GestureDetector(
                   onTap: () => _scaffoldKey.currentState?.openDrawer(),
                   child: Container(
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.only(right: 14),
+                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(right: 10),
                     decoration: BoxDecoration(
                       color: context.cardColor,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: context.borderColor),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2)),
-                      ],
                     ),
                     child: Icon(Icons.menu_rounded,
-                        color: context.iconOnBg, size: 22),
+                        color: context.iconOnBg, size: 20),
                   ),
                 ),
                 Expanded(
@@ -249,21 +243,21 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                       Text('Admin Dashboard',
                           style: GoogleFonts.outfit(
                               color: context.labelColor,
-                              fontSize: 24,
+                              fontSize: 20,
                               fontWeight: FontWeight.w800)),
                       Row(children: [
                         Container(
-                          width: 6,
-                          height: 6,
+                          width: 5,
+                          height: 5,
                           decoration: const BoxDecoration(
                             color: EnhancedTheme.successGreen,
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 5),
                         Text('Welcome back, ${user?.role ?? 'Admin'}',
                             style: TextStyle(
-                                color: context.hintColor, fontSize: 12)),
+                                color: context.hintColor, fontSize: 11)),
                       ]),
                     ])),
                 _buildProfileMenu(user?.role ?? 'Admin'),
@@ -742,22 +736,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
             color: EnhancedTheme.errorRed),
       ],
       child: Container(
-        padding: const EdgeInsets.all(2),
+        padding: const EdgeInsets.all(1.5),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: EnhancedTheme.errorRed, width: 2),
-          boxShadow: [
-            BoxShadow(
-                color: EnhancedTheme.errorRed.withValues(alpha: 0.25),
-                blurRadius: 8,
-                offset: const Offset(0, 2)),
-          ],
+          border: Border.all(color: EnhancedTheme.errorRed, width: 1.5),
         ),
         child: CircleAvatar(
-          radius: 20,
+          radius: 16,
           backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.15),
           child: const Icon(Icons.admin_panel_settings_rounded,
-              color: EnhancedTheme.errorRed, size: 20),
+              color: EnhancedTheme.errorRed, size: 17),
         ),
       ),
     );

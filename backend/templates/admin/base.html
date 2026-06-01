@@ -92,19 +92,6 @@
                 {% endfor %}
             </ul>
 
-            {% if jazzmin_settings.search_model %}
-                {% for search_model in jazzmin_settings.search_models_parsed %}
-                    <form action="{{ search_model.search_url }}" method="GET" class="d-flex ms-2">
-                        <div class="input-group input-group-sm">
-                            <input class="form-control form-control-navbar" name="q" type="search" placeholder="{% trans 'Search' %} {{ search_model.search_name }}..." aria-label="{% trans 'Search' %} {{ search_model.search_name }}...">
-                            <button class="btn btn-navbar" type="submit">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </form>
-                {% endfor %}
-            {% endif %}
-
             <ul class="navbar-nav ms-auto">
 
                 {% if jazzmin_settings.show_ui_builder %}
@@ -227,6 +214,23 @@
                             {% endif %}
                         </div>
                     </div>
+
+                    {% if jazzmin_settings.search_model %}
+                    <div class="px-3 py-2" id="jazzy-sidebar-search">
+                        {% for search_model in jazzmin_settings.search_models_parsed %}
+                        <form action="{{ search_model.search_url }}" method="GET" class="mb-1">
+                            <div class="input-group input-group-sm">
+                                <input class="form-control" name="q" type="search"
+                                    placeholder="{{ search_model.search_name }}..."
+                                    aria-label="Search {{ search_model.search_name }}">
+                                <button class="btn btn-outline-secondary" type="submit">
+                                    <i class="fas fa-search fa-xs"></i>
+                                </button>
+                            </div>
+                        </form>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
                     <nav class="mt-2">
                         <ul class="nav sidebar-menu flex-column {{ jazzmin_ui.sidebar_list_classes }}" data-lte-toggle="treeview" role="navigation" aria-label="Main navigation" data-accordion="false" id="jazzy-navigation">
