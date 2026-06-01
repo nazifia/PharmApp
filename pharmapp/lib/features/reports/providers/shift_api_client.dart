@@ -3,6 +3,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/shift.dart';
 
+class ShiftQuery {
+  final String? from;
+  final String? to;
+  final int? staffId;
+  final int? branchId;
+
+  const ShiftQuery({this.from, this.to, this.staffId, this.branchId});
+
+  @override
+  bool operator ==(Object other) =>
+      other is ShiftQuery &&
+      from == other.from &&
+      to == other.to &&
+      staffId == other.staffId &&
+      branchId == other.branchId;
+
+  @override
+  int get hashCode => Object.hash(from, to, staffId, branchId);
+}
+
 class ShiftApiClient {
   final Dio _dio;
   ShiftApiClient(this._dio);
@@ -64,13 +84,13 @@ final shiftApiClientProvider = Provider<ShiftApiClient>((ref) {
 });
 
 final shiftListProvider = FutureProvider.autoDispose
-    .family<List<Shift>, Map<String, dynamic>>((ref, params) async {
+    .family<List<Shift>, ShiftQuery>((ref, q) async {
   final client = ref.watch(shiftApiClientProvider);
   return client.fetchShifts(
-    from: params['from'] as String?,
-    to: params['to'] as String?,
-    staffId: params['staffId'] as int?,
-    branchId: params['branchId'] as int?,
+    from: q.from,
+    to: q.to,
+    staffId: q.staffId,
+    branchId: q.branchId,
   );
 });
 
@@ -90,6 +110,7 @@ class ShiftNotifier extends StateNotifier<AsyncValue<Shift?>> {
       final shift = await _client.openShift(openingCash: openingCash, branchId: branchId);
       state = AsyncValue.data(shift);
       _ref.invalidate(currentShiftProvider);
+      _ref.invalidate(shiftListProvider);
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -103,6 +124,7 @@ class ShiftNotifier extends StateNotifier<AsyncValue<Shift?>> {
       final shift = await _client.closeShift(shiftId: shiftId, closingCash: closingCash);
       state = AsyncValue.data(shift);
       _ref.invalidate(currentShiftProvider);
+      _ref.invalidate(shiftListProvider);
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);

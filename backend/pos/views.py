@@ -200,12 +200,18 @@ def checkout(request):
       hmo_amount           = Decimal(str(data.get('hmo_amount', 0) or 0))
 
       with transaction.atomic():
+        dispenser = request.user if request.user.is_authenticated else None
+        open_shift = (
+            Shift.objects.filter(organization=org, staff=dispenser, status=Shift.STATUS_OPEN).first()
+            if dispenser else None
+        )
         sale = Sale.objects.create(
             organization=org,
             branch=branch,
             customer=customer,
             cashier=cashier,
-            dispenser=request.user if request.user.is_authenticated else None,
+            dispenser=dispenser,
+            shift=open_shift,
             total_amount=total,
             discount_total=discount_total,
             payment_cash=cash,
@@ -611,12 +617,17 @@ def complete_payment_request(request, pk):
             )
 
         completing_cashier = Cashier.objects.filter(user=request.user).first()
+        dispenser_shift = (
+            Shift.objects.filter(organization=org, staff=pr.dispenser, status=Shift.STATUS_OPEN).first()
+            if pr.dispenser else None
+        )
 
         sale = Sale.objects.create(
             organization=org,
             customer=pr.customer,
             dispenser=pr.dispenser,
             cashier=completing_cashier or pr.cashier,
+            shift=dispenser_shift,
             total_amount=pr.total_amount,
             payment_cash=Decimal(str(payment.get("cash", 0))),
             payment_pos=Decimal(str(payment.get("pos", 0))),

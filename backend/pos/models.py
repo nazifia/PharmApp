@@ -97,6 +97,12 @@ class Sale(models.Model):
         on_delete=models.SET_NULL,
         related_name='sales',
     )
+    shift = models.ForeignKey(
+        'Shift',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='shift_sales',
+    )
     is_wholesale = models.BooleanField(default=False)
     receipt_id = models.CharField(max_length=50, unique=True, blank=True)
     buyer_name = models.CharField(max_length=200, blank=True, default="")
@@ -853,7 +859,10 @@ class Shift(models.Model):
 
     def compute_totals(self):
         from django.db.models import Sum
-        sales = self.sales_in_shift
+        # Prefer direct FK linkage; fall back to time-range for legacy data
+        sales = self.shift_sales.all()
+        if not sales.exists():
+            sales = self.sales_in_shift
         agg = sales.aggregate(
             total_sales=Sum('total_amount'),
             total_cash=Sum('payment_cash'),
@@ -863,12 +872,12 @@ class Shift(models.Model):
             sales_count=models.Count('id'),
         )
         return {
-            'total_sales':   float(agg['total_sales'] or 0),
-            'total_cash':    float(agg['total_cash'] or 0),
-            'total_pos':     float(agg['total_pos'] or 0),
+            'total_sales':    float(agg['total_sales'] or 0),
+            'total_cash':     float(agg['total_cash'] or 0),
+            'total_pos':      float(agg['total_pos'] or 0),
             'total_transfer': float(agg['total_transfer'] or 0),
-            'total_wallet':  float(agg['total_wallet'] or 0),
-            'sales_count':   agg['sales_count'] or 0,
+            'total_wallet':   float(agg['total_wallet'] or 0),
+            'sales_count':    agg['sales_count'] or 0,
         }
 
     def to_api_dict(self):

@@ -22,27 +22,34 @@ class _ShiftReportScreenState extends ConsumerState<ShiftReportScreen> {
   String _period = 'Today';
   static const _periods = ['Today', 'This Week', 'This Month', 'All Time'];
 
+  String _isoDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   String? get _from {
-    if (_range != null) return _range!.start.toIso8601String().substring(0, 10);
+    if (_range != null) return _isoDate(_range!.start);
     final now = DateTime.now();
     switch (_period) {
-      case 'Today': return '${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}';
-      case 'This Week':
-        final start = now.subtract(Duration(days: now.weekday - 1));
-        return '${start.year}-${start.month.toString().padLeft(2,'0')}-${start.day.toString().padLeft(2,'0')}';
-      case 'This Month': return '${now.year}-${now.month.toString().padLeft(2,'0')}-01';
-      default: return null;
+      case 'Today':      return _isoDate(now);
+      case 'This Week':  return _isoDate(now.subtract(Duration(days: now.weekday - 1)));
+      case 'This Month': return '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
+      default:           return null;
     }
+  }
+
+  String? get _to {
+    if (_range != null) return _isoDate(_range!.end);
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     final branch = ref.watch(activeBranchProvider);
-    final params = <String, dynamic>{
-      if (_from != null) 'from': _from,
-      if (branch != null && branch.id > 0) 'branchId': branch.id,
-    };
-    final shiftsAsync    = ref.watch(shiftListProvider(params));
+    final query = ShiftQuery(
+      from: _from,
+      to: _to,
+      branchId: branch != null && branch.id > 0 ? branch.id : null,
+    );
+    final shiftsAsync    = ref.watch(shiftListProvider(query));
     final currentAsync   = ref.watch(currentShiftProvider);
 
     return Scaffold(
@@ -152,7 +159,7 @@ class _ShiftReportScreenState extends ConsumerState<ShiftReportScreen> {
               const SizedBox(height: 12),
               Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 12), textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              TextButton(onPressed: () => ref.invalidate(shiftListProvider(params)), child: const Text('Retry')),
+              TextButton(onPressed: () => ref.invalidate(shiftListProvider(query)), child: const Text('Retry')),
             ])),
             data: (shifts) => shifts.isEmpty
                 ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
