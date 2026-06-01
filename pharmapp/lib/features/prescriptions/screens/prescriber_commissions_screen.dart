@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -11,21 +12,25 @@ import '../providers/prescriber_provider.dart';
 final _fmt = NumberFormat('#,##0.00');
 
 class PrescriberCommissionsScreen extends ConsumerWidget {
-  final Prescriber prescriber;
+  final Prescriber? prescriber;
   final bool isAdminView;
 
   const PrescriberCommissionsScreen({
     super.key,
-    required this.prescriber,
+    this.prescriber,
     this.isAdminView = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final p = prescriber ?? ref.watch(currentPrescriberProvider);
+    if (p == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final summaryAsync =
-        ref.watch(prescriberCommissionSummaryProvider(prescriber.id));
+        ref.watch(prescriberCommissionSummaryProvider(p.id));
     final commissionsAsync =
-        ref.watch(prescriberCommissionsProvider(prescriber.id));
+        ref.watch(prescriberCommissionsProvider(p.id));
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -53,7 +58,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () => context.pop(),
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -88,14 +93,14 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
                                   fontWeight: FontWeight.w700),
                             ),
                             Text(
-                              'Dr. ${prescriber.name}',
+                              'Dr. ${p.name}',
                               style: TextStyle(
                                   color: context.subLabelColor, fontSize: 12),
                             ),
                           ],
                         ),
                       ),
-                      if (prescriber.commissionRate > 0)
+                      if (p.commissionRate > 0)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
@@ -107,7 +112,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
                                     .withValues(alpha: 0.4)),
                           ),
                           child: Text(
-                            '${prescriber.commissionRate.toStringAsFixed(prescriber.commissionRate % 1 == 0 ? 0 : 1)}% rate',
+                            '${p.commissionRate.toStringAsFixed(p.commissionRate % 1 == 0 ? 0 : 1)}% rate',
                             style: const TextStyle(
                                 color: EnhancedTheme.accentOrange,
                                 fontSize: 11,
@@ -119,7 +124,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
                         summaryAsync.maybeWhen(
                           data: (s) => s.pendingCount > 0
                               ? GestureDetector(
-                                  onTap: () => _payAll(context, ref, s),
+                                  onTap: () => _payAll(context, ref, s, p),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 4),
@@ -241,7 +246,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
                           commission: list[i],
                           isAdminView: isAdminView,
                           onMarkPaid: isAdminView && !list[i].isPaid
-                              ? () => _markPaid(context, ref, list[i])
+                              ? () => _markPaid(context, ref, list[i], p)
                               : null,
                         ),
                       );
@@ -257,7 +262,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
   }
 
   Future<void> _payAll(
-      BuildContext context, WidgetRef ref, CommissionSummary s) async {
+      BuildContext context, WidgetRef ref, CommissionSummary s, Prescriber p) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -267,7 +272,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
         title: Text('Pay All Pending',
             style: TextStyle(color: context.labelColor, fontSize: 16)),
         content: Text(
-          'Mark all ${s.pendingCount} pending commission(s) totalling NGN ${_fmt.format(s.pendingAmount)} as paid out to Dr. ${prescriber.name}?',
+          'Mark all ${s.pendingCount} pending commission(s) totalling NGN ${_fmt.format(s.pendingAmount)} as paid out to Dr. ${p.name}?',
           style: TextStyle(color: context.subLabelColor, fontSize: 14),
         ),
         actions: [
@@ -292,7 +297,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
     if (confirm != true || !context.mounted) return;
     final result = await ref
         .read(commissionNotifierProvider.notifier)
-        .markAllPaid(prescriber.id);
+        .markAllPaid(p.id);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -314,7 +319,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
   }
 
   Future<void> _markPaid(
-      BuildContext context, WidgetRef ref, PrescriberCommission c) async {
+      BuildContext context, WidgetRef ref, PrescriberCommission c, Prescriber p) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -351,7 +356,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
     if (confirm != true || !context.mounted) return;
     final ok = await ref
         .read(commissionNotifierProvider.notifier)
-        .markPaid(prescriber.id, c.id);
+        .markPaid(p.id, c.id);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -1,12 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import '../providers/prescriber_provider.dart';
-import 'prescriber_write_rx_screen.dart';
 
 class PrescriberPatientsScreen extends ConsumerStatefulWidget {
   const PrescriberPatientsScreen({super.key});
@@ -79,12 +79,9 @@ class _PrescriberPatientsScreenState
                         itemCount: filtered.length,
                         itemBuilder: (_, i) => _PatientCard(
                           patient: filtered[i],
-                          onWriteRx: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PrescriberWriteRxScreen(
-                                  patient: filtered[i]),
-                            ),
+                          onWriteRx: () => context.push(
+                            '/prescriber-portal/write-rx',
+                            extra: filtered[i],
                           ),
                         ),
                       );
@@ -132,7 +129,7 @@ class _PrescriberPatientsScreenState
         child: Row(
           children: [
             GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () => context.pop(),
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/models/customer.dart';
@@ -110,7 +111,7 @@ class _PrescriberWriteRxScreenState
         builder: (_) =>
             _SuccessDialog(patientName: _selectedPatient!.name),
       );
-      if (mounted) Navigator.pop(context);
+      if (mounted) context.pop();
     } else {
       final err = ref.read(prescriberPatientNotifierProvider).error;
       _showError('$err');
@@ -317,7 +318,7 @@ class _PrescriberWriteRxScreenState
         child: Row(
           children: [
             GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () => context.pop(),
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(

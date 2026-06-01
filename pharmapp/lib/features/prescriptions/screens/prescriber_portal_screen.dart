@@ -5,9 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import '../providers/prescriber_provider.dart';
-import 'prescriber_commissions_screen.dart';
-import 'prescriber_patients_screen.dart';
-import 'prescriber_write_rx_screen.dart';
 
 class PrescriberPortalScreen extends ConsumerWidget {
   const PrescriberPortalScreen({super.key});
@@ -230,13 +227,7 @@ class PrescriberPortalScreen extends ConsumerWidget {
                           label: 'My Patients',
                           subtitle: 'Register & manage',
                           color: EnhancedTheme.accentCyan,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const PrescriberPatientsScreen(),
-                            ),
-                          ),
+                          onTap: () => context.push('/prescriber-portal/patients'),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -246,13 +237,7 @@ class PrescriberPortalScreen extends ConsumerWidget {
                           label: 'Write Rx',
                           subtitle: 'New prescription',
                           color: EnhancedTheme.accentPurple,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const PrescriberWriteRxScreen(),
-                            ),
-                          ),
+                          onTap: () => context.push('/prescriber-portal/write-rx'),
                         ),
                       ),
                     ],
@@ -269,14 +254,7 @@ class PrescriberPortalScreen extends ConsumerWidget {
                         label: 'My Earnings',
                         subtitle: 'Commission from dispensed Rx',
                         color: EnhancedTheme.accentOrange,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PrescriberCommissionsScreen(
-                              prescriber: prescriber,
-                            ),
-                          ),
-                        ),
+                        onTap: () => context.push('/prescriber-portal/commissions'),
                       ),
                     ),
 

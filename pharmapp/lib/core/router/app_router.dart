@@ -61,6 +61,10 @@ import 'package:pharmapp/features/prescriptions/screens/write_prescription_scree
 import 'package:pharmapp/features/prescriptions/screens/prescriber_list_screen.dart';
 import 'package:pharmapp/features/prescriptions/screens/prescriber_registration_screen.dart';
 import 'package:pharmapp/features/prescriptions/screens/prescriber_portal_screen.dart';
+import 'package:pharmapp/features/prescriptions/screens/prescriber_patients_screen.dart';
+import 'package:pharmapp/features/prescriptions/screens/prescriber_write_rx_screen.dart';
+import 'package:pharmapp/features/prescriptions/screens/prescriber_commissions_screen.dart';
+import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/features/networks/screens/network_list_screen.dart';
 import 'package:pharmapp/features/networks/screens/network_detail_screen.dart';
 import 'package:pharmapp/features/networks/screens/create_network_screen.dart';
@@ -98,7 +102,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ref.read(hasFeatureProvider(SaasFeature.multiBranch)) &&
           ref.read(activeBranchProvider) == null;
 
-      const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org', '/register-prescriber', '/prescriber-login', '/prescriber-portal'];
+      const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org', '/register-prescriber', '/prescriber-login', '/prescriber-portal', '/prescriber-portal/patients', '/prescriber-portal/write-rx', '/prescriber-portal/commissions'];
 
       if (publicRoutes.contains(loc)) {
         if (isAuthenticated) {
@@ -289,6 +293,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register-prescriber',   name: 'register_prescriber',   builder: (_, __) => const PrescriberRegistrationScreen()),
       GoRoute(path: '/prescriber-login',      name: 'prescriber_login',      builder: (_, __) => const PrescriberLoginScreen()),
       GoRoute(path: '/prescriber-portal',     name: 'prescriber_portal',     builder: (_, __) => const PrescriberPortalScreen()),
+      GoRoute(path: '/prescriber-portal/patients',   name: 'prescriber_patients',   builder: (_, __) => const PrescriberPatientsScreen()),
+      GoRoute(path: '/prescriber-portal/write-rx',   name: 'prescriber_write_rx',   builder: (_, state) => PrescriberWriteRxScreen(patient: state.extra as Customer?)),
+      GoRoute(path: '/prescriber-portal/commissions', name: 'prescriber_commissions', builder: (_, __) => const PrescriberCommissionsScreen()),
       GoRoute(path: '/select-branch',  name: 'select_branch', builder: (_, __) => const BranchSelectionScreen()),
       GoRoute(path: '/subscription',   name: 'subscription',  builder: (_, __) => const SubscriptionScreen()),
       GoRoute(path: '/billing',        name: 'billing',       builder: (_, __) => const BillingScreen()),
