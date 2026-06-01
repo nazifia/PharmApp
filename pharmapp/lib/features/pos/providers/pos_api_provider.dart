@@ -1640,8 +1640,22 @@ class PosApiClient {
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
-      await _cacheStr('cache_wholesale_expiry', list);
-      return list;
+      // Client-side filter: keep only items with expiry within 90 days (or already expired)
+      final soon = DateTime.now().add(const Duration(days: 90));
+      final filtered = list.where((i) {
+        final m = i as Map<String, dynamic>;
+        final exp = m['expiry_date'] as String? ?? m['expiryDate'] as String?;
+        if (exp == null || exp.isEmpty) return false;
+        final dt = DateTime.tryParse(exp);
+        return dt != null && dt.isBefore(soon);
+      }).toList()
+        ..sort((a, b) {
+          final ea = (a as Map)['expiry_date'] as String? ?? (a)['expiryDate'] as String? ?? '';
+          final eb = (b as Map)['expiry_date'] as String? ?? (b)['expiryDate'] as String? ?? '';
+          return ea.compareTo(eb);
+        });
+      await _cacheStr('cache_wholesale_expiry', filtered);
+      return filtered;
     } on DioException catch (e) {
       if (e.response == null) {
         final cached = await _getCache('cache_wholesale_expiry');

@@ -53,7 +53,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
     try {
       final dt = DateTime.parse(raw);
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      return '${months[dt.month - 1]} ${dt.day}';
+      return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (_) {
       return raw;
     }
@@ -234,7 +234,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
         const SizedBox(width: 10),
         Expanded(child: _quickGroup(context, 'Inventory', [
           _quickItem(context, Icons.warning_amber_rounded, 'Low Stock', EnhancedTheme.warningAmber, () => context.push('/dashboard/inventory')),
-          _quickItem(context, Icons.hourglass_bottom_rounded, 'Expiry Alerts', EnhancedTheme.errorRed, () => context.push('/dashboard/inventory')),
+          _quickItem(context, Icons.hourglass_bottom_rounded, 'Expiry Alerts', EnhancedTheme.errorRed, () => context.push('/dashboard/inventory', extra: <String, dynamic>{'filter': 'Expiring Soon', 'tab': 1})),
         ])),
         const SizedBox(width: 10),
         Expanded(child: _quickGroup(context, 'Transfers', [
@@ -408,14 +408,23 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
   Widget _expiryAlerts(AsyncValue<List<dynamic>> async) {
     return async.when(
       loading: () => const SizedBox.shrink(),
-      error: (e, _) => const SizedBox.shrink(),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(children: [
+          const Icon(Icons.hourglass_bottom_rounded, color: EnhancedTheme.errorRed, size: 16),
+          const SizedBox(width: 6),
+          Expanded(child: Text('Expiry Alerts: $e',
+              style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 12))),
+        ]),
+      ),
       data: (items) {
         if (items.isEmpty) return const SizedBox.shrink();
+        final now = DateTime.now();
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             const Icon(Icons.hourglass_bottom_rounded, color: EnhancedTheme.errorRed, size: 18),
             const SizedBox(width: 6),
-            Text('Expiry Alerts',
+            Text('Expiry Alerts (${items.length})',
                 style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 10),
@@ -423,6 +432,9 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
             final m = item as Map<String, dynamic>;
             final name = m['name'] as String? ?? m['itemName'] as String? ?? 'Unknown';
             final expiry = m['expiryDate'] as String? ?? m['expiry_date'] as String? ?? '';
+            final dt = expiry.isNotEmpty ? DateTime.tryParse(expiry) : null;
+            final isExpired = dt != null && dt.isBefore(now);
+            final color = isExpired ? EnhancedTheme.errorRed : EnhancedTheme.warningAmber;
             return Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: ClipRRect(
@@ -432,16 +444,28 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: EnhancedTheme.errorRed.withValues(alpha: 0.06),
+                      color: color.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.15)),
+                      border: Border.all(color: color.withValues(alpha: 0.2)),
                     ),
                     child: Row(children: [
                       Expanded(child: Text(name,
                           style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w500),
                           maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      const SizedBox(width: 8),
+                      if (isExpired)
+                        Container(
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.errorRed.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('EXPIRED',
+                              style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 10, fontWeight: FontWeight.w700)),
+                        ),
                       Text(expiry.isNotEmpty ? _fmtDate(expiry) : 'N/A',
-                          style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 12, fontWeight: FontWeight.w600)),
+                          style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
                     ]),
                   ),
                 ),

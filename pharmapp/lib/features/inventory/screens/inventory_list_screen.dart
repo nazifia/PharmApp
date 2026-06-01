@@ -19,7 +19,9 @@ import 'package:pharmapp/shared/models/branch.dart';
 import '../providers/inventory_provider.dart';
 
 class InventoryListScreen extends ConsumerStatefulWidget {
-  const InventoryListScreen({super.key});
+  final String? initialFilter;
+  final int? initialTab;
+  const InventoryListScreen({super.key, this.initialFilter, this.initialTab});
 
   @override
   ConsumerState<InventoryListScreen> createState() => _InventoryListScreenState();
@@ -37,10 +39,12 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   @override
   void initState() {
     super.initState();
+    if (widget.initialFilter != null) _filter = widget.initialFilter!;
     final role = ref.read(currentUserProvider)?.role ?? '';
     final isWholesale = ['Wholesale Manager', 'Wholesale Operator', 'Wholesale Salesperson']
         .contains(role);
-    _tabCtrl = TabController(length: 2, vsync: this, initialIndex: isWholesale ? 1 : 0);
+    final tabIndex = widget.initialTab ?? (isWholesale ? 1 : 0);
+    _tabCtrl = TabController(length: 2, vsync: this, initialIndex: tabIndex);
 
     // Auto-select the user's assigned branch when no branch is active.
     // Done in initState (not addPostFrameCallback) so branch is set before

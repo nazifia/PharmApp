@@ -31,7 +31,7 @@ class WholesaleShiftApiClient {
       if (from != null) params['from'] = from;
       if (to != null) params['to'] = to;
       if (staffId != null) params['staff_id'] = staffId;
-      final res = await _dio.get('/wholesale/shifts/',
+      final res = await _dio.get('/pos/shifts/',
           queryParameters: params.isNotEmpty ? params : null);
       final data = res.data;
       final list = data is Map && data.containsKey('results')
@@ -45,7 +45,7 @@ class WholesaleShiftApiClient {
 
   Future<Shift?> fetchCurrentShift() async {
     try {
-      final res = await _dio.get('/wholesale/shifts/current/');
+      final res = await _dio.get('/pos/shifts/current/');
       if (res.statusCode == 204 || res.data == null) return null;
       return Shift.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -56,7 +56,7 @@ class WholesaleShiftApiClient {
 
   Future<Shift> openShift({required double openingCash}) async {
     try {
-      final res = await _dio.post('/wholesale/shifts/open/', data: {
+      final res = await _dio.post('/pos/shifts/open/', data: {
         'opening_cash': openingCash,
       });
       return Shift.fromJson(res.data as Map<String, dynamic>);
@@ -67,7 +67,7 @@ class WholesaleShiftApiClient {
 
   Future<Shift> closeShift({required int shiftId, required double closingCash}) async {
     try {
-      final res = await _dio.post('/wholesale/shifts/$shiftId/close/', data: {
+      final res = await _dio.post('/pos/shifts/$shiftId/close/', data: {
         'closing_cash': closingCash,
       });
       return Shift.fromJson(res.data as Map<String, dynamic>);

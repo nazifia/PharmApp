@@ -315,7 +315,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(path: 'pos',             name: 'retail_pos',      builder: (_, __) => const RetailPOSScreen()),
               GoRoute(path: 'wholesale-pos',   name: 'wholesale_pos',   builder: (_, __) => const WholesalePOSScreen()),
-              GoRoute(path: 'inventory',       name: 'inventory',       builder: (_, __) => const InventoryListScreen()),
+              GoRoute(path: 'inventory',       name: 'inventory',       builder: (_, s) {
+                final extra = s.extra as Map<String, dynamic>?;
+                return InventoryListScreen(
+                  initialFilter: extra?['filter'] as String?,
+                  initialTab: extra?['tab'] as int?,
+                );
+              }),
               GoRoute(path: 'customers',       name: 'customers',       builder: (_, __) => const CustomerListScreen()),
               GoRoute(path: 'reports',         name: 'reports_hub',     builder: (_, __) => const ReportsHubScreen()),
               GoRoute(path: 'reports/sales',   name: 'sales_report',    builder: (_, __) => const SalesReportScreen()),
