@@ -13,6 +13,7 @@ import '../../../core/services/auth_storage.dart';
 import '../../../core/services/offline_credential_store.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../../../features/networks/providers/network_provider.dart';
+import '../../../features/reports/providers/shift_api_client.dart';
 import 'auth_repository.dart';
 
 export '../../../core/network/api_client.dart' show authTokenProvider;
@@ -99,6 +100,8 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
 
       // Warm the offline cache in the background — don't block login.
       _ref.read(eagerSyncProvider.notifier).warmCache();
+      // Auto-open a shift for this user so sales are linked immediately.
+      _autoOpenShift(user);
     } catch (e) {
       // Network unreachable → attempt offline credential verification.
       if (e is DioException && e.response == null) {
@@ -279,6 +282,22 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     SharedPreferences.getInstance()
         .then((p) => p.setString('active_branch', jsonEncode(sentinel.toJson())))
         .catchError((_) => false);
+  }
+
+  /// Best-effort shift auto-open on login.
+  /// Checks for an existing open shift first; opens one only when absent.
+  /// All errors are swallowed — shift setup never blocks login.
+  Future<void> _autoOpenShift(User user) async {
+    try {
+      final client = _ref.read(shiftApiClientProvider);
+      final current = await client.fetchCurrentShift();
+      if (current == null) {
+        await client.openShift(
+          openingCash: 0,
+          branchId: user.branchId > 0 ? user.branchId : null,
+        );
+      }
+    } catch (_) {}
   }
 
   void resetFlow() {

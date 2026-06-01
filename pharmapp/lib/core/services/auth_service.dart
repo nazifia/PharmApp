@@ -6,6 +6,7 @@ import 'package:pharmapp/core/services/auth_storage.dart';
 import 'package:pharmapp/core/services/offline_credential_store.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/features/reports/providers/shift_api_client.dart';
 import 'package:pharmapp/shared/models/branch.dart';
 import 'package:pharmapp/shared/models/user.dart';
 
@@ -102,6 +103,9 @@ class AuthService {
       _ref.read(authFlowProvider.notifier).refreshProfile();
 
   Future<void> logout() async {
+    // Close open shift before clearing token — API call needs auth.
+    await _closeShiftOnLogout();
+
     await AuthStorage.delete('auth_token');
     await AuthStorage.delete('current_user');
     await OfflineCredentialStore.clear();
@@ -111,6 +115,16 @@ class AuthService {
     _ref.read(authTokenProvider.notifier).state    = null;
     _ref.read(activeBranchProvider.notifier).state = null;
     _ref.read(authFlowProvider.notifier).resetFlow();
+  }
+
+  Future<void> _closeShiftOnLogout() async {
+    try {
+      final client = _ref.read(shiftApiClientProvider);
+      final shift = await client.fetchCurrentShift();
+      if (shift != null) {
+        await client.closeShift(shiftId: shift.id, closingCash: 0);
+      }
+    } catch (_) {}
   }
 
   // ── Permissions ───────────────────────────────────────────────────────────────
