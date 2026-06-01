@@ -777,6 +777,13 @@ class _WholesaleMoreSheet extends StatelessWidget {
               _sheetTile(context, Icons.people_rounded,          'Customers', EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
               _sheetTile(context, Icons.savings_rounded,         'Profit',    EnhancedTheme.successGreen, '/dashboard/reports/profit'),
             ]),
+            const SizedBox(height: 12),
+            Row(children: [
+              _sheetTile(context, Icons.schedule_rounded, 'WS Shifts', EnhancedTheme.accentCyan, '/dashboard/wholesale-shifts'),
+              const Expanded(child: SizedBox()),
+              const Expanded(child: SizedBox()),
+              const Expanded(child: SizedBox()),
+            ]),
             const SizedBox(height: 20),
 
             Text('Navigate',

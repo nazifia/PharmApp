@@ -17,7 +17,7 @@ from customers.models import Customer, WalletTransaction
 from authapp.models import PharmUser
 from branches.models import Branch
 from authapp.utils import require_org, log_activity
-from authapp.permissions import require_permission
+from authapp.permissions import require_permission, REPORTS_ROLES
 from .models import (
     Cashier,
     Sale,
@@ -1402,6 +1402,10 @@ def shift_list(request):
 
     from datetime import date
     qs = Shift.objects.filter(organization=org).select_related('staff', 'branch')
+
+    # Non-senior staff see only their own shifts.
+    if getattr(request.user, 'role', '') not in REPORTS_ROLES:
+        qs = qs.filter(staff=request.user)
 
     from_date = request.query_params.get('from')
     to_date   = request.query_params.get('to')

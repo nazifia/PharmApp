@@ -70,6 +70,7 @@ import 'package:pharmapp/features/suppliers/screens/purchase_order_detail_screen
 import 'package:pharmapp/features/suppliers/screens/purchase_order_form_screen.dart';
 import 'package:pharmapp/features/suppliers/screens/receive_order_screen.dart';
 import 'package:pharmapp/features/prescriptions/screens/prescriber_login_screen.dart';
+import 'package:pharmapp/features/wholesale/screens/wholesale_shift_report_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterNotifier(ref);
@@ -198,6 +199,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Wholesale POS — wholesale roles only
       if (loc == '/dashboard/wholesale-pos' && !Rbac.can(user, AppPermission.wholesalePOS)) {
+        return '/dashboard';
+      }
+
+      // Wholesale shifts — wholesale roles only
+      if (loc == '/dashboard/wholesale-shifts' && !Rbac.can(user, AppPermission.viewWholesale)) {
         return '/dashboard';
       }
 
@@ -344,7 +350,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'ws-stock-check-report',name: 'ws_stock_check_report',builder: (_, __) => const StockCheckScreen(isWholesale: true, showReport: true)),
               GoRoute(path: 'payment-requests',name: 'payment_requests',builder: (_, __) => const PaymentRequestsScreen()),
               GoRoute(path: 'transfers',       name: 'transfers',       builder: (_, __) => const TransfersScreen()),
-              GoRoute(path: 'wholesale-sales', name: 'wholesale_sales', builder: (_, __) => const WholesaleSalesScreen()),
+              GoRoute(path: 'wholesale-sales',   name: 'wholesale_sales',   builder: (_, __) => const WholesaleSalesScreen()),
+              GoRoute(path: 'wholesale-shifts',  name: 'wholesale_shifts',  builder: (_, __) => const WholesaleShiftReportScreen()),
               GoRoute(path: 'sync-queue',      name: 'sync_queue',      builder: (_, __) => const SyncQueueScreen()),
               GoRoute(path: 'branches',        name: 'branches',        builder: (_, __) => const BranchManagementScreen()),
               GoRoute(path: 'activity-log',    name: 'activity_log',    builder: (_, __) => const ActivityLogScreen()),

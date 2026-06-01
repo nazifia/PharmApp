@@ -229,6 +229,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
         Expanded(child: _quickGroup(context, 'Dispensing', [
           _quickItem(context, Icons.point_of_sale_rounded, 'Wholesale POS', EnhancedTheme.primaryTeal, () => context.push('/dashboard/wholesale-pos')),
           _quickItem(context, Icons.history_rounded, 'Sales History', EnhancedTheme.accentCyan, () => context.push('/dashboard/wholesale-sales')),
+          _quickItem(context, Icons.schedule_rounded, 'Shift Report', EnhancedTheme.accentPurple, () => context.push('/dashboard/wholesale-shifts')),
         ])),
         const SizedBox(width: 10),
         Expanded(child: _quickGroup(context, 'Inventory', [
