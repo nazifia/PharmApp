@@ -1048,6 +1048,9 @@ class _AdminMoreSheet extends ConsumerWidget {
                 const SizedBox(width: 10),
                 _card(context, Icons.people_outline, 'Customers',
                     EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
+                const SizedBox(width: 10),
+                _card(context, Icons.schedule_rounded, 'Shifts',
+                    EnhancedTheme.accentCyan, '/dashboard/reports/shifts'),
                 if (hasAdvancedReports) ...[
                   const SizedBox(width: 10),
                   _card(context, Icons.trending_up, 'Profit',

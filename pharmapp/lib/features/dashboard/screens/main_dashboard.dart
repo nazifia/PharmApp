@@ -1549,6 +1549,8 @@ class _MoreFeaturesSheet extends ConsumerWidget {
                 _featureCard(context, Icons.inventory_2_outlined, 'Inventory', EnhancedTheme.infoBlue,    '/dashboard/reports/inventory'),
                 const SizedBox(width: 10),
                 _featureCard(context, Icons.people_outline,       'Customers', EnhancedTheme.accentPurple, '/dashboard/reports/customers'),
+                const SizedBox(width: 10),
+                _featureCard(context, Icons.schedule_rounded,    'Shifts',    EnhancedTheme.accentCyan,   '/dashboard/reports/shifts'),
                 if (hasAdvancedReports) ...[
                   const SizedBox(width: 10),
                   _featureCard(context, Icons.trending_up,        'Profit',    EnhancedTheme.warningAmber, '/dashboard/reports/profit'),
@@ -1562,6 +1564,8 @@ class _MoreFeaturesSheet extends ConsumerWidget {
               const SizedBox(height: 10),
               Row(children: [
                 _featureCard(context, Icons.today_rounded,        'Daily Sales', EnhancedTheme.accentOrange,  '/dashboard/reports/cashier-sales'),
+                const SizedBox(width: 10),
+                _featureCard(context, Icons.schedule_rounded,    'My Shifts',   EnhancedTheme.accentCyan,    '/dashboard/reports/shifts'),
                 const SizedBox(width: 10),
                 _featureCard(context, Icons.history_rounded,      'Sale History', EnhancedTheme.successGreen, '/dashboard/sales'),
                 const SizedBox(width: 10),
