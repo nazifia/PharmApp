@@ -48,11 +48,39 @@ body {
 }
 
 .main-header .nav-link {
-  color: var(--pharm-muted) !important;
-  transition: color 0.2s;
+  color: var(--pharm-text) !important;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0.45rem 0.65rem !important;
+  white-space: nowrap;
+  transition: color 0.2s, background 0.2s;
+  border-radius: 6px;
 }
 .main-header .nav-link:hover {
-  color: var(--pharm-teal-light) !important;
+  color: #fff !important;
+  background: var(--pharm-teal-dim) !important;
+}
+
+/* ── Top nav: responsive layout ──────────────────────────────────── */
+
+/* Medium screens: tighten spacing so all items fit without overflow */
+@media (max-width: 1300px) {
+  .main-header .nav-link {
+    font-size: 0.72rem !important;
+    padding: 0.35rem 0.4rem !important;
+    letter-spacing: 0 !important;
+  }
+  .main-header .navbar-brand {
+    font-size: 1rem !important;
+  }
+}
+
+/* Allow navbar nav to wrap onto a second line rather than overflow/hide */
+@media (max-width: 1100px) {
+  .main-header .navbar-nav {
+    flex-wrap: wrap;
+  }
 }
 
 /* -- Sidebar --------------------------------------------------- */

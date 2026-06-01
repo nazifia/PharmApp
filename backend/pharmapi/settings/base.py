@@ -24,18 +24,30 @@ JAZZMIN_SETTINGS = {
     "login_logo_classes": "img-fluid",
 
     # ── Search ────────────────────────────────────────────────────────────────
-    "search_model": ["authapp.Organization", "authapp.PharmUser", "inventory.Item", "customers.Customer", "pos.Sale"],
+    # Ordered by daily-use priority: pharmacy ops first, admin last.
+    "search_model": [
+        "inventory.Item",
+        "customers.Customer",
+        "pos.Sale",
+        "prescriptions.Prescriber",
+        "prescriptions.Prescription",
+        "pos.Supplier",
+        "authapp.PharmUser",
+        "branches.Branch",
+        "authapp.Organization",
+    ],
 
     # ── Top bar ───────────────────────────────────────────────────────────────
     "topmenu_links": [
-        {"name": "Dashboard", "url": "admin:index", "permissions": ["auth.view_user"]},
-        # Superuser-only global overview — shows cross-org analytics
-        {"name": "🌐 Global Overview", "url": "/admin/overview/", "permissions": ["authapp.view_organization"]},
-        # SaaS subscription dashboard
-        {"name": "💳 SaaS Dashboard", "url": "/admin/subscription/dashboard/", "permissions": ["authapp.view_organization"]},
-        {"name": "API Docs", "url": "/api/", "new_window": True},
-        {"model": "authapp.PharmUser"},
-        {"app": "inventory"},
+        {"name": "🏠 Home",         "url": "admin:index",                    "permissions": ["auth.view_user"]},
+        {"name": "🌐 Overview",     "url": "/admin/overview/",               "permissions": ["authapp.view_organization"]},
+        {"name": "💳 SaaS",         "url": "/admin/subscription/dashboard/", "permissions": ["authapp.view_organization"]},
+        {"name": "📦 Inventory",    "app": "inventory"},
+        {"name": "👥 Customers",    "app": "customers"},
+        {"name": "🧾 Sales",        "app": "pos"},
+        {"name": "💊 Rx",           "app": "prescriptions"},
+        {"name": "🏢 Branches",     "app": "branches"},
+        {"name": "🔗 API",          "url": "/api/", "new_window": True},
     ],
 
     # ── User menu (top right) ─────────────────────────────────────────────────
@@ -52,9 +64,11 @@ JAZZMIN_SETTINGS = {
     "order_with_respect_to": [
         "authapp",
         "subscription",
+        "branches",
         "inventory",
         "customers",
         "pos",
+        "prescriptions",
         "auth",
     ],
 
@@ -103,6 +117,16 @@ JAZZMIN_SETTINGS = {
         "pos.TransferRequest":    "fas fa-exchange-alt",
 
         "auth.Group": "fas fa-layer-group",
+
+        "branches":                             "fas fa-code-branch",
+        "branches.Branch":                      "fas fa-building",
+
+        "prescriptions":                        "fas fa-file-medical",
+        "prescriptions.Prescriber":             "fas fa-user-md",
+        "prescriptions.Hospital":               "fas fa-hospital-alt",
+        "prescriptions.Prescription":           "fas fa-prescription-bottle-alt",
+        "prescriptions.PrescriptionItem":       "fas fa-pills",
+        "prescriptions.PrescriberCommission":   "fas fa-hand-holding-usd",
 
         "subscription":                         "fas fa-credit-card",
         "subscription.Subscription":            "fas fa-id-card",
