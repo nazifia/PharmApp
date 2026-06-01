@@ -20,6 +20,7 @@ class CommissionNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       await _ref.read(reportsApiProvider).updateCommissionConfig(userId, rate, bonus);
       _ref.invalidate(commissionConfigsProvider);
+      _ref.invalidate(staffPerformanceProvider);
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

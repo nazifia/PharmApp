@@ -345,8 +345,8 @@ class ReportsApiClient {
     }
     try {
       final body = <String, dynamic>{
-        'commissionRate': rate,
-        if (bonus != null) 'fixedBonus': bonus,
+        'commission_rate': rate,
+        if (bonus != null) 'fixed_bonus': bonus,
       };
       final res = await _dio!.patch('/commission-configs/$userId/', data: body);
       return CommissionConfig.fromJson(res.data as Map<String, dynamic>);

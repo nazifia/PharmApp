@@ -572,14 +572,16 @@ def commission_config_detail(request, user_id):
     )
 
     data = request.data
-    if 'commissionRate' in data:
+    rate_val = data.get('commission_rate', data.get('commissionRate'))
+    if rate_val is not None:
         try:
-            cfg.commission_rate = float(data['commissionRate'])
+            cfg.commission_rate = float(rate_val)
         except (TypeError, ValueError):
-            return Response({'detail': 'Invalid commissionRate.'}, status=400)
+            return Response({'detail': 'Invalid commission_rate.'}, status=400)
 
-    if 'fixedBonus' in data:
-        raw = data['fixedBonus']
+    bonus_key = 'fixed_bonus' if 'fixed_bonus' in data else ('fixedBonus' if 'fixedBonus' in data else None)
+    if bonus_key is not None:
+        raw = data[bonus_key]
         cfg.fixed_bonus = float(raw) if raw not in (None, '', 'null') else None
 
     cfg.save()

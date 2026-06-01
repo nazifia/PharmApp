@@ -14,11 +14,11 @@ class CommissionConfig {
   });
 
   factory CommissionConfig.fromJson(Map<String, dynamic> j) => CommissionConfig(
-        userId:         (j['userId'] as num?)?.toInt() ?? 0,
-        userName:       (j['userName'] as String?) ?? '',
-        commissionRate: (j['commissionRate'] as num?)?.toDouble() ?? 0,
-        fixedBonus:     (j['fixedBonus'] as num?)?.toDouble(),
-        isActive:       (j['isActive'] as bool?) ?? true,
+        userId:         ((j['userId'] ?? j['user_id']) as num?)?.toInt() ?? 0,
+        userName:       (j['userName'] ?? j['user_name']) as String? ?? '',
+        commissionRate: ((j['commissionRate'] ?? j['commission_rate']) as num?)?.toDouble() ?? 0,
+        fixedBonus:     ((j['fixedBonus'] ?? j['fixed_bonus']) as num?)?.toDouble(),
+        isActive:       (j['isActive'] ?? j['is_active'] as bool?) ?? true,
       );
 
   Map<String, dynamic> toJson() => {
@@ -54,13 +54,13 @@ class StaffPerformanceEntry {
 
   factory StaffPerformanceEntry.fromJson(Map<String, dynamic> j) =>
       StaffPerformanceEntry(
-        userId:         (j['userId'] as num?)?.toInt() ?? 0,
-        userName:       (j['userName'] as String?) ?? '',
+        userId:         ((j['userId'] ?? j['user_id']) as num?)?.toInt() ?? 0,
+        userName:       (j['userName'] ?? j['user_name']) as String? ?? '',
         role:           (j['role'] as String?) ?? '',
-        salesCount:     (j['salesCount'] as num?)?.toInt() ?? 0,
-        totalSales:     (j['totalSales'] as num?)?.toDouble() ?? 0,
-        commissionRate: (j['commissionRate'] as num?)?.toDouble() ?? 0,
-        fixedBonus:     (j['fixedBonus'] as num?)?.toDouble(),
+        salesCount:     ((j['salesCount'] ?? j['sales_count']) as num?)?.toInt() ?? 0,
+        totalSales:     ((j['totalSales'] ?? j['total_sales']) as num?)?.toDouble() ?? 0,
+        commissionRate: ((j['commissionRate'] ?? j['commission_rate']) as num?)?.toDouble() ?? 0,
+        fixedBonus:     ((j['fixedBonus'] ?? j['fixed_bonus']) as num?)?.toDouble(),
       );
 }
 
@@ -78,7 +78,7 @@ class StaffPerformanceData {
   factory StaffPerformanceData.fromJson(Map<String, dynamic> j) =>
       StaffPerformanceData(
         period:           (j['period'] as String?) ?? 'today',
-        totalCommissions: (j['totalCommissions'] as num?)?.toDouble() ?? 0,
+        totalCommissions: ((j['totalCommissions'] ?? j['total_commissions']) as num?)?.toDouble() ?? 0,
         staff: (j['staff'] as List? ?? [])
             .map((e) => StaffPerformanceEntry.fromJson(e as Map<String, dynamic>))
             .toList(),
