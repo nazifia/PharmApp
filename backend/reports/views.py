@@ -168,6 +168,7 @@ def inventory_report(request):
             'name':              i.name,
             'stock':             i.stock,
             'lowStockThreshold': i.low_stock_threshold,
+            'reorderLevel':      i.reorder_level,
         }
         for i in low_stock.order_by('stock')[:20]
     ]

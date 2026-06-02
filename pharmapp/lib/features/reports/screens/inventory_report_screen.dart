@@ -27,7 +27,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
 
   String _fmtValue(double v) {
     if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000) return '₦${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 100000) return fmtN(v);
     if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(1)}K';
     return fmtN(v);
   }

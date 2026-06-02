@@ -314,8 +314,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
     final stockCtrl        = TextEditingController();
     final barcodeCtrl      = TextEditingController();
     final expiryCtrl       = TextEditingController();
-    final reorderLevelCtrl = TextEditingController();
-    final batchCtrl        = TextEditingController();
+    final reorderLevelCtrl  = TextEditingController();
+    final lowStockCtrl      = TextEditingController(text: '20');
+    final batchCtrl         = TextEditingController();
     String form            = 'Tablet';
     String unit            = 'Tablet';
     double markup          = 0.0;
@@ -454,6 +455,10 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                       )),
                   const SizedBox(height: 12),
                   Row(children: [
+                    Expanded(child: _sheetField(lowStockCtrl, 'Low Stock Alert *',
+                        keyboardType: TextInputType.number,
+                        validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid' : null)),
+                    const SizedBox(width: 12),
                     Expanded(child: _sheetField(reorderLevelCtrl, 'Reorder Level',
                         keyboardType: TextInputType.number,
                         validator: (v) {
@@ -461,9 +466,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                           if (int.tryParse(v) == null) return 'Invalid';
                           return null;
                         })),
-                    const SizedBox(width: 12),
-                    Expanded(child: _sheetField(batchCtrl, 'Batch / Lot No.')),
                   ]),
+                  const SizedBox(height: 12),
+                  _sheetField(batchCtrl, 'Batch / Lot No.'),
                   const SizedBox(height: 20),
                   // Store selector
                   Text('Store', style: TextStyle(color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w700,
@@ -536,7 +541,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                   const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: Row(children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon','Roll'].map((u) =>
+                    child: Row(children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon','Roll','Carton','Box','Bag','Sac'].map((u) =>
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: GestureDetector(
@@ -570,7 +575,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                         'markup':              markup,
                         'price':               double.parse(priceCtrl.text),
                         'stock':               int.parse(stockCtrl.text),
-                        'low_stock_threshold': 20,
+                        'low_stock_threshold': int.tryParse(lowStockCtrl.text.trim()) ?? 20,
                         'barcode':             barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
                         'expiry_date':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
                         'store':               store,

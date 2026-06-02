@@ -1,4 +1,6 @@
 from django.shortcuts import get_object_or_404
+
+_SENTINEL = object()  # distinguishes "field absent" from "field explicitly null"
 from django.utils.dateparse import parse_date
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -56,11 +58,14 @@ def item_list(request):
         return Response(
             {"detail": "Name is required"}, status=status.HTTP_400_BAD_REQUEST
         )
+    lst_raw = data.get("low_stock_threshold") or data.get("lowStockThreshold")
+    rl_raw  = data.get("reorder_level") or data.get("reorderLevel")
     try:
         price = float(data.get("price", 0))
-        cost = float(data.get("costPrice", 0))
+        cost = float(data.get("costPrice", data.get("cost_price", 0)))
         stock = float(data.get("stock", 0))
-        low_stock_threshold = int(data.get("lowStockThreshold", 10))
+        low_stock_threshold = int(lst_raw) if lst_raw is not None else 10
+        reorder_level = int(rl_raw) if rl_raw is not None else None
     except (ValueError, TypeError):
         return Response(
             {"detail": "Invalid numeric value"}, status=status.HTTP_400_BAD_REQUEST
@@ -70,7 +75,7 @@ def item_list(request):
             {"detail": "Price, cost, and stock must be non-negative"},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    if "lowStockThreshold" in data:
+    if lst_raw is not None:
         err = require_role(request, LOW_STOCK_ALERT_ROLES,
                            "Only Admin or Manager can set the low stock alert threshold.")
         if err:
@@ -89,14 +94,15 @@ def item_list(request):
         branch=branch,
         name=name,
         brand=data.get("brand", ""),
-        dosage_form=data.get("dosageForm", ""),
-        unit=data.get("unitOfDispensing", "Pcs"),
+        dosage_form=data.get("dosageForm", data.get("dosage_form", "")),
+        unit=data.get("unitOfDispensing", data.get("unit_of_dispensing", "Pcs")),
         price=price,
         cost=cost,
         stock=stock,
         low_stock_threshold=low_stock_threshold,
+        reorder_level=reorder_level,
         barcode=data.get("barcode", ""),
-        expiry_date=data.get("expiryDate") or None,
+        expiry_date=data.get("expiryDate", data.get("expiry_date")) or None,
         store=data.get("store", "retail"),
     )
     log_activity(request, action='Add Item', category='inventory',
@@ -122,13 +128,23 @@ def item_detail(request, pk):
             return Response(
                 {"detail": "Name is required"}, status=status.HTTP_400_BAD_REQUEST
             )
+        lst_raw = data.get("low_stock_threshold") if "low_stock_threshold" in data \
+                  else data.get("lowStockThreshold")
+        rl_key  = "reorder_level" if "reorder_level" in data else \
+                  ("reorderLevel" if "reorderLevel" in data else None)
+        rl_raw  = data.get(rl_key) if rl_key else _SENTINEL
         try:
             price = float(data.get("price", item.price))
-            cost = float(data.get("costPrice", item.cost))
+            cost = float(data.get("costPrice", data.get("cost_price", item.cost)))
             stock = float(data.get("stock", item.stock))
-            low_stock_threshold = int(
-                data.get("lowStockThreshold", item.low_stock_threshold)
-            )
+            low_stock_threshold = int(lst_raw) if lst_raw is not None \
+                                  else item.low_stock_threshold
+            if rl_raw is _SENTINEL:
+                reorder_level = item.reorder_level
+            elif rl_raw is None:
+                reorder_level = None
+            else:
+                reorder_level = int(rl_raw)
         except (ValueError, TypeError):
             return Response(
                 {"detail": "Invalid numeric value"}, status=status.HTTP_400_BAD_REQUEST
@@ -138,7 +154,7 @@ def item_detail(request, pk):
                 {"detail": "Price, cost, and stock must be non-negative"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if "lowStockThreshold" in data and low_stock_threshold != item.low_stock_threshold:
+        if lst_raw is not None and low_stock_threshold != item.low_stock_threshold:
             err = require_role(request, LOW_STOCK_ALERT_ROLES,
                                "Only Admin or Manager can change the low stock alert threshold.")
             if err:
@@ -161,14 +177,15 @@ def item_detail(request, pk):
 
         item.name = name
         item.brand = data.get("brand", item.brand)
-        item.dosage_form = data.get("dosageForm", item.dosage_form)
-        item.unit = data.get("unitOfDispensing", item.unit)
+        item.dosage_form = data.get("dosageForm", data.get("dosage_form", item.dosage_form))
+        item.unit = data.get("unitOfDispensing", data.get("unit_of_dispensing", item.unit))
         item.price = price
         item.cost = cost
         item.stock = stock
         item.low_stock_threshold = low_stock_threshold
+        item.reorder_level = reorder_level
         item.barcode = data.get("barcode", item.barcode)
-        expiry_raw = data.get("expiryDate", item.expiry_date) or None
+        expiry_raw = data.get("expiryDate", data.get("expiry_date", item.expiry_date)) or None
         item.expiry_date = (
             parse_date(expiry_raw) if isinstance(expiry_raw, str) else expiry_raw
         )

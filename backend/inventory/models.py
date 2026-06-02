@@ -93,6 +93,7 @@ class Item(models.Model):
     )
     stock = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     low_stock_threshold = models.IntegerField(default=10)
+    reorder_level = models.IntegerField(null=True, blank=True)
     barcode = models.CharField(max_length=100, blank=True, default="", db_index=True)
     barcode_type = models.CharField(
         max_length=20, choices=BARCODE_TYPE_CHOICES, blank=True, default=""
@@ -132,6 +133,7 @@ class Item(models.Model):
             "markup": float(self.markup),
             "stock": self.stock,
             "lowStockThreshold": self.low_stock_threshold,
+            "reorderLevel": self.reorder_level,
             "barcode": self.barcode,
             "barcodeType": self.barcode_type,
             "gtin": self.gtin,

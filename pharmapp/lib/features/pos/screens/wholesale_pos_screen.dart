@@ -936,7 +936,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     final inCart     = cartLine != null;
     final atMax      = (cartLine?.qty ?? 0) >= item.stock && item.stock > 0;
     final outOfStock = item.stock == 0;
-    final lowStock   = item.stock > 0 && item.stock <= 10;
+    final lowStock   = item.stock > 0 && item.stock <= item.lowStockThreshold;
     final accentColor = outOfStock ? context.hintColor : _categoryColor(item);
 
     void onAdd() {
@@ -1082,7 +1082,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
     final inCart     = cartLine != null;
     final atMax      = (cartLine?.qty ?? 0) >= item.stock && item.stock > 0;
     final outOfStock = item.stock == 0;
-    final lowStock   = item.stock > 0 && item.stock <= 10;
+    final lowStock   = item.stock > 0 && item.stock <= item.lowStockThreshold;
     final accentColor = outOfStock ? context.hintColor : _categoryColor(item);
 
     void onTap() {

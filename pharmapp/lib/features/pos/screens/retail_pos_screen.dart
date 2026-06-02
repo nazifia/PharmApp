@@ -829,7 +829,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     final cartItem   = cart.where((c) => c.item.id == item.id).firstOrNull;
     final inCart     = cartItem?.quantity ?? 0;
     final outOfStock = item.stock == 0;
-    final lowStock   = item.stock > 0 && item.stock <= 5;
+    final lowStock   = item.stock > 0 && item.stock <= item.lowStockThreshold;
     final atStockCap = inCart >= item.stock;
     final accentColor = outOfStock ? context.hintColor : _categoryColor(item);
 
@@ -968,7 +968,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
     final cartItem   = cart.where((c) => c.item.id == item.id).firstOrNull;
     final inCart     = cartItem?.quantity ?? 0;
     final outOfStock = item.stock == 0;
-    final lowStock   = item.stock > 0 && item.stock <= 5;
+    final lowStock   = item.stock > 0 && item.stock <= item.lowStockThreshold;
     final atStockCap = inCart >= item.stock;
     final accentColor = outOfStock ? context.hintColor : _categoryColor(item);
 

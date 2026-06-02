@@ -30,6 +30,23 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   bool get _canDelete        => Rbac.can(ref.read(currentUserProvider), AppPermission.writeInventory);
   bool get _canViewCostPrice => Rbac.can(ref.read(currentUserProvider), AppPermission.viewCostPrice);
 
+  Map<String, dynamic> _buildItemPayload(Item item, Map<String, dynamic> overrides) => {
+    'name':                item.name,
+    'brand':               item.brand.isEmpty ? 'Unknown' : item.brand,
+    'dosage_form':         item.dosageForm,
+    'unit_of_dispensing':  item.unitOfDispensing,
+    'price':               item.price,
+    'cost_price':          item.costPrice,
+    'markup':              item.markup,
+    'low_stock_threshold': item.lowStockThreshold,
+    'barcode':             item.barcode.isEmpty ? 'N/A' : item.barcode,
+    if (item.expiryDate != null)
+      'expiry_date': '${item.expiryDate!.year}-${item.expiryDate!.month.toString().padLeft(2, '0')}-${item.expiryDate!.day.toString().padLeft(2, '0')}',
+    if (item.reorderLevel != null) 'reorder_level': item.reorderLevel,
+    if (item.batchNumber != null && item.batchNumber!.isNotEmpty) 'batch_number': item.batchNumber,
+    ...overrides,
+  };
+
   void _showNoPermissionSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
@@ -224,7 +241,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon','Roll'].map((u) =>
+                      children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon','Roll','Carton','Box','Bag','Sac'].map((u) =>
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: GestureDetector(
@@ -989,6 +1006,372 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     );
   }
 
+  // ── Low-stock-alert quick edit ───────────────────────────────────────────
+
+  void _showLowStockAlertDialog(Item item) {
+    int threshold = item.lowStockThreshold;
+    final ctrl = TextEditingController(text: threshold.toString());
+    bool saving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.2)),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.warningAmber.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.warningAmber, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text('Low Stock Alert',
+                        style: GoogleFonts.outfit(color: ctx.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: ctx.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: ctx.borderColor),
+                    ),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      GestureDetector(
+                        onTap: () {
+                          final v = threshold - 1;
+                          if (v < 0) return;
+                          setDialog(() { threshold = v; ctrl.text = v.toString(); });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.remove_rounded, color: EnhancedTheme.errorRed, size: 22),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(width: 80, child: TextField(
+                        controller: ctrl,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(color: ctx.labelColor, fontSize: 24, fontWeight: FontWeight.w800),
+                        decoration: InputDecoration(
+                          filled: true, fillColor: ctx.cardColor,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                          hintText: '0',
+                        ),
+                        onChanged: (v) => setDialog(() => threshold = (int.tryParse(v) ?? 0).clamp(0, 9999)),
+                      )),
+                      const SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () {
+                          final v = threshold + 1;
+                          setDialog(() { threshold = v; ctrl.text = v.toString(); });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.add_rounded, color: EnhancedTheme.successGreen, size: 22),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(children: [
+                    Expanded(child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ctx.subLabelColor,
+                        side: BorderSide(color: ctx.borderColor),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      child: const Text('Cancel'),
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: ElevatedButton(
+                      onPressed: saving ? null : () async {
+                        setDialog(() => saving = true);
+                        final updated = await ref.read(inventoryNotifierProvider.notifier)
+                            .updateItem(item.id, _buildItemPayload(item, {'low_stock_threshold': threshold}));
+                        final notifierState = ref.read(inventoryNotifierProvider);
+                        if (!mounted) return;
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                        if (updated != null) {
+                          setState(() => _itemOverride = updated);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('Low stock alert set to $threshold units',
+                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } else if (notifierState is AsyncData) {
+                          setState(() => _itemOverride = item.copyWith(lowStockThreshold: threshold));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: const Row(children: [
+                              Icon(Icons.cloud_off_rounded, color: Colors.black, size: 20),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Offline — change queued for sync',
+                                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } else {
+                          final errMsg = notifierState is AsyncError ? '${notifierState.error}' : 'Update failed';
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.error_rounded, color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('Error: $errMsg',
+                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: EnhancedTheme.warningAmber, foregroundColor: Colors.black,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      child: saving
+                          ? const SizedBox(width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                          : Text('Save', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
+                    )),
+                  ]),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Reorder-level quick edit ─────────────────────────────────────────────
+
+  void _showReorderLevelDialog(Item item) {
+    int? level = item.reorderLevel;
+    final ctrl = TextEditingController(text: level?.toString() ?? '');
+    bool saving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: ctx.isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: EnhancedTheme.accentOrange.withValues(alpha: 0.2)),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.accentOrange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.refresh_rounded, color: EnhancedTheme.accentOrange, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text('Reorder Level',
+                        style: GoogleFonts.outfit(color: ctx.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: ctx.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: ctx.borderColor),
+                    ),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      GestureDetector(
+                        onTap: () {
+                          final v = (level ?? 0) - 1;
+                          if (v < 0) return;
+                          setDialog(() { level = v; ctrl.text = v.toString(); });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.remove_rounded, color: EnhancedTheme.errorRed, size: 22),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(width: 80, child: TextField(
+                        controller: ctrl,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(color: ctx.labelColor, fontSize: 24, fontWeight: FontWeight.w800),
+                        decoration: InputDecoration(
+                          filled: true, fillColor: ctx.cardColor,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                          hintText: '0',
+                        ),
+                        onChanged: (v) => setDialog(() => level = int.tryParse(v)),
+                      )),
+                      const SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () {
+                          final v = (level ?? 0) + 1;
+                          setDialog(() { level = v; ctrl.text = v.toString(); });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.add_rounded, color: EnhancedTheme.successGreen, size: 22),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(children: [
+                    if (item.reorderLevel != null) ...[
+                      Expanded(child: OutlinedButton(
+                        onPressed: saving ? null : () async {
+                          setDialog(() => saving = true);
+                          final updated = await ref.read(inventoryNotifierProvider.notifier)
+                              .updateItem(item.id, _buildItemPayload(item, {'reorder_level': null}));
+                          final notifierState = ref.read(inventoryNotifierProvider);
+                          if (!mounted) return;
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+                          if (updated != null) {
+                            setState(() => _itemOverride = updated);
+                          } else if (notifierState is AsyncData) {
+                            setState(() => _itemOverride = item.copyWith(reorderLevel: null));
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: EnhancedTheme.errorRed,
+                          side: BorderSide(color: EnhancedTheme.errorRed.withValues(alpha: 0.4)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                        child: const Text('Clear'),
+                      )),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(child: ElevatedButton(
+                      onPressed: (saving || level == null) ? null : () async {
+                        setDialog(() => saving = true);
+                        final updated = await ref.read(inventoryNotifierProvider.notifier)
+                            .updateItem(item.id, _buildItemPayload(item, {'reorder_level': level}));
+                        final notifierState = ref.read(inventoryNotifierProvider);
+                        if (!mounted) return;
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                        if (updated != null) {
+                          setState(() => _itemOverride = updated);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('Reorder level set to $level units',
+                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } else if (notifierState is AsyncData) {
+                          setState(() => _itemOverride = item.copyWith(reorderLevel: level));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: const Row(children: [
+                              Icon(Icons.cloud_off_rounded, color: Colors.black, size: 20),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Offline — change queued for sync',
+                                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        } else {
+                          final errMsg = notifierState is AsyncError ? '${notifierState.error}' : 'Update failed';
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
+                            content: Row(children: [
+                              const Icon(Icons.error_rounded, color: Colors.black, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('Error: $errMsg',
+                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                            ]),
+                          ));
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: EnhancedTheme.accentOrange, foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      child: saving
+                          ? const SizedBox(width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text('Save', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
+                    )),
+                  ]),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -1254,13 +1637,74 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   _divider(),
                   _detailRow('Barcode', item.barcode, Icons.qr_code_rounded, EnhancedTheme.infoBlue),
                   _divider(),
-                  _detailRow('Low Stock Alert', '${fmtNum(item.lowStockThreshold.toDouble())} units',
-                      Icons.warning_amber_rounded, EnhancedTheme.warningAmber),
-                  if (item.reorderLevel != null) ...[
-                    _divider(),
-                    _detailRow('Reorder Level', '${fmtNum(item.reorderLevel!.toDouble())} units',
-                        Icons.refresh_rounded, EnhancedTheme.accentOrange),
-                  ],
+                  InkWell(
+                    onTap: _canEdit ? () => _showLowStockAlertDialog(item) : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+                      child: Row(children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.warningAmber.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.warning_amber_rounded, color: EnhancedTheme.warningAmber, size: 14),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(width: 110, child: Text('Low Stock Alert',
+                            style: TextStyle(color: context.subLabelColor, fontSize: 13))),
+                        Expanded(child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text('${fmtNum(item.lowStockThreshold.toDouble())} units',
+                                style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                            if (_canEdit) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.edit_rounded, color: context.hintColor, size: 12),
+                            ],
+                          ],
+                        )),
+                      ]),
+                    ),
+                  ),
+                  _divider(),
+                  InkWell(
+                    onTap: _canEdit ? () => _showReorderLevelDialog(item) : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+                      child: Row(children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.accentOrange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.refresh_rounded, color: EnhancedTheme.accentOrange, size: 14),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(width: 110, child: Text('Reorder Level',
+                            style: TextStyle(color: context.subLabelColor, fontSize: 13))),
+                        Expanded(child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              item.reorderLevel != null
+                                  ? '${fmtNum(item.reorderLevel!.toDouble())} units'
+                                  : 'Not set',
+                              style: TextStyle(
+                                color: item.reorderLevel != null ? context.labelColor : context.hintColor,
+                                fontSize: 13, fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (_canEdit) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.edit_rounded, color: context.hintColor, size: 12),
+                            ],
+                          ],
+                        )),
+                      ]),
+                    ),
+                  ),
                   if (item.batchNumber != null && item.batchNumber!.isNotEmpty) ...[
                     _divider(),
                     _detailRow('Batch / Lot No.', item.batchNumber!,
