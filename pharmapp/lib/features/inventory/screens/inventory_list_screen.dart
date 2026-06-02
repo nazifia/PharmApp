@@ -536,7 +536,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                   const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: Row(children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon'].map((u) =>
+                    child: Row(children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon','Roll'].map((u) =>
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: GestureDetector(

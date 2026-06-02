@@ -1030,6 +1030,11 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                     style: TextStyle(
                         color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                         fontSize: 15, fontWeight: FontWeight.w800)),
+                if (item.unitOfDispensing.isNotEmpty)
+                  Text('/${item.unitOfDispensing}',
+                      style: TextStyle(
+                          color: outOfStock ? context.hintColor : context.subLabelColor,
+                          fontSize: 10)),
               ]),
               const SizedBox(height: 6),
               if (!outOfStock)
@@ -1148,6 +1153,11 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   style: TextStyle(
                       color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                       fontSize: 14, fontWeight: FontWeight.w800)),
+              if (item.unitOfDispensing.isNotEmpty)
+                Text('/${item.unitOfDispensing}',
+                    style: TextStyle(
+                        color: outOfStock ? context.hintColor : context.subLabelColor,
+                        fontSize: 9)),
               const SizedBox(height: 3),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),

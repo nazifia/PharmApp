@@ -1071,7 +1071,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
   String _destination = 'retail'; // retail | wholesale
 
   static const _dosageForms = ['Tablet','Capsule','Cream','Consumable','Galenical','Injection','Infusion','Inhaler','Suspension','Syrup','Drops','Solution','Eye-drop','Ear-drop','Eye-ointment','Rectal','Vaginal','Detergent','Drinks','Paste','Patch','Table-water','Food-item','Sweets','Soaps','Biscuits'];
-  static const _units = ['Pack', 'Box', 'Carton', 'Piece', 'Strip', 'Bottle', 'Vial', 'Ampoule', 'Tube', 'Sachet'];
+  static const _units = ['Pack', 'Box', 'Carton', 'Piece', 'Strip', 'Bottle', 'Vial', 'Ampoule', 'Tube', 'Sachet', 'Roll'];
   static const _markups = [0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 35.0, 40.0, 45.0, 50.0, 60.0, 70.0, 80.0, 100.0];
 
   @override

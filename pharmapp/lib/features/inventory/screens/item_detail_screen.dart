@@ -224,7 +224,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon'].map((u) =>
+                      children: ['Tablet','Capsule','ml','mg','Pack','Bottle','Vial','Sachet','Tube','Ampoule','Strip','Piece','Teaspoon','Tablespoon','Roll'].map((u) =>
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: GestureDetector(
