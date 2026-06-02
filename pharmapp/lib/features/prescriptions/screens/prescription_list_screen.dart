@@ -7,6 +7,8 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
+import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
+import 'package:pharmapp/shared/widgets/hardware_scanner_listener.dart';
 import '../providers/prescription_provider.dart';
 import '../../../shared/models/prescription.dart';
 
@@ -44,6 +46,30 @@ class _PrescriptionListScreenState
     _debounce = Timer(const Duration(milliseconds: 350), () {
       if (mounted) setState(() => _debouncedSearch = v);
     });
+  }
+
+  void _onBarcodeScannedPrescription(String code) {
+    final trimmed = code.trim();
+    final id = int.tryParse(trimmed);
+    if (id != null) {
+      context.push('/dashboard/prescriptions/$id');
+      return;
+    }
+    // Non-numeric code — use as search term.
+    _searchCtrl.text = trimmed;
+    _onSearchChanged(trimmed);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: EnhancedTheme.infoBlue.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: Row(children: [
+        const Icon(Icons.qr_code_rounded, color: Colors.white, size: 20),
+        const SizedBox(width: 10),
+        Expanded(child: Text('Searching for "$trimmed"…',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+      ]),
+    ));
   }
 
   void _clearSearch() {
@@ -95,7 +121,9 @@ class _PrescriptionListScreenState
     final prescriptionsAsync = ref.watch(prescriptionListProvider(_filter));
     final pendingCountAsync = ref.watch(networkPendingCountProvider);
 
-    return Scaffold(
+    return HardwareScannerListener(
+      onBarcodeScanned: _onBarcodeScannedPrescription,
+      child: Scaffold(
       backgroundColor: context.scaffoldBg,
       drawer: const AppDrawer(),
       floatingActionButton: canWrite
@@ -148,6 +176,7 @@ class _PrescriptionListScreenState
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -280,46 +309,64 @@ class _PrescriptionListScreenState
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: TextField(
-        controller: _searchCtrl,
-        style: const TextStyle(color: Colors.black87),
-        decoration: InputDecoration(
-          hintText: _networkWide
-              ? 'Search name, phone, doctor, diagnosis…'
-              : 'Search by patient name or phone…',
-          hintStyle:
-              const TextStyle(color: Colors.black38, fontSize: 14),
-          prefixIcon:
-              const Icon(Icons.search_rounded, color: Colors.black45),
-          suffixIcon: _rawSearch.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear_rounded,
-                      color: Colors.black45, size: 20),
-                  onPressed: _clearSearch,
-                )
-              : null,
-          filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.07),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide:
-                BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+      child: Row(children: [
+        Expanded(
+          child: TextField(
+            controller: _searchCtrl,
+            style: const TextStyle(color: Colors.black87),
+            decoration: InputDecoration(
+              hintText: _networkWide
+                  ? 'Search name, phone, doctor, diagnosis…'
+                  : 'Search by patient name or phone…',
+              hintStyle:
+                  const TextStyle(color: Colors.black38, fontSize: 14),
+              prefixIcon:
+                  const Icon(Icons.search_rounded, color: Colors.black45),
+              suffixIcon: _rawSearch.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded,
+                          color: Colors.black45, size: 20),
+                      onPressed: _clearSearch,
+                    )
+                  : null,
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.07),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide:
+                    const BorderSide(color: EnhancedTheme.primaryTeal),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            onChanged: _onSearchChanged,
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide:
-                BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide:
-                const BorderSide(color: EnhancedTheme.primaryTeal),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
-        onChanged: _onSearchChanged,
-      ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: () => showBarcodeScannerSheet(context, _onBarcodeScannedPrescription),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35)),
+            ),
+            child: const Icon(Icons.qr_code_scanner_rounded,
+                color: EnhancedTheme.primaryTeal, size: 22),
+          ),
+        ),
+      ]),
     );
   }
 

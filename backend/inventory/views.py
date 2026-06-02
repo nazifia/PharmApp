@@ -27,6 +27,10 @@ def item_list(request):
         items = Item.objects.filter(organization=org).order_by("name")
         if branch_id_str and branch_id_str.isdigit() and int(branch_id_str) > 0:
             items = items.filter(branch_id=int(branch_id_str))
+        barcode = request.query_params.get("barcode", "").strip()
+        if barcode:
+            items = items.filter(barcode__iexact=barcode)
+            return Response([i.to_api_dict() for i in items])
         if search:
             items = items.filter(name__icontains=search)
         if store in ("retail", "wholesale"):

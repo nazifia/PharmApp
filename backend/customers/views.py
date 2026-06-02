@@ -20,7 +20,11 @@ def customer_list(request):
 
     if request.method == "GET":
         search = request.query_params.get("search", "").strip()
+        phone = request.query_params.get("phone", "").strip()
         customers = Customer.objects.filter(organization=org).order_by("name")
+        if phone:
+            customers = customers.filter(phone=phone)
+            return Response([c.to_list_dict() for c in customers])
         if search:
             customers = customers.filter(name__icontains=search)
         return Response([c.to_list_dict() for c in customers])

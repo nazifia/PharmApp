@@ -240,6 +240,21 @@ class CustomerApiClient {
     }
   }
 
+  Future<Customer?> fetchCustomerByPhone(String phone) async {
+    if (_isLocal) {
+      final rows = await LocalDb.instance.getCustomers();
+      final match = rows.where((r) => r['phone'] == phone).firstOrNull;
+      return match != null ? Customer.fromJson(match) : null;
+    }
+    try {
+      final res = await _dio!.get('/customers/', queryParameters: {'phone': phone});
+      final data = res.data;
+      final list = data is Map && data.containsKey('results')
+          ? data['results'] as List : data as List;
+      return list.isEmpty ? null : Customer.fromJson(list[0] as Map<String, dynamic>);
+    } catch (_) { return null; }
+  }
+
   Future<Customer> createCustomer(Map<String, dynamic> data) async {
     if (_isLocal) return Customer.fromJson(await LocalDb.instance.createCustomer(data));
     try {

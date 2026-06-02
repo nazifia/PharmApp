@@ -12,6 +12,8 @@ import 'package:pharmapp/shared/models/branch.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
+import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
+import 'package:pharmapp/shared/widgets/hardware_scanner_listener.dart';
 import '../providers/customer_provider.dart';
 
 class CustomerListScreen extends ConsumerStatefulWidget {
@@ -28,6 +30,33 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
 
   @override
   void dispose() { _searchCtrl.dispose(); super.dispose(); }
+
+  Future<void> _onBarcodeScannedCustomer(String code) async {
+    final trimmed = code.trim();
+    // 1. Try client-side match (phone exact or ID).
+    final customers = ref.read(customerListProvider).valueOrNull ?? [];
+    Customer? match = customers.where(
+      (c) => c.phone == trimmed || c.id.toString() == trimmed).firstOrNull;
+    if (match != null) { context.push('/customer/${match.id}'); return; }
+    // 2. API fallback — lookup by phone (handles list-not-yet-loaded case).
+    final apiMatch = await ref.read(customerApiProvider).fetchCustomerByPhone(trimmed);
+    if (!mounted) return;
+    if (apiMatch != null) { context.push('/customer/${apiMatch.id}'); return; }
+    // 3. Populate search field so user sees filtered results.
+    setState(() { _searchCtrl.text = trimmed; });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: EnhancedTheme.warningAmber.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: Row(children: [
+        const Icon(Icons.person_search_rounded, color: Colors.black, size: 20),
+        const SizedBox(width: 10),
+        Expanded(child: Text('No customer found for "$trimmed"',
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+      ]),
+    ));
+  }
 
   List<Customer> _applyFilter(List<Customer> list) {
     final q = _searchCtrl.text.toLowerCase();
@@ -628,7 +657,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     final customersAsync  = ref.watch(customerListProvider);
     final canWriteCustomers = Rbac.can(ref.watch(currentUserProvider), AppPermission.writeCustomers);
 
-    return Scaffold(
+    return HardwareScannerListener(
+      onBarcodeScanned: _onBarcodeScannedCustomer,
+      child: Scaffold(
       backgroundColor: context.scaffoldBg,
       drawer: const AppDrawer(),
       floatingActionButton: canWriteCustomers
@@ -757,6 +788,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
           )),
         ])),
       ]),
+    ),
     );
   }
 
@@ -850,34 +882,52 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
 
   Widget _buildSearchBar() => Padding(
     padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-    child: ClipRRect(borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: TextField(
-          controller: _searchCtrl, onChanged: (_) => setState(() {}),
-          style: TextStyle(color: context.labelColor),
-          decoration: InputDecoration(
-            hintText: 'Search by name or phone…',
-            hintStyle: TextStyle(color: context.hintColor, fontSize: 14),
-            prefixIcon: Icon(Icons.search_rounded, color: context.hintColor),
-            suffixIcon: _searchCtrl.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(Icons.close_rounded, color: context.hintColor, size: 18),
-                    onPressed: () { _searchCtrl.clear(); setState(() {}); },
-                  )
-                : null,
-            filled: true, fillColor: context.cardColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: context.borderColor)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
-            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+    child: Row(children: [
+      Expanded(
+        child: ClipRRect(borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: TextField(
+              controller: _searchCtrl, onChanged: (_) => setState(() {}),
+              style: TextStyle(color: context.labelColor),
+              decoration: InputDecoration(
+                hintText: 'Search by name or phone…',
+                hintStyle: TextStyle(color: context.hintColor, fontSize: 14),
+                prefixIcon: Icon(Icons.search_rounded, color: context.hintColor),
+                suffixIcon: _searchCtrl.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.close_rounded, color: context.hintColor, size: 18),
+                        onPressed: () { _searchCtrl.clear(); setState(() {}); },
+                      )
+                    : null,
+                filled: true, fillColor: context.cardColor,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: context.borderColor)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: EnhancedTheme.primaryTeal, width: 1.5)),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
           ),
         ),
       ),
-    ),
+      const SizedBox(width: 8),
+      GestureDetector(
+        onTap: () => showBarcodeScannerSheet(context, _onBarcodeScannedCustomer),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35)),
+          ),
+          child: const Icon(Icons.qr_code_scanner_rounded,
+              color: EnhancedTheme.primaryTeal, size: 22),
+        ),
+      ),
+    ]),
   );
 
   Widget _buildFilterChips() => SizedBox(
