@@ -106,19 +106,42 @@ class AuthInterceptor extends Interceptor {
 
 // ── Error normalizer interceptor ──────────────────────────────────────────────
 
-/// Converts List-shaped DRF error bodies (e.g. ["Some error"]) to a Map
-/// ({"detail": "Some error"}) so every downstream catch block that does
-/// `e.response?.data?['detail']` works correctly on web and native.
+/// Normalises DRF error bodies so every downstream `data?['detail']` is safe.
+///
+/// Handles three shapes:
+///   • `["msg"]`              → `{"detail": "msg"}`
+///   • `{"field": ["msg"]}`   → adds `"detail": "field: msg"` (field-level errors)
+///   • `{"detail": "msg"}`    → untouched
+///
 /// Without this, indexing a Dart List with the String "detail" throws
 /// `Invalid argument (index): "detail"` on web (dart2js type-checks the index).
 class ErrorNormalizerInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     final resp = err.response;
-    if (resp != null && resp.data is List) {
-      final list = resp.data as List;
-      final message = list.isNotEmpty ? list.first.toString() : 'Request failed';
-      resp.data = <String, dynamic>{'detail': message};
+    if (resp != null) {
+      final data = resp.data;
+      if (data is List) {
+        // Top-level list: ["error"] → {"detail": "error"}
+        final message = data.isNotEmpty ? data.first.toString() : 'Request failed';
+        resp.data = <String, dynamic>{'detail': message};
+      } else if (data is Map && !data.containsKey('detail')) {
+        // Field-level DRF validation errors: {"field": ["msg"]} → inject detail
+        for (final entry in data.entries) {
+          final val = entry.value;
+          String? msg;
+          if (val is List && val.isNotEmpty) {
+            msg = val.first.toString();
+          } else if (val is String && val.isNotEmpty) {
+            msg = val;
+          }
+          if (msg != null) {
+            final prefix = entry.key == 'non_field_errors' ? '' : '${entry.key}: ';
+            (resp.data as Map<String, dynamic>)['detail'] = '$prefix$msg';
+            break;
+          }
+        }
+      }
     }
     handler.next(err);
   }
