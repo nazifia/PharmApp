@@ -291,15 +291,18 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         final payload = {
                           'name':                nameCtrl.text.trim(),
                           'brand':               brandCtrl.text.trim().isEmpty ? 'Unknown' : brandCtrl.text.trim(),
-                          'dosageForm':          dosageForm,
-                          'unitOfDispensing':    unitOfDispensing,
+                          'dosage_form':         dosageForm,
+                          'unit_of_dispensing':  unitOfDispensing,
                           'price':               double.parse(priceCtrl.text),
-                          'costPrice':           double.tryParse(costCtrl.text) ?? 0,
-                          'lowStockThreshold':   int.parse(thresholdCtrl.text),
+                          'cost_price':          double.tryParse(costCtrl.text) ?? 0,
+                          'markup':              markup,
+                          'low_stock_threshold': int.parse(thresholdCtrl.text),
                           'barcode':             barcodeCtrl.text.trim().isEmpty ? 'N/A' : barcodeCtrl.text.trim(),
-                          'expiryDate':          expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
-                          'reorderLevel':        reorderLevelCtrl.text.trim().isEmpty ? null : int.tryParse(reorderLevelCtrl.text.trim()),
-                          'batchNumber':         batchCtrl.text.trim().isEmpty ? null : batchCtrl.text.trim(),
+                          'expiry_date':         expiryCtrl.text.trim().isEmpty ? null : expiryCtrl.text.trim(),
+                          if (reorderLevelCtrl.text.trim().isNotEmpty)
+                            'reorder_level': int.tryParse(reorderLevelCtrl.text.trim()),
+                          if (batchCtrl.text.trim().isNotEmpty)
+                            'batch_number': batchCtrl.text.trim(),
                         };
                         final updated = await ref.read(inventoryNotifierProvider.notifier)
                             .updateItem(item.id, payload);
@@ -330,16 +333,16 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                             brand: payload['brand'] as String,
                             dosageForm: dosageForm,
                             price: payload['price'] as double,
-                            costPrice: payload['costPrice'] as double? ?? item.costPrice,
+                            costPrice: payload['cost_price'] as double? ?? item.costPrice,
                             markup: markup,
-                            lowStockThreshold: payload['lowStockThreshold'] as int,
+                            lowStockThreshold: payload['low_stock_threshold'] as int,
                             barcode: payload['barcode'] as String,
-                            expiryDate: (payload['expiryDate'] as String?) != null
-                                ? DateTime.tryParse(payload['expiryDate'] as String)
+                            expiryDate: (payload['expiry_date'] as String?) != null
+                                ? DateTime.tryParse(payload['expiry_date'] as String)
                                 : null,
                             unitOfDispensing: unitOfDispensing,
-                            reorderLevel: payload['reorderLevel'] as int?,
-                            batchNumber: payload['batchNumber'] as String?,
+                            reorderLevel: payload['reorder_level'] as int?,
+                            batchNumber: payload['batch_number'] as String?,
                           ));
                           if (ctx.mounted) Navigator.of(ctx).pop();
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(

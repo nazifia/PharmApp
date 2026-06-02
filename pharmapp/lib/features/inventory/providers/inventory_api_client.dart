@@ -30,6 +30,8 @@ class InventoryApiClient {
         'expiryDate': j['expiry_date'] ?? j['expiryDate'],
         'store': j['store'] ?? '',
         'unitOfDispensing': j['unit_of_dispensing'] ?? j['unitOfDispensing'] ?? '',
+        'reorderLevel': j['reorder_level'] ?? j['reorderLevel'],
+        'batchNumber': j['batch_number'] ?? j['batchNumber'],
       };
 
   Future<List<Item>> fetchInventory({String? search, String? store, int? branchId}) async {
