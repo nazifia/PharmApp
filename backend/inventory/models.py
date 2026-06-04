@@ -117,7 +117,9 @@ class Item(models.Model):
         if self.markup and not self.pk:
             from decimal import Decimal
 
-            self.price = self.cost + (self.cost * self.markup / Decimal("100"))
+            cost = Decimal(str(self.cost))
+            markup = Decimal(str(self.markup))
+            self.price = cost + (cost * markup / Decimal("100"))
         super().save(*args, **kwargs)
 
     def to_api_dict(self):
