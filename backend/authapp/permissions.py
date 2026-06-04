@@ -86,6 +86,7 @@ PERMISSION_LABELS = [
     ("Wholesale POS", "wholesalePOS"),
     ("Wholesale Section", "viewWholesale"),
     ("Read Inventory", "readInventory"),
+    ("Create Inventory", "createInventory"),
     ("Write Inventory", "writeInventory"),
     ("Read Customers", "readCustomers"),
     ("Write Customers", "writeCustomers"),
@@ -225,6 +226,8 @@ class IsInventoryEditor(BasePermission):
         perms = get_effective_permissions(user)
         if request.method in ("GET", "HEAD", "OPTIONS"):
             return perms.get("readInventory", False)
+        if request.method == "POST":
+            return perms.get("createInventory", False) or perms.get("writeInventory", False)
         return perms.get("writeInventory", False)
 
 
@@ -346,6 +349,7 @@ _PERMISSION_ROLE_MAP: dict[str, set] = {
     "wholesalePOS": WHOLESALE_POS,
     "viewWholesale": WHOLESALE_POS,
     "readInventory": INVENTORY_READ,
+    "createInventory": INVENTORY_WRITE,
     "writeInventory": INVENTORY_WRITE,
     "readCustomers":      ALL_STAFF,
     "writeCustomers":     CUSTOMERS_WRITE,

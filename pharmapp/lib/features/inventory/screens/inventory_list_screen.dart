@@ -289,7 +289,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
 
   void _showAddItemSheet(BuildContext context) {
     final user = ref.read(currentUserProvider);
-    if (!Rbac.can(user, AppPermission.createInventory)) {
+    if (!Rbac.can(user, AppPermission.createInventory) && !Rbac.can(user, AppPermission.writeInventory)) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
         behavior: SnackBarBehavior.floating,
@@ -701,7 +701,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
 
   @override
   Widget build(BuildContext context) {
-    final canAddItem = Rbac.can(ref.watch(currentUserProvider), AppPermission.createInventory);
+    final _watchedUser = ref.watch(currentUserProvider);
+    final canAddItem = Rbac.can(_watchedUser, AppPermission.createInventory) ||
+                       Rbac.can(_watchedUser, AppPermission.writeInventory);
     return HardwareScannerListener(
       onBarcodeScanned: _onBarcodeScannedInventory,
       child: Scaffold(

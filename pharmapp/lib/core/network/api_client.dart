@@ -108,12 +108,13 @@ class AuthInterceptor extends Interceptor {
 
 /// Normalises DRF error bodies so every downstream `data?['detail']` is safe.
 ///
-/// Handles three shapes:
+/// Handles four shapes:
 ///   • `["msg"]`              → `{"detail": "msg"}`
 ///   • `{"field": ["msg"]}`   → adds `"detail": "field: msg"` (field-level errors)
 ///   • `{"detail": "msg"}`    → untouched
+///   • `"plain text"`         → `{"detail": "plain text"}`
 ///
-/// Without this, indexing a Dart List with the String "detail" throws
+/// Without this, indexing a Dart String with the String "detail" throws
 /// `Invalid argument (index): "detail"` on web (dart2js type-checks the index).
 class ErrorNormalizerInterceptor extends Interceptor {
   @override
@@ -124,6 +125,10 @@ class ErrorNormalizerInterceptor extends Interceptor {
       if (data is List) {
         // Top-level list: ["error"] → {"detail": "error"}
         final message = data.isNotEmpty ? data.first.toString() : 'Request failed';
+        resp.data = <String, dynamic>{'detail': message};
+      } else if (data is String) {
+        // Plain-text or HTML response (e.g. nginx 403, CSRF error)
+        final message = data.isNotEmpty ? data : 'Request failed';
         resp.data = <String, dynamic>{'detail': message};
       } else if (data is Map && !data.containsKey('detail')) {
         // Field-level DRF validation errors: {"field": ["msg"]} → inject detail

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Item, STATUS_ACTIVE
 from authapp.utils import require_org, log_activity
-from authapp.permissions import IsInventoryEditor, LOW_STOCK_ALERT_ROLES, require_role
+from authapp.permissions import IsInventoryEditor, require_permission
 
 
 @api_view(["GET", "POST"])
@@ -75,11 +75,6 @@ def item_list(request):
             {"detail": "Price, cost, and stock must be non-negative"},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    if lst_raw is not None:
-        err = require_role(request, LOW_STOCK_ALERT_ROLES,
-                           "Only Admin or Manager can set the low stock alert threshold.")
-        if err:
-            return err
     branch_id = data.get("branch_id") or data.get("branchId")
     branch = None
     if branch_id:
@@ -155,8 +150,8 @@ def item_detail(request, pk):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if lst_raw is not None and low_stock_threshold != item.low_stock_threshold:
-            err = require_role(request, LOW_STOCK_ALERT_ROLES,
-                               "Only Admin or Manager can change the low stock alert threshold.")
+            err = require_permission(request, 'editLowStockAlert',
+                                     "Only Admin or Manager can change the low stock alert threshold.")
             if err:
                 return err
 
