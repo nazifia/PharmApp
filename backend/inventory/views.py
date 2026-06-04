@@ -81,25 +81,39 @@ def item_list(request):
         try:
             from branches.models import Branch
             branch = Branch.objects.get(pk=int(branch_id), organization=org)
-        except (Branch.DoesNotExist, ValueError, TypeError):
+        except Exception:
             branch = None
 
-    item = Item.objects.create(
-        organization=org,
-        branch=branch,
-        name=name,
-        brand=data.get("brand", ""),
-        dosage_form=data.get("dosageForm", data.get("dosage_form", "")),
-        unit=data.get("unitOfDispensing", data.get("unit_of_dispensing", "Pcs")),
-        price=price,
-        cost=cost,
-        stock=stock,
-        low_stock_threshold=low_stock_threshold,
-        reorder_level=reorder_level,
-        barcode=data.get("barcode", ""),
-        expiry_date=data.get("expiryDate", data.get("expiry_date")) or None,
-        store=data.get("store", "retail"),
-    )
+    markup_raw = data.get("markup", 0)
+    try:
+        markup = float(markup_raw) if markup_raw is not None else 0.0
+    except (ValueError, TypeError):
+        markup = 0.0
+
+    try:
+        item = Item.objects.create(
+            organization=org,
+            branch=branch,
+            name=name,
+            brand=data.get("brand", ""),
+            dosage_form=data.get("dosageForm", data.get("dosage_form", "")),
+            unit=data.get("unitOfDispensing", data.get("unit_of_dispensing", "Pcs")),
+            price=price,
+            cost=cost,
+            markup=markup,
+            stock=stock,
+            low_stock_threshold=low_stock_threshold,
+            reorder_level=reorder_level,
+            barcode=data.get("barcode", ""),
+            expiry_date=data.get("expiryDate", data.get("expiry_date")) or None,
+            store=data.get("store", "retail"),
+            batch_number=data.get("batch_number", data.get("batchNumber", "")),
+        )
+    except Exception as e:
+        return Response(
+            {"detail": f"Failed to create item: {e}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
     log_activity(request, action='Add Item', category='inventory',
                  description=f'Added "{item.name}" to {item.store} inventory')
     return Response(item.to_api_dict(), status=status.HTTP_201_CREATED)

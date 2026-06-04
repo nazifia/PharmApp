@@ -127,8 +127,15 @@ class ErrorNormalizerInterceptor extends Interceptor {
         final message = data.isNotEmpty ? data.first.toString() : 'Request failed';
         resp.data = <String, dynamic>{'detail': message};
       } else if (data is String) {
-        // Plain-text or HTML response (e.g. nginx 403, CSRF error)
-        final message = data.isNotEmpty ? data : 'Request failed';
+        // Plain-text or HTML response (e.g. Django 500 page, nginx 403, CSRF error).
+        // Never expose raw HTML to the user — replace with a clean message.
+        final String message;
+        if (data.trimLeft().startsWith('<') || data.contains('<!doctype') || data.contains('<html')) {
+          final code = resp.statusCode ?? 0;
+          message = 'Server error ($code) — please try again or contact support.';
+        } else {
+          message = data.isNotEmpty ? data : 'Request failed';
+        }
         resp.data = <String, dynamic>{'detail': message};
       } else if (data is Map && !data.containsKey('detail')) {
         // Field-level DRF validation errors: {"field": ["msg"]} → inject detail

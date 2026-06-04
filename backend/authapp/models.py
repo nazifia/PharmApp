@@ -125,9 +125,11 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
 ALL_PERMISSIONS = [
     'viewReports', 'manageUsers', 'manageSettings', 'viewNotifications',
     'viewSubscription', 'retailPOS', 'wholesalePOS', 'viewWholesale',
-    'readInventory', 'writeInventory', 'readCustomers', 'writeCustomers',
+    'readInventory', 'createInventory', 'writeInventory',
+    'readCustomers', 'writeCustomers',
     'manageExpenses', 'manageSuppliers', 'processPayments', 'manageTransfers',
     'readPrescriptions', 'writePrescriptions',
+    'editLowStockAlert',
 ]
 
 
