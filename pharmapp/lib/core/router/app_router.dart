@@ -73,7 +73,7 @@ import 'package:pharmapp/features/suppliers/screens/purchase_order_list_screen.d
 import 'package:pharmapp/features/suppliers/screens/purchase_order_detail_screen.dart';
 import 'package:pharmapp/features/suppliers/screens/purchase_order_form_screen.dart';
 import 'package:pharmapp/features/suppliers/screens/receive_order_screen.dart';
-import 'package:pharmapp/features/prescriptions/screens/prescriber_login_screen.dart';
+import 'package:pharmapp/features/prescriptions/providers/prescriber_provider.dart';
 import 'package:pharmapp/features/wholesale/screens/wholesale_shift_report_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -91,6 +91,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       final loc             = state.matchedLocation;
       final user            = ref.read(currentUserProvider);
 
+      final prescriber         = ref.read(currentPrescriberProvider);
+      final prescriberToken    = ref.read(prescriberTokenProvider);
+      final isPrescriberLoggedIn = prescriber != null && prescriberToken != null;
+
       // Returns true when the user must pick a branch before continuing.
       // Only applies to multi-branch subscribers whose account has no
       // backend-assigned branch (branchId == 0 means org-wide access that
@@ -105,6 +109,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       const publicRoutes = ['/login', '/role-selection', '/setup', '/register-org', '/register-prescriber', '/prescriber-login', '/prescriber-portal', '/prescriber-portal/patients', '/prescriber-portal/write-rx', '/prescriber-portal/commissions'];
 
       if (publicRoutes.contains(loc)) {
+        if (isPrescriberLoggedIn) {
+          // Prescriber is already logged in — keep them in the portal, redirect away from other public routes.
+          if (loc.startsWith('/prescriber-portal') || loc == '/register-prescriber') return null;
+          return '/prescriber-portal';
+        }
         if (isAuthenticated) {
           if (needsBranchSelection()) return '/select-branch';
           return _getRoleRoute(user?.role);
@@ -112,7 +121,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      if (!isAuthenticated) return '/login';
+      if (!isAuthenticated) {
+        // Prescriber trying to access org-protected route — send to portal.
+        if (isPrescriberLoggedIn) return '/prescriber-portal';
+        return '/login';
+      }
 
       // Already selected a branch (or skipped) — leave /select-branch
       if (loc == '/select-branch' && !needsBranchSelection()) {
@@ -291,7 +304,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/setup',          name: 'setup',        builder: (_, __) => const SetupScreen()),
       GoRoute(path: '/register-org',          name: 'register_org',          builder: (_, __) => const RegisterOrgScreen()),
       GoRoute(path: '/register-prescriber',   name: 'register_prescriber',   builder: (_, __) => const PrescriberRegistrationScreen()),
-      GoRoute(path: '/prescriber-login',      name: 'prescriber_login',      builder: (_, __) => const PrescriberLoginScreen()),
+      GoRoute(path: '/prescriber-login',      name: 'prescriber_login',      builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/prescriber-portal',     name: 'prescriber_portal',     builder: (_, __) => const PrescriberPortalScreen()),
       GoRoute(path: '/prescriber-portal/patients',   name: 'prescriber_patients',   builder: (_, __) => const PrescriberPatientsScreen()),
       GoRoute(path: '/prescriber-portal/write-rx',   name: 'prescriber_write_rx',   builder: (_, state) => PrescriberWriteRxScreen(patient: state.extra as Customer?)),
@@ -470,6 +483,9 @@ class _GoRouterNotifier extends ChangeNotifier {
     // permission overrides applied) so the router reacts without waiting for
     // activeBranchProvider to change independently.
     ref.listen<User?>(currentUserProvider, (_, __) => notifyListeners());
+    // Re-evaluate when prescriber logs in/out, or token is cleared.
+    ref.listen(currentPrescriberProvider, (_, __) => notifyListeners());
+    ref.listen(prescriberTokenProvider, (_, __) => notifyListeners());
   }
 }
 

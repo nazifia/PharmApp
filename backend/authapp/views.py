@@ -31,21 +31,44 @@ def login_view(request):
         return Response({'detail': 'phone_number and password are required.'},
                         status=status.HTTP_400_BAD_REQUEST)
 
+    # ── Try org user first ────────────────────────────────────────────────────
     user = authenticate(request, username=phone, password=password)
-    if user is None:
-        return Response({'detail': 'Invalid credentials.'},
-                        status=status.HTTP_401_UNAUTHORIZED)
+    if user is not None:
+        if not user.is_active:
+            return Response({'detail': 'Account is disabled.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        log_activity(request, action='Login', category='auth',
+                     description=f'Successful login ({user.role})', user=user)
+        return Response({
+            'access':    _token_for(user),
+            'user_type': 'org',
+            'user':      user.to_api_dict(),
+        })
 
-    if not user.is_active:
-        return Response({'detail': 'Account is disabled.'},
-                        status=status.HTTP_403_FORBIDDEN)
+    # ── Try prescriber (lazy import avoids circular dependency) ───────────────
+    from django.contrib.auth.hashers import check_password as _check_pw
+    from django.core import signing
+    from prescriptions.models import Prescriber
 
-    log_activity(request, action='Login', category='auth',
-                 description=f'Successful login ({user.role})', user=user)
-    return Response({
-        'access': _token_for(user),
-        'user':   user.to_api_dict(),
-    })
+    try:
+        prescriber = Prescriber.objects.select_related('hospital').get(phone=phone)
+    except Prescriber.DoesNotExist:
+        prescriber = None
+    except Prescriber.MultipleObjectsReturned:
+        return Response(
+            {'detail': 'Multiple accounts found with this phone. Contact admin.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if prescriber is not None and prescriber.password and _check_pw(password, prescriber.password):
+        token = signing.dumps({'prescriber_id': prescriber.id}, salt='prescriber-portal-auth')
+        return Response({
+            'access':     token,
+            'user_type':  'prescriber',
+            'prescriber': prescriber.to_api_dict(),
+        })
+
+    return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(['GET'])

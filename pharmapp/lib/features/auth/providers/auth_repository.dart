@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
 import '../../../core/services/auth_storage.dart';
+import '../../../shared/models/prescriber.dart';
 import '../../../shared/models/user.dart';
 
 const _kCredHash       = 'offline_cred_hash';
@@ -16,6 +17,11 @@ const _kLoginAttempts  = 'offline_login_attempts';  // consecutive wrong-passwor
 const _kLoginLockUntil = 'offline_login_lock_until'; // epoch-ms lockout expiry
 const _kMaxAttempts    = 5;
 const _kLockMinutes    = 15;
+
+// Prescriber-specific offline credential keys (separate namespace from org user)
+const _kPrescriberCredHash  = 'prescriber_offline_cred_hash';
+const _kPrescriberCredPhone = 'prescriber_offline_cred_phone';
+const _kPrescriberCredSalt  = 'prescriber_offline_cred_salt';
 
 class AuthRepository {
   final Dio? _dio;
@@ -72,9 +78,30 @@ class AuthRepository {
         data: {'phone_number': phoneNumber, 'password': password},
         options: Options(headers: {'skip_auth': true}),
       );
-      final data = res.data as Map<String, dynamic>;
-      final token = data['access'] as String;
-      final user  = User.fromJson(data['user'] as Map<String, dynamic>);
+      final data     = res.data as Map<String, dynamic>;
+      final token    = data['access'] as String;
+      final userType = (data['user_type'] as String?) ?? 'org';
+
+      // Prescriber login — cache HMAC for offline use, then return.
+      if (userType == 'prescriber') {
+        final prescriberJson = data['prescriber'] as Map<String, dynamic>;
+        final prescriber     = Prescriber.fromJson(prescriberJson);
+
+        final pSalt = await _getOrCreatePrescriberSalt();
+        final pHash = Hmac(sha256, pSalt).convert(utf8.encode('$phoneNumber:$password')).toString();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_kPrescriberCredHash,  pHash);
+        await prefs.setString(_kPrescriberCredPhone, phoneNumber);
+
+        return {
+          'token':           token,
+          'user_type':       'prescriber',
+          'prescriber':      prescriber,
+          'prescriber_raw':  prescriberJson,   // raw map for AuthStorage persistence
+        };
+      }
+
+      final user = User.fromJson(data['user'] as Map<String, dynamic>);
 
       // Persist HMAC-SHA256 credential fingerprint for offline login.
       // Uses a per-install random salt so the hash is unique to this device
@@ -97,6 +124,8 @@ class AuthRepository {
       if (e.response == null) {
         final result = await _tryOfflineLogin(phoneNumber, password);
         if (result != null) return result;
+        final prescriberResult = await _tryPrescriberOfflineLogin(phoneNumber, password);
+        if (prescriberResult != null) return prescriberResult;
         throw Exception('You are offline. Connect to the internet and try again.');
       }
       final body = e.response?.data;
@@ -169,6 +198,40 @@ class AuthRepository {
     final token = await AuthStorage.read('auth_token');
     if (token == null) return null;
     return {'token': token, 'user': user};
+  }
+
+  /// Offline login for prescribers — mirrors _tryOfflineLogin but no lockout
+  /// (prescriber accounts are lower-risk; lockout is handled server-side).
+  Future<Map<String, dynamic>?> _tryPrescriberOfflineLogin(
+      String phone, String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedHash  = prefs.getString(_kPrescriberCredHash);
+    final storedPhone = prefs.getString(_kPrescriberCredPhone);
+    if (storedHash == null || storedPhone != phone) return null;
+
+    final salt      = await _getOrCreatePrescriberSalt();
+    final inputHash = Hmac(sha256, salt).convert(utf8.encode('$phone:$password')).toString();
+    if (inputHash != storedHash) return null;
+
+    // Credentials match — restore cached prescriber session.
+    final token          = await AuthStorage.read('prescriber_token');
+    final prescriberData = await AuthStorage.read('prescriber_data');
+    if (token == null || prescriberData == null) return null;
+
+    final prescriber =
+        Prescriber.fromJson(jsonDecode(prescriberData) as Map<String, dynamic>);
+    return {'token': token, 'user_type': 'prescriber', 'prescriber': prescriber};
+  }
+
+  /// Per-install HMAC salt for prescriber credentials (separate from org salt).
+  Future<List<int>> _getOrCreatePrescriberSalt() async {
+    final prefs  = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_kPrescriberCredSalt);
+    if (stored != null) return base64.decode(stored);
+    final rng  = Random.secure();
+    final salt = List<int>.generate(32, (_) => rng.nextInt(256));
+    await prefs.setString(_kPrescriberCredSalt, base64.encode(salt));
+    return salt;
   }
 
   /// Returns the per-install HMAC key (32 random bytes), generating it once

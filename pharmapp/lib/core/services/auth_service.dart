@@ -6,8 +6,10 @@ import 'package:pharmapp/core/services/auth_storage.dart';
 import 'package:pharmapp/core/services/offline_credential_store.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/features/prescriptions/providers/prescriber_provider.dart';
 import 'package:pharmapp/features/reports/providers/shift_api_client.dart';
 import 'package:pharmapp/shared/models/branch.dart';
+import 'package:pharmapp/shared/models/prescriber.dart';
 import 'package:pharmapp/shared/models/user.dart';
 
 class AuthService {
@@ -93,6 +95,17 @@ class AuthService {
         _ref.read(authFlowProvider.notifier).refreshProfile().ignore();
         return true;
       }
+
+      // ── Prescriber session restore ─────────────────────────────────────────
+      final prescriberToken = await AuthStorage.read('prescriber_token');
+      final prescriberData  = await AuthStorage.read('prescriber_data');
+      if (prescriberToken != null && prescriberData != null) {
+        final prescriber = Prescriber.fromJson(
+            jsonDecode(prescriberData) as Map<String, dynamic>);
+        _ref.read(authFlowProvider.notifier)
+            .restorePrescriberSession(prescriber, prescriberToken);
+        return true;
+      }
     } catch (_) {}
     return false;
   }
@@ -108,12 +121,16 @@ class AuthService {
 
     await AuthStorage.delete('auth_token');
     await AuthStorage.delete('current_user');
+    await AuthStorage.delete('prescriber_token');
+    await AuthStorage.delete('prescriber_data');
     await OfflineCredentialStore.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('active_branch');
-    _ref.read(currentUserProvider.notifier).state  = null;
-    _ref.read(authTokenProvider.notifier).state    = null;
-    _ref.read(activeBranchProvider.notifier).state = null;
+    _ref.read(currentUserProvider.notifier).state      = null;
+    _ref.read(authTokenProvider.notifier).state        = null;
+    _ref.read(activeBranchProvider.notifier).state     = null;
+    _ref.read(currentPrescriberProvider.notifier).state = null;
+    _ref.read(prescriberTokenProvider.notifier).state   = null;
     _ref.read(authFlowProvider.notifier).resetFlow();
   }
 

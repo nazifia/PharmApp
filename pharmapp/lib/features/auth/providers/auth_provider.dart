@@ -13,7 +13,9 @@ import '../../../core/services/auth_storage.dart';
 import '../../../core/services/offline_credential_store.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../../../features/networks/providers/network_provider.dart';
+import '../../../features/prescriptions/providers/prescriber_provider.dart';
 import '../../../features/reports/providers/shift_api_client.dart';
+import '../../../shared/models/prescriber.dart';
 import 'auth_repository.dart';
 
 export '../../../core/network/api_client.dart' show authTokenProvider;
@@ -76,8 +78,29 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
     state = AuthFlowState.loggingIn;
 
     try {
-      final result = await _ref.read(authRepositoryProvider).login(phone, password);
+      final result   = await _ref.read(authRepositoryProvider).login(phone, password);
+      final userType = (result['user_type'] as String?) ?? 'org';
 
+      // ── Prescriber login ────────────────────────────────────────────────────
+      if (userType == 'prescriber') {
+        final prescriber    = result['prescriber']     as Prescriber;
+        final token         = result['token']          as String;
+        final prescriberRaw = result['prescriber_raw'] as Map<String, dynamic>?;
+
+        _ref.read(currentPrescriberProvider.notifier).state = prescriber;
+        _ref.read(prescriberTokenProvider.notifier).state   = token;
+
+        // Persist so session survives app restart and offline login works.
+        await AuthStorage.write('prescriber_token', token);
+        if (prescriberRaw != null) {
+          await AuthStorage.write('prescriber_data', jsonEncode(prescriberRaw));
+        }
+
+        state = AuthFlowState.authenticated;
+        return;
+      }
+
+      // ── Org user login ──────────────────────────────────────────────────────
       final String token = result['token'] as String;
       final User   user  = result['user']  as User;
 
@@ -133,6 +156,13 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
   void restoreSession(String token, User user) {
     _ref.read(authTokenProvider.notifier).state   = token;
     _ref.read(currentUserProvider.notifier).state = user;
+    state = AuthFlowState.authenticated;
+  }
+
+  /// Restores a prescriber session from persistent storage on app startup.
+  void restorePrescriberSession(Prescriber prescriber, String token) {
+    _ref.read(currentPrescriberProvider.notifier).state = prescriber;
+    _ref.read(prescriberTokenProvider.notifier).state   = token;
     state = AuthFlowState.authenticated;
   }
 

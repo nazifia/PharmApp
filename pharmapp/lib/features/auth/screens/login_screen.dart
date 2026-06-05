@@ -6,6 +6,7 @@ import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/features/prescriptions/providers/prescriber_provider.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/custom_button.dart';
@@ -53,6 +54,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   void _navigateAfterAuth() {
+    // Prescriber session — route to portal.
+    final prescriber = ref.read(currentPrescriberProvider);
+    if (prescriber != null) {
+      context.go('/prescriber-portal');
+      return;
+    }
+
     final user = ref.read(currentUserProvider);
     final needsBranch = user != null &&
         user.branchId == 0 &&
@@ -370,16 +378,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       : () => context.go('/register-prescriber'),
                   child: const Text(
                     'Are you a prescriber? Register here',
-                    style: TextStyle(
-                        color: EnhancedTheme.accentPurple, fontSize: 13),
-                  ),
-                ),
-                TextButton(
-                  onPressed: isLoading
-                      ? null
-                      : () => context.go('/prescriber-login'),
-                  child: const Text(
-                    'Prescriber? Sign in here',
                     style: TextStyle(
                         color: EnhancedTheme.accentPurple, fontSize: 13),
                   ),
