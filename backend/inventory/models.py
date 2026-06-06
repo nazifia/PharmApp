@@ -133,7 +133,7 @@ class Item(models.Model):
             "cost": float(self.cost),
             "price": float(self.price),
             "markup": float(self.markup),
-            "stock": self.stock,
+            "stock": float(self.stock),
             "lowStockThreshold": self.low_stock_threshold,
             "reorderLevel": self.reorder_level,
             "barcode": self.barcode,

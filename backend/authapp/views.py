@@ -59,6 +59,10 @@ def login_view(request):
             {'detail': 'Multiple accounts found with this phone. Contact admin.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    except Exception:
+        # DB-level error (e.g. missing migration on server) — treat as no prescriber
+        # so login still returns JSON 401 instead of crashing with an HTML 500.
+        prescriber = None
 
     if prescriber is not None and prescriber.password and _check_pw(password, prescriber.password):
         token = signing.dumps({'prescriber_id': prescriber.id}, salt='prescriber-portal-auth')
