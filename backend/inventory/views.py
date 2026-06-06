@@ -114,7 +114,7 @@ def item_list(request):
             low_stock_threshold=low_stock_threshold,
             reorder_level=reorder_level,
             barcode=data.get("barcode", ""),
-            expiry_date=data.get("expiryDate", data.get("expiry_date")) or None,
+            expiry_date=parse_date(data.get("expiryDate", data.get("expiry_date")) or "") or None,
             store=data.get("store", "retail"),
             batch_number=data.get("batch_number", data.get("batchNumber", "")),
         )

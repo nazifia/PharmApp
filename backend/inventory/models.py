@@ -141,7 +141,7 @@ class Item(models.Model):
             "gtin": self.gtin,
             "batchNumber": self.batch_number,
             "serialNumber": self.serial_number,
-            "expiryDate": self.expiry_date.isoformat() if self.expiry_date else None,
+            "expiryDate": (self.expiry_date if isinstance(self.expiry_date, str) else self.expiry_date.isoformat()) if self.expiry_date else None,
             "status": self.status,
             "store": self.store,
         }
