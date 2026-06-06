@@ -5,7 +5,11 @@ from django.urls import reverse
 from django.db import transaction
 
 from .admin_mixins import OrgScopedAdminMixin
-from .models import Organization, PharmUser, SiteConfig, UserPermissionOverride
+from .models import (
+    ActivityLog, CommissionConfig, Organization,
+    PharmUser, PharmacyNetwork, PharmacyNetworkMembership,
+    SiteConfig, UserPermissionOverride,
+)
 from branches.admin import BranchInline
 
 # ── Role metadata ──────────────────────────────────────────────────────────────
@@ -41,6 +45,11 @@ _PERM_MATRIX = [
     ('Suppliers',             {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager'}),
     ('Payment Requests',      {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager'}),
     ('Stock Transfers',       {'Admin', 'Manager', 'Wholesale Manager', 'Wholesale Operator'}),
+    ('Wholesale View',        {'Admin', 'Manager', 'Wholesale Manager', 'Wholesale Operator', 'Wholesale Salesperson'}),
+    ('Inventory — Create',   {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager'}),
+    ('Prescriptions — Read', {'Admin', 'Manager', 'Pharmacist', 'Pharm-Tech'}),
+    ('Prescriptions — Write',{'Admin', 'Manager', 'Pharmacist'}),
+    ('Low Stock Alert Edit',  {'Admin', 'Manager', 'Pharmacist', 'Wholesale Manager'}),
 ]
 
 # Maps the label from _PERM_MATRIX to the permission key used in overrides
@@ -60,6 +69,11 @@ _PERM_LABEL_TO_KEY = {
     'Suppliers':             'manageSuppliers',
     'Payment Requests':      'processPayments',
     'Stock Transfers':       'manageTransfers',
+    'Wholesale View':        'viewWholesale',
+    'Inventory — Create':   'createInventory',
+    'Prescriptions — Read': 'readPrescriptions',
+    'Prescriptions — Write':'writePrescriptions',
+    'Low Stock Alert Edit':  'editLowStockAlert',
 }
 
 # Roles whose is_wholesale_operator flag should be True automatically
@@ -661,6 +675,172 @@ class SiteConfigAdmin(admin.ModelAdmin):
             }
         )
         return super().changelist_view(request, extra_context=extra_context)
+
+
+# ── Activity Log ──────────────────────────────────────────────────────────────
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    """Read-only audit trail for all significant actions."""
+
+    list_display  = ["timestamp", "username", "role_badge", "action", "category_badge",
+                     "organization", "ip_address"]
+    list_filter   = ["category", "role", "timestamp"]
+    search_fields = ["username", "action", "description", "ip_address"]
+    ordering      = ["-timestamp"]
+    date_hierarchy = "timestamp"
+    readonly_fields = [
+        "organization", "user", "username", "role", "action",
+        "category", "description", "ip_address", "timestamp",
+    ]
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        org = getattr(request.user, "organization", None)
+        return qs.filter(organization=org) if org else qs.none()
+
+    def get_list_filter(self, request):
+        filters = list(super().get_list_filter(request))
+        if request.user.is_superuser and "organization" not in filters:
+            filters.insert(0, "organization")
+        return filters
+
+    @admin.display(description="Role")
+    def role_badge(self, obj):
+        color = ROLE_COLORS.get(obj.role, "#6B7280")
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:10px;font-size:11px">{}</span>',
+            color, obj.role or "—",
+        )
+
+    @admin.display(description="Category")
+    def category_badge(self, obj):
+        colors = {
+            "auth": "#3B82F6", "sales": "#10B981", "inventory": "#8B5CF6",
+            "customers": "#06B6D4", "users": "#F59E0B", "settings": "#EF4444",
+            "reports": "#6366F1", "other": "#6B7280",
+        }
+        c = colors.get(obj.category, "#6B7280")
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:10px;font-size:11px">{}</span>',
+            c, obj.get_category_display(),
+        )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
+# ── Pharmacy Network ──────────────────────────────────────────────────────────
+
+class PharmacyNetworkMembershipInline(admin.TabularInline):
+    model  = PharmacyNetworkMembership
+    extra  = 0
+    fields = ("organization", "role", "status", "invited_by", "joined_at")
+    readonly_fields = ("joined_at",)
+    show_change_link = True
+
+
+@admin.register(PharmacyNetwork)
+class PharmacyNetworkAdmin(admin.ModelAdmin):
+    """Superuser-only — cross-org network management."""
+
+    list_display   = ["name", "slug", "created_by", "member_count", "is_active", "is_default", "created_at"]
+    list_filter    = ["is_active", "is_default"]
+    search_fields  = ["name", "slug", "created_by__name"]
+    readonly_fields = ["slug", "created_at"]
+    ordering       = ["name"]
+    inlines        = [PharmacyNetworkMembershipInline]
+
+    @admin.display(description="Members")
+    def member_count(self, obj):
+        return obj.memberships.filter(status="active").count()
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
+@admin.register(PharmacyNetworkMembership)
+class PharmacyNetworkMembershipAdmin(admin.ModelAdmin):
+    """Superuser-only — manage individual network memberships."""
+
+    list_display  = ["organization", "network", "role", "status", "invited_by", "joined_at", "created_at"]
+    list_filter   = ["status", "role", "created_at"]
+    search_fields = ["organization__name", "network__name"]
+    readonly_fields = ["created_at"]
+    ordering      = ["-created_at"]
+
+    actions = ["approve_memberships", "suspend_memberships"]
+
+    @admin.action(description="Approve selected pending memberships")
+    def approve_memberships(self, request, queryset):
+        from django.utils.timezone import now as tz_now
+        updated = queryset.filter(status="pending").update(status="active", joined_at=tz_now())
+        self.message_user(request, f"{updated} membership(s) approved.")
+
+    @admin.action(description="Suspend selected active memberships")
+    def suspend_memberships(self, request, queryset):
+        updated = queryset.filter(status="active").update(status="suspended")
+        self.message_user(request, f"{updated} membership(s) suspended.")
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
+# ── Commission Config ─────────────────────────────────────────────────────────
+
+@admin.register(CommissionConfig)
+class CommissionConfigAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
+    """Per-user commission rates — org-scoped."""
+
+    list_display  = ["user", "organization", "commission_rate_pct", "fixed_bonus", "is_active", "updated_at"]
+    list_filter   = ["is_active"]
+    search_fields = ["user__phone_number", "user__full_name", "organization__name"]
+    ordering      = ["user__full_name"]
+    readonly_fields = ["updated_at"]
+
+    fieldsets = (
+        (None, {"fields": ("user", "commission_rate", "fixed_bonus", "is_active")}),
+        ("Meta", {"fields": ("updated_at",), "classes": ("collapse",)}),
+    )
+
+    @admin.display(description="Rate")
+    def commission_rate_pct(self, obj):
+        return f"{obj.commission_rate * 100:.1f}%"
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "user" and not request.user.is_superuser:
+            org = getattr(request.user, "organization", None)
+            if org:
+                kwargs["queryset"] = PharmUser.objects.filter(organization=org)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 # ── Admin site branding ───────────────────────────────────────────────────────

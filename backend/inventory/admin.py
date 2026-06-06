@@ -10,32 +10,6 @@ from .models import Item, RetailItem, WholesaleItem
 # ── Custom list filters ───────────────────────────────────────────────────────
 
 class StockStatusFilter(admin.SimpleListFilter):
-    title = "Stock Status"
-    parameter_name = "stock_status"
-
-    def lookups(self, request, model_admin):
-        return [
-            ("out",  "Out of Stock"),
-            ("low",  "Low Stock"),
-            ("ok",   "In Stock"),
-        ]
-
-    def queryset(self, request, queryset):
-        if self.value() == "out":
-            return queryset.filter(stock__lte=0)
-        if self.value() == "low":
-            return queryset.filter(stock__gt=0, stock__lte=models_low_threshold(queryset))
-        if self.value() == "ok":
-            return queryset.filter(stock__gt=0).exclude(stock__lte=0)
-        return queryset
-
-
-def models_low_threshold(qs):
-    """Return a subquery-safe threshold — we filter item-by-item via Python."""
-    return 0  # placeholder; real filtering done below via override
-
-
-class StockStatusFilter(admin.SimpleListFilter):
     """Filter items by stock level relative to their own low_stock_threshold."""
     title = "Stock Status"
     parameter_name = "stock_status"

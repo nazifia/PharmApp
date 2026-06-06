@@ -21,6 +21,7 @@ from .models import (
     StockCheckItem,
     Notification,
     TransferRequest,
+    Shift,
 )
 
 
@@ -150,7 +151,11 @@ class SaleAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
                 "payment_transfer", "payment_wallet",
             ),
         }),
-        ("Staff", {"fields": ("cashier", "dispenser", "is_wholesale")}),
+        ("Staff", {"fields": ("cashier", "dispenser", "branch", "shift", "is_wholesale")}),
+        ("HMO / Insurance", {
+            "fields": ("hmo_card_number", "hmo_provider", "hmo_coverage_percent", "hmo_amount"),
+            "classes": ("collapse",),
+        }),
         ("Notes", {"fields": ("notes",), "classes": ("collapse",)}),
     )
 
@@ -491,7 +496,9 @@ class StockCheckAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     def mark_completed(self, request, queryset):
         from django.utils.timezone import now as tz_now
         updated = queryset.filter(status="in_progress").update(
-            status="completed", approved_at=tz_now()
+            status="completed",
+            approved_at=tz_now(),
+            approved_by_id=request.user.pk,
         )
         self.message_user(request, f"{updated} stock check(s) marked as completed.")
 
@@ -620,3 +627,40 @@ class TransferRequestAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
             status="rejected", approved_by=request.user
         )
         self.message_user(request, f"{updated} transfer(s) rejected.")
+
+
+# ── Shifts ─────────────────────────────────────────────────────────────────────
+
+@admin.register(Shift)
+class ShiftAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
+    list_display  = [
+        "id", "staff", "branch", "status_display",
+        "opened_at", "closed_at", "opening_cash", "closing_cash",
+    ]
+    list_filter   = ["status", "opened_at"]
+    search_fields = ["staff__phone_number", "staff__full_name", "branch__name"]
+    ordering      = ["-opened_at"]
+    readonly_fields = ["opened_at"]
+    date_hierarchy  = "opened_at"
+
+    fieldsets = (
+        (None,   {"fields": ("staff", "branch", "status")}),
+        ("Cash", {"fields": ("opening_cash", "closing_cash")}),
+        ("Timestamps", {
+            "fields": ("opened_at", "closed_at"),
+            "classes": ("collapse",),
+        }),
+    )
+
+    @admin.display(description="Status")
+    def status_display(self, obj):
+        return status_badge(obj.status)
+
+    actions = ["close_shifts"]
+
+    @admin.action(description="Close selected open shifts")
+    def close_shifts(self, request, queryset):
+        updated = queryset.filter(status="open").update(
+            status="closed", closed_at=now()
+        )
+        self.message_user(request, f"{updated} shift(s) closed.")

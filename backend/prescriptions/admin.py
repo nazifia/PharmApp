@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from authapp.admin_mixins import OrgScopedAdminMixin
 from .models import Hospital, Prescriber, Prescription, PrescriptionItem, PrescriberCommission
 
 
@@ -187,14 +188,20 @@ class PrescriptionItemInline(admin.TabularInline):
 
 
 @admin.register(Prescription)
-class PrescriptionAdmin(admin.ModelAdmin):
+class PrescriptionAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     list_display  = ('id', 'customer_name', 'customer_phone', 'status',
                      'organization', 'created_by', 'created_at')
-    list_filter   = ('status', 'organization', 'created_at')
+    list_filter   = ('status', 'created_at')
     search_fields = ('customer_name', 'customer_phone', 'doctor_name', 'diagnosis')
     readonly_fields = ('created_at', 'dispensed_at')
     inlines       = [PrescriptionItemInline]
-    raw_id_fields = ('organization', 'customer', 'created_by', 'branch', 'prescriber')
+    raw_id_fields = ('customer', 'created_by', 'branch', 'prescriber')
+
+    def get_list_filter(self, request):
+        filters = list(super().get_list_filter(request))
+        if request.user.is_superuser and "organization" not in filters:
+            filters.insert(0, "organization")
+        return filters
 
 
 @admin.register(PrescriptionItem)
@@ -216,6 +223,19 @@ class PrescriberCommissionAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'sales_amount', 'commission_rate', 'commission_amount')
     raw_id_fields   = ('prescriber', 'prescription')
     actions         = ['action_mark_paid', 'action_mark_pending']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        org = getattr(request.user, "organization", None)
+        return qs.filter(prescription__organization=org) if org else qs.none()
+
+    def get_list_filter(self, request):
+        filters = list(super().get_list_filter(request))
+        if request.user.is_superuser and "prescription__organization" not in filters:
+            filters.insert(0, "prescription__organization")
+        return filters
 
     @admin.action(description='Mark selected commissions as paid')
     def action_mark_paid(self, request, queryset):
