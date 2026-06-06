@@ -266,7 +266,7 @@ def reset_to_trial(modeladmin, request, queryset):
             old_value=old, new_value='trial/trial',
             performed_by=request.user.phone_number,
         )
-    modeladmin.message_user(request, f'{queryset.count()} subscription(s) reset to 14-day trial.', messages.SUCCESS)
+    modeladmin.message_user(request, f'{queryset.count()} subscription(s) reset to 2-month trial.', messages.SUCCESS)
 
 
 @admin.action(description='⚠️  Suspend subscriptions')
@@ -308,7 +308,7 @@ def reactivate_subscriptions(modeladmin, request, queryset):
     modeladmin.message_user(request, f'{n} subscription(s) reactivated.', messages.SUCCESS)
 
 
-@admin.action(description='🆕  Approve new registrations → start 14-day trial')
+@admin.action(description='🆕  Approve new registrations → start 2-month trial')
 def approve_registration(modeladmin, request, queryset):
     """
     Approve brand-new pharmacy sign-ups that are in 'pending/trial' state.
@@ -323,13 +323,13 @@ def approve_registration(modeladmin, request, queryset):
             subscription=sub, event_type='activated',
             old_value='pending', new_value='trial',
             performed_by=request.user.phone_number,
-            note='New org registration approved — 14-day trial started',
+            note='New org registration approved — 2-month trial started',
         )
         n += 1
     if n:
         modeladmin.message_user(
             request,
-            f'{n} registration(s) approved. 14-day trial started.',
+            f'{n} registration(s) approved. 2-month trial started.',
             messages.SUCCESS,
         )
     else:
@@ -411,7 +411,7 @@ def approve_pending_trial(modeladmin, request, queryset):
             subscription=sub, event_type='activated',
             old_value='pending', new_value='trial',
             performed_by=request.user.phone_number,
-            note='Free Trial registration approved — 14-day trial started',
+            note='Free Trial registration approved — 2-month trial started',
         )
         n += 1
     if n:
@@ -817,11 +817,11 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 subscription=obj, event_type='activated',
                 old_value='pending', new_value='trial',
                 performed_by=actor,
-                note=note or 'New org registration approved — 14-day trial started',
+                note=note or 'New org registration approved — 2-month trial started',
             )
             return _redirect(
                 f"Registration approved for {obj.organization.name}. "
-                f"14-day trial starts now, ends {obj.trial_ends_at.strftime('%Y-%m-%d')}."
+                f"2-month trial starts now, ends {obj.trial_ends_at.strftime('%Y-%m-%d')}."
             )
 
         # ── Approve pending upgrade ───────────────────────────────────────────

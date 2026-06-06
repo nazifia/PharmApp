@@ -363,12 +363,17 @@ class ExpenseAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     search_fields = ["description", "category__name", "created_by__phone_number"]
     ordering      = ["-date"]
     date_hierarchy = "date"
-    readonly_fields = ["created_at"]
+    readonly_fields = ["created_at", "created_by"]
 
     fieldsets = (
         (None,  {"fields": ("category", "description", "amount", "date")}),
         ("Meta", {"fields": ("created_by", "created_at")}),
     )
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk and not obj.created_by_id:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 # ── Suppliers & Procurement ────────────────────────────────────────────────────
@@ -475,7 +480,7 @@ class StockCheckAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     inlines = [StockCheckItemInline]
 
     fieldsets = (
-        (None, {"fields": ("created_by", "status", "date")}),
+        (None, {"fields": ("created_by", "store_type", "status", "date")}),
         ("Approval", {
             "fields": ("approved_by", "approved_at"),
             "classes": ("collapse",),
@@ -488,7 +493,7 @@ class StockCheckAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
 
     @admin.display(description="# Items")
     def item_count(self, obj):
-        return obj.stockcheckitem_set.count()
+        return obj.items.count()
 
     actions = ["mark_completed"]
 

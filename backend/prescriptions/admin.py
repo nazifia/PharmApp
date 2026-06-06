@@ -211,6 +211,13 @@ class PrescriptionItemAdmin(admin.ModelAdmin):
     search_fields = ('item_name', 'brand')
     readonly_fields = ('dispensed_at',)
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        org = getattr(request.user, "organization", None)
+        return qs.filter(prescription__organization=org) if org else qs.none()
+
 
 @admin.register(PrescriberCommission)
 class PrescriberCommissionAdmin(admin.ModelAdmin):

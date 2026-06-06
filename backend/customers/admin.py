@@ -75,8 +75,20 @@ class CustomerAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
 
     @admin.action(description="Reset wallet balance to zero")
     def reset_wallet_balance(self, request, queryset):
-        updated = queryset.update(wallet_balance=0)
-        self.message_user(request, f"Wallet balance reset for {updated} customer(s).")
+        txns = []
+        for customer in queryset.exclude(wallet_balance=0):
+            old_balance = customer.wallet_balance
+            customer.wallet_balance = 0
+            customer.save(update_fields=["wallet_balance"])
+            txns.append(WalletTransaction(
+                customer=customer,
+                txn_type="deduct",
+                amount=old_balance,
+                note="Admin reset: wallet balance zeroed",
+            ))
+        if txns:
+            WalletTransaction.objects.bulk_create(txns)
+        self.message_user(request, f"Wallet balance reset for {len(txns)} customer(s).")
 
 
 @admin.register(WalletTransaction)

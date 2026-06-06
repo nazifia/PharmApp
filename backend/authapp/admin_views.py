@@ -54,8 +54,9 @@ def global_overview_view(request):
         revenue  = sales_qs.aggregate(v=Sum("total_amount"))["v"] or 0
         expenses = expenses_qs.aggregate(v=Sum("amount"))["v"] or 0
         last_sale = all_sales.aggregate(v=Max("created"))["v"]
+        from django.db.models import FloatField
         stock_val = items.aggregate(
-            v=Sum("price")
+            v=Sum(F("stock") * F("price"), output_field=FloatField())
         )["v"] or 0
 
         org_rows.append({
