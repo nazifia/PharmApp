@@ -32,7 +32,11 @@ def item_list(request):
         barcode = request.query_params.get("barcode", "").strip()
         if barcode:
             items = items.filter(barcode__iexact=barcode)
-            return Response([i.to_api_dict() for i in items])
+            try:
+                return Response([i.to_api_dict() for i in items])
+            except Exception as e:
+                return Response({"detail": f"Failed to serialize inventory: {e}"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if search:
             items = items.filter(name__icontains=search)
         if store in ("retail", "wholesale"):
@@ -43,13 +47,18 @@ def item_list(request):
             items = items.filter(stock__lte=F("low_stock_threshold"))
         if expiry_soon:
             from django.utils import timezone
+            from datetime import timedelta
 
             today = timezone.now().date()
-            soon = today + timezone.timedelta(days=90)
+            soon = today + timedelta(days=90)
             items = items.filter(
                 expiry_date__isnull=False, expiry_date__lte=soon, stock__gt=0
             )
-        return Response([i.to_api_dict() for i in items])
+        try:
+            return Response([i.to_api_dict() for i in items])
+        except Exception as e:
+            return Response({"detail": f"Failed to serialize inventory: {e}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # POST — create
     data = request.data
@@ -116,7 +125,11 @@ def item_list(request):
         )
     log_activity(request, action='Add Item', category='inventory',
                  description=f'Added "{item.name}" to {item.store} inventory')
-    return Response(item.to_api_dict(), status=status.HTTP_201_CREATED)
+    try:
+        return Response(item.to_api_dict(), status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"detail": f"Item created but failed to serialize: {e}"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["GET", "PUT", "PATCH", "DELETE"])
@@ -128,7 +141,11 @@ def item_detail(request, pk):
     item = get_object_or_404(Item, pk=pk, organization=org)
 
     if request.method == "GET":
-        return Response(item.to_api_dict())
+        try:
+            return Response(item.to_api_dict())
+        except Exception as e:
+            return Response({"detail": f"Failed to load item: {e}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     if request.method in ("PUT", "PATCH"):
         data = request.data
@@ -198,10 +215,18 @@ def item_detail(request, pk):
         item.expiry_date = (
             parse_date(expiry_raw) if isinstance(expiry_raw, str) else expiry_raw
         )
-        item.save()
+        try:
+            item.save()
+        except Exception as e:
+            return Response({"detail": f"Failed to update item: {e}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         log_activity(request, action='Update Item', category='inventory',
                      description=audit_desc)
-        return Response(item.to_api_dict())
+        try:
+            return Response(item.to_api_dict())
+        except Exception as e:
+            return Response({"detail": f"Item updated but failed to serialize: {e}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # DELETE
     item_name = item.name
@@ -277,10 +302,18 @@ def adjust_stock(request, pk):
         )
     old_stock = float(item.stock)
     item.stock = max(0, item.stock + adjustment)
-    item.save()
+    try:
+        item.save()
+    except Exception as e:
+        return Response({"detail": f"Failed to adjust stock: {e}"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     sign = '+' if adjustment >= 0 else ''
     reason = request.data.get('reason', '')
     reason_part = f' — reason: {reason}' if reason else ''
     log_activity(request, action='Adjust Stock', category='inventory',
                  description=f'Stock for "{item.name}": {old_stock:g}→{float(item.stock):g} ({sign}{adjustment}){reason_part}')
-    return Response(item.to_api_dict())
+    try:
+        return Response(item.to_api_dict())
+    except Exception as e:
+        return Response({"detail": f"Stock adjusted but failed to serialize: {e}"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
