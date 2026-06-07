@@ -104,11 +104,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     );
   }
 
-  String _fmt(double v) {
-    if (v >= 100000) return '₦${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)   return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return fmtN(v);
-  }
+  String _fmt(double v) => fmtN(v);
 
   // ── Build ──────────────────────────────────────────────────────────────────
 
