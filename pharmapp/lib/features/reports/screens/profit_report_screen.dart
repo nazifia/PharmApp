@@ -40,12 +40,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
     ref.read(appRefreshTriggerProvider.notifier).state++;
   }
 
-  String _fmt(double v) {
-    if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000)   return '₦${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)     return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return fmtN(v);
-  }
+  String _fmt(double v) => fmtN(v);
 
   @override
   Widget build(BuildContext context) {
@@ -362,11 +357,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
     final maxVal = [data.revenue, cost, data.profit].reduce((a, b) => a > b ? a : b);
     final interval = maxVal > 0 ? maxVal * 0.5 : 1.0;
 
-    String fmtY(double v) {
-      if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
-      if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
-      return v.toStringAsFixed(0);
-    }
+    String fmtY(double v) => fmtNum(v);
 
     return LayoutBuilder(
       builder: (context, constraints) => ClipRRect(

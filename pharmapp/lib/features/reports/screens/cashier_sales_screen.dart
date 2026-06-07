@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/models/commission_config.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -33,12 +34,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
     }
   }
 
-  String _fmt(double v) {
-    if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000)   return '₦${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)     return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
-  }
+  String _fmt(double v) => fmtN(v);
 
   Future<void> _refresh() async {
     ref.invalidate(cashierSalesReportProvider(_apiPeriod));

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
@@ -33,11 +34,7 @@ class MonthlyReportScreen extends ConsumerWidget {
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
-  String _fmtNaira(double v) {
-    if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(2)}M';
-    if (v >= 1000)    return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
-  }
+  String _fmtNaira(double v) => fmtN(v);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
@@ -80,11 +81,7 @@ class ReportsHubScreen extends ConsumerWidget {
     },
   ];
 
-  String _fmt(double v) {
-    if (v >= 100000) return '₦${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)   return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
-  }
+  String _fmt(double v) => fmtN(v);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

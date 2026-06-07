@@ -25,12 +25,7 @@ class InventoryReportScreen extends ConsumerStatefulWidget {
 class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
   int _touchedPieIndex = -1;
 
-  String _fmtValue(double v) {
-    if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000) return fmtN(v);
-    if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return fmtN(v);
-  }
+  String _fmtValue(double v) => fmtN(v);
 
   @override
   Widget build(BuildContext context) {
