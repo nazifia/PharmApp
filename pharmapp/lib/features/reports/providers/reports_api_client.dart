@@ -276,7 +276,7 @@ class ReportsApiClient {
         final prefs = await SharedPreferences.getInstance();
         final raw = prefs.getString(cacheKey);
         if (raw != null) return ProfitReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-        throw Exception('Offline — no cached profit report available');
+        return ProfitReportData(period: period, revenue: 0, profit: 0, margin: 0);
       }
       throw Exception(_detail(e.response?.data) ?? 'Failed to load profit report');
     }
