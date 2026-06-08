@@ -47,10 +47,19 @@ final prescriptionListProvider =
   // so that source-filtered queries hit /prescriptions/ directly.
   if (filter.networkWide && filter.source == null) {
     // Cross-org query via PharmacyNetwork — falls back to own org if no network
-    return api.fetchNetworkPrescriptions(
+    final list = await api.fetchNetworkPrescriptions(
       status: filter.status,
       search: filter.search,
     );
+    String gk(Prescription rx) =>
+        (rx.branchName != null && rx.branchName!.isNotEmpty)
+            ? rx.branchName!
+            : rx.pharmacyName ?? 'Main Branch';
+    list.sort((a, b) {
+      final g = gk(a).compareTo(gk(b));
+      return g != 0 ? g : b.id.compareTo(a.id);
+    });
+    return list;
   }
   final branch = ref.watch(activeBranchProvider);
   final branchId = (branch == null || branch.id <= 0) ? null : branch.id;
@@ -81,12 +90,14 @@ final prescriptionListProvider =
     return merged;
   }
 
-  return api.fetchPrescriptions(
+  final result = await api.fetchPrescriptions(
     status: filter.status,
     search: filter.search,
     branchId: branchId,
     source: filter.source,
   );
+  result.sort((a, b) => b.id.compareTo(a.id));
+  return result;
 });
 
 /// Convenience provider — prescriptions with any undispensed medications

@@ -120,13 +120,15 @@ def prescription_list(request):
                 _m.Q(diagnosis__icontains=search)
             )
 
-        # Network-wide view: order by branch name so grouped display works cleanly.
-        # Branch-scoped view: use default -created_at ordering from Meta.
-        if network_wide or not branch_filtered:
+        # network_wide: group by branch then newest first (grouped display).
+        # Single branch or no filter: flat newest-first.
+        if network_wide:
             qs = qs.order_by(
                 F('branch__name').asc(nulls_last=True),
                 '-created_at',
             )
+        elif not branch_filtered:
+            qs = qs.order_by('-created_at')
 
         # Pagination — page_size=50; Flutter client handles {'count', 'results'} format.
         page_size = 50
@@ -455,7 +457,8 @@ def customer_prescriptions(request, customer_pk):
     qs = (Prescription.objects
           .filter(organization=org, customer=customer)
           .select_related('organization', 'created_by', 'branch')
-          .prefetch_related('medications'))
+          .prefetch_related('medications')
+          .order_by('-created_at'))
 
     undispensed_only = request.query_params.get('undispensed', '').lower() in ('1', 'true')
     if undispensed_only:
@@ -507,7 +510,7 @@ def prescriptions_by_phone(request):
     if undispensed_only:
         qs = qs.filter(status__in=['pending', 'partial'])
 
-    return Response([rx.to_api_dict() for rx in qs])
+    return Response([rx.to_api_dict() for rx in qs.order_by('-created_at')])
 
 
 # ── Network-wide pending count ────────────────────────────────────────────────
