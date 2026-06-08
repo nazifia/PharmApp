@@ -211,7 +211,7 @@ class ReportsApiClient {
         final prefs = await SharedPreferences.getInstance();
         final raw = prefs.getString(cacheKey);
         if (raw != null) return SalesReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-        throw Exception('Offline — no cached sales report available');
+        return SalesReportData(period: period, totalRevenue: 0, totalRetail: 0, totalWholesale: 0, totalSales: 0, topItems: []);
       }
       throw Exception(_detail(e.response?.data) ?? 'Failed to load sales report');
     }
@@ -233,7 +233,7 @@ class ReportsApiClient {
         final prefs = await SharedPreferences.getInstance();
         final raw = prefs.getString(cacheKey);
         if (raw != null) return InventoryReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-        throw Exception('Offline — no cached inventory report available');
+        return InventoryReportData(totalItems: 0, lowStockCount: 0, stockValue: 0, lowStockItems: []);
       }
       throw Exception(_detail(e.response?.data) ?? 'Failed to load inventory report');
     }
@@ -255,7 +255,7 @@ class ReportsApiClient {
         final prefs = await SharedPreferences.getInstance();
         final raw = prefs.getString(cacheKey);
         if (raw != null) return CustomerReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-        throw Exception('Offline — no cached customer report available');
+        return CustomerReportData(total: 0, retail: 0, wholesale: 0, totalDebt: 0, topCustomers: []);
       }
       throw Exception(_detail(e.response?.data) ?? 'Failed to load customer report');
     }
@@ -303,7 +303,7 @@ class ReportsApiClient {
         final prefs = await SharedPreferences.getInstance();
         final raw = prefs.getString(cacheKey);
         if (raw != null) return CashierSalesData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-        throw Exception('Offline — no cached cashier sales report');
+        return CashierSalesData(period: period, dateFrom: '', dateTo: '', isAdminView: false, totalAmount: 0, totalSales: 0, users: []);
       }
       throw Exception(_detail(e.response?.data) ?? 'Failed to load cashier sales report');
     }
@@ -330,7 +330,7 @@ class ReportsApiClient {
               .map((e) => CommissionConfig.fromJson(e as Map<String, dynamic>))
               .toList();
         }
-        throw Exception('Offline — no cached commission configs');
+        return [];
       }
       throw Exception(_detail(e.response?.data) ?? 'Failed to load commission configs');
     }
@@ -374,7 +374,7 @@ class ReportsApiClient {
           return StaffPerformanceData.fromJson(
               jsonDecode(raw) as Map<String, dynamic>);
         }
-        throw Exception('Offline — no cached staff performance data');
+        return StaffPerformanceData(period: period, staff: [], totalCommissions: 0);
       }
       throw Exception(_detail(e.response?.data) ?? 'Failed to load staff performance');
     }
