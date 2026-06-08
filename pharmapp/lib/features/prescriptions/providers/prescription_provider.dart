@@ -46,20 +46,32 @@ final prescriptionListProvider =
   // Portal prescriptions are always own-org scope — skip the network endpoint
   // so that source-filtered queries hit /prescriptions/ directly.
   if (filter.networkWide && filter.source == null) {
-    // Cross-org query via PharmacyNetwork — falls back to own org if no network
-    final list = await api.fetchNetworkPrescriptions(
-      status: filter.status,
-      search: filter.search,
-    );
+    // Cross-org query via PharmacyNetwork — fetch pharmacy + portal in parallel.
+    final results = await Future.wait([
+      api.fetchNetworkPrescriptions(
+        status: filter.status,
+        search: filter.search,
+      ),
+      api.fetchNetworkPrescriptions(
+        status: filter.status,
+        search: filter.search,
+        source: 'portal',
+      ),
+    ]);
+    final seen = <int>{};
+    final merged = <Prescription>[];
+    for (final rx in [...results[0], ...results[1]]) {
+      if (seen.add(rx.id)) merged.add(rx);
+    }
     String gk(Prescription rx) =>
         (rx.branchName != null && rx.branchName!.isNotEmpty)
             ? rx.branchName!
             : rx.pharmacyName ?? 'Main Branch';
-    list.sort((a, b) {
+    merged.sort((a, b) {
       final g = gk(a).compareTo(gk(b));
       return g != 0 ? g : b.id.compareTo(a.id);
     });
-    return list;
+    return merged;
   }
   final branch = ref.watch(activeBranchProvider);
   final branchId = (branch == null || branch.id <= 0) ? null : branch.id;

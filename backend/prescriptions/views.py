@@ -579,44 +579,54 @@ def network_prescriptions(request):
     if err:
         return err
 
-    # Collect all network IDs this org actively belongs to
-    my_network_ids = list(
-        PharmacyNetworkMembership.objects
-        .filter(organization=org, status='active')
-        .values_list('network_id', flat=True)
-    )
+    source = request.query_params.get('source', '').strip()
 
-    if my_network_ids:
-        # Optionally scope to one specific network the caller belongs to
-        network_id_param = request.query_params.get('network_id', '')
-        if network_id_param.isdigit() and int(network_id_param) > 0:
-            requested_net = int(network_id_param)
-            if requested_net not in my_network_ids:
-                return Response(
-                    {'detail': 'You are not an active member of that network.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            active_network_ids = [requested_net]
-        else:
-            active_network_ids = my_network_ids
-
-        # All org IDs that are active members of any of those networks
-        peer_org_ids = list(
-            PharmacyNetworkMembership.objects
-            .filter(network_id__in=active_network_ids, status='active')
-            .values_list('organization_id', flat=True)
-            .distinct()
-        )
+    # Portal prescriptions are global — any pharmacy can see them.
+    # When source=portal is explicitly requested, skip the org/network filter.
+    if source == 'portal':
         qs = (Prescription.objects
-              .filter(organization_id__in=peer_org_ids)
+              .filter(source='portal')
               .select_related('organization', 'created_by', 'branch')
               .prefetch_related('medications'))
     else:
-        # No active networks — fall back to own org
-        qs = (Prescription.objects
-              .filter(organization=org)
-              .select_related('organization', 'created_by', 'branch')
-              .prefetch_related('medications'))
+        # Collect all network IDs this org actively belongs to
+        my_network_ids = list(
+            PharmacyNetworkMembership.objects
+            .filter(organization=org, status='active')
+            .values_list('network_id', flat=True)
+        )
+
+        if my_network_ids:
+            # Optionally scope to one specific network the caller belongs to
+            network_id_param = request.query_params.get('network_id', '')
+            if network_id_param.isdigit() and int(network_id_param) > 0:
+                requested_net = int(network_id_param)
+                if requested_net not in my_network_ids:
+                    return Response(
+                        {'detail': 'You are not an active member of that network.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                active_network_ids = [requested_net]
+            else:
+                active_network_ids = my_network_ids
+
+            # All org IDs that are active members of any of those networks
+            peer_org_ids = list(
+                PharmacyNetworkMembership.objects
+                .filter(network_id__in=active_network_ids, status='active')
+                .values_list('organization_id', flat=True)
+                .distinct()
+            )
+            qs = (Prescription.objects
+                  .filter(organization_id__in=peer_org_ids)
+                  .select_related('organization', 'created_by', 'branch')
+                  .prefetch_related('medications'))
+        else:
+            # No active networks — fall back to own org
+            qs = (Prescription.objects
+                  .filter(organization=org)
+                  .select_related('organization', 'created_by', 'branch')
+                  .prefetch_related('medications'))
 
     # Status filter
     rx_status = request.query_params.get('status', '').strip()
