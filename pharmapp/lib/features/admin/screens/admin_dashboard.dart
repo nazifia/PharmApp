@@ -26,12 +26,7 @@ class AdminDashboard extends ConsumerStatefulWidget {
 class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  String _fmt(double v) {
-    if (v >= 10000000) return '₦${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000) return fmtN(v);
-    if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(1)}K';
-    return '₦${v.toStringAsFixed(0)}';
-  }
+  String _fmt(double v) => fmtN(v);
 
   Future<void> _refresh() async {
     ref.invalidate(salesReportProvider('today'));
