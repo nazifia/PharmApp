@@ -631,7 +631,8 @@ class _ReceiptShareButtonState extends State<ReceiptShareButton> {
       sb.writeln('${methodLabel(e.key).padRight(18)}₦${fmt(e.value)}');
     }
     sb.writeln('============================');
-    sb.write('Thank you for your purchase!');
+    sb.writeln('Thank you for your purchase!');
+    sb.write('Powered by:Nazz Tech - 08032194090');
     return sb.toString();
   }
 
@@ -1257,6 +1258,11 @@ class _ReceiptCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text('Keep this receipt for returns & reference.',
                         style: TextStyle(color: textHint, fontSize: 10)),
+                    const SizedBox(height: 6),
+                    Text('Powered by:Nazz Tech - 08032194090',
+                        style: TextStyle(
+                            color: textHint, fontSize: 9,
+                            fontWeight: FontWeight.w600)),
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -1953,6 +1959,9 @@ Future<Uint8List> buildReceiptPdf(
                   style: pw.TextStyle(font: fontBold, fontSize: 9, color: black)),
               pw.Text('Keep this receipt for returns & reference.',
                   style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
+              pw.SizedBox(height: 2),
+              pw.Text('Powered by:Nazz Tech - 08032194090',
+                  style: pw.TextStyle(font: font, fontSize: 7, color: grey)),
               pw.SizedBox(height: 4),
               pw.Text(receiptId,
                   style: pw.TextStyle(font: fontMono, fontSize: 7, color: light)),
@@ -2073,7 +2082,7 @@ pw.Widget _a4Footer({
     pw.SizedBox(height: 2),
     pw.Row(children: [
       pw.Expanded(
-        child: pw.Text('Powered by PharmApp',
+        child: pw.Text('Powered by:Nazz Tech - 08032194090',
             style: pw.TextStyle(font: font, fontSize: 7, color: light)),
       ),
       pw.Text('Page ${ctx.pageNumber} of ${ctx.pagesCount}',

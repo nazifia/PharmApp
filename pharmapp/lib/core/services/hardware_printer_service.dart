@@ -218,7 +218,7 @@ class HardwarePrinterService {
     // Footer
     align(1);
     ln('Thank you for your patronage!');
-    ln('Powered by PharmApp');
+    ln('Powered by:Nazz Tech - 08032194090');
 
     feed(4);
     esc([0x1D, 0x56, 0x41, 0x03]); // partial cut
