@@ -112,9 +112,9 @@
         <td class="ov-td--num">{{ row.total_customers }}</td>
         <td class="ov-td--num">
           <span class="ov-pill ov-pill--blue">{{ row.completed_sales }}</span>
-          {% if row.total_sales != row.completed_sales %}
-          <span class="ov-pill ov-pill--gray" title="{{ row.total_sales }} total">
-            +{{ row.total_sales|add:row.completed_sales|add:"-0" }}
+          {% if row.other_sales %}
+          <span class="ov-pill ov-pill--gray" title="{{ row.total_sales }} total (incl. non-completed)">
+            +{{ row.other_sales }}
           </span>
           {% endif %}
         </td>

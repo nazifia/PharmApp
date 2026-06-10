@@ -160,6 +160,10 @@ input:checked + .maint-slider:before { transform: translateX(22px); }
 
     <form method="post" style="margin-top:14px;">
       {% csrf_token %}
+      {# Hidden fallback MUST come before the checkbox: when the box is checked the
+         browser submits both fields and QueryDict.get() keeps the LAST value, so the
+         checkbox's "1" must be submitted after this "0" to win. #}
+      <input type="hidden" name="maintenance_mode" value="0">
       <label class="maint-row">
         <span class="maint-toggle">
           <input type="checkbox" name="maintenance_mode"
@@ -172,8 +176,6 @@ input:checked + .maint-slider:before { transform: translateX(22px); }
           {% if cfg.maintenance_mode %}Click to disable{% else %}Click to enable{% endif %}
         </span>
       </label>
-      {# Hidden fallback for when checkbox is unchecked #}
-      <input type="hidden" name="maintenance_mode" value="0">
     </form>
   </div>
 

@@ -22,7 +22,7 @@ STATUS_CHOICES = [
     ('cancelled', 'Cancelled'),
 ]
 
-TRIAL_DAYS = 14
+TRIAL_DAYS = 60  # 2-month free trial — matches all admin actions (reset/approve/extend)
 
 # Plan hard limits  (-1 = unlimited)
 PLAN_LIMITS = {

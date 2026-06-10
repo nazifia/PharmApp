@@ -32,7 +32,7 @@ from django.utils.safestring import mark_safe
 
 from .models import (
     FEATURE_KEY_CHOICES, PLAN_CHOICES, PLAN_FEATURES, PLAN_FEATURES_DEFAULT,
-    PLAN_LIMITS, PLAN_PRICES, SUPPORTED_CURRENCIES,
+    PLAN_LIMITS, PLAN_PRICES, SUPPORTED_CURRENCIES, TRIAL_DAYS,
     PaymentAccount, PlanFeatureFlag, PlanPricing, Subscription, SubscriptionEvent,
 )
 
@@ -258,7 +258,7 @@ def reset_to_trial(modeladmin, request, queryset):
     for sub in queryset:
         old = f"{sub.plan}/{sub.status}"
         sub.plan = 'trial'; sub.status = 'trial'; sub.billing_cycle = 'monthly'
-        sub.trial_ends_at = timezone.now() + timedelta(days=60)
+        sub.trial_ends_at = timezone.now() + timedelta(days=TRIAL_DAYS)
         sub.current_period_end = None; sub.external_subscription_id = ''
         sub.save()
         SubscriptionEvent.objects.create(
@@ -317,7 +317,7 @@ def approve_registration(modeladmin, request, queryset):
     n = 0
     for sub in queryset.filter(status='pending', plan='trial'):
         sub.status = 'trial'
-        sub.trial_ends_at = timezone.now() + timedelta(days=60)
+        sub.trial_ends_at = timezone.now() + timedelta(days=TRIAL_DAYS)
         sub.save()
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
@@ -405,7 +405,7 @@ def approve_pending_trial(modeladmin, request, queryset):
     n = 0
     for sub in queryset.filter(status='pending', plan='trial'):
         sub.status        = 'trial'
-        sub.trial_ends_at = timezone.now() + timedelta(days=60)
+        sub.trial_ends_at = timezone.now() + timedelta(days=TRIAL_DAYS)
         sub.save()
         SubscriptionEvent.objects.create(
             subscription=sub, event_type='activated',
@@ -789,7 +789,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
             obj.plan                    = 'trial'
             obj.status                  = 'trial'
             obj.billing_cycle           = 'monthly'
-            obj.trial_ends_at           = timezone.now() + timedelta(days=60)
+            obj.trial_ends_at           = timezone.now() + timedelta(days=TRIAL_DAYS)
             obj.current_period_end      = None
             obj.external_subscription_id = ''
             obj.save()
@@ -811,7 +811,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
                     messages.WARNING,
                 )
             obj.status = 'trial'
-            obj.trial_ends_at = timezone.now() + timedelta(days=60)
+            obj.trial_ends_at = timezone.now() + timedelta(days=TRIAL_DAYS)
             obj.save()
             SubscriptionEvent.objects.create(
                 subscription=obj, event_type='activated',
@@ -1334,7 +1334,9 @@ class PlanPricingAdmin(admin.ModelAdmin):
                 monthly  = Decimal(request.POST.get(f'monthly_{plan}',  '0').strip())
                 annual   = Decimal(request.POST.get(f'annual_{plan}',   '0').strip())
                 currency = request.POST.get(f'currency_{plan}', 'USD').strip().upper()[:3]
-                is_active = f'active_{plan}' in request.POST
+                # Trial's Active toggle is rendered disabled (never submitted); the
+                # trial plan must always stay active regardless of the POST data.
+                is_active = True if plan == 'trial' else f'active_{plan}' in request.POST
 
                 if monthly < 0:
                     raise ValueError('Price cannot be negative.')

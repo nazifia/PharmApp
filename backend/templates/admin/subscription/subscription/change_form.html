@@ -152,8 +152,8 @@
           </button>
           <button type="submit" class="sub-btn sub-btn-slate"
                   onclick="setAction('reset')"
-                  title="Reset to a fresh 14-day trial, clears plan and billing info">
-            🔄 Reset to 14-day trial
+                  title="Reset to a fresh 2-month trial, clears plan and billing info">
+            🔄 Reset to 2-month trial
           </button>
         </div>
       </div>
@@ -253,11 +253,11 @@
         <div class="sub-action-group-label" style="color:#0D9488">🆕 New Registration — Awaiting Approval</div>
         <div style="font-size:12px;color:#475569;margin-bottom:8px">
           <strong>{{ original.organization.name }}</strong> signed up but has not been approved yet.
-          Approving will start their <strong>14-day free trial</strong> immediately.
+          Approving will start their <strong>2-month free trial</strong> immediately.
         </div>
         <div class="sub-action-buttons">
           <button type="submit" class="sub-btn sub-btn-green"
-                  onclick="return confirmAction('approve_registration', 'Approve registration and start 14-day trial for {{ original.organization.name }}?')">
+                  onclick="return confirmAction('approve_registration', 'Approve registration and start 2-month trial for {{ original.organization.name }}?')">
             ✅ Approve Registration
           </button>
         </div>

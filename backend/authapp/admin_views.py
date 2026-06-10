@@ -70,6 +70,7 @@ def global_overview_view(request):
             "total_customers": customers.count(),
             "completed_sales": sales_qs.count(),
             "total_sales":    all_sales.count(),
+            "other_sales":    all_sales.count() - sales_qs.count(),
             "revenue":        revenue,
             "expenses":       expenses,
             "net":            revenue - expenses,
