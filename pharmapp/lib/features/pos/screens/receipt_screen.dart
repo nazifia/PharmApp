@@ -1469,6 +1469,14 @@ Future<Uint8List> buildReceiptPdf(
   const black = PdfColor(0.06,  0.09,  0.16);
   const white = PdfColors.white;
 
+  // B&W-laser-safe palette for the A4 document. Mono lasers wash teal out to a
+  // pale grey (reversed white text vanishes) and drop very light borders
+  // entirely, so A4 uses near-black fills, a mid-grey border, and black accent
+  // text instead. Thermal layout keeps the colored palette above.
+  const inkDark   = PdfColor(0.10, 0.13, 0.20); // fill behind white text / headings
+  const inkBorder = PdfColor(0.55, 0.60, 0.66); // visible on grayscale laser
+  const inkZebra  = PdfColor(0.93, 0.94, 0.96); // subtle row striping
+
   // ── Dispatch to layout ────────────────────────────────────────────────────
   if (printFormat == PrintFormat.a4) {
     doc.addPage(pw.MultiPage(
@@ -1486,7 +1494,7 @@ Future<Uint8List> buildReceiptPdf(
         status: status,
         font: font,
         fontBold: fontBold,
-        teal: teal,
+        teal: inkDark,
         grey: grey,
         light: light,
         black: black,
@@ -1516,14 +1524,14 @@ Future<Uint8List> buildReceiptPdf(
                 decoration: pw.BoxDecoration(
                   color: const PdfColor(0.95, 0.98, 0.99),
                   borderRadius: pw.BorderRadius.circular(6),
-                  border: pw.Border.all(color: light, width: 0.8),
+                  border: pw.Border.all(color: inkBorder, width: 0.8),
                 ),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text('BILL TO',
                         style: pw.TextStyle(font: fontBold, fontSize: 8,
-                            color: teal, letterSpacing: 1.5)),
+                            color: inkDark, letterSpacing: 1.5)),
                     pw.SizedBox(height: 6),
                     pw.Text(customerName,
                         style: pw.TextStyle(font: fontBold, fontSize: 12, color: black)),
@@ -1548,20 +1556,20 @@ Future<Uint8List> buildReceiptPdf(
                 decoration: pw.BoxDecoration(
                   color: const PdfColor(0.95, 0.98, 0.99),
                   borderRadius: pw.BorderRadius.circular(6),
-                  border: pw.Border.all(color: light, width: 0.8),
+                  border: pw.Border.all(color: inkBorder, width: 0.8),
                 ),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text('RECEIPT DETAILS',
                         style: pw.TextStyle(font: fontBold, fontSize: 8,
-                            color: teal, letterSpacing: 1.5)),
+                            color: inkDark, letterSpacing: 1.5)),
                     pw.SizedBox(height: 6),
-                    _a4MetaRow('Receipt No', receiptId, font, fontBold, grey, teal),
+                    _a4MetaRow('Receipt No', receiptId, font, fontBold, grey, inkDark),
                     _a4MetaRow('Date', dateStr, font, font, grey, black),
                     _a4MetaRow('Type',
                         isWholesale ? 'Wholesale' : 'Retail',
-                        font, fontBold, grey, teal),
+                        font, fontBold, grey, inkDark),
                     _a4MetaRow('Status', status.toUpperCase(),
                         font, fontBold, grey, black),
                   ],
@@ -1576,7 +1584,7 @@ Future<Uint8List> buildReceiptPdf(
         // ── Items table
         pw.Container(
           decoration: pw.BoxDecoration(
-            border: pw.Border.all(color: light, width: 0.8),
+            border: pw.Border.all(color: inkBorder, width: 0.8),
             borderRadius: pw.BorderRadius.circular(4),
           ),
           child: pw.Column(
@@ -1585,7 +1593,7 @@ Future<Uint8List> buildReceiptPdf(
               pw.Container(
                 padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: const pw.BoxDecoration(
-                  color: teal,
+                  color: inkDark,
                   borderRadius: pw.BorderRadius.only(
                     topLeft: pw.Radius.circular(4),
                     topRight: pw.Radius.circular(4),
@@ -1639,15 +1647,13 @@ Future<Uint8List> buildReceiptPdf(
                                if (form.isNotEmpty)  form,
                                if (unit.isNotEmpty)  unit].join(' · ');
                 final isLast = idx == items.length - 1;
-                final rowBg = idx.isEven
-                    ? const PdfColor(0.97, 0.98, 1.0)
-                    : white;
+                final rowBg = idx.isEven ? inkZebra : white;
                 return pw.Container(
                   padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: pw.BoxDecoration(
                     color: rowBg,
                     border: isLast ? null : const pw.Border(
-                      bottom: pw.BorderSide(color: light, width: 0.5),
+                      bottom: pw.BorderSide(color: inkBorder, width: 0.5),
                     ),
                   ),
                   child: pw.Row(children: [
@@ -1679,8 +1685,8 @@ Future<Uint8List> buildReceiptPdf(
                       width: 60,
                       child: pw.Text(disc > 0 ? fmtAmt(disc) : '—',
                           textAlign: pw.TextAlign.right,
-                          style: pw.TextStyle(font: font, fontSize: 10,
-                              color: disc > 0 ? const PdfColor(0.96, 0.62, 0.04) : grey)),
+                          style: pw.TextStyle(font: disc > 0 ? fontBold : font,
+                              fontSize: 10, color: disc > 0 ? black : grey)),
                     ),
                     pw.SizedBox(
                       width: 70,
@@ -1705,16 +1711,15 @@ Future<Uint8List> buildReceiptPdf(
             child: pw.Column(children: [
               if (discountTotal > 0) ...[
                 _a4TotalRow('Subtotal', fmtAmt(total + discountTotal),
-                    font, font, grey, grey, light),
+                    font, font, grey, grey, inkBorder),
                 _a4TotalRow('Discount', '-${fmtAmt(discountTotal)}',
-                    font, fontBold, grey,
-                    const PdfColor(0.96, 0.62, 0.04), light),
+                    font, fontBold, grey, black, inkBorder),
               ],
               pw.Container(
                 padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 margin: const pw.EdgeInsets.only(top: 4),
                 decoration: pw.BoxDecoration(
-                  color: teal,
+                  color: inkDark,
                   borderRadius: pw.BorderRadius.circular(6),
                 ),
                 child: pw.Row(children: [
@@ -1731,7 +1736,7 @@ Future<Uint8List> buildReceiptPdf(
         ),
 
         pw.SizedBox(height: 16),
-        pw.Divider(color: light),
+        pw.Divider(color: inkBorder),
         pw.SizedBox(height: 8),
 
         // ── Payment breakdown
@@ -1740,25 +1745,25 @@ Future<Uint8List> buildReceiptPdf(
                 color: grey, letterSpacing: 1.5)),
         pw.SizedBox(height: 6),
         pw.Table(
-          border: pw.TableBorder.all(color: light, width: 0.5),
+          border: pw.TableBorder.all(color: inkBorder, width: 0.5),
           columnWidths: {
             0: const pw.FlexColumnWidth(3),
             1: const pw.FlexColumnWidth(2),
           },
           children: [
             pw.TableRow(
-              decoration: const pw.BoxDecoration(color: PdfColor(0.93, 0.97, 0.97)),
+              decoration: const pw.BoxDecoration(color: inkZebra),
               children: [
                 pw.Padding(
                   padding: const pw.EdgeInsets.all(8),
                   child: pw.Text('Method',
-                      style: pw.TextStyle(font: fontBold, fontSize: 9, color: teal)),
+                      style: pw.TextStyle(font: fontBold, fontSize: 9, color: inkDark)),
                 ),
                 pw.Padding(
                   padding: const pw.EdgeInsets.all(8),
                   child: pw.Text('Amount',
                       textAlign: pw.TextAlign.right,
-                      style: pw.TextStyle(font: fontBold, fontSize: 9, color: teal)),
+                      style: pw.TextStyle(font: fontBold, fontSize: 9, color: inkDark)),
                 ),
               ],
             ),
@@ -1779,7 +1784,24 @@ Future<Uint8List> buildReceiptPdf(
             )),
           ],
         ),
-        pw.SizedBox(height: 24),
+        pw.SizedBox(height: 20),
+
+        // ── Closing note: flows with content (not pinned to page bottom)
+        pw.Divider(color: inkBorder),
+        pw.SizedBox(height: 6),
+        pw.Row(children: [
+          pw.Expanded(
+            child: pw.Text(
+                'Thank you for your purchase! Keep this receipt for returns & reference.',
+                style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+          ),
+          pw.Text(receiptId,
+              style: pw.TextStyle(font: fontMono, fontSize: 8, color: grey)),
+        ]),
+        pw.SizedBox(height: 3),
+        pw.Text('Powered by:Nazz Tech - 08032194090',
+            style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+        pw.SizedBox(height: 8),
       ],
     ));
   } else {
@@ -2068,28 +2090,15 @@ pw.Widget _a4Footer({
   required PdfColor light,
   required PdfColor black,
 }) {
-  return pw.Column(children: [
-    pw.Divider(color: light),
-    pw.SizedBox(height: 6),
-    pw.Row(children: [
-      pw.Expanded(
-        child: pw.Text('Thank you for your purchase! Keep this receipt for returns & reference.',
-            style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-      ),
-      pw.Text(receiptId,
-          style: pw.TextStyle(font: fontMono, fontSize: 8, color: light)),
-    ]),
-    pw.SizedBox(height: 2),
-    pw.Row(children: [
-      pw.Expanded(
-        child: pw.Text('Powered by:Nazz Tech - 08032194090',
-            style: pw.TextStyle(font: font, fontSize: 7, color: light)),
-      ),
-      pw.Text('Page ${ctx.pageNumber} of ${ctx.pagesCount}',
-          style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
-    ]),
-    pw.SizedBox(height: 4),
-  ]);
+  // Page number only — pinned to page bottom by MultiPage. The closing
+  // "Thank you / Powered by" note flows with the body content instead, so
+  // it sits under the receipt rather than floating at the page edge.
+  if (ctx.pagesCount <= 1) return pw.SizedBox();
+  return pw.Align(
+    alignment: pw.Alignment.centerRight,
+    child: pw.Text('Page ${ctx.pageNumber} of ${ctx.pagesCount}',
+        style: pw.TextStyle(font: font, fontSize: 8, color: grey)),
+  );
 }
 
 pw.Widget _a4MetaRow(
