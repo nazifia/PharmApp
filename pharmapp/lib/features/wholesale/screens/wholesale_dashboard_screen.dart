@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,6 +30,40 @@ final wholesaleInventoryValueProvider = FutureProvider.autoDispose<Map<String, d
 
 final pendingTransfersProvider = FutureProvider.autoDispose<List<dynamic>>((ref) {
   return ref.watch(posApiProvider).fetchTransfers(status: 'pending');
+});
+
+// Last 7 days of wholesale revenue, bucketed per day (index 0 = 6 days ago … 6 = today).
+final wholesaleWeeklyRevenueProvider = FutureProvider.autoDispose<List<double>>((ref) async {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  String fmt(DateTime x) =>
+      '${x.year}-${x.month.toString().padLeft(2, '0')}-${x.day.toString().padLeft(2, '0')}';
+  try {
+    final sales = await ref.watch(posApiProvider).fetchWholesaleSales(
+          from: fmt(today.subtract(const Duration(days: 6))),
+          to: fmt(today),
+        );
+    final buckets = List<double>.filled(7, 0);
+    for (final raw in sales) {
+      final s = raw as Map<String, dynamic>;
+      final dateStr = s['createdAt'] as String? ??
+          s['created_at'] as String? ??
+          s['created'] as String? ??
+          '';
+      final dt = DateTime.tryParse(dateStr);
+      if (dt == null) continue;
+      final total = (s['totalAmount'] as num?)?.toDouble() ??
+          (s['total_amount'] as num?)?.toDouble() ??
+          (s['total'] as num?)?.toDouble() ??
+          0.0;
+      final diff = today.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+      final idx = 6 - diff;
+      if (idx >= 0 && idx < 7) buckets[idx] += total;
+    }
+    return buckets;
+  } catch (_) {
+    return List<double>.filled(7, 0);
+  }
 });
 
 // ── Screen ───────────────────────────────────────────────────────────────────
@@ -65,6 +100,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
     ref.invalidate(wholesaleExpiryAlertProvider);
     ref.invalidate(wholesaleInventoryValueProvider);
     ref.invalidate(pendingTransfersProvider);
+    ref.invalidate(wholesaleWeeklyRevenueProvider);
     ref.read(appRefreshTriggerProvider.notifier).state++;
   }
 
@@ -76,6 +112,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
     final expiryAsync = ref.watch(wholesaleExpiryAlertProvider);
     final inventoryAsync = ref.watch(wholesaleInventoryValueProvider);
     final transfersAsync = ref.watch(pendingTransfersProvider);
+    final weeklyAsync = ref.watch(wholesaleWeeklyRevenueProvider);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -95,6 +132,10 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                 _statsCards(dashboardAsync),
                 const SizedBox(height: 20),
                 _quickAccess(context),
+                const SizedBox(height: 20),
+                _weeklyRevenueChart(weeklyAsync),
+                const SizedBox(height: 20),
+                _topProductsChart(dashboardAsync),
                 const SizedBox(height: 20),
                 _topProducts(dashboardAsync),
                 const SizedBox(height: 20),
@@ -287,6 +328,272 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
               maxLines: 1, overflow: TextOverflow.ellipsis)),
         ]),
       ),
+    );
+  }
+
+  // ── Weekly Revenue Line Chart ──────────────────────────────────────────────
+
+  List<String> _weekLabels() {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final now = DateTime.now();
+    return List.generate(7, (i) {
+      final d = now.subtract(Duration(days: 6 - i));
+      return days[d.weekday - 1];
+    });
+  }
+
+  Widget _chartShell({required Widget child, required Color accent}) => ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+            height: 200,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [accent.withValues(alpha: 0.07), context.cardColor],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: accent.withValues(alpha: 0.22)),
+            ),
+            child: child,
+          ),
+        ),
+      );
+
+  Widget _weeklyRevenueChart(AsyncValue<List<double>> async) {
+    return async.when(
+      loading: () => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text("This Week's Revenue",
+            style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 10),
+        EnhancedTheme.loadingShimmer(height: 200, radius: 16),
+      ]),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (week) {
+        final maxY = week.fold<double>(0, (m, v) => v > m ? v : m);
+        if (maxY <= 0) return const SizedBox.shrink();
+        final labels = _weekLabels();
+        final spots = week.asMap().entries
+            .map((e) => FlSpot(e.key.toDouble(), e.value))
+            .toList();
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text("This Week's Revenue",
+              style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          _chartShell(
+            accent: EnhancedTheme.accentCyan,
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: 6,
+                minY: 0,
+                maxY: maxY * 1.25,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY * 0.5,
+                  getDrawingHorizontalLine: (_) =>
+                      FlLine(color: context.borderColor, strokeWidth: 0.6),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 46,
+                      interval: maxY * 0.5,
+                      getTitlesWidget: (val, _) => Text(_fmtNaira(val),
+                          style: TextStyle(color: context.hintColor, fontSize: 9)),
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 22,
+                      interval: 1,
+                      getTitlesWidget: (val, _) {
+                        final idx = val.toInt();
+                        if (idx < 0 || idx >= labels.length) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(labels[idx],
+                              style: TextStyle(color: context.hintColor, fontSize: 9)),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => const Color(0xFF1E293B),
+                    tooltipRoundedRadius: 8,
+                    getTooltipItems: (spots) => spots
+                        .map((s) => LineTooltipItem(
+                              _fmtNaira(s.y),
+                              const TextStyle(
+                                  color: EnhancedTheme.accentCyan,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700),
+                            ))
+                        .toList(),
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    color: EnhancedTheme.accentCyan,
+                    barWidth: 2.5,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, pct, bar, idx) => FlDotCirclePainter(
+                        radius: idx == 6 ? 4.5 : 2.5,
+                        color: idx == 6 ? EnhancedTheme.primaryTeal : EnhancedTheme.accentCyan,
+                        strokeWidth: 1.5,
+                        strokeColor: context.scaffoldBg,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          EnhancedTheme.accentCyan.withValues(alpha: 0.22),
+                          EnhancedTheme.accentCyan.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+
+  // ── Top Products Bar Chart ─────────────────────────────────────────────────
+
+  Widget _topProductsChart(AsyncValue<Map<String, dynamic>> async) {
+    return async.when(
+      loading: () => const SizedBox.shrink(),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (data) {
+        final raw = (data['topProducts'] as List<dynamic>?) ?? [];
+        if (raw.isEmpty) return const SizedBox.shrink();
+        final items = raw.take(5).map((e) {
+          final p = e as Map<String, dynamic>;
+          return (
+            name: p['name'] as String? ?? 'Unknown',
+            revenue: (p['revenue'] as num?)?.toDouble() ?? 0.0,
+          );
+        }).toList();
+        final maxRevenue = items.fold<double>(0, (m, i) => i.revenue > m ? i.revenue : m);
+        if (maxRevenue <= 0) return const SizedBox.shrink();
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Top Products by Revenue',
+              style: TextStyle(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          _chartShell(
+            accent: EnhancedTheme.primaryTeal,
+            child: BarChart(
+              BarChartData(
+                maxY: maxRevenue * 1.25,
+                alignment: BarChartAlignment.spaceAround,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxRevenue / 3,
+                  getDrawingHorizontalLine: (_) =>
+                      FlLine(color: context.borderColor, strokeWidth: 0.6),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 46,
+                      interval: maxRevenue / 3,
+                      getTitlesWidget: (val, _) => Text(_fmtNaira(val),
+                          style: TextStyle(color: context.hintColor, fontSize: 9)),
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      getTitlesWidget: (val, meta) {
+                        final idx = val.toInt();
+                        if (idx < 0 || idx >= items.length) return const SizedBox.shrink();
+                        final name = items[idx].name;
+                        final label = name.length > 7 ? name.substring(0, 7) : name;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(label,
+                              style: TextStyle(color: context.hintColor, fontSize: 9),
+                              textAlign: TextAlign.center),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => const Color(0xFF1E293B),
+                    tooltipRoundedRadius: 8,
+                    getTooltipItem: (group, groupIdx, rod, _) {
+                      if (groupIdx >= items.length) return null;
+                      return BarTooltipItem(
+                        '${items[groupIdx].name}\n',
+                        const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                        children: [
+                          TextSpan(
+                            text: _fmtNaira(rod.toY),
+                            style: const TextStyle(
+                                color: EnhancedTheme.accentCyan,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                barGroups: items.asMap().entries.map((e) {
+                  return BarChartGroupData(
+                    x: e.key,
+                    barRods: [
+                      BarChartRodData(
+                        toY: e.value.revenue,
+                        width: 22,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            EnhancedTheme.primaryTeal.withValues(alpha: 0.75),
+                            EnhancedTheme.accentCyan,
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ]);
+      },
     );
   }
 
