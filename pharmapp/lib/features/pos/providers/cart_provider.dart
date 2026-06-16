@@ -88,3 +88,10 @@ final selectedCustomerProvider = StateProvider<SelectedCustomer?>((ref) => null)
 /// POS checkout can auto-dispense those medication slots.
 /// Key = prescription ID, Value = list of 0-based medication indices in that prescription.
 final prescriptionCartBindingsProvider = StateProvider<Map<int, List<int>>>((ref) => {});
+
+/// Consultation fee owed for prescriptions whose medications are in the cart.
+/// Key = prescription ID, Value = consultation fee amount. Summed once per
+/// prescription at checkout and added to the sale total as a silent surcharge
+/// (never itemised on the receipt). Cleared after a completed checkout.
+final prescriptionConsultationFeesProvider =
+    StateProvider<Map<int, double>>((ref) => {});

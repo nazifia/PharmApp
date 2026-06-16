@@ -95,7 +95,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return cart.fold(0.0, (s, c) => s + c.total);
   }
 
-  double get _total => _subtotal;
+  /// Total consultation surcharge owed for prescriptions in the cart.
+  /// Charged silently — added to the total but never itemised on the receipt.
+  double get _consultationFee => ref
+      .read(prescriptionConsultationFeesProvider)
+      .values
+      .fold(0.0, (s, v) => s + v);
+
+  double get _total => _subtotal + _consultationFee;
 
   // Split amounts from controllers
   double get _splitCash   => double.tryParse(_cashCtrl.text)   ?? 0;
@@ -163,7 +170,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       patientName:   buyerName.isEmpty ? null : buyerName,
     );
 
-    final result = await ref.read(checkoutProvider.notifier).processCheckout(payload);
+    final result = await ref
+        .read(checkoutProvider.notifier)
+        .processCheckout(payload, consultationFee: _consultationFee);
 
     if (!mounted) return;
     setState(() => _processing = false);
@@ -277,6 +286,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   /// Fire-and-forget: marks prescription medications as dispensed for any
   /// prescription items that were added to the cart before checkout.
   void _autoDispensePrescriptions() {
+    // Clear consultation surcharges — they were charged with this sale.
+    ref.read(prescriptionConsultationFeesProvider.notifier).state = {};
     final bindings = ref.read(prescriptionCartBindingsProvider);
     if (bindings.isEmpty) return;
     ref.read(prescriptionCartBindingsProvider.notifier).state = {};
@@ -457,7 +468,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Widget build(BuildContext context) {
     final cart     = ref.watch(cartProvider);
     final selected = ref.watch(selectedCustomerProvider);
-    final total = cart.fold(0.0, (s, c) => s + c.total);
+    final consultationFee = ref
+        .watch(prescriptionConsultationFeesProvider)
+        .values
+        .fold(0.0, (s, v) => s + v);
+    final total = cart.fold(0.0, (s, c) => s + c.total) + consultationFee;
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
@@ -557,6 +572,27 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                                     color: EnhancedTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.w600)),
                           ]),
                         )),
+                      // Consultation surcharge — shown to staff only, never on the receipt.
+                      if (consultationFee > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(children: [
+                            const Icon(Icons.medical_information_rounded,
+                                size: 12, color: Colors.black45),
+                            const SizedBox(width: 4),
+                            const Expanded(
+                                child: Text('Consultation (not shown on receipt)',
+                                    style: TextStyle(
+                                        color: Colors.black54,
+                                        fontSize: 11,
+                                        fontStyle: FontStyle.italic))),
+                            Text(fmtN(consultationFee),
+                                style: const TextStyle(
+                                    color: EnhancedTheme.accentPurple,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600)),
+                          ]),
+                        ),
                     ]),
                   ),
                 ),

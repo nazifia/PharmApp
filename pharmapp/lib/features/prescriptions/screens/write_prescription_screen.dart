@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import '../providers/prescription_provider.dart';
 import '../providers/prescriber_provider.dart';
 import '../../../shared/models/prescription.dart';
@@ -95,6 +96,9 @@ class _WritePrescriptionScreenState
   Prescriber? _selectedPrescriber;
   final _prescriberSearchCtrl = TextEditingController();
   String _prescriberQuery = '';
+
+  // Consultation fee category (A–E) — derived from the selected prescriber's bands
+  String? _consultCategory;
 
   bool _isSubmitting = false;
 
@@ -445,6 +449,7 @@ class _WritePrescriptionScreenState
       if (_diagnosisCtrl.text.trim().isNotEmpty)
         'diagnosis': _diagnosisCtrl.text.trim(),
       if (_notesCtrl.text.trim().isNotEmpty) 'notes': _notesCtrl.text.trim(),
+      if (_consultCategory != null) 'consultation_category': _consultCategory,
       'medications': validMeds.map((m) => m.toJson()).toList(),
       if (branch != null && branch.id > 0) 'branch_id': branch.id,
       'refills_allowed': _refillsAllowed,
@@ -483,6 +488,89 @@ class _WritePrescriptionScreenState
         context.pop();
       }
     }
+  }
+
+  List<String> _consultCats(Prescriber p) => const ['A', 'B', 'C', 'D', 'E']
+      .where((c) => (p.consultationFees[c] ?? 0) > 0)
+      .toList();
+
+  Widget _buildConsultPicker() {
+    final p = _selectedPrescriber!;
+    final cats = _consultCats(p);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(children: [
+            Icon(Icons.medical_information_rounded,
+                size: 17, color: Colors.black45),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text('Consultation Fee',
+                  style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600)),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          const Text('Added at payment, not shown on the receipt.',
+              style: TextStyle(color: Colors.black38, fontSize: 11)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in cats)
+                GestureDetector(
+                  onTap: () => setState(
+                      () => _consultCategory = _consultCategory == c ? null : c),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _consultCategory == c
+                          ? EnhancedTheme.accentPurple.withValues(alpha: 0.18)
+                          : Colors.white.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _consultCategory == c
+                            ? EnhancedTheme.accentPurple
+                            : Colors.black.withValues(alpha: 0.12),
+                        width: _consultCategory == c ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text('Cat $c',
+                          style: TextStyle(
+                              color: _consultCategory == c
+                                  ? EnhancedTheme.accentPurple
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text(fmtN(p.consultationFees[c] ?? 0),
+                          style: TextStyle(
+                              color: _consultCategory == c
+                                  ? EnhancedTheme.accentPurple
+                                  : Colors.black87,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   SnackBar _snack(String msg, Color bg, Color fg) => SnackBar(
@@ -839,11 +927,13 @@ class _WritePrescriptionScreenState
             onQueryChanged: (v) => setState(() => _prescriberQuery = v),
             onSelected: (p) => setState(() {
               _selectedPrescriber = p;
+              _consultCategory = null;
               _prescriberSearchCtrl.clear();
               _prescriberQuery = '';
             }),
             onClear: () => setState(() {
               _selectedPrescriber = null;
+              _consultCategory = null;
               _prescriberSearchCtrl.clear();
               _prescriberQuery = '';
             }),
@@ -859,6 +949,11 @@ class _WritePrescriptionScreenState
               }
             },
           ),
+          if (_selectedPrescriber != null &&
+              _consultCats(_selectedPrescriber!).isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _buildConsultPicker(),
+          ],
           const SizedBox(height: 10),
           _DarkTextField(
             controller: _diagnosisCtrl,

@@ -164,6 +164,16 @@ def checkout(request):
             }
         )
 
+    # Silent consultation surcharge — folded into the order total but never
+    # written as a SaleItem, so it does not appear as a receipt line.
+    try:
+        consultation_fee = Decimal(str(data.get("consultationFee", 0) or 0))
+    except (ValueError, TypeError, Exception):
+        consultation_fee = Decimal("0")
+    if consultation_fee < 0:
+        consultation_fee = Decimal("0")
+    total += consultation_fee
+
     # Validate payment
     cash = Decimal(str(payment.get("cash", 0)))
     pos = Decimal(str(payment.get("pos", 0)))
@@ -214,6 +224,7 @@ def checkout(request):
             shift=open_shift,
             total_amount=total,
             discount_total=discount_total,
+            consultation_fee=consultation_fee,
             payment_cash=cash,
             payment_pos=pos,
             payment_transfer=transfer,

@@ -48,6 +48,7 @@ class PosApiClient {
     double? hmoCoveragePercent,
     double? hmoAmount,
     String? hmoProvider,
+    double? consultationFee,
   }) async {
     if (_isLocal) {
       // Explicitly deep-serialize nested models — freezed toJson() does not
@@ -60,12 +61,16 @@ class PosApiClient {
         'paymentMethod': payload.paymentMethod,
         'totalAmount': payload.totalAmount,
         'patientName': payload.patientName,
+        if (consultationFee != null && consultationFee > 0)
+          'consultationFee': consultationFee,
         if (branchId != null && branchId > 0) 'branch_id': branchId,
       });
     }
     try {
       final body = {
         ...payload.toJson(),
+        if (consultationFee != null && consultationFee > 0)
+          'consultationFee': consultationFee,
         if (branchId != null && branchId > 0) 'branch_id': branchId,
         if (hmoCardNumber != null && hmoCardNumber.isNotEmpty) ...{
           'hmo_card_number': hmoCardNumber,
@@ -1870,7 +1875,8 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
     await prefs.setString(PosApiClient._kLocalDispLogKey, jsonEncode(trimmed));
   }
 
-  Future<Map<String, dynamic>?> processCheckout(CheckoutPayload payload) async {
+  Future<Map<String, dynamic>?> processCheckout(CheckoutPayload payload,
+      {double consultationFee = 0}) async {
     state = const AsyncValue.loading();
 
     final branch = _ref.read(activeBranchProvider);
@@ -1886,7 +1892,9 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
     // Short-circuit: if device is already offline, enqueue without a network call.
     final isOnline = _ref.read(isOnlineProvider);
     if (!isOnline) {
-      final pending = await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
+      final pending = await _ref
+          .read(offlineQueueProvider.notifier)
+          .enqueue(payload, consultationFee: consultationFee);
       await _saveLocalDispensingEntriesFromPayload(payload, pending.id);
       state = const AsyncValue.data(null);
       return {'offline': true};
@@ -1904,6 +1912,7 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
             ? selectedCustomer!.hmoAmount(payload.totalAmount)
             : null,
         hmoProvider: selectedCustomer?.hmoProvider,
+        consultationFee: consultationFee,
       );
       await _saveLocalDispensingEntries(result);
       state = const AsyncValue.data(null);
@@ -1913,7 +1922,9 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
       // Queue the sale and return the offline marker so the UI shows the
       // "Queued for sync" sheet rather than a generic error.
       if (e.response == null) {
-        final pending = await _ref.read(offlineQueueProvider.notifier).enqueue(payload);
+        final pending = await _ref
+            .read(offlineQueueProvider.notifier)
+            .enqueue(payload, consultationFee: consultationFee);
         await _saveLocalDispensingEntriesFromPayload(payload, pending.id);
         state = const AsyncValue.data(null);
         return {'offline': true};

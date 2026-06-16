@@ -119,10 +119,11 @@ class PrescriberNotifier extends StateNotifier<_PrescriberState> {
     }
   }
 
-  Future<Prescriber?> updatePrescriber(int id, Map<String, dynamic> data) async {
+  Future<Prescriber?> updatePrescriber(int id, Map<String, dynamic> data,
+      {bool portal = false}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final p = await _client.updatePrescriber(id, data);
+      final p = await _client.updatePrescriber(id, data, portal: portal);
       state = state.copyWith(isLoading: false);
       _ref.invalidate(prescriberListProvider);
       return p;

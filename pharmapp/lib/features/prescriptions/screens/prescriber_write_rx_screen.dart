@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import '../providers/prescriber_provider.dart';
 
@@ -57,6 +58,7 @@ class _PrescriberWriteRxScreenState
   final _notesCtrl = TextEditingController();
   final List<_MedRow> _meds = [_MedRow()];
   Customer? _selectedPatient;
+  String? _consultCategory; // 'A'–'E'
 
   @override
   void initState() {
@@ -95,6 +97,7 @@ class _PrescriberWriteRxScreenState
         'diagnosis': _diagnosisCtrl.text.trim(),
       if (_notesCtrl.text.trim().isNotEmpty)
         'notes': _notesCtrl.text.trim(),
+      if (_consultCategory != null) 'consultation_category': _consultCategory,
       'items': validMeds.map((m) => m.toMap()).toList(),
       'source': 'portal',
     };
@@ -214,6 +217,15 @@ class _PrescriberWriteRxScreenState
                         ),
                         const SizedBox(height: 12),
 
+                        // Consultation fee category
+                        if (_consultFeeCategories(prescriber).isNotEmpty) ...[
+                          _SectionCard(
+                            title: 'Consultation Fee',
+                            child: _buildConsultPicker(prescriber!),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+
                         // Medications
                         _SectionCard(
                           title: 'Medications',
@@ -313,6 +325,34 @@ class _PrescriberWriteRxScreenState
     );
   }
 
+  /// Category letters (A–E) that have a non-zero fee configured.
+  List<String> _consultFeeCategories(dynamic prescriber) {
+    if (prescriber == null) return const [];
+    final fees = prescriber.consultationFees as Map<String, double>;
+    return ['A', 'B', 'C', 'D', 'E']
+        .where((c) => (fees[c] ?? 0) > 0)
+        .toList();
+  }
+
+  Widget _buildConsultPicker(dynamic prescriber) {
+    final fees = prescriber.consultationFees as Map<String, double>;
+    final cats = _consultFeeCategories(prescriber);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final c in cats)
+          _ConsultChip(
+            category: c,
+            fee: fees[c] ?? 0,
+            selected: _consultCategory == c,
+            onTap: () => setState(
+                () => _consultCategory = _consultCategory == c ? null : c),
+          ),
+      ],
+    );
+  }
+
   Widget _buildHeader(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
         child: Row(
@@ -366,6 +406,60 @@ InputDecoration _plainDec(BuildContext context, String hint) =>
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
     );
+
+// ── Consultation fee chip ─────────────────────────────────────────────────────
+
+class _ConsultChip extends StatelessWidget {
+  final String category;
+  final double fee;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ConsultChip({
+    required this.category,
+    required this.fee,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const color = EnhancedTheme.accentPurple;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? color.withValues(alpha: 0.18)
+              : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? color : context.borderColor,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Cat $category',
+                style: TextStyle(
+                    color: selected ? color : context.subLabelColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(fmtN(fee),
+                style: TextStyle(
+                    color: selected ? color : context.labelColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 // ── Section card ──────────────────────────────────────────────────────────────
 

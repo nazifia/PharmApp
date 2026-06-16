@@ -72,6 +72,8 @@ class Prescription {
   final String? prescriberLicenseNo;
   final String? diagnosis;
   final String? notes;
+  final String? consultationCategory; // 'A'–'E' or null
+  final double consultationFee; // snapshot amount (silent surcharge at POS)
   final List<PrescriptionItem> medications;
   final String status; // 'pending' | 'partial' | 'dispensed'
   final String createdAt;
@@ -98,6 +100,8 @@ class Prescription {
     this.prescriberLicenseNo,
     this.diagnosis,
     this.notes,
+    this.consultationCategory,
+    this.consultationFee = 0.0,
     required this.medications,
     required this.status,
     required this.createdAt,
@@ -147,6 +151,8 @@ class Prescription {
         prescriberLicenseNo: prescriberLicenseNo,
         diagnosis: diagnosis,
         notes: notes,
+        consultationCategory: consultationCategory,
+        consultationFee: consultationFee,
         medications: medications ?? this.medications,
         status: status ?? this.status,
         createdAt: createdAt,
@@ -200,6 +206,11 @@ class Prescription {
           (j['prescriber_license_no'] ?? j['prescriberLicenseNo']) as String?,
       diagnosis: j['diagnosis'] as String?,
       notes: j['notes'] as String?,
+      consultationCategory:
+          (j['consultation_category'] ?? j['consultationCategory']) as String?,
+      consultationFee:
+          ((j['consultation_fee'] ?? j['consultationFee']) as num?)?.toDouble() ??
+              0.0,
       medications: meds,
       status: (j['status'] as String?) ?? 'pending',
       createdAt: formatted,
@@ -226,6 +237,8 @@ class Prescription {
         if (doctorName != null && doctorName!.isNotEmpty) 'doctor_name': doctorName,
         if (diagnosis != null && diagnosis!.isNotEmpty) 'diagnosis': diagnosis,
         if (notes != null && notes!.isNotEmpty) 'notes': notes,
+        if (consultationCategory != null && consultationCategory!.isNotEmpty)
+          'consultation_category': consultationCategory,
         'medications': medications.map((m) => m.toJson()).toList(),
         'refills_allowed': refillsAllowed,
       };

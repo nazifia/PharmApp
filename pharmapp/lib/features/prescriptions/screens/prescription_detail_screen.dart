@@ -196,6 +196,20 @@ class _PrescriptionDetailScreenState
                               ),
                               const SizedBox(height: 12),
                             ],
+                            if (rx.consultationFee > 0 ||
+                                (rx.consultationCategory != null &&
+                                    rx.consultationCategory!.isNotEmpty)) ...[
+                              _InfoSection(
+                                label: rx.consultationCategory != null &&
+                                        rx.consultationCategory!.isNotEmpty
+                                    ? 'Consultation Fee · Category ${rx.consultationCategory}'
+                                    : 'Consultation Fee',
+                                value:
+                                    '${fmtN(rx.consultationFee)}  (added at payment, not shown on receipt)',
+                                icon: Icons.medical_information_rounded,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
                             if (rx.refillsAllowed > 0) ...[
                               _RefillSection(
                                 rx: rx,
@@ -232,7 +246,8 @@ class _PrescriptionDetailScreenState
                                     _showAvailability(med),
                                 onAddToCart: med.isDispensed
                                     ? null
-                                    : () => _addToCart(med, i, rx.id),
+                                    : () => _addToCart(med, i, rx.id,
+                                        consultationFee: rx.consultationFee),
                               )
                                   .animate()
                                   .fadeIn(
@@ -265,7 +280,8 @@ class _PrescriptionDetailScreenState
     );
   }
 
-  Future<void> _addToCart(PrescriptionItem med, int medIndex, int prescriptionId) async {
+  Future<void> _addToCart(PrescriptionItem med, int medIndex, int prescriptionId,
+      {double consultationFee = 0}) async {
     Item? item;
 
     if (med.itemId != null) {
@@ -307,6 +323,16 @@ class _PrescriptionDetailScreenState
       updated[prescriptionId] = indices;
       return updated;
     });
+
+    // Attach the consultation surcharge once per prescription — charged silently
+    // at POS checkout, never itemised on the customer receipt.
+    if (consultationFee > 0) {
+      ref.read(prescriptionConsultationFeesProvider.notifier).update((m) {
+        final updated = Map<int, double>.from(m);
+        updated[prescriptionId] = consultationFee;
+        return updated;
+      });
+    }
 
     if (!mounted) return;
     final resolvedItem = item;
@@ -1266,6 +1292,7 @@ class _EditPrescriptionSheetState extends State<_EditPrescriptionSheet> {
   late final TextEditingController _doctorCtrl;
   late final TextEditingController _diagnosisCtrl;
   late final TextEditingController _notesCtrl;
+  late final TextEditingController _consultFeeCtrl;
   late String _status;
 
   @override
@@ -1274,6 +1301,10 @@ class _EditPrescriptionSheetState extends State<_EditPrescriptionSheet> {
     _doctorCtrl = TextEditingController(text: widget.rx.doctorName ?? '');
     _diagnosisCtrl = TextEditingController(text: widget.rx.diagnosis ?? '');
     _notesCtrl = TextEditingController(text: widget.rx.notes ?? '');
+    _consultFeeCtrl = TextEditingController(
+        text: widget.rx.consultationFee > 0
+            ? widget.rx.consultationFee.toStringAsFixed(0)
+            : '');
     _status = widget.rx.status;
   }
 
@@ -1282,6 +1313,7 @@ class _EditPrescriptionSheetState extends State<_EditPrescriptionSheet> {
     _doctorCtrl.dispose();
     _diagnosisCtrl.dispose();
     _notesCtrl.dispose();
+    _consultFeeCtrl.dispose();
     super.dispose();
   }
 
@@ -1350,6 +1382,13 @@ class _EditPrescriptionSheetState extends State<_EditPrescriptionSheet> {
                 icon: Icons.notes_rounded,
                 maxLines: 3,
               ),
+              const SizedBox(height: 12),
+              _SheetField(
+                controller: _consultFeeCtrl,
+                label: 'Consultation Fee (₦) — override',
+                hint: 'Charged silently at payment, hidden on receipt',
+                icon: Icons.medical_information_rounded,
+              ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
@@ -1358,6 +1397,8 @@ class _EditPrescriptionSheetState extends State<_EditPrescriptionSheet> {
                     'doctor_name': _doctorCtrl.text.trim(),
                     'diagnosis': _diagnosisCtrl.text.trim(),
                     'notes': _notesCtrl.text.trim(),
+                    'consultation_fee':
+                        double.tryParse(_consultFeeCtrl.text.trim()) ?? 0,
                   });
                 },
                 style: ElevatedButton.styleFrom(

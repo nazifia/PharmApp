@@ -57,19 +57,25 @@ class _AppStartup extends ConsumerWidget {
         if (snap.connectionState != ConnectionState.done) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: Scaffold(
-              backgroundColor: EnhancedTheme.primaryDark,
-              body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(color: EnhancedTheme.primaryTeal),
-                    const SizedBox(height: 16),
-                    Text('Loading...', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
-                  ],
+            // Override the platform default route (e.g. the current deep link on
+            // hot restart) so this legacy splash Navigator never tries to match
+            // a go_router path and log "Could not navigate to initial route".
+            initialRoute: '/',
+            routes: {
+              '/': (_) => Scaffold(
+                backgroundColor: EnhancedTheme.primaryDark,
+                body: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: EnhancedTheme.primaryTeal),
+                      const SizedBox(height: 16),
+                      Text('Loading...', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            },
           );
         }
         return const PharmApp();

@@ -66,6 +66,9 @@ class Sale(models.Model):
     )
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Silent prescriber consultation surcharge folded into total_amount. Tracked
+    # for reporting but never itemised on the customer-facing receipt.
+    consultation_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     payment_cash = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     payment_pos = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     payment_transfer = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -145,6 +148,7 @@ class Sale(models.Model):
             ),
             "totalAmount": float(self.total_amount),
             "discountTotal": float(self.discount_total),
+            "consultationFee": float(self.consultation_fee),
             "paymentCash": float(self.payment_cash),
             "paymentPos": float(self.payment_pos),
             "paymentTransfer": float(self.payment_transfer),

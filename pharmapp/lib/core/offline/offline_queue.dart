@@ -95,11 +95,18 @@ class OfflineQueueNotifier extends StateNotifier<List<PendingSale>> {
   }
 
   /// Enqueue a checkout to be synced later.
-  Future<PendingSale> enqueue(CheckoutPayload payload) async {
+  ///
+  /// [consultationFee] is stored alongside the serialized payload (the freezed
+  /// CheckoutPayload has no field for it) so the silent surcharge survives a
+  /// later sync replay.
+  Future<PendingSale> enqueue(CheckoutPayload payload,
+      {double consultationFee = 0}) async {
     await ensureLoaded();
+    final payloadJson = payload.toJson();
+    if (consultationFee > 0) payloadJson['consultationFee'] = consultationFee;
     final entry = PendingSale(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
-      payload: payload.toJson(),
+      payload: payloadJson,
       queuedAt: DateTime.now(),
     );
     final queue = List<PendingSale>.from(state)..add(entry);

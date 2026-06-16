@@ -61,8 +61,37 @@ class Prescriber(models.Model):
         max_digits=5, decimal_places=2, default=0,
         help_text='Commission percentage (0–100) earned on dispensed prescription sales',
     )
+    # Consultation fee bands — prescriber-editable default amount per category A–E.
+    # A pharmacy may override the snapshot fee on an individual prescription.
+    consult_fee_a     = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    consult_fee_b     = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    consult_fee_c     = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    consult_fee_d     = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    consult_fee_e     = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     created_at        = models.DateTimeField(auto_now_add=True)
     updated_at        = models.DateTimeField(auto_now=True)
+
+    # Category letters supported for consultation-fee bands.
+    CONSULT_CATEGORIES = ['A', 'B', 'C', 'D', 'E']
+
+    def consultation_fees_dict(self):
+        """Return {'A': fee, ...} as floats for the API."""
+        return {
+            'A': float(self.consult_fee_a),
+            'B': float(self.consult_fee_b),
+            'C': float(self.consult_fee_c),
+            'D': float(self.consult_fee_d),
+            'E': float(self.consult_fee_e),
+        }
+
+    def fee_for_category(self, category):
+        """Return the Decimal fee for a category letter, or 0 if unknown."""
+        field = {
+            'A': self.consult_fee_a, 'B': self.consult_fee_b,
+            'C': self.consult_fee_c, 'D': self.consult_fee_d,
+            'E': self.consult_fee_e,
+        }.get((category or '').strip().upper())
+        return field if field is not None else 0
 
     class Meta:
         ordering = ['name']
@@ -86,6 +115,7 @@ class Prescriber(models.Model):
             'address':         self.address or None,
             'is_verified':     self.is_verified,
             'commission_rate': float(self.commission_rate),
+            'consultation_fees': self.consultation_fees_dict(),
             'created_at':      self.created_at.isoformat(),
         }
 
@@ -126,6 +156,11 @@ class Prescription(models.Model):
     doctor_name    = models.CharField(max_length=200, blank=True, default='')
     diagnosis      = models.TextField(blank=True, default='')
     notes          = models.TextField(blank=True, default='')
+    # Consultation fee band selected by the prescriber (A–E) plus the snapshot
+    # amount at write-time. The fee is added as a silent surcharge at POS and is
+    # never itemised on the customer receipt.
+    consultation_category = models.CharField(max_length=1, blank=True, default='')
+    consultation_fee      = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     source         = models.CharField(max_length=30, blank=True, default='pharmacy')  # 'pharmacy' | 'portal'
     created_by     = models.ForeignKey(
@@ -172,6 +207,8 @@ class Prescription(models.Model):
             'doctor_name':         self.doctor_name   or None,
             'diagnosis':           self.diagnosis     or None,
             'notes':               self.notes         or None,
+            'consultation_category': self.consultation_category or None,
+            'consultation_fee':      float(self.consultation_fee),
             'status':              self.status,
             'source':              self.source or 'pharmacy',
             'created_at':          self.created_at.isoformat(),

@@ -146,7 +146,13 @@
       "PowerShell($prescribers = Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/prescriptions/prescribers/\" -Method Get -Headers @{Authorization=\"Bearer $global:TOKEN\"}; Write-Host \"Count: $\\($prescribers.Count\\)\"; $prescribers | Select-Object id,name,commission_rate | Format-Table)",
       "PowerShell(Get-Process *)",
       "Bash(git *)",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\pos\" -Recurse | Select-Object FullName | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\pos\"\\), \".\" })"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\pos\" -Recurse | Select-Object FullName | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\\\\pos\"\\), \".\" })",
+      "Bash(venv/Scripts/python.exe manage.py check)",
+      "Bash(venv/Scripts/python.exe -c \"import django; django.setup\\(\\); from django.template.loader import get_template; [get_template\\(t\\) for t in ['admin/global_overview.html','admin/authapp/siteconfig/changelist.html','admin/subscription/planpricing/changelist.html','admin/subscription/subscription/change_form.html']]; print\\('templates OK'\\)\")",
+      "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev venv/Scripts/python.exe -c \"import django; django.setup\\(\\); from django.template.loader import get_template; [get_template\\(t\\) for t in ['admin/global_overview.html','admin/authapp/siteconfig/changelist.html','admin/subscription/planpricing/changelist.html','admin/subscription/subscription/change_form.html','admin/subscription/planfeatureflag/changelist.html','admin/index.html']]; print\\('templates compile OK'\\)\")",
+      "Bash(venv/Scripts/python.exe manage.py makemigrations --check --dry-run)",
+      "Read(//c/Users/Dell/AppData/Local/Pub/Cache/hosted/pub.dev/**)",
+      "PowerShell(git *)"
     ]
   }
 }

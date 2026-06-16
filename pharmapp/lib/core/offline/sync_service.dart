@@ -95,9 +95,11 @@ class SyncService {
       final salesQueue = ref.read(offlineQueueProvider);
       for (final sale in List<PendingSale>.from(salesQueue)) {
         try {
-          await ref
-              .read(posApiProvider)
-              .submitCheckout(CheckoutPayload.fromJson(sale.payload));
+          await ref.read(posApiProvider).submitCheckout(
+                CheckoutPayload.fromJson(sale.payload),
+                consultationFee:
+                    (sale.payload['consultationFee'] as num?)?.toDouble(),
+              );
           // Remove local dispensing entries created while the sale was offline
           // to prevent them showing alongside the just-synced backend record.
           await ref

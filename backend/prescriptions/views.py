@@ -49,6 +49,70 @@ def _get_peer_org_ids(org) -> set:
     return peer_ids
 
 
+_CONSULT_FEE_FIELDS = {
+    'A': 'consult_fee_a', 'B': 'consult_fee_b', 'C': 'consult_fee_c',
+    'D': 'consult_fee_d', 'E': 'consult_fee_e',
+}
+
+
+def _apply_consult_fees(prescriber, data) -> bool:
+    """
+    Apply A–E consultation-fee bands from request data onto a Prescriber.
+    Accepts either a nested {'consultation_fees': {'A': 1000, ...}} dict or
+    flat keys (consult_fee_a, ...). Returns True if anything changed.
+    """
+    fees = data.get('consultation_fees')
+    changed = False
+    for letter, field in _CONSULT_FEE_FIELDS.items():
+        raw = None
+        if isinstance(fees, dict):
+            if letter in fees:
+                raw = fees[letter]
+            elif letter.lower() in fees:
+                raw = fees[letter.lower()]
+        if raw is None and field in data:
+            raw = data[field]
+        if raw is None:
+            continue
+        try:
+            val = float(raw or 0)
+        except (TypeError, ValueError):
+            continue
+        if val < 0:
+            continue
+        setattr(prescriber, field, val)
+        changed = True
+    return changed
+
+
+def _resolve_consultation(prescriber_obj, data):
+    """
+    Return (category, fee) for a prescription. Category is one of A–E or ''.
+    The fee is taken from an explicit `consultation_fee` in the request when
+    provided (pharmacy override); otherwise derived from the prescriber's band.
+    """
+    from decimal import Decimal, InvalidOperation
+    category = (data.get('consultation_category') or '').strip().upper()
+    if category not in _CONSULT_FEE_FIELDS:
+        category = ''
+
+    fee = None
+    raw_fee = data.get('consultation_fee')
+    if raw_fee is not None and raw_fee != '':
+        try:
+            fee = Decimal(str(raw_fee))
+        except (InvalidOperation, TypeError, ValueError):
+            fee = None
+    if fee is None:
+        if prescriber_obj and category:
+            fee = Decimal(str(prescriber_obj.fee_for_category(category)))
+        else:
+            fee = Decimal('0')
+    if fee < 0:
+        fee = Decimal('0')
+    return category, fee
+
+
 def _resolve_item(org, item_name: str, brand: str = '') -> int | None:
     """Return the inventory Item pk that best matches name+brand within org, or None."""
     from inventory.models import Item
@@ -182,6 +246,8 @@ def prescription_list(request):
     if prescriber_obj and not doctor_name_raw:
         doctor_name_raw = prescriber_obj.name
 
+    consult_category, consult_fee = _resolve_consultation(prescriber_obj, data)
+
     with transaction.atomic():
         rx = Prescription.objects.create(
             organization   = org,
@@ -193,6 +259,8 @@ def prescription_list(request):
             doctor_name    = doctor_name_raw,
             diagnosis      = (data.get('diagnosis')    or '').strip(),
             notes          = (data.get('notes')        or '').strip(),
+            consultation_category = consult_category,
+            consultation_fee      = consult_fee,
             created_by     = request.user,
             status         = 'pending',
         )
@@ -297,6 +365,14 @@ def prescription_detail(request, pk):
             changed = True
         if 'notes' in data:
             rx.notes = (data['notes'] or '').strip()
+            changed = True
+        if 'consultation_category' in data or 'consultation_fee' in data:
+            # Re-resolve against the (possibly updated) prescriber band, honoring
+            # an explicit consultation_fee as a pharmacy override.
+            cat, fee = _resolve_consultation(rx.prescriber, data)
+            if 'consultation_category' in data:
+                rx.consultation_category = cat
+            rx.consultation_fee = fee
             changed = True
         if 'status' in data and data['status'] in ('pending', 'partial', 'dispensed'):
             rx.status = data['status']
@@ -804,6 +880,8 @@ def prescriber_list(request):
         address         = (request.data.get('address') or '').strip(),
         commission_rate = commission_rate,
     )
+    if _apply_consult_fees(prescriber, request.data):
+        prescriber.save()
     log_activity(
         request,
         action='Add Prescriber',
@@ -814,20 +892,40 @@ def prescriber_list(request):
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def prescriber_detail(request, pk):
     """
     GET    /api/prescriptions/prescribers/<pk>/
     PATCH  /api/prescriptions/prescribers/<pk>/
     DELETE /api/prescriptions/prescribers/<pk>/
-    Global — any authenticated user can read; write requires PRESCRIPTIONS_WRITE role.
+    Pharmacy staff (IsAuthenticated): read any; write requires PRESCRIPTIONS_WRITE role.
+    Prescriber portal token (X-Prescriber-Token): may read and self-update consultation
+    fees on its OWN record only — no other fields, no DELETE.
     """
     try:
         prescriber = Prescriber.objects.select_related('hospital').get(pk=pk)
     except Prescriber.DoesNotExist:
         return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    # Portal token path — only the prescriber's own record.
+    portal_self = False
+    if not request.user.is_authenticated:
+        token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
+        tok_presc = _verify_prescriber_token(token) if token else None
+        if tok_presc is None or tok_presc.pk != prescriber.pk:
+            return Response({'detail': 'Authentication credentials were not provided.'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+        portal_self = True
+
     if request.method == 'GET':
+        return Response(prescriber.to_api_dict())
+
+    if portal_self:
+        # Prescriber self-service: consultation fees only.
+        if request.method != 'PATCH':
+            return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+        _apply_consult_fees(prescriber, request.data)
+        prescriber.save()
         return Response(prescriber.to_api_dict())
 
     if request.user.role not in PRESCRIPTIONS_WRITE:
@@ -863,6 +961,7 @@ def prescriber_detail(request, pk):
                     prescriber.commission_rate = rate
             except (TypeError, ValueError):
                 pass
+        _apply_consult_fees(prescriber, data)
         prescriber.save()
         log_activity(
             request,
@@ -1121,6 +1220,8 @@ def prescriber_portal_create_rx(request):
     # Prescribers created by a pharmacy admin have organization set to that pharmacy.
     org_for_rx = prescriber.organization or customer.organization
 
+    consult_category, consult_fee = _resolve_consultation(prescriber, data)
+
     with transaction.atomic():
         rx = Prescription.objects.create(
             organization   = org_for_rx,
@@ -1131,6 +1232,8 @@ def prescriber_portal_create_rx(request):
             customer_phone = customer.phone,
             diagnosis      = (data.get('diagnosis') or '').strip(),
             notes          = (data.get('notes') or '').strip(),
+            consultation_category = consult_category,
+            consultation_fee      = consult_fee,
             status         = 'pending',
             source         = 'portal',
         )

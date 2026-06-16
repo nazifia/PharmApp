@@ -93,9 +93,10 @@ class PrescriberApiClient {
     return (prescriber, token);
   }
 
-  Future<Prescriber> updatePrescriber(int id, Map<String, dynamic> data) async {
-    final res =
-        await _dio.patch('/prescriptions/prescribers/$id/', data: data);
+  Future<Prescriber> updatePrescriber(int id, Map<String, dynamic> data,
+      {bool portal = false}) async {
+    final res = await _dio.patch('/prescriptions/prescribers/$id/',
+        data: data, options: portal ? _portalOpts() : null);
     return Prescriber.fromJson(res.data as Map<String, dynamic>);
   }
 
