@@ -14,6 +14,7 @@ import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
 import 'package:pharmapp/shared/widgets/hardware_scanner_listener.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
 import '../providers/customer_provider.dart';
 
 class CustomerListScreen extends ConsumerStatefulWidget {
@@ -752,27 +753,13 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
             data: (customers) {
               final filtered = _applyFilter(customers);
               if (filtered.isEmpty) {
-                return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(colors: [
-                        EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-                        EnhancedTheme.primaryTeal.withValues(alpha: 0.03),
-                      ]),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.people_outline_rounded,
-                        color: EnhancedTheme.primaryTeal, size: 56),
-                  ),
-                  const SizedBox(height: 20),
-                  Text('No customers found',
-                      style: GoogleFonts.outfit(
-                          color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Text(_filter == 'All' ? 'Add your first customer using the button below' : 'Try a different filter',
-                      style: TextStyle(color: context.subLabelColor, fontSize: 13)),
-                ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9)));
+                return EmptyState(
+                  icon: Icons.people_outline_rounded,
+                  title: 'No customers found',
+                  message: _filter == 'All'
+                      ? 'Add your first customer using the button below'
+                      : 'Try a different filter',
+                );
               }
               return ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),

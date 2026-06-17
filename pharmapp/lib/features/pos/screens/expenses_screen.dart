@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
+import 'package:pharmapp/shared/widgets/glass_card.dart';
 import '../providers/pos_api_provider.dart';
 
 enum _Period { thisMonth, lastMonth }
@@ -1050,20 +1052,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 fontWeight: FontWeight.w600)),
           ]),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: context.cardColor,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: context.borderColor),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 8, offset: const Offset(0, 3))],
-              ),
-              child: Row(children: [
+        child: GlassCard(
+          padding: const EdgeInsets.all(16),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8, offset: const Offset(0, 3))],
+          child: Row(children: [
                 Container(
                   width: 48, height: 48,
                   decoration: BoxDecoration(
@@ -1102,37 +1095,20 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                   Icon(Icons.swipe_left_rounded, color: context.hintColor, size: 14),
                 ]),
               ]),
-            ),
-          ),
         ),
       ),
     );
   }
 
-  Widget _emptyState() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 60),
-      child: Column(children: [
-        Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            gradient: RadialGradient(colors: [
-              EnhancedTheme.errorRed.withValues(alpha: 0.1),
-              EnhancedTheme.errorRed.withValues(alpha: 0.02),
-            ]),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.receipt_long_outlined, color: EnhancedTheme.errorRed, size: 52),
+  Widget _emptyState() => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 60),
+        child: EmptyState(
+          icon: Icons.receipt_long_outlined,
+          title: 'No expenses yet',
+          message: 'Tap + to record a business expense',
+          color: EnhancedTheme.errorRed,
         ),
-        const SizedBox(height: 20),
-        Text('No expenses yet',
-            style: GoogleFonts.outfit(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 6),
-        Text('Tap + to record a business expense',
-            style: TextStyle(color: context.subLabelColor, fontSize: 13)),
-      ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
-    );
-  }
+      );
 
   Widget _totalSummary() {
     return ClipRRect(

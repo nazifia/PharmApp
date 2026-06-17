@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
 import '../providers/customer_provider.dart';
 
 class WalletScreen extends ConsumerStatefulWidget {
@@ -475,29 +476,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               ])),
             )
           else if (transactionsAsync.value!.isEmpty)
-            SliverFillRemaining(
+            const SliverFillRemaining(
               hasScrollBody: false,
-              child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(colors: [
-                        EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
-                        EnhancedTheme.primaryTeal.withValues(alpha: 0.02),
-                      ]),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.receipt_long_outlined,
-                        color: EnhancedTheme.primaryTeal, size: 48),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('No transactions yet',
-                      style: GoogleFonts.outfit(
-                          color: context.labelColor, fontSize: 17, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Text('Top up or deduct from the wallet above',
-                      style: TextStyle(color: context.subLabelColor, fontSize: 12)),
-                ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9))),
+              child: EmptyState(
+                icon: Icons.receipt_long_outlined,
+                title: 'No transactions yet',
+                message: 'Top up or deduct from the wallet above',
+              ),
             )
           else
             SliverPadding(

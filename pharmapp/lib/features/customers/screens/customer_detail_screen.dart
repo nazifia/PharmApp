@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/models/customer.dart';
+import 'package:pharmapp/shared/widgets/glass_card.dart';
 import '../providers/customer_provider.dart';
 import '../providers/customer_api_client.dart' show SaleItemDetail;
 import '../../pos/providers/cart_provider.dart';
@@ -1300,17 +1301,8 @@ class CustomerDetailScreen extends ConsumerWidget {
 
   // _purchaseRow replaced by _PurchaseCard below
 
-  Widget _glassCard(BuildContext context, {required Widget child}) => ClipRRect(
-    borderRadius: BorderRadius.circular(18),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.cardColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: context.borderColor)),
-        child: child)));
+  Widget _glassCard(BuildContext context, {required Widget child}) =>
+      GlassCard(padding: const EdgeInsets.all(16), child: child);
 
   Widget _metricCard(BuildContext context, String label, String value, Color color, IconData icon) => ClipRRect(
     borderRadius: BorderRadius.circular(16),

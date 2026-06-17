@@ -11,6 +11,7 @@ import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
 import '../shared/report_exporter.dart';
@@ -361,8 +362,13 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
         const SizedBox(height: 12),
 
         if (data.lowStockItems.isEmpty)
-          _emptyState(Icons.check_circle_rounded,
-              'All items adequately stocked', EnhancedTheme.successGreen)
+          const EmptyState(
+            boxed: true,
+            icon: Icons.check_circle_rounded,
+            title: 'All items adequately stocked',
+            message: 'Your inventory levels look great!',
+            color: EnhancedTheme.successGreen,
+          )
         else
           ...data.lowStockItems
               .asMap()
@@ -611,40 +617,6 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
         .slideX(begin: 0.05, end: 0);
   }
 
-  Widget _emptyState(IconData icon, String message, Color color) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-          decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: color.withValues(alpha: 0.15))),
-          child: Column(children: [
-            Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    shape: BoxShape.circle),
-                child: Icon(icon, color: color, size: 36)),
-            const SizedBox(height: 14),
-            Text(message,
-                style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center),
-            const SizedBox(height: 4),
-            const Text('Your inventory levels look great!',
-                style: TextStyle(color: Colors.black38, fontSize: 12),
-                textAlign: TextAlign.center),
-          ]),
-        ),
-      ),
-    ).animate().fadeIn(duration: 400.ms, delay: 150.ms);
-  }
 }
 
 class _PieSegment {

@@ -8,6 +8,8 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/glass_card.dart';
+import 'package:pharmapp/shared/widgets/screen_header.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -107,28 +109,12 @@ class MonthlyReportScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context, WidgetRef ref) {
-    return Padding(
+    return ScreenHeader(
+      title: 'Monthly Report',
+      subtitle: 'Sales, expenses & net profit',
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
-      child: Row(children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: IconButton(
-            icon: Icon(Icons.arrow_back_rounded, color: context.labelColor),
-            onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Monthly Report',
-              style: GoogleFonts.outfit(
-                  color: context.labelColor, fontSize: 22, fontWeight: FontWeight.w700)),
-          Text('Sales, expenses & net profit',
-              style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 12)),
-        ])),
+      onBack: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
+      actions: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
@@ -146,7 +132,7 @@ class MonthlyReportScreen extends ConsumerWidget {
                 color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
           ]),
         ),
-      ]),
+      ],
     ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.2);
   }
 
@@ -449,18 +435,10 @@ class MonthlyReportScreen extends ConsumerWidget {
 
   Widget _breakdownCard(BuildContext context, double totalSales,
       double totalExpenses, double netProfit, bool isProfit) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Column(children: [
+    return GlassCard(
+      borderRadius: 20,
+      padding: const EdgeInsets.all(18),
+      child: Column(children: [
             _breakdownRow(context, 'Total Sales Revenue',
                 _fmtNaira(totalSales), EnhancedTheme.successGreen,
                 Icons.point_of_sale_rounded),
@@ -475,8 +453,6 @@ class MonthlyReportScreen extends ConsumerWidget {
                 isProfit ? Icons.savings_rounded : Icons.trending_down_rounded,
                 bold: true),
           ]),
-        ),
-      ),
     );
   }
 
@@ -498,18 +474,10 @@ class MonthlyReportScreen extends ConsumerWidget {
 
   Widget _barChartCard(BuildContext context, double totalSales,
       double totalExpenses, double netProfit) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Column(children: [
+    return GlassCard(
+      borderRadius: 20,
+      padding: const EdgeInsets.all(18),
+      child: Column(children: [
             _animatedBarRow(context, 'Sales', totalSales, totalSales, EnhancedTheme.successGreen),
             const SizedBox(height: 14),
             _animatedBarRow(context, 'Expenses', totalExpenses, totalSales, EnhancedTheme.warningAmber),
@@ -517,8 +485,6 @@ class MonthlyReportScreen extends ConsumerWidget {
             _animatedBarRow(context, 'Net', netProfit.clamp(0, double.infinity) as double,
                 totalSales, EnhancedTheme.primaryTeal),
           ]),
-        ),
-      ),
     );
   }
 

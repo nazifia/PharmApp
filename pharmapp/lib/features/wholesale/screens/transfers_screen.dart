@@ -482,10 +482,13 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
                                 Icon(Icons.swap_horiz_rounded,
                                     color: directionColor, size: 12),
                                 const SizedBox(width: 4),
-                                Text(directionLabel,
-                                    style: GoogleFonts.inter(
-                                        color: context.hintColor,
-                                        fontSize: 11)),
+                                Flexible(
+                                    child: Text(directionLabel,
+                                        style: GoogleFonts.inter(
+                                            color: context.hintColor,
+                                            fontSize: 11),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis)),
                               ]),
                             ])),
                         // Status badge
@@ -515,43 +518,45 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
 
                       // Row 2: Qty + date info
                       const SizedBox(height: 10),
-                      Row(children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: directionColor.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text('$requestedQty $unit requested',
-                              style: GoogleFonts.inter(
-                                  color: directionColor,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                        if (approvedQty != null) ...[
-                          const SizedBox(width: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: EnhancedTheme.successGreen
-                                  .withValues(alpha: 0.08),
+                              color: directionColor.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text('$approvedQty $unit approved',
+                            child: Text('$requestedQty $unit requested',
                                 style: GoogleFonts.inter(
-                                    color: EnhancedTheme.successGreen,
+                                    color: directionColor,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600)),
                           ),
+                          if (approvedQty != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: EnhancedTheme.successGreen
+                                    .withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text('$approvedQty $unit approved',
+                                  style: GoogleFonts.inter(
+                                      color: EnhancedTheme.successGreen,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                          if (dateStr.isNotEmpty)
+                            Text(_formatDate(dateStr),
+                                style: GoogleFonts.inter(
+                                    color: context.hintColor, fontSize: 10)),
                         ],
-                        const Spacer(),
-                        if (dateStr.isNotEmpty)
-                          Text(_formatDate(dateStr),
-                              style: GoogleFonts.inter(
-                                  color: context.hintColor, fontSize: 10)),
-                      ]),
+                      ),
 
                       // Action buttons
                       if (status == 'pending') ...[

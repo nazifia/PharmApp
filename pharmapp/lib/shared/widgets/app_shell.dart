@@ -136,9 +136,13 @@ class _AppShellState extends ConsumerState<AppShell>
     _wentOffline = false;
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
-      // Web: reload the browser page.
-      reloadApp();
-      // Native (reloadApp is a no-op stub): rebuild the ProviderScope root.
+      if (kIsWeb) {
+        // Web: reload the browser page. Tears down the tree, so do NOT touch
+        // the (now-deactivating) context afterwards.
+        reloadApp();
+        return;
+      }
+      // Native: rebuild the ProviderScope root.
       AppRestartWrapper.restart(context);
     });
   }
@@ -1106,7 +1110,7 @@ class _NavBtn extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,

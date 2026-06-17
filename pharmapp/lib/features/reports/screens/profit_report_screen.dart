@@ -11,6 +11,8 @@ import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/glass_card.dart';
+import 'package:pharmapp/shared/widgets/screen_header.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
 import '../shared/report_exporter.dart';
@@ -131,28 +133,11 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
   }
 
   Widget _buildHeader(BuildContext context, ProfitReportData? reportData) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
-      child: Row(children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: IconButton(
-            icon: Icon(Icons.arrow_back_rounded, color: context.iconOnBg),
-            onPressed: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Profit Report',
-              style: GoogleFonts.outfit(
-                  color: context.labelColor, fontSize: 22, fontWeight: FontWeight.w700)),
-          Text('Revenue, cost & margin analysis',
-              style: GoogleFonts.inter(color: context.hintColor, fontSize: 12)),
-        ])),
+    return ScreenHeader(
+      title: 'Profit Report',
+      subtitle: 'Revenue, cost & margin analysis',
+      onBack: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
+      actions: [
         // Export button
         Builder(builder: (ctx) {
           final hasExport = ref.watch(hasFeatureProvider(SaasFeature.exportData));
@@ -200,25 +185,17 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                     color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
           ]),
         ),
-      ]),
+      ],
     ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.2);
   }
 
   Widget _buildPeriodSelector() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: context.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: context.borderColor),
-            ),
-            child: Row(children: _periods.map((p) {
+      child: GlassCard(
+        borderRadius: 16,
+        padding: const EdgeInsets.all(4),
+        child: Row(children: _periods.map((p) {
               final active = p == _period;
               return Expanded(child: GestureDetector(
                 onTap: () => setState(() => _period = p),
@@ -244,8 +221,6 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                 ),
               ));
             }).toList()),
-          ),
-        ),
       ),
     ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: -0.1);
   }
@@ -627,18 +602,10 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
   }
 
   Widget _revenueBreakdownCard(BuildContext context, ProfitReportData data, double cost) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Column(children: [
+    return GlassCard(
+      borderRadius: 20,
+      padding: const EdgeInsets.all(18),
+      child: Column(children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               _legend(context, EnhancedTheme.errorRed.withValues(alpha: 0.75),
                   'Cost (${((cost / data.revenue) * 100).round()}%)'),
@@ -689,8 +656,6 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                   _fmt(data.profit), EnhancedTheme.successGreen)),
             ]),
           ]),
-        ),
-      ),
     );
   }
 

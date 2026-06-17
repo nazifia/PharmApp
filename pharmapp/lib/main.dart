@@ -55,27 +55,31 @@ class _AppStartup extends ConsumerWidget {
       ),
       builder: (_, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            // Override the platform default route (e.g. the current deep link on
-            // hot restart) so this legacy splash Navigator never tries to match
-            // a go_router path and log "Could not navigate to initial route".
-            initialRoute: '/',
-            routes: {
-              '/': (_) => Scaffold(
-                backgroundColor: EnhancedTheme.primaryDark,
-                body: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(color: EnhancedTheme.primaryTeal),
-                      const SizedBox(height: 16),
-                      Text('Loading...', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
-                    ],
+          // On hot restart the platform default route is the current deep link
+          // (e.g. /dashboard/pos). Flutter's WidgetsApp prefers the platform
+          // route over `initialRoute`, so an `initialRoute`/`routes` splash
+          // would try to match a go_router path and log "Could not navigate to
+          // initial route". onGenerateInitialRoutes + onGenerateRoute swallow
+          // ANY route name and always return the splash.
+          Route<dynamic> splashRoute(RouteSettings _) => MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  backgroundColor: EnhancedTheme.primaryDark,
+                  body: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(color: EnhancedTheme.primaryTeal),
+                        const SizedBox(height: 16),
+                        Text('Loading...', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            },
+              );
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            onGenerateInitialRoutes: (_) => [splashRoute(const RouteSettings())],
+            onGenerateRoute: splashRoute,
           );
         }
         return const PharmApp();

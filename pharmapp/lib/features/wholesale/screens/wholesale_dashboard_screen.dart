@@ -198,7 +198,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: cols, mainAxisSpacing: 10, crossAxisSpacing: 10,
-            childAspectRatio: isWide ? 1.8 : 1.5,
+            childAspectRatio: isWide ? 1.6 : 1.3,
           ),
           itemCount: 5,
           itemBuilder: (_, __) => EnhancedTheme.loadingShimmer(height: 80, radius: 14),
@@ -224,7 +224,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: cols, mainAxisSpacing: 10, crossAxisSpacing: 10,
-              childAspectRatio: isWide ? 1.8 : 1.5,
+              childAspectRatio: isWide ? 1.6 : 1.3,
             ),
             itemCount: stats.length,
             itemBuilder: (_, i) {

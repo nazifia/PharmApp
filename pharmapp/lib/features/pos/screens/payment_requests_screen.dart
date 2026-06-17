@@ -12,6 +12,7 @@ import 'package:pharmapp/shared/models/sale.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../providers/pos_api_provider.dart';
 import 'receipt_screen.dart';
@@ -1132,29 +1133,11 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
     );
   }
 
-  Widget _emptyState() {
-    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          gradient: RadialGradient(colors: [
-            EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
-            EnhancedTheme.primaryTeal.withValues(alpha: 0.03),
-          ]),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.receipt_long_outlined, color: EnhancedTheme.primaryTeal, size: 56),
-      ),
-      const SizedBox(height: 20),
-      Text('No payment requests',
-          style: GoogleFonts.outfit(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 6),
-      Text(
-        _filter == 'all' ? 'No requests found' : 'No $_filter requests found',
-        style: TextStyle(color: context.subLabelColor, fontSize: 13),
-      ),
-    ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)));
-  }
+  Widget _emptyState() => EmptyState(
+        icon: Icons.receipt_long_outlined,
+        title: 'No payment requests',
+        message: _filter == 'all' ? 'No requests found' : 'No $_filter requests found',
+      );
 
   Widget _errorState() {
     return Center(child: Padding(

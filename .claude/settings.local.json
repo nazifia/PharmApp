@@ -152,7 +152,14 @@
       "Bash(DJANGO_SETTINGS_MODULE=pharmapi.settings.dev venv/Scripts/python.exe -c \"import django; django.setup\\(\\); from django.template.loader import get_template; [get_template\\(t\\) for t in ['admin/global_overview.html','admin/authapp/siteconfig/changelist.html','admin/subscription/planpricing/changelist.html','admin/subscription/subscription/change_form.html','admin/subscription/planfeatureflag/changelist.html','admin/index.html']]; print\\('templates compile OK'\\)\")",
       "Bash(venv/Scripts/python.exe manage.py makemigrations --check --dry-run)",
       "Read(//c/Users/Dell/AppData/Local/Pub/Cache/hosted/pub.dev/**)",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "Bash(sort -t: -k2 -rn)",
+      "Bash(tasklist)",
+      "Bash(taskkill //IM pharmapp.exe //F)",
+      "Bash(kill %1)",
+      "Bash(pkill -f \"flutter_tools.*chrome\")",
+      "Bash(pkill -f dartaotruntime)",
+      "Bash(echo \"launched pid $!\")"
     ]
   }
 }

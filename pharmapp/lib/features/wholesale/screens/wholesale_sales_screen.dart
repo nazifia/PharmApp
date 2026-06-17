@@ -619,8 +619,11 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
                         _paymentBadge(paymentMethod),
                         const SizedBox(width: 6),
                         if (dateStr.isNotEmpty)
-                          Text(_formatDateTime(dateStr),
-                              style: GoogleFonts.inter(color: context.hintColor, fontSize: 10)),
+                          Flexible(
+                            child: Text(_formatDateTime(dateStr),
+                                style: GoogleFonts.inter(color: context.hintColor, fontSize: 10),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                          ),
                       ]),
                       if (dispenserName.isNotEmpty || itemsCount > 0) ...[
                         const SizedBox(height: 3),
@@ -628,8 +631,11 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
                           if (dispenserName.isNotEmpty) ...[
                             Icon(Icons.person_rounded, color: context.hintColor, size: 10),
                             const SizedBox(width: 3),
-                            Text(dispenserName,
-                                style: GoogleFonts.inter(color: context.hintColor, fontSize: 10)),
+                            Flexible(
+                              child: Text(dispenserName,
+                                  style: GoogleFonts.inter(color: context.hintColor, fontSize: 10),
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
                           ],
                           if (dispenserName.isNotEmpty && itemsCount > 0)
                             Text(' \u00B7 ', style: GoogleFonts.inter(color: context.hintColor, fontSize: 10)),

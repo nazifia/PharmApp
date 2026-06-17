@@ -13,6 +13,7 @@ import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
 import 'package:pharmapp/shared/widgets/barcode_scanner_sheet.dart';
 import 'package:pharmapp/shared/widgets/hardware_scanner_listener.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/branch.dart';
@@ -1270,25 +1271,9 @@ class _StoreInventoryView extends ConsumerWidget {
     child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
   );
 
-  Widget _emptyState(BuildContext context) => Center(
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          gradient: RadialGradient(colors: [
-            EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
-            EnhancedTheme.primaryTeal.withValues(alpha: 0.03),
-          ]),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.inventory_2_outlined, color: EnhancedTheme.primaryTeal, size: 56),
-      ),
-      const SizedBox(height: 20),
-      Text('No items found',
-          style: GoogleFonts.outfit(color: context.labelColor, fontSize: 18, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 6),
-      Text('No ${store == 'retail' ? 'retail' : 'wholesale'} items match your search',
-          style: TextStyle(color: context.subLabelColor, fontSize: 13)),
-    ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
+  Widget _emptyState(BuildContext context) => EmptyState(
+    icon: Icons.inventory_2_outlined,
+    title: 'No items found',
+    message: 'No $store items match your search',
   );
 }

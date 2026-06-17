@@ -11,6 +11,8 @@ import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/models/commission_config.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
+import 'package:pharmapp/shared/widgets/glass_card.dart';
 import '../providers/reports_api_client.dart';
 import '../providers/reports_provider.dart';
 import '../providers/commission_provider.dart';
@@ -131,17 +133,10 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
 
   Widget _periodSelector() => Padding(
     padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.borderColor)),
-          child: Row(children: _periods.map((p) {
+    child: GlassCard(
+      borderRadius: 14,
+      padding: const EdgeInsets.all(4),
+      child: Row(children: _periods.map((p) {
             final active = p == _period;
             return Expanded(child: GestureDetector(
               onTap: () => setState(() => _period = p),
@@ -161,9 +156,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
                         color: active ? Colors.black : Colors.black54,
                         fontSize: 11, fontWeight: FontWeight.w700))),
             ));
-          }).toList()),
-        ),
-      ),
+      }).toList()),
     ),
   ).animate().fadeIn(duration: 350.ms, delay: 80.ms);
 
@@ -254,11 +247,13 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
                       borderRadius: BorderRadius.circular(12)),
                     child: const Icon(Icons.point_of_sale_rounded, color: EnhancedTheme.accentOrange, size: 20)),
                   const SizedBox(width: 12),
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Total Payments', style: TextStyle(color: context.subLabelColor, fontSize: 12, letterSpacing: 0.4)),
-                    Text(_fmt(data.totalAmount), style: GoogleFonts.outfit(
+                    Text(_fmt(data.totalAmount),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
                       color: context.labelColor, fontSize: 32, fontWeight: FontWeight.w800)),
-                  ]),
+                  ])),
                 ]),
                 const SizedBox(height: 18),
                 Row(children: [
@@ -340,23 +335,13 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
       ('Wallet',   wallet,   Icons.account_balance_wallet_rounded, EnhancedTheme.accentPurple),
     ];
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: context.borderColor)),
-          child: Column(
-            children: methods.where((m) => m.$2 > 0).map((m) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: _breakdownRow(context, m.$1, m.$2, total, m.$4, m.$3),
-            )).toList(),
-          ),
-        ),
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        children: methods.where((m) => m.$2 > 0).map((m) => Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: _breakdownRow(context, m.$1, m.$2, total, m.$4, m.$3),
+        )).toList(),
       ),
     ).animate().fadeIn(duration: 400.ms, delay: 100.ms);
   }
@@ -462,21 +447,28 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
                         color: EnhancedTheme.successGreen, size: 13),
                     const SizedBox(width: 6),
                     if (rate > 0)
-                      Text('${(rate * 100).toStringAsFixed(1)}% → ${_fmt(earned)}',
-                          style: const TextStyle(
-                              color: EnhancedTheme.successGreen,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700)),
+                      Flexible(
+                        child: Text('${(rate * 100).toStringAsFixed(1)}% → ${_fmt(earned)}',
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: EnhancedTheme.successGreen,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700)),
+                      ),
                     if (bonus > 0) ...[
                       const SizedBox(width: 6),
-                      Text('+ ${_fmt(bonus)} bonus',
-                          style: const TextStyle(
-                              color: EnhancedTheme.accentOrange,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700)),
+                      Flexible(
+                        child: Text('+ ${_fmt(bonus)} bonus',
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: EnhancedTheme.accentOrange,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700)),
+                      ),
                     ],
                     const Spacer(),
                     Text('Payout: ${_fmt(payout)}',
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             color: EnhancedTheme.successGreen,
                             fontSize: 11,
@@ -599,28 +591,10 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
       Text(title, style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
     ]);
 
-  Widget _emptyState() => ClipRRect(
-    borderRadius: BorderRadius.circular(18),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-        decoration: BoxDecoration(
-          color: EnhancedTheme.accentOrange.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: EnhancedTheme.accentOrange.withValues(alpha: 0.15))),
-        child: Column(children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: EnhancedTheme.accentOrange.withValues(alpha: 0.12),
-              shape: BoxShape.circle),
-            child: const Icon(Icons.point_of_sale_rounded, color: EnhancedTheme.accentOrange, size: 32)),
-          const SizedBox(height: 14),
-          Text('No sales recorded for this period',
-              style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
-        ]),
-      ),
-    ),
-  );
+  Widget _emptyState() => const EmptyState(
+        boxed: true,
+        icon: Icons.point_of_sale_rounded,
+        title: 'No sales recorded for this period',
+        color: EnhancedTheme.accentOrange,
+      );
 }

@@ -12,6 +12,8 @@ import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/models/commission_config.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
+import 'package:pharmapp/shared/widgets/glass_card.dart';
 import '../providers/commission_provider.dart';
 
 class CommissionReportScreen extends ConsumerStatefulWidget {
@@ -222,17 +224,10 @@ class _CommissionReportScreenState
 
   Widget _periodSelector() => Padding(
     padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.borderColor)),
-          child: SingleChildScrollView(
+    child: GlassCard(
+      borderRadius: 14,
+      padding: const EdgeInsets.all(4),
+      child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: _periods.map((p) {
               final active = p == _period;
@@ -260,10 +255,8 @@ class _CommissionReportScreenState
               );
             }).toList()),
           ),
-        ),
       ),
-    ),
-  ).animate().fadeIn(duration: 350.ms, delay: 80.ms);
+    ).animate().fadeIn(duration: 350.ms, delay: 80.ms);
 
   Widget _loadingState() => Center(
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -721,33 +714,12 @@ class _CommissionReportScreenState
                 fontWeight: FontWeight.w700)),
       ]);
 
-  Widget _emptyState() => ClipRRect(
-    borderRadius: BorderRadius.circular(18),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-        decoration: BoxDecoration(
-          color: EnhancedTheme.successGreen.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-              color: EnhancedTheme.successGreen.withValues(alpha: 0.15))),
-        child: Column(children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
-              shape: BoxShape.circle),
-            child: const Icon(Icons.payments_rounded,
-                color: EnhancedTheme.successGreen, size: 32)),
-          const SizedBox(height: 14),
-          Text('No commission data for this period',
-              style: TextStyle(color: context.subLabelColor, fontSize: 13),
-              textAlign: TextAlign.center),
-        ]),
-      ),
-    ),
-  );
+  Widget _emptyState() => const EmptyState(
+        boxed: true,
+        icon: Icons.payments_rounded,
+        title: 'No commission data for this period',
+        color: EnhancedTheme.successGreen,
+      );
 
   String _periodLabel(String p) {
     switch (p) {

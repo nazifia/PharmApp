@@ -11,6 +11,8 @@ import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
+import 'package:pharmapp/shared/widgets/glass_card.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
 import '../shared/report_exporter.dart';
@@ -235,17 +237,10 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
 
   Widget _periodSelector() => Padding(
     padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.borderColor)),
-          child: Row(children: _periods.map((p) {
+    child: GlassCard(
+      borderRadius: 14,
+      padding: const EdgeInsets.all(4),
+      child: Row(children: _periods.map((p) {
             final active = _customRange == null && p == _period;
             return Expanded(child: GestureDetector(
               onTap: () => setState(() {
@@ -268,9 +263,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                         color: active ? Colors.black : Colors.black54,
                         fontSize: 11, fontWeight: FontWeight.w700))),
             ));
-          }).toList()),
-        ),
-      ),
+      }).toList()),
     ),
   ).animate().fadeIn(duration: 350.ms, delay: 80.ms);
 
@@ -435,25 +428,15 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         // -- Sales Breakdown ---------------------------------------------------
         _sectionHeader(context, 'Sales Breakdown', Icons.pie_chart_rounded, EnhancedTheme.accentCyan),
         const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: context.cardColor,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: context.borderColor)),
-              child: grand <= 0
-                  ? _emptyInCard('No sales data for this period')
-                  : Column(children: [
-                      _breakdownRow('Retail Sales', data.totalRetail, grand, EnhancedTheme.accentCyan, Icons.storefront_rounded),
-                      const SizedBox(height: 16),
-                      _breakdownRow('Wholesale Sales', data.totalWholesale, grand, EnhancedTheme.accentPurple, Icons.store_rounded),
-                    ]),
-            ),
-          ),
+        GlassCard(
+          padding: const EdgeInsets.all(18),
+          child: grand <= 0
+              ? _emptyInCard('No sales data for this period')
+              : Column(children: [
+                  _breakdownRow('Retail Sales', data.totalRetail, grand, EnhancedTheme.accentCyan, Icons.storefront_rounded),
+                  const SizedBox(height: 16),
+                  _breakdownRow('Wholesale Sales', data.totalWholesale, grand, EnhancedTheme.accentPurple, Icons.store_rounded),
+                ]),
         ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
         const SizedBox(height: 22),
 
@@ -461,19 +444,11 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         _sectionHeader(context, 'Top Selling Items', Icons.emoji_events_rounded, EnhancedTheme.warningAmber),
         const SizedBox(height: 12),
         if (data.topItems.isEmpty)
-          _emptyState(Icons.inventory_2_rounded, 'No items sold in this period', EnhancedTheme.primaryTeal)
+          const EmptyState(boxed: true, icon: Icons.inventory_2_rounded, title: 'No items sold in this period')
         else
-          ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: context.cardColor,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: context.borderColor)),
-                child: Column(
-                  children: data.topItems.asMap().entries.map((e) {
+          GlassCard(
+            child: Column(
+              children: data.topItems.asMap().entries.map((e) {
                     final rankColors = [
                       const Color(0xFFFFD700),
                       const Color(0xFFC0C0C0),
@@ -525,9 +500,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                       if (e.key < data.topItems.length - 1)
                         Divider(height: 1, color: context.dividerColor),
                     ]);
-                  }).toList(),
-                ),
-              ),
+              }).toList(),
             ),
           ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
         const SizedBox(height: 32),
@@ -798,27 +771,4 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     );
   }
 
-  Widget _emptyState(IconData icon, String message, Color color) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: color.withValues(alpha: 0.15))),
-          child: Column(children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 32)),
-            const SizedBox(height: 12),
-            Text(message, style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
-          ]),
-        ),
-      ),
-    );
-  }
 }

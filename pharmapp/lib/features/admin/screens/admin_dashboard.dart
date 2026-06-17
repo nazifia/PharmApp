@@ -835,11 +835,15 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                             color: color, size: 14),
                       ),
                       const SizedBox(width: 8),
-                      Text(storeLabel,
-                          style: TextStyle(
-                              color: color,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700)),
+                      Flexible(
+                        child: Text(storeLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: color,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700)),
+                      ),
                     ]),
                     const SizedBox(height: 14),
                     Row(

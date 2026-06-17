@@ -19,6 +19,8 @@ import 'package:pharmapp/features/subscription/providers/subscription_provider.d
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/dashboard_card.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
+import 'package:pharmapp/shared/widgets/glass_card.dart';
 
 final _wholesaleDashProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   try {
@@ -231,7 +233,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: wide2 ? 1.35 : 1.3,
+              childAspectRatio: wide2 ? 1.35 : 1.05,
               children: retailStats,
             ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
             const SizedBox(height: 24),
@@ -580,7 +582,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: wide2 ? 1.35 : 1.3,
+            childAspectRatio: wide2 ? 1.35 : 1.05,
             children: wsStats,
           ).animate().fadeIn(duration: 500.ms),
           const SizedBox(height: 24),
@@ -1401,50 +1403,15 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     );
   }
 
-  Widget _glassRow({required Widget child}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
+  Widget _glassRow({required Widget child}) => GlassCard(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        borderRadius: 14,
+        child: child,
+      );
 
-  Widget _emptyState(IconData icon, String message, Color color) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.15))),
-          child: Column(children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 28)),
-            const SizedBox(height: 10),
-            Text(message, style: TextStyle(color: context.subLabelColor, fontSize: 13), textAlign: TextAlign.center),
-          ]),
-        ),
-      ),
-    );
-  }
+  Widget _emptyState(IconData icon, String message, Color color) =>
+      EmptyState(icon: icon, title: message, color: color, boxed: true);
 }
 
 // ── Pressable card (scale on tap) ─────────────────────────────────────────────

@@ -10,6 +10,8 @@ import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
+import 'package:pharmapp/shared/widgets/empty_state.dart';
+import 'package:pharmapp/shared/widgets/glass_card.dart';
 import 'package:pharmapp/features/customers/providers/customer_provider.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import '../providers/reports_provider.dart';
@@ -242,23 +244,13 @@ class CustomerReportScreen extends ConsumerWidget {
         // ── Customer Segments ─────────────────────────────────────────────────
         _sectionHeader(context, 'Customer Segments', Icons.donut_large_rounded, EnhancedTheme.accentPurple),
         const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: context.cardColor,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: context.borderColor)),
-              child: Column(children: [
-                _segBar(context, 'Retail Customers', data.retail, total, EnhancedTheme.primaryTeal, Icons.storefront_rounded),
-                const SizedBox(height: 16),
-                _segBar(context, 'Wholesale Customers', data.wholesale, total, EnhancedTheme.accentCyan, Icons.store_rounded),
-              ]),
-            ),
-          ),
+        GlassCard(
+          padding: const EdgeInsets.all(18),
+          child: Column(children: [
+            _segBar(context, 'Retail Customers', data.retail, total, EnhancedTheme.primaryTeal, Icons.storefront_rounded),
+            const SizedBox(height: 16),
+            _segBar(context, 'Wholesale Customers', data.wholesale, total, EnhancedTheme.accentCyan, Icons.store_rounded),
+          ]),
         ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
         const SizedBox(height: 24),
 
@@ -266,19 +258,11 @@ class CustomerReportScreen extends ConsumerWidget {
         _sectionHeader(context, 'Top Customers by Spend', Icons.emoji_events_rounded, EnhancedTheme.warningAmber),
         const SizedBox(height: 12),
         if (data.topCustomers.isEmpty)
-          _emptyState(Icons.people_rounded, 'No customer data available', EnhancedTheme.accentPurple)
+          const EmptyState(boxed: true, icon: Icons.people_rounded, title: 'No customer data available', color: EnhancedTheme.accentPurple)
         else
-          ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: context.cardColor,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: context.borderColor)),
-                child: Column(
-                  children: data.topCustomers.asMap().entries.map((e) {
+          GlassCard(
+            child: Column(
+              children: data.topCustomers.asMap().entries.map((e) {
                     final rankColors = [
                       const Color(0xFFFFD700),
                       const Color(0xFFC0C0C0),
@@ -336,9 +320,7 @@ class CustomerReportScreen extends ConsumerWidget {
                       if (e.key < data.topCustomers.length - 1)
                         Divider(height: 1, color: context.dividerColor),
                     ]);
-                  }).toList(),
-                ),
-              ),
+              }).toList(),
             ),
           ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
         const SizedBox(height: 24),
@@ -356,10 +338,11 @@ class CustomerReportScreen extends ConsumerWidget {
           error: (_, __) => const SizedBox.shrink(),
           data: (groups) {
             if (groups.retail.isEmpty && groups.wholesale.isEmpty) {
-              return _emptyState(
-                Icons.account_balance_wallet_rounded,
-                'No customers with negative wallet balance',
-                EnhancedTheme.successGreen,
+              return const EmptyState(
+                boxed: true,
+                icon: Icons.account_balance_wallet_rounded,
+                title: 'No customers with negative wallet balance',
+                color: EnhancedTheme.successGreen,
               );
             }
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -379,16 +362,9 @@ class CustomerReportScreen extends ConsumerWidget {
 
   Widget _negGroupCard(BuildContext context, String label, List<Customer> customers, Color color, IconData icon) {
     final total = customers.fold(0.0, (sum, c) => sum + c.walletBalance);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.2))),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return GlassCard(
+      borderColor: EnhancedTheme.errorRed.withValues(alpha: 0.2),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // Group header
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
@@ -452,8 +428,6 @@ class CustomerReportScreen extends ConsumerWidget {
                 Divider(height: 1, color: context.dividerColor),
             ])),
           ]),
-        ),
-      ),
     );
   }
 
@@ -520,28 +494,4 @@ class CustomerReportScreen extends ConsumerWidget {
     ]);
   }
 
-  Widget _emptyState(IconData icon, String message, Color color) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: color.withValues(alpha: 0.15))),
-          child: Column(children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 36)),
-            const SizedBox(height: 14),
-            Text(message, style: const TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center),
-          ]),
-        ),
-      ),
-    ).animate().fadeIn(duration: 400.ms, delay: 150.ms);
-  }
 }
