@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/prescriber.dart';
 import '../../../shared/models/prescriber_commission.dart';
+import '../../../shared/models/consultation_payout.dart';
 import '../../../shared/models/customer.dart';
 
 const _kPrescribersCacheKey = 'cache_prescribers';
@@ -182,5 +183,74 @@ class PrescriberApiClient {
       '/prescriptions/prescribers/$prescriberId/commissions/pay-all/',
     );
     return res.data as Map<String, dynamic>;
+  }
+
+  // ── Consultation-fee payouts ─────────────────────────────────────────────
+  // Consultation fees are charged silently at POS but owed to the prescriber.
+  // These mirror the commission endpoints; the pay endpoints notify both the
+  // prescriber and the org-admin of the total settled.
+
+  Future<ConsultationPayoutSummary> fetchConsultationSummary(
+      int prescriberId) async {
+    try {
+      final res = await _dio.get(
+        '/prescriptions/prescribers/$prescriberId/consultations/summary/',
+        options: prescriberToken != null ? _portalOpts() : null,
+      );
+      return ConsultationPayoutSummary.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) rethrow;
+      return ConsultationPayoutSummary.zero;
+    }
+  }
+
+  Future<List<ConsultationPayout>> fetchConsultations(int prescriberId) async {
+    final res = await _dio.get(
+      '/prescriptions/prescribers/$prescriberId/consultations/',
+      options: prescriberToken != null ? _portalOpts() : null,
+    );
+    final data = res.data;
+    final list = data is Map && data.containsKey('results')
+        ? data['results'] as List
+        : data as List;
+    return list
+        .map((e) => ConsultationPayout.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<ConsultationPayout?> markConsultationPaid(
+      int prescriberId, int payoutId) async {
+    final res = await _dio.patch(
+      '/prescriptions/prescribers/$prescriberId/consultations/$payoutId/',
+      data: {'status': 'paid'},
+    );
+    return ConsultationPayout.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// Marks every pending consultation payout for the prescriber as paid.
+  /// Backend records the settlement and notifies the prescriber + org-admin.
+  /// Returns `{ paid_count, total_amount, notified }`.
+  Future<Map<String, dynamic>> markAllConsultationsPaid(int prescriberId) async {
+    final res = await _dio.post(
+      '/prescriptions/prescribers/$prescriberId/consultations/pay-all/',
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Sends a notification to the prescriber (SMS) and the org-admin (in-app)
+  /// stating the total consultation fees, without changing payout status.
+  /// Backend resolves recipients from the prescriber + their linked org.
+  Future<bool> notifyConsultationTotal(int prescriberId) async {
+    try {
+      await _dio.post(
+        '/prescriptions/prescribers/$prescriberId/consultations/notify/',
+        data: {'recipients': ['prescriber', 'admin']},
+      );
+      return true;
+    } on DioException catch (e) {
+      throw Exception(
+          e.response?.data is Map ? (e.response?.data['detail'] ?? e.message) : e.message);
+    }
   }
 }

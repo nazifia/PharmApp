@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/prescriber.dart';
 import '../../../shared/models/prescriber_commission.dart';
+import '../../../shared/models/consultation_payout.dart';
 import '../../../shared/models/customer.dart';
 import 'prescriber_api_client.dart';
 
@@ -260,4 +261,92 @@ class CommissionNotifier extends StateNotifier<_PrescriberState> {
 final commissionNotifierProvider =
     StateNotifierProvider<CommissionNotifier, _PrescriberState>((ref) {
   return CommissionNotifier(ref);
+});
+
+// ── Consultation-fee payout providers ─────────────────────────────────────────
+
+final prescriberConsultationSummaryProvider = FutureProvider.autoDispose
+    .family<ConsultationPayoutSummary, int>((ref, prescriberId) {
+  return ref
+      .read(prescriberApiClientProvider)
+      .fetchConsultationSummary(prescriberId);
+});
+
+final prescriberConsultationsProvider = FutureProvider.autoDispose
+    .family<List<ConsultationPayout>, int>((ref, prescriberId) {
+  return ref.read(prescriberApiClientProvider).fetchConsultations(prescriberId);
+});
+
+// ── Consultation notifier (admin: mark paid / pay all / notify total) ─────────
+
+class ConsultationNotifier extends StateNotifier<_PrescriberState> {
+  final Ref _ref;
+  ConsultationNotifier(this._ref) : super(const _PrescriberState());
+
+  void _refresh(int prescriberId) {
+    _ref.invalidate(prescriberConsultationsProvider(prescriberId));
+    _ref.invalidate(prescriberConsultationSummaryProvider(prescriberId));
+  }
+
+  Future<bool> markPaid(int prescriberId, int payoutId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _ref
+          .read(prescriberApiClientProvider)
+          .markConsultationPaid(prescriberId, payoutId);
+      state = state.copyWith(isLoading: false);
+      _refresh(prescriberId);
+      return true;
+    } on DioException catch (e) {
+      state = state.copyWith(
+          isLoading: false, error: e.response?.data?['detail'] ?? e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  /// Pays all pending payouts. Backend notifies prescriber + org-admin.
+  /// Returns (paidCount, totalAmount) or null on error.
+  Future<(int, double)?> markAllPaid(int prescriberId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final data = await _ref
+          .read(prescriberApiClientProvider)
+          .markAllConsultationsPaid(prescriberId);
+      state = state.copyWith(isLoading: false);
+      _refresh(prescriberId);
+      final count  = (data['paid_count'] as num?)?.toInt() ?? 0;
+      final amount = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
+      return (count, amount);
+    } on DioException catch (e) {
+      state = state.copyWith(
+          isLoading: false, error: e.response?.data?['detail'] ?? e.message);
+      return null;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return null;
+    }
+  }
+
+  /// Notifies prescriber + org-admin of the current total, no status change.
+  Future<bool> notifyTotal(int prescriberId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _ref
+          .read(prescriberApiClientProvider)
+          .notifyConsultationTotal(prescriberId);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+}
+
+final consultationNotifierProvider =
+    StateNotifierProvider<ConsultationNotifier, _PrescriberState>((ref) {
+  return ConsultationNotifier(ref);
 });

@@ -320,3 +320,60 @@ class PrescriberCommission(models.Model):
             f"Commission #{self.id} — {self.prescriber.name} "
             f"({self.commission_rate}%) on Rx#{self.prescription_id}"
         )
+
+
+# ── Consultation Payout ───────────────────────────────────────────────────────
+
+class ConsultationPayout(models.Model):
+    """
+    A consultation fee charged silently at POS but owed to the prescriber.
+    One record per dispensed prescription that carried a consultation surcharge.
+    The org-admin settles it (single / Pay All) and the prescriber is notified
+    of the running total paid out.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('paid',    'Paid'),
+    ]
+
+    prescriber   = models.ForeignKey(
+        Prescriber, on_delete=models.CASCADE, related_name='consultation_payouts',
+    )
+    # OneToOne — a prescription's flat consultation fee is owed exactly once,
+    # regardless of partial dispensing.
+    prescription = models.OneToOneField(
+        Prescription, on_delete=models.CASCADE, related_name='consultation_payout',
+    )
+    # Snapshot fields — preserve values even if the prescription changes later
+    patient_name          = models.CharField(max_length=200, default='Unknown')
+    consultation_category = models.CharField(max_length=1, blank=True, default='')
+    consultation_fee      = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status                = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    paid_at               = models.DateTimeField(null=True, blank=True)
+    created_at            = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes  = [
+            models.Index(fields=['prescriber', 'status']),
+        ]
+
+    def to_api_dict(self):
+        return {
+            'id':                    self.id,
+            'prescriber_id':         self.prescriber_id,
+            'prescriber_name':       self.prescriber.name,
+            'prescription_id':       self.prescription_id,
+            'patient_name':          self.patient_name,
+            'consultation_category': self.consultation_category or None,
+            'consultation_fee':      float(self.consultation_fee),
+            'status':                self.status,
+            'paid_at':               self.paid_at.isoformat() if self.paid_at else None,
+            'created_at':            self.created_at.isoformat(),
+        }
+
+    def __str__(self):
+        return (
+            f"Consultation payout #{self.id} — {self.prescriber.name} "
+            f"(NGN {self.consultation_fee}) on Rx#{self.prescription_id}"
+        )

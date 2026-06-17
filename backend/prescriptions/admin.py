@@ -1,7 +1,10 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from authapp.admin_mixins import OrgScopedAdminMixin
-from .models import Hospital, Prescriber, Prescription, PrescriptionItem, PrescriberCommission
+from .models import (
+    Hospital, Prescriber, Prescription, PrescriptionItem,
+    PrescriberCommission, ConsultationPayout,
+)
 
 
 # ── Hospital admin ─────────────────────────────────────────────────────────────
@@ -254,3 +257,40 @@ class PrescriberCommissionAdmin(admin.ModelAdmin):
     def action_mark_pending(self, request, queryset):
         updated = queryset.filter(status='paid').update(status='pending', paid_at=None)
         self.message_user(request, f'{updated} commission(s) reset to pending.')
+
+
+@admin.register(ConsultationPayout)
+class ConsultationPayoutAdmin(admin.ModelAdmin):
+    list_display    = (
+        'id', 'prescriber', 'prescription', 'patient_name',
+        'consultation_category', 'consultation_fee', 'status', 'paid_at', 'created_at',
+    )
+    list_filter     = ('status', 'consultation_category', 'created_at')
+    search_fields   = ('prescriber__name', 'patient_name')
+    readonly_fields = ('created_at', 'consultation_category', 'consultation_fee')
+    raw_id_fields   = ('prescriber', 'prescription')
+    actions         = ['action_mark_paid', 'action_mark_pending']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        org = getattr(request.user, "organization", None)
+        return qs.filter(prescription__organization=org) if org else qs.none()
+
+    def get_list_filter(self, request):
+        filters = list(super().get_list_filter(request))
+        if request.user.is_superuser and "prescription__organization" not in filters:
+            filters.insert(0, "prescription__organization")
+        return filters
+
+    @admin.action(description='Mark selected payouts as paid')
+    def action_mark_paid(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='pending').update(status='paid', paid_at=timezone.now())
+        self.message_user(request, f'{updated} consultation payout(s) marked as paid.')
+
+    @admin.action(description='Mark selected payouts as pending')
+    def action_mark_pending(self, request, queryset):
+        updated = queryset.filter(status='paid').update(status='pending', paid_at=None)
+        self.message_user(request, f'{updated} consultation payout(s) reset to pending.')

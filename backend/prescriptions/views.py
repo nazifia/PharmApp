@@ -27,7 +27,10 @@ def _verify_prescriber_token(token: str):
 from authapp.utils import require_org, log_activity
 from authapp.permissions import IsPrescriptionUser, PRESCRIPTIONS_WRITE
 from authapp.models import PharmacyNetworkMembership
-from .models import Prescription, PrescriptionItem, Prescriber, Hospital, PrescriberCommission
+from .models import (
+    Prescription, PrescriptionItem, Prescriber, Hospital,
+    PrescriberCommission, ConsultationPayout,
+)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -493,6 +496,9 @@ def dispense_prescription(request, pk):
 
         # ── Auto-generate commission if prescriber has a non-zero rate ────────
         _create_commission_for_dispense(rx, newly_dispensed)
+
+        # ── Auto-record consultation-fee payout (once per prescription) ───────
+        _create_consultation_payout_for_dispense(rx)
 
     log_activity(
         request,
@@ -1186,6 +1192,29 @@ def _create_commission_for_dispense(rx, newly_dispensed_items):
     )
 
 
+def _create_consultation_payout_for_dispense(rx):
+    """
+    Called inside dispense_prescription's atomic block.
+    Records the prescription's silent consultation fee as a payout owed to the
+    prescriber. Created at most once per prescription (OneToOne), the first time
+    it is dispensed. Skips if: no prescriber, no consultation fee, already exists.
+    """
+    if not rx.prescriber_id:
+        return
+    if not rx.consultation_fee or rx.consultation_fee <= 0:
+        return
+    ConsultationPayout.objects.get_or_create(
+        prescription=rx,
+        defaults={
+            'prescriber':            rx.prescriber,
+            'patient_name':          rx.customer_name,
+            'consultation_category': rx.consultation_category or '',
+            'consultation_fee':      rx.consultation_fee,
+            'status':                'pending',
+        },
+    )
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def prescriber_portal_create_rx(request):
@@ -1429,3 +1458,308 @@ def prescriber_commission_pay_all(request, pk):
         ),
     )
     return Response({'paid_count': paid_count, 'total_amount': total_amount})
+
+
+# ── Consultation-fee payout endpoints ─────────────────────────────────────────
+
+def _send_prescriber_sms(prescriber, message: str) -> bool:
+    """
+    Best-effort SMS to a prescriber's phone. Returns True if sent (or logged in
+    the no-provider dev fallback), False if the provider rejected/was unreachable.
+    Mirrors pos.views.send_sms — no exception propagates.
+    """
+    import logging
+    logger = logging.getLogger('pharmapp.sms')
+
+    phone = (prescriber.phone or '').strip()
+    if not phone:
+        logger.info('Consultation notify: prescriber %s has no phone', prescriber.id)
+        return False
+
+    # Normalize to international format (Nigeria: 0XXXXXXXXXX → +234XXXXXXXXXX)
+    if phone.startswith('0') and len(phone) == 11:
+        phone = '+234' + phone[1:]
+    elif not phone.startswith('+'):
+        phone = '+234' + phone
+
+    from django.conf import settings as djsettings
+    sms_url = getattr(djsettings, 'SMS_PROVIDER_URL', None)
+    sms_key = getattr(djsettings, 'SMS_API_KEY', None)
+    sender  = getattr(djsettings, 'SMS_SENDER_ID', 'PharmApp')
+
+    if sms_url and sms_key:
+        import requests as _requests
+        try:
+            resp = _requests.post(sms_url, json={
+                'to':      phone,
+                'from':    sender,
+                'sms':     message,
+                'type':    'plain',
+                'api_key': sms_key,
+                'channel': 'generic',
+            }, timeout=10)
+            if resp.status_code not in (200, 201):
+                logger.warning('Consultation SMS failed: %s %s', resp.status_code, resp.text)
+                return False
+        except Exception as exc:
+            logger.error('Consultation SMS exception: %s', exc)
+            return False
+    else:
+        logger.info('Consultation SMS (no provider) → %s: %s', phone, message)
+    return True
+
+
+def _notify_consultation_total(prescriber, recipients=None):
+    """
+    Notify the prescriber (SMS) and the org-admin (in-app Notification) of the
+    current consultation-payout totals. Best-effort — never raises.
+    Returns the recipients actually delivered to, e.g. ['prescriber', 'admin'].
+    """
+    from django.db.models import Sum
+    from decimal import Decimal
+    from pos.models import Notification
+    from authapp.models import PharmUser
+
+    recipients = recipients or ['prescriber', 'admin']
+    delivered = []
+
+    qs = ConsultationPayout.objects.filter(prescriber=prescriber)
+    agg = qs.aggregate(
+        total=Sum('consultation_fee'),
+        paid=Sum('consultation_fee', filter=_m.Q(status='paid')),
+        pending=Sum('consultation_fee', filter=_m.Q(status='pending')),
+    )
+    total   = float(agg['total']   or Decimal('0'))
+    paid    = float(agg['paid']    or Decimal('0'))
+    pending = float(agg['pending'] or Decimal('0'))
+
+    msg = (
+        f'Consultation fees for Dr. {prescriber.name}: '
+        f'NGN {total:,.2f} total · NGN {paid:,.2f} paid · NGN {pending:,.2f} pending.'
+    )
+
+    # SMS the prescriber
+    if 'prescriber' in recipients:
+        if _send_prescriber_sms(prescriber, msg):
+            delivered.append('prescriber')
+
+    # In-app notification to the linked pharmacy's admins
+    if 'admin' in recipients and prescriber.organization_id:
+        admins = PharmUser.objects.filter(
+            organization_id=prescriber.organization_id,
+            role='Admin',
+            is_active=True,
+        )
+        created_any = False
+        for admin_user in admins:
+            Notification.objects.create(
+                user=admin_user,
+                notif_type='system',
+                priority='medium',
+                title=f'Consultation payout — Dr. {prescriber.name}',
+                message=msg[:200],
+            )
+            created_any = True
+        if created_any:
+            delivered.append('admin')
+
+    return delivered
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def prescriber_consultations(request, pk):
+    """
+    GET /api/prescriptions/prescribers/<pk>/consultations/
+    Pharmacy staff (IsAuthenticated) or prescriber portal token both accepted.
+    ?status=pending|paid
+    """
+    try:
+        prescriber = Prescriber.objects.get(pk=pk)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not request.user.is_authenticated:
+        token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
+        if not token or _verify_prescriber_token(token) is None:
+            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    qs = ConsultationPayout.objects.filter(prescriber=prescriber).select_related('prescriber')
+
+    status_filter = request.query_params.get('status', '').strip()
+    if status_filter in ('pending', 'paid'):
+        qs = qs.filter(status=status_filter)
+
+    page_size = 50
+    try:
+        page = max(1, int(request.query_params.get('page', '1')))
+    except (ValueError, TypeError):
+        page = 1
+    total  = qs.count()
+    offset = (page - 1) * page_size
+
+    return Response({
+        'count':   total,
+        'results': [c.to_api_dict() for c in qs[offset:offset + page_size]],
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def prescriber_consultation_summary(request, pk):
+    """
+    GET /api/prescriptions/prescribers/<pk>/consultations/summary/
+    Returns: total_collected, pending_amount, paid_amount,
+    pending_count, paid_count, total_consultations.
+    """
+    try:
+        prescriber = Prescriber.objects.get(pk=pk)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not request.user.is_authenticated:
+        token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
+        if not token or _verify_prescriber_token(token) is None:
+            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    from django.db.models import Sum
+    from decimal import Decimal
+
+    qs = ConsultationPayout.objects.filter(prescriber=prescriber)
+    agg = qs.aggregate(
+        total_collected=Sum('consultation_fee'),
+        pending_amount=Sum('consultation_fee', filter=_m.Q(status='pending')),
+        paid_amount=Sum('consultation_fee', filter=_m.Q(status='paid')),
+    )
+
+    return Response({
+        'total_collected':     float(agg['total_collected'] or Decimal('0')),
+        'pending_amount':      float(agg['pending_amount']  or Decimal('0')),
+        'paid_amount':         float(agg['paid_amount']     or Decimal('0')),
+        'pending_count':       qs.filter(status='pending').count(),
+        'paid_count':          qs.filter(status='paid').count(),
+        'total_consultations': qs.count(),
+    })
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def prescriber_consultation_mark_paid(request, pk, payout_id):
+    """
+    PATCH /api/prescriptions/prescribers/<pk>/consultations/<payout_id>/
+    Body: { "status": "paid" }
+    Restricted to PRESCRIPTIONS_WRITE roles (pharmacy admin / manager).
+    """
+    if not request.user.is_superuser and request.user.role not in PRESCRIPTIONS_WRITE:
+        return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        payout = ConsultationPayout.objects.select_related('prescriber').get(
+            pk=payout_id, prescriber_id=pk
+        )
+    except ConsultationPayout.DoesNotExist:
+        return Response({'detail': 'Consultation payout not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    new_status = (request.data.get('status') or '').strip()
+    if new_status not in ('pending', 'paid'):
+        return Response(
+            {'detail': 'status must be "pending" or "paid"'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    payout.status = new_status
+    if new_status == 'paid' and not payout.paid_at:
+        payout.paid_at = timezone.now()
+    elif new_status == 'pending':
+        payout.paid_at = None
+    payout.save()
+
+    log_activity(
+        request,
+        action='Consultation Fee Paid Out',
+        category='customers',
+        description=(
+            f'Consultation payout #{payout.id} for {payout.prescriber.name} '
+            f'(NGN {payout.consultation_fee}) marked as {new_status}'
+        ),
+    )
+    return Response(payout.to_api_dict())
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def prescriber_consultation_pay_all(request, pk):
+    """
+    POST /api/prescriptions/prescribers/<pk>/consultations/pay-all/
+    Marks ALL pending consultation payouts for this prescriber as paid, then
+    notifies the prescriber (SMS) + org-admin (in-app) of the total.
+    Restricted to PRESCRIPTIONS_WRITE roles.
+    Returns { "paid_count": N, "total_amount": X, "notified": [...] }.
+    """
+    if not request.user.is_superuser and request.user.role not in PRESCRIPTIONS_WRITE:
+        return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        prescriber = Prescriber.objects.get(pk=pk)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Prescriber not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    from django.db.models import Sum
+    from decimal import Decimal
+
+    now = timezone.now()
+    pending_qs   = ConsultationPayout.objects.filter(prescriber=prescriber, status='pending')
+    agg          = pending_qs.aggregate(total=Sum('consultation_fee'))
+    total_amount = float(agg['total'] or Decimal('0'))
+    paid_count   = pending_qs.update(status='paid', paid_at=now)
+
+    notified = _notify_consultation_total(prescriber)
+
+    log_activity(
+        request,
+        action='Consultation Fee Bulk Pay Out',
+        category='customers',
+        description=(
+            f'Marked {paid_count} pending consultation payout(s) as paid for '
+            f'{prescriber.name} (NGN {total_amount})'
+        ),
+    )
+    return Response({
+        'paid_count':   paid_count,
+        'total_amount': total_amount,
+        'notified':     notified,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def prescriber_consultation_notify(request, pk):
+    """
+    POST /api/prescriptions/prescribers/<pk>/consultations/notify/
+    Body (optional): { "recipients": ["prescriber", "admin"] }
+    Sends the current consultation-fee total to the prescriber (SMS) and the
+    org-admin (in-app) WITHOUT changing any payout status.
+    Restricted to PRESCRIPTIONS_WRITE roles.
+    Returns { "notified": [...] }.
+    """
+    if not request.user.is_superuser and request.user.role not in PRESCRIPTIONS_WRITE:
+        return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        prescriber = Prescriber.objects.get(pk=pk)
+    except Prescriber.DoesNotExist:
+        return Response({'detail': 'Prescriber not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    recipients = request.data.get('recipients') or ['prescriber', 'admin']
+    if not isinstance(recipients, list):
+        recipients = ['prescriber', 'admin']
+
+    notified = _notify_consultation_total(prescriber, recipients=recipients)
+
+    log_activity(
+        request,
+        action='Consultation Total Notified',
+        category='customers',
+        description=f'Notified {", ".join(notified) or "nobody"} of consultation total for {prescriber.name}',
+    )
+    return Response({'notified': notified})

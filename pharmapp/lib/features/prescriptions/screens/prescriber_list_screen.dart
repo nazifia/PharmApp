@@ -8,6 +8,7 @@ import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/models/prescriber.dart';
 import '../providers/prescriber_provider.dart';
 import 'prescriber_commissions_screen.dart';
+import 'prescriber_consultations_screen.dart';
 import 'prescriber_form_screen.dart';
 
 class PrescriberListScreen extends ConsumerStatefulWidget {
@@ -233,6 +234,15 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                               ),
                             ),
                           ),
+                          onViewConsultations: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PrescriberConsultationsScreen(
+                                prescriber: prescribers[i],
+                                isAdminView: true,
+                              ),
+                            ),
+                          ),
                         ).animate().fadeIn(
                             delay: Duration(milliseconds: i * 40)),
                       );
@@ -255,12 +265,14 @@ class _PrescriberCard extends StatelessWidget {
   final bool canWrite;
   final VoidCallback onEdit;
   final VoidCallback onViewCommissions;
+  final VoidCallback onViewConsultations;
 
   const _PrescriberCard({
     required this.prescriber,
     required this.canWrite,
     required this.onEdit,
     required this.onViewCommissions,
+    required this.onViewConsultations,
   });
 
   @override
@@ -422,6 +434,25 @@ class _PrescriberCard extends StatelessWidget {
                                     color: context.subLabelColor),
                                 const SizedBox(width: 3),
                                 Text('Commissions',
+                                    style: TextStyle(
+                                        color: context.subLabelColor,
+                                        fontSize: 10,
+                                        decoration:
+                                            TextDecoration.underline)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: onViewConsultations,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.medical_services_outlined,
+                                    size: 11,
+                                    color: EnhancedTheme.accentCyan),
+                                const SizedBox(width: 3),
+                                Text('Consultations',
                                     style: TextStyle(
                                         color: context.subLabelColor,
                                         fontSize: 10,

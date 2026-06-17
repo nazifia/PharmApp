@@ -265,6 +265,22 @@ class PrescriberPortalScreen extends ConsumerWidget {
                       ),
                     ),
 
+                  if (_kConsultCats.any(
+                      (c) => (prescriber.consultationFees[c] ?? 0) > 0)) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _ActionCard(
+                        icon: Icons.medical_services_rounded,
+                        label: 'Consultation Fees',
+                        subtitle: 'Total fees paid to you',
+                        color: EnhancedTheme.accentCyan,
+                        onTap: () =>
+                            context.push('/prescriber-portal/consultations'),
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 28),
 
                   // Sign out

@@ -23,6 +23,13 @@ urlpatterns = [
     path('prescribers/<int:pk>/commissions/<int:commission_id>/', views.prescriber_commission_mark_paid, name='prescriber-commission-mark-paid'),
     path('prescribers/<int:pk>/commissions/pay-all/',             views.prescriber_commission_pay_all,   name='prescriber-commission-pay-all'),
 
+    # Consultation-fee payouts
+    path('prescribers/<int:pk>/consultations/',         views.prescriber_consultations,         name='prescriber-consultations'),
+    path('prescribers/<int:pk>/consultations/summary/', views.prescriber_consultation_summary,  name='prescriber-consultation-summary'),
+    path('prescribers/<int:pk>/consultations/pay-all/', views.prescriber_consultation_pay_all,  name='prescriber-consultation-pay-all'),
+    path('prescribers/<int:pk>/consultations/notify/',  views.prescriber_consultation_notify,   name='prescriber-consultation-notify'),
+    path('prescribers/<int:pk>/consultations/<int:payout_id>/', views.prescriber_consultation_mark_paid, name='prescriber-consultation-mark-paid'),
+
     # Hospitals (global)
     path('hospitals/',                    views.hospital_list,            name='hospital-list'),
     path('hospitals/<int:pk>/',           views.hospital_detail,          name='hospital-detail'),

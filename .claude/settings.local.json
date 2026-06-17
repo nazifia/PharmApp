@@ -159,7 +159,9 @@
       "Bash(kill %1)",
       "Bash(pkill -f \"flutter_tools.*chrome\")",
       "Bash(pkill -f dartaotruntime)",
-      "Bash(echo \"launched pid $!\")"
+      "Bash(echo \"launched pid $!\")",
+      "PowerShell(cd backend; if \\(Test-Path venv\\\\Scripts\\\\python.exe\\) { $py = \"venv\\\\Scripts\\\\python.exe\" } else { $py = \"python\" }; & $py manage.py makemigrations prescriptions; if \\($?\\) { & $py manage.py check })",
+      "PowerShell(cd backend; if \\(Test-Path venv\\\\Scripts\\\\python.exe\\) { $py = \"venv\\\\Scripts\\\\python.exe\" } else { $py = \"python\" }; & $py manage.py migrate prescriptions)"
     ]
   }
 }
