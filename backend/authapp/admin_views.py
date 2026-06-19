@@ -6,7 +6,7 @@ Shows a cross-organisation summary dashboard for the software owner/developer.
 """
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Sum, Max, F
+from django.db.models import Count, Sum, Max, F, Q, FloatField
 from django.shortcuts import render
 from django.utils.timezone import now
 
@@ -42,39 +42,72 @@ def global_overview_view(request):
 
     orgs = Organization.objects.order_by("name")
 
+    # One grouped query per related model (was ~6 queries *per org*). Each maps
+    # org_id → its aggregates; we stitch them together in the loop below.
+    def _by_org(qs, group_field, **aggs):
+        return {
+            row[group_field]: row
+            for row in qs.values(group_field).annotate(**aggs)
+        }
+
+    users_map = _by_org(
+        PharmUser.objects.filter(is_superuser=False), "organization",
+        total=Count("id"),
+        active=Count("id", filter=Q(is_active=True)),
+    )
+    items_map = _by_org(
+        Item.objects.all(), "organization",
+        total=Count("id"),
+        low_stock=Count("id", filter=Q(stock__gt=0, stock__lte=F("low_stock_threshold"))),
+        out_of_stock=Count("id", filter=Q(stock__lte=0)),
+        stock_value=Sum(F("stock") * F("price"), output_field=FloatField()),
+    )
+    customers_map = _by_org(
+        Customer.objects.all(), "organization", total=Count("id"),
+    )
+    completed_map = _by_org(
+        Sale.objects.filter(status="completed"), "organization",
+        total=Count("id"),
+        revenue=Sum("total_amount"),
+    )
+    sales_map = _by_org(
+        Sale.objects.all(), "organization",
+        total=Count("id"),
+        last_sale=Max("created"),
+    )
+    expenses_map = _by_org(
+        Expense.objects.all(), "organization", total=Sum("amount"),
+    )
+
     org_rows = []
     for org in orgs:
-        users       = PharmUser.objects.filter(organization=org, is_superuser=False)
-        items       = Item.objects.filter(organization=org)
-        customers   = Customer.objects.filter(organization=org)
-        sales_qs    = Sale.objects.filter(organization=org, status="completed")
-        all_sales   = Sale.objects.filter(organization=org)
-        expenses_qs = Expense.objects.filter(organization=org)
+        u  = users_map.get(org.id, {})
+        it = items_map.get(org.id, {})
+        c  = customers_map.get(org.id, {})
+        cs = completed_map.get(org.id, {})
+        s  = sales_map.get(org.id, {})
 
-        revenue  = sales_qs.aggregate(v=Sum("total_amount"))["v"] or 0
-        expenses = expenses_qs.aggregate(v=Sum("amount"))["v"] or 0
-        last_sale = all_sales.aggregate(v=Max("created"))["v"]
-        from django.db.models import FloatField
-        stock_val = items.aggregate(
-            v=Sum(F("stock") * F("price"), output_field=FloatField())
-        )["v"] or 0
+        revenue       = cs.get("revenue") or 0
+        expenses      = expenses_map.get(org.id, {}).get("total") or 0
+        completed_cnt = cs.get("total") or 0
+        total_cnt     = s.get("total") or 0
 
         org_rows.append({
             "org":            org,
-            "active_users":   users.filter(is_active=True).count(),
-            "total_users":    users.count(),
-            "total_items":    items.count(),
-            "low_stock":      items.filter(stock__gt=0, stock__lte=F('low_stock_threshold')).count(),
-            "out_of_stock":   items.filter(stock__lte=0).count(),
-            "stock_value":    stock_val,
-            "total_customers": customers.count(),
-            "completed_sales": sales_qs.count(),
-            "total_sales":    all_sales.count(),
-            "other_sales":    all_sales.count() - sales_qs.count(),
+            "active_users":   u.get("active") or 0,
+            "total_users":    u.get("total") or 0,
+            "total_items":    it.get("total") or 0,
+            "low_stock":      it.get("low_stock") or 0,
+            "out_of_stock":   it.get("out_of_stock") or 0,
+            "stock_value":    it.get("stock_value") or 0,
+            "total_customers": c.get("total") or 0,
+            "completed_sales": completed_cnt,
+            "total_sales":    total_cnt,
+            "other_sales":    total_cnt - completed_cnt,
             "revenue":        revenue,
             "expenses":       expenses,
             "net":            revenue - expenses,
-            "last_sale":      last_sale,
+            "last_sale":      s.get("last_sale"),
         })
 
     # Sort by revenue descending

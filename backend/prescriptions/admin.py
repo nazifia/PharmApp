@@ -85,6 +85,26 @@ class PrescriberAdmin(admin.ModelAdmin):
         'verified_badge', 'created_at',
     )
     list_filter         = (VerifiedFilter, SelfRegisteredFilter, 'created_at')
+
+    def get_queryset(self, request):
+        """
+        Org-staff visibility mirrors the API contract (Prescriber docstring):
+        global prescribers (no org), the staff member's own org, and any
+        network-shared prescriber. Other orgs' private prescribers — which
+        carry PII (phone, licence, address) — stay hidden. Superusers see all.
+        """
+        from django.db.models import Q
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        org = getattr(request.user, "organization", None)
+        if org is None:
+            return qs.filter(organization__isnull=True)
+        return qs.filter(
+            Q(organization__isnull=True)
+            | Q(organization=org)
+            | Q(is_network_shared=True)
+        )
     search_fields       = ('name', 'license_number', 'phone', 'specialty', 'organization__name')
     readonly_fields     = ('created_at', 'updated_at', 'reg_source_display', 'password_status')
     raw_id_fields       = ('hospital', 'organization')

@@ -121,6 +121,10 @@ class OrgScopedAdminMixin:
                 kwargs.setdefault(
                     "queryset", related.objects.filter(user__organization=org)
                 )
+            elif related.__name__ == "Branch":
+                kwargs.setdefault(
+                    "queryset", related.objects.filter(organization=org)
+                )
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 

@@ -1,4 +1,7 @@
+from decimal import Decimal
+
 from django.contrib import admin
+from django.db import transaction
 from django.utils.html import format_html
 from django.utils.timezone import now
 
@@ -173,13 +176,65 @@ class SaleAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
 
     @admin.action(description="Mark selected sales as Completed")
     def mark_completed(self, request, queryset):
-        updated = queryset.update(status="completed")
-        self.message_user(request, f"{updated} sale(s) marked as completed.")
+        # Guard: never resurrect a (partly) returned sale to "completed" — its
+        # stock was already restocked on return, so flipping back would desync
+        # inventory. Only pending sales advance to completed.
+        skipped = queryset.filter(status__in=["returned", "partial_return"]).count()
+        updated = queryset.filter(status="pending").update(status="completed")
+        msg = f"{updated} sale(s) marked as completed."
+        if skipped:
+            msg += f" Skipped {skipped} already-returned sale(s) to protect stock."
+        self.message_user(request, msg)
 
-    @admin.action(description="Mark selected sales as Returned")
+    @admin.action(description="Mark selected sales as Returned (restocks inventory)")
     def mark_returned(self, request, queryset):
-        updated = queryset.update(status="returned")
-        self.message_user(request, f"{updated} sale(s) marked as returned.")
+        # Full stock-aware return: restock each remaining unit, write a
+        # ReturnRecord, update dispensing logs, and set sale status. No wallet
+        # refund is issued here — this is an admin override; refunds are settled
+        # manually. refund_method="original" flags that for the audit trail.
+        returned = 0
+        skipped = 0
+        for sale in queryset.exclude(status="returned"):
+            with transaction.atomic():
+                locked = Sale.objects.select_for_update().get(pk=sale.pk)
+                touched = False
+                for si in locked.items.select_for_update():
+                    remaining = si.quantity - si.return_qty
+                    if remaining <= 0:
+                        continue
+                    if si.item:
+                        si.item.stock += remaining
+                        si.item.save(update_fields=["stock"])
+                    line_total = (si.price * si.quantity) - si.discount
+                    unit_refund = (
+                        line_total / si.quantity if si.quantity > 0 else Decimal("0")
+                    )
+                    ReturnRecord.objects.create(
+                        sale=locked,
+                        sale_item=si,
+                        quantity=remaining,
+                        amount=unit_refund * remaining,
+                        refund_method="original",
+                        reason="Admin bulk return",
+                        returned_by=request.user if request.user.is_authenticated else None,
+                    )
+                    si.return_qty += remaining
+                    si.returned = True
+                    si.save(update_fields=["return_qty", "returned"])
+                    DispensingLog.objects.filter(
+                        sale=locked, item=si.item, name=si.name
+                    ).update(status="Returned")
+                    touched = True
+                if touched:
+                    locked.status = "returned"
+                    locked.save(update_fields=["status"])
+                    returned += 1
+                else:
+                    skipped += 1
+        msg = f"{returned} sale(s) returned and restocked."
+        if skipped:
+            msg += f" Skipped {skipped} with nothing left to return."
+        self.message_user(request, msg)
 
 
 @admin.register(SaleItem)
@@ -351,9 +406,19 @@ class ExpenseCategoryAdmin(admin.ModelAdmin):
     search_fields = ["name"]
     ordering = ["name"]
 
+    def get_queryset(self, request):
+        # Stash request so expense_count can scope to the viewer's org.
+        self._request = request
+        return super().get_queryset(request)
+
     @admin.display(description="# Expenses")
     def expense_count(self, obj):
-        return obj.expense_set.count()
+        qs = obj.expense_set
+        request = getattr(self, "_request", None)
+        if request and not request.user.is_superuser:
+            org = getattr(request.user, "organization", None)
+            qs = qs.filter(organization=org) if org else qs.none()
+        return qs.count()
 
 
 @admin.register(Expense)
