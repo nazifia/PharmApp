@@ -1310,22 +1310,39 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                               fontSize: 10)),
                     ]),
                     const SizedBox(width: 8),
-                    if (status == 'pending')
+                    if (status == 'pending' || status == 'in_progress') ...[
                       GestureDetector(
-                        onTap: () => _confirmDelete(id),
+                        onTap: () => _confirmCancel(id),
                         child: Container(
                           width: 36, height: 36,
                           decoration: BoxDecoration(
-                            color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
+                            color: EnhancedTheme.warningAmber.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                                color: EnhancedTheme.errorRed.withValues(alpha: 0.3)),
+                                color: EnhancedTheme.warningAmber.withValues(alpha: 0.3)),
                           ),
-                          child: const Icon(Icons.delete_outline_rounded,
-                              color: EnhancedTheme.errorRed, size: 18),
+                          child: const Icon(Icons.cancel_outlined,
+                              color: EnhancedTheme.warningAmber, size: 18),
                         ),
-                      )
-                    else
+                      ),
+                      if (status == 'pending') ...[
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () => _confirmDelete(id),
+                          child: Container(
+                            width: 36, height: 36,
+                            decoration: BoxDecoration(
+                              color: EnhancedTheme.errorRed.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: EnhancedTheme.errorRed.withValues(alpha: 0.3)),
+                            ),
+                            child: const Icon(Icons.delete_outline_rounded,
+                                color: EnhancedTheme.errorRed, size: 18),
+                          ),
+                        ),
+                      ],
+                    ] else
                       Container(
                         width: 28, height: 28,
                         decoration: BoxDecoration(
@@ -1352,19 +1369,19 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: EnhancedTheme.surfaceColor,
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Cancel Check?',
-            style: GoogleFonts.outfit(color: context.labelColor,
+            style: GoogleFonts.outfit(color: const Color(0xFF0F172A),
                 fontSize: 18, fontWeight: FontWeight.w700)),
         content: Text(
             'This stock check will be cancelled. No stock adjustments will be applied. Counted items are kept for reference.',
-            style: GoogleFonts.inter(color: context.subLabelColor)),
+            style: GoogleFonts.inter(color: const Color(0xFF475569))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text('Keep',
-                style: GoogleFonts.outfit(color: context.subLabelColor)),
+                style: GoogleFonts.outfit(color: const Color(0xFF475569))),
           ),
           ElevatedButton(
             onPressed: () { Navigator.pop(ctx); _cancelCheck(id); },
@@ -1384,18 +1401,18 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: EnhancedTheme.surfaceColor,
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Delete Check?',
-            style: GoogleFonts.outfit(color: context.labelColor,
+            style: GoogleFonts.outfit(color: const Color(0xFF0F172A),
                 fontSize: 18, fontWeight: FontWeight.w700)),
         content: Text('This stock check will be permanently deleted.',
-            style: GoogleFonts.inter(color: context.subLabelColor)),
+            style: GoogleFonts.inter(color: const Color(0xFF475569))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text('Cancel',
-                style: GoogleFonts.outfit(color: context.subLabelColor)),
+                style: GoogleFonts.outfit(color: const Color(0xFF475569))),
           ),
           ElevatedButton(
             onPressed: () { Navigator.pop(ctx); _deleteCheck(id); },
