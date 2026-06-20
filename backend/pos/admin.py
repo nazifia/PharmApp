@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.contrib import admin
 from django.db import transaction
+from django.db.models import Count
 from django.utils.html import format_html
 from django.utils.timezone import now
 
@@ -73,6 +74,7 @@ class CashierAdmin(admin.ModelAdmin):
     search_fields = ["name", "cashier_id", "user__phone_number"]
     ordering      = ["name"]
     readonly_fields = ["cashier_id", "created_at"]
+    list_select_related = ["user"]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -141,6 +143,7 @@ class SaleAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
         "payment_cash", "payment_pos", "payment_transfer", "payment_wallet",
     ]
     date_hierarchy = "created"
+    list_select_related = ["customer", "cashier", "dispenser"]
     inlines = [SaleItemInline, ReceiptPaymentInline]
 
     fieldsets = (
@@ -248,6 +251,7 @@ class SaleItemAdmin(admin.ModelAdmin):
     search_fields = ["name", "brand", "barcode", "sale__receipt_id"]
     ordering      = ["-sale__created"]
     readonly_fields = ["subtotal", "sale"]
+    list_select_related = ["sale"]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -272,6 +276,7 @@ class DispensingLogAdmin(admin.ModelAdmin):
     search_fields = ["name", "brand", "user__phone_number", "sale__receipt_id"]
     ordering      = ["-created_at"]
     date_hierarchy = "created_at"
+    list_select_related = ["user", "sale"]
     readonly_fields = [
         "user", "sale", "item", "name", "brand",
         "dosage_form", "unit", "quantity", "amount",
@@ -326,6 +331,7 @@ class PaymentRequestAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     ordering      = ["-created_at"]
     readonly_fields = ["request_id", "created_at", "updated_at"]
     date_hierarchy  = "created_at"
+    list_select_related = ["dispenser", "cashier", "customer", "receipt"]
     inlines = [PaymentRequestItemInline]
 
     fieldsets = (
@@ -357,6 +363,7 @@ class ReceiptPaymentAdmin(admin.ModelAdmin):
     search_fields = ["receipt__receipt_id"]
     ordering      = ["-date"]
     readonly_fields = ["receipt", "payment_method", "amount", "status", "date"]
+    list_select_related = ["receipt"]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -384,6 +391,7 @@ class ReturnRecordAdmin(admin.ModelAdmin):
     search_fields = ["sale__receipt_id", "reason", "returned_by__phone_number"]
     ordering      = ["-created_at"]
     date_hierarchy = "created_at"
+    list_select_related = ["sale", "sale_item", "returned_by"]
     readonly_fields = ["sale", "sale_item", "quantity", "amount", "returned_by", "created_at"]
 
     def get_queryset(self, request):
@@ -428,6 +436,7 @@ class ExpenseAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     search_fields = ["description", "category__name", "created_by__phone_number"]
     ordering      = ["-date"]
     date_hierarchy = "date"
+    list_select_related = ["category", "created_by"]
     readonly_fields = ["created_at", "created_by"]
 
     fieldsets = (
@@ -468,9 +477,12 @@ class SupplierAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
         (None, {"fields": ("name", "phone", "contact_info", "created_at")}),
     )
 
-    @admin.display(description="Procurements")
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_procurement_count=Count("procurement"))
+
+    @admin.display(description="Procurements", ordering="_procurement_count")
     def procurement_count(self, obj):
-        return obj.procurement_set.count()
+        return obj._procurement_count
 
 
 @admin.register(Procurement)
@@ -480,6 +492,7 @@ class ProcurementAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     search_fields = ["supplier__name", "created_by__phone_number"]
     ordering      = ["-date"]
     date_hierarchy = "date"
+    list_select_related = ["supplier", "created_by"]
     readonly_fields = ["date", "total"]
     inlines = [ProcurementItemInline]
 
@@ -510,6 +523,7 @@ class ProcurementItemAdmin(admin.ModelAdmin):
     search_fields = ["item_name", "brand", "barcode"]
     ordering      = ["-procurement__date"]
     readonly_fields = ["subtotal", "procurement"]
+    list_select_related = ["procurement"]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -541,6 +555,7 @@ class StockCheckAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     search_fields = ["created_by__phone_number", "approved_by__phone_number"]
     ordering      = ["-date"]
     date_hierarchy = "date"
+    list_select_related = ["created_by", "approved_by"]
     readonly_fields = ["date", "approved_at"]
     inlines = [StockCheckItemInline]
 
@@ -556,9 +571,12 @@ class StockCheckAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     def status_display(self, obj):
         return status_badge(obj.status)
 
-    @admin.display(description="# Items")
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_item_count=Count("items"))
+
+    @admin.display(description="# Items", ordering="_item_count")
     def item_count(self, obj):
-        return obj.items.count()
+        return obj._item_count
 
     actions = ["mark_completed"]
 
@@ -582,6 +600,7 @@ class StockCheckItemAdmin(admin.ModelAdmin):
     list_filter   = ["status"]
     search_fields = ["item__name", "stock_check__id"]
     ordering      = ["-stock_check__date"]
+    list_select_related = ["stock_check", "item"]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -618,6 +637,7 @@ class NotificationAdmin(admin.ModelAdmin):
     ordering      = ["-created_at"]
     date_hierarchy = "created_at"
     readonly_fields = ["created_at"]
+    list_select_related = ["user"]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -660,6 +680,7 @@ class TransferRequestAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     ]
     ordering      = ["-created_at"]
     date_hierarchy = "created_at"
+    list_select_related = ["requested_by", "approved_by"]
     readonly_fields = ["created_at", "updated_at"]
 
     fieldsets = (
@@ -712,6 +733,7 @@ class ShiftAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     ordering      = ["-opened_at"]
     readonly_fields = ["opened_at"]
     date_hierarchy  = "opened_at"
+    list_select_related = ["staff", "branch"]
 
     fieldsets = (
         (None,   {"fields": ("staff", "branch", "status")}),

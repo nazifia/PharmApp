@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 from django.utils.html import format_html
 from authapp.admin_mixins import OrgScopedAdminMixin
 from .models import (
@@ -15,9 +16,12 @@ class HospitalAdmin(admin.ModelAdmin):
     search_fields = ('name', 'city', 'phone')
     readonly_fields = ('created_at',)
 
-    @admin.display(description='Prescribers')
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_prescriber_count=Count('prescribers'))
+
+    @admin.display(description='Prescribers', ordering='_prescriber_count')
     def prescriber_count(self, obj):
-        return obj.prescribers.count()
+        return obj._prescriber_count
 
 
 # ── Custom filters ─────────────────────────────────────────────────────────────
@@ -219,6 +223,7 @@ class PrescriptionAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     readonly_fields = ('created_at', 'dispensed_at')
     inlines       = [PrescriptionItemInline]
     raw_id_fields = ('customer', 'created_by', 'branch', 'prescriber')
+    list_select_related = ('organization', 'created_by')
 
     def get_list_filter(self, request):
         filters = list(super().get_list_filter(request))
@@ -233,6 +238,7 @@ class PrescriptionItemAdmin(admin.ModelAdmin):
     list_filter   = ('is_dispensed',)
     search_fields = ('item_name', 'brand')
     readonly_fields = ('dispensed_at',)
+    list_select_related = ('prescription',)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -252,6 +258,7 @@ class PrescriberCommissionAdmin(admin.ModelAdmin):
     search_fields   = ('prescriber__name', 'patient_name')
     readonly_fields = ('created_at', 'sales_amount', 'commission_rate', 'commission_amount')
     raw_id_fields   = ('prescriber', 'prescription')
+    list_select_related = ('prescriber', 'prescription')
     actions         = ['action_mark_paid', 'action_mark_pending']
 
     def get_queryset(self, request):
@@ -289,6 +296,7 @@ class ConsultationPayoutAdmin(admin.ModelAdmin):
     search_fields   = ('prescriber__name', 'patient_name')
     readonly_fields = ('created_at', 'consultation_category', 'consultation_fee')
     raw_id_fields   = ('prescriber', 'prescription')
+    list_select_related = ('prescriber', 'prescription')
     actions         = ['action_mark_paid', 'action_mark_pending']
 
     def get_queryset(self, request):

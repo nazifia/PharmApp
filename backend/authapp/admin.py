@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.html import conditional_escape, format_html, mark_safe
 from django.urls import reverse
 from django.db import transaction
+from django.db.models import Count, Q
 
 from .admin_mixins import OrgScopedAdminMixin
 from .models import (
@@ -101,6 +102,12 @@ class OrganizationAdmin(admin.ModelAdmin):
     ordering = ["name"]
     inlines  = []   # populated in get_inlines()
     actions  = ["show_delete_impact"]
+    list_select_related = ["subscription"]
+
+    def get_queryset(self, request):
+        # select_related avoids a subscription query per row; annotate avoids a
+        # COUNT per row for the Users column.
+        return super().get_queryset(request).annotate(_user_count=Count("users"))
 
     def get_inlines(self, request, obj):
         inlines = list(_subscription_inline())
@@ -187,9 +194,10 @@ class OrganizationAdmin(admin.ModelAdmin):
         except Exception:
             return format_html('<span style="color:#64748b;font-size:11px">—</span>')
 
-    @admin.display(description="Users")
+    @admin.display(description="Users", ordering="_user_count")
     def user_count(self, obj):
-        return obj.users.count()
+        val = getattr(obj, "_user_count", None)
+        return val if val is not None else obj.users.count()
 
     # ── Superuser-only permissions ─────────────────────────────────────────
 
@@ -335,6 +343,7 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
     list_filter  = ["role", "is_active", "is_staff", "is_wholesale_operator", "branch"]
     search_fields = ["phone_number", "full_name"]
     ordering = ["phone_number"]
+    list_select_related = ["organization", "branch"]
 
     # Superuser fieldsets (full control)
     _superuser_fieldsets = (
@@ -689,6 +698,7 @@ class ActivityLogAdmin(admin.ModelAdmin):
     search_fields = ["username", "action", "description", "ip_address"]
     ordering      = ["-timestamp"]
     date_hierarchy = "timestamp"
+    list_select_related = ["organization"]
     readonly_fields = [
         "organization", "user", "username", "role", "action",
         "category", "description", "ip_address", "timestamp",
@@ -760,10 +770,16 @@ class PharmacyNetworkAdmin(admin.ModelAdmin):
     readonly_fields = ["slug", "created_at"]
     ordering       = ["name"]
     inlines        = [PharmacyNetworkMembershipInline]
+    list_select_related = ["created_by"]
 
-    @admin.display(description="Members")
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            _member_count=Count("memberships", filter=Q(memberships__status="active"))
+        )
+
+    @admin.display(description="Members", ordering="_member_count")
     def member_count(self, obj):
-        return obj.memberships.filter(status="active").count()
+        return obj._member_count
 
     def has_view_permission(self, request, obj=None):
         return request.user.is_superuser
@@ -787,6 +803,7 @@ class PharmacyNetworkMembershipAdmin(admin.ModelAdmin):
     search_fields = ["organization__name", "network__name"]
     readonly_fields = ["created_at"]
     ordering      = ["-created_at"]
+    list_select_related = ["organization", "network", "invited_by"]
 
     actions = ["approve_memberships", "suspend_memberships"]
 
@@ -825,6 +842,7 @@ class CommissionConfigAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     search_fields = ["user__phone_number", "user__full_name", "organization__name"]
     ordering      = ["user__full_name"]
     readonly_fields = ["updated_at"]
+    list_select_related = ["user", "organization"]
 
     fieldsets = (
         (None, {"fields": ("user", "commission_rate", "fixed_bonus", "is_active")}),

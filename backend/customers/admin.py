@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Sum
 from django.utils.html import format_html
 
 from authapp.admin_mixins import OrgScopedAdminMixin
@@ -30,6 +31,13 @@ class CustomerAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     readonly_fields = ["total_purchases_display", "join_date"]
     inlines = [WalletTransactionInline]
 
+    def get_queryset(self, request):
+        # Annotate purchase total so the list view needs one query, not one
+        # aggregate per row. Detail view falls back to the model method.
+        return super().get_queryset(request).annotate(
+            _total_purchases=Sum("sales__total_amount")
+        )
+
     fieldsets = (
         ("Basic Information", {
             "fields": ("name", "phone", "email", "address"),
@@ -54,10 +62,13 @@ class CustomerAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
             'border-radius:4px;font-size:11px">Retail</span>'
         )
 
-    @admin.display(description="Total Purchases")
+    @admin.display(description="Total Purchases", ordering="_total_purchases")
     def total_purchases_display(self, obj):
         try:
-            return f"₦{obj.total_purchases():,.2f}"
+            val = getattr(obj, "_total_purchases", None)
+            if val is None:
+                val = obj.total_purchases()
+            return f"₦{float(val):,.2f}"
         except Exception:
             return "—"
 
@@ -99,6 +110,7 @@ class WalletTransactionAdmin(admin.ModelAdmin):
     ordering      = ["-created"]
     readonly_fields = ["customer", "txn_type", "amount", "note", "created"]
     date_hierarchy = "created"
+    list_select_related = ["customer"]
 
     def get_queryset(self, request):
         """Scope to current org via customer → organisation traversal."""

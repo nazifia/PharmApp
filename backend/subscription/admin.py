@@ -24,6 +24,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import admin, messages
 from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import PermissionDenied
+from django.db.models import Count, Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
@@ -582,6 +583,34 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
     inlines = [SubscriptionEventInline]
 
+    list_select_related = ('organization',)
+
+    def get_queryset(self, request):
+        # Collapse the three per-row usage COUNT queries into one annotated query.
+        # distinct=True is required: annotating counts over three different reverse
+        # relations in one query fans out the joins, so non-distinct counts would
+        # multiply each other.
+        month_start = timezone.now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return super().get_queryset(request).annotate(
+            _users_count=Count(
+                'organization__users',
+                filter=Q(organization__users__is_active=True),
+                distinct=True,
+            ),
+            _items_count=Count(
+                'organization__items',
+                filter=Q(organization__items__status='active'),
+                distinct=True,
+            ),
+            _tx_count=Count(
+                'organization__sales',
+                filter=Q(organization__sales__created__gte=month_start),
+                distinct=True,
+            ),
+        )
+
     actions = [
         approve_registration,
         approve_pending,
@@ -978,20 +1007,29 @@ class SubscriptionAdmin(admin.ModelAdmin):
         color = '#EF4444' if days <= 3 else '#F59E0B' if days <= 7 else '#10B981'
         return format_html('<span style="color:{};font-weight:600">{}&nbsp;days</span>', color, days)
 
-    @admin.display(description='Users')
+    @admin.display(description='Users', ordering='_users_count')
     def usage_users(self, obj):
+        val = getattr(obj, '_users_count', None)
+        if val is not None:
+            return val
         return obj.organization.users.filter(is_active=True).count()
 
-    @admin.display(description='Items')
+    @admin.display(description='Items', ordering='_items_count')
     def usage_items(self, obj):
+        val = getattr(obj, '_items_count', None)
+        if val is not None:
+            return val
         try:
             from inventory.models import Item
             return Item.objects.filter(organization=obj.organization, status='active').count()
         except Exception:
             return '—'
 
-    @admin.display(description='Trans/mo')
+    @admin.display(description='Trans/mo', ordering='_tx_count')
     def usage_transactions(self, obj):
+        val = getattr(obj, '_tx_count', None)
+        if val is not None:
+            return val
         try:
             from pos.models import Sale
             start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)

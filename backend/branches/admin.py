@@ -53,6 +53,7 @@ class BranchAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
     ordering       = ('organization__name', '-is_main', 'name')
     actions        = ['action_set_main', 'action_activate', 'action_deactivate']
+    list_select_related = ('organization', 'organization__subscription')
 
     def get_inlines(self, request, obj):
         if obj is not None:
