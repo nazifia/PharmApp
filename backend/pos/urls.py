@@ -66,6 +66,9 @@ urlpatterns = [
     path(
         "stock-checks/<int:pk>/approve/", views.stock_check_approve, name="sc-approve"
     ),
+    path(
+        "stock-checks/<int:pk>/cancel/", views.stock_check_cancel, name="sc-cancel"
+    ),
     path("stock-checks/<int:pk>/delete/", views.stock_check_delete, name="sc-delete"),
     # Cashiers
     path("cashiers/", views.cashier_list, name="cashier-list"),

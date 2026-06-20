@@ -630,6 +630,7 @@ class StockCheck(models.Model):
             ("pending", "Pending"),
             ("in_progress", "In Progress"),
             ("completed", "Completed"),
+            ("cancelled", "Cancelled"),
         ],
     )
     approved_by = models.ForeignKey(

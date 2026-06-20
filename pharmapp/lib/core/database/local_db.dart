@@ -1262,6 +1262,13 @@ class LocalDb {
     return {'id': id, 'status': 'approved'};
   }
 
+  Future<Map<String, dynamic>> cancelStockCheck(int id) async {
+    final d = await db;
+    await d.update('stock_checks', {'status': 'cancelled'},
+        where: 'id = ?', whereArgs: [id]);
+    return {'id': id, 'status': 'cancelled'};
+  }
+
   Future<void> deleteStockCheck(int id) async {
     final d = await db;
     await d.delete('stock_check_items',

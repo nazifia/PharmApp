@@ -138,6 +138,19 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
     }
   }
 
+  Future<void> _cancelCheck(int id) async {
+    try {
+      await ref.read(posApiProvider).cancelStockCheck(id);
+      if (!mounted) return;
+      _showSnack('Stock check cancelled', EnhancedTheme.warningAmber);
+      setState(() => _selectedCheck = null);
+      _loadChecks();
+    } catch (e) {
+      if (!mounted) return;
+      _showError('Failed to cancel: $e');
+    }
+  }
+
   Future<void> _deleteCheck(int id) async {
     try {
       await ref.read(posApiProvider).deleteStockCheck(id);
@@ -188,6 +201,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       case 'pending':     return EnhancedTheme.warningAmber;
       case 'in_progress': return EnhancedTheme.infoBlue;
       case 'completed':   return EnhancedTheme.successGreen;
+      case 'cancelled':   return EnhancedTheme.errorRed;
       default:            return context.subLabelColor;
     }
   }
@@ -197,6 +211,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       case 'pending':     return 'Pending';
       case 'in_progress': return 'In Progress';
       case 'completed':   return 'Completed';
+      case 'cancelled':   return 'Cancelled';
       default:            return status;
     }
   }
@@ -206,6 +221,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
       case 'pending':     return Icons.schedule_rounded;
       case 'in_progress': return Icons.sync_rounded;
       case 'completed':   return Icons.check_circle_rounded;
+      case 'cancelled':   return Icons.cancel_rounded;
       default:            return Icons.help_outline_rounded;
     }
   }
@@ -427,6 +443,29 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                   )),
                 ],
               ]),
+            ),
+
+          // Cancel button
+          if (status == 'pending' || status == 'in_progress')
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _confirmCancel(checkId),
+                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  label: Text('Cancel Check',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: EnhancedTheme.errorRed,
+                    side: BorderSide(
+                        color: EnhancedTheme.errorRed.withValues(alpha: 0.5)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
             ),
 
           // Items list
@@ -1307,6 +1346,38 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
         .animate(delay: Duration(milliseconds: index * 60))
         .fadeIn(duration: 350.ms)
         .slideX(begin: 0.04, end: 0);
+  }
+
+  void _confirmCancel(int id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: EnhancedTheme.surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Cancel Check?',
+            style: GoogleFonts.outfit(color: context.labelColor,
+                fontSize: 18, fontWeight: FontWeight.w700)),
+        content: Text(
+            'This stock check will be cancelled. No stock adjustments will be applied. Counted items are kept for reference.',
+            style: GoogleFonts.inter(color: context.subLabelColor)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Keep',
+                style: GoogleFonts.outfit(color: context.subLabelColor)),
+          ),
+          ElevatedButton(
+            onPressed: () { Navigator.pop(ctx); _cancelCheck(id); },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: EnhancedTheme.warningAmber,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
+            child: Text('Cancel Check', style: GoogleFonts.outfit()),
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmDelete(int id) {

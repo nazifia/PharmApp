@@ -1072,12 +1072,15 @@ def stock_check_list(request):
     return Response(check.to_api_dict(), status=status.HTTP_201_CREATED)
 
 
-@api_view(["GET"])
+@api_view(["GET", "DELETE"])
 def stock_check_detail(request, pk):
     org, err = require_org(request)
     if err:
         return err
     check = get_object_or_404(StockCheck, pk=pk, organization=org)
+    if request.method == "DELETE":
+        check.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     return Response(check.to_api_dict())
 
 
@@ -1138,6 +1141,28 @@ def stock_check_approve(request, pk):
         check.approved_by = request.user if request.user.is_authenticated else None
         check.approved_at = timezone.now()
         check.save()
+    return Response(check.to_api_dict())
+
+
+@api_view(["POST"])
+def stock_check_cancel(request, pk):
+    """Cancel a stock check without applying any stock adjustments."""
+    org, err = require_org(request)
+    if err:
+        return err
+    check = get_object_or_404(StockCheck, pk=pk, organization=org)
+    if check.status == "completed":
+        return Response(
+            {"detail": "Cannot cancel a completed stock check"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if check.status == "cancelled":
+        return Response(
+            {"detail": "Stock check already cancelled"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    check.status = "cancelled"
+    check.save(update_fields=["status"])
     return Response(check.to_api_dict())
 
 

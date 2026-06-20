@@ -1014,6 +1014,18 @@ class PosApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> cancelStockCheck(int id) async {
+    if (_isLocal) return LocalDb.instance.cancelStockCheck(id);
+    try {
+      final res = await _dio!.post('/pos/stock-checks/$id/cancel/');
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      if (e.response == null) rethrow;
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to cancel stock check');
+    }
+  }
+
   Future<void> deleteStockCheck(int id) async {
     if (_isLocal) return LocalDb.instance.deleteStockCheck(id);
     try {
@@ -2543,6 +2555,29 @@ class StockCheckNotifier extends StateNotifier<AsyncValue<void>> {
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/stock-checks/$id/approve/',
           description: 'Approve stock check #$id',
+        );
+        state = const AsyncValue.data(null);
+        return {'offline': true};
+      }
+      state = AsyncValue.error(e, st);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> cancelStockCheck(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.cancelStockCheck(id);
+      state = const AsyncValue.data(null);
+      return result;
+    } on DioException catch (e, st) {
+      if (e.response == null) {
+        await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
+          'POST', '/pos/stock-checks/$id/cancel/',
+          description: 'Cancel stock check #$id',
         );
         state = const AsyncValue.data(null);
         return {'offline': true};
