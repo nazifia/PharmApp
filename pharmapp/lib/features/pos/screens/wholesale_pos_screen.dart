@@ -129,6 +129,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
   // ── Branch picker ──────────────────────────────────────────────────────────
 
   void _showBranchPicker(BuildContext context) {
+    if (!ref.read(canSwitchBranchProvider)) return; // non-admins cannot switch
     final user = ref.read(currentUserProvider);
     if ((user?.branchId ?? 0) != 0) return;
 
@@ -630,8 +631,9 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   ? activeBranch.name
                   : 'All Branches';
               final isSpecific = activeBranch != null && activeBranch.id > 0;
+              final canSwitch = ref.watch(canSwitchBranchProvider);
               return GestureDetector(
-                onTap: () => _showBranchPicker(context),
+                onTap: canSwitch ? () => _showBranchPicker(context) : null,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
@@ -660,10 +662,12 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                           style: TextStyle(
                               color: isSpecific ? EnhancedTheme.accentCyan : Colors.black54,
                               fontSize: 10, fontWeight: FontWeight.w700)),
-                      const SizedBox(width: 2),
-                      Icon(Icons.expand_more_rounded,
-                          color: isSpecific ? EnhancedTheme.accentCyan : Colors.black54,
-                          size: 10),
+                      if (canSwitch) ...[
+                        const SizedBox(width: 2),
+                        Icon(Icons.expand_more_rounded,
+                            color: isSpecific ? EnhancedTheme.accentCyan : Colors.black54,
+                            size: 10),
+                      ],
                     ]),
                   ),
                 ),

@@ -1427,7 +1427,28 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
                               : Colors.white,
                           style: GoogleFonts.inter(
                               color: context.labelColor, fontSize: 14),
-                          items: ['Pcs', 'Pack', 'Carton', 'Box']
+                          items: const [
+                            'Pcs',
+                            'Tablet',
+                            'Capsule',
+                            'ml',
+                            'mg',
+                            'Pack',
+                            'Bottle',
+                            'Vial',
+                            'Sachet',
+                            'Tube',
+                            'Ampoule',
+                            'Strip',
+                            'Piece',
+                            'Teaspoon',
+                            'Tablespoon',
+                            'Roll',
+                            'Carton',
+                            'Box',
+                            'Bag',
+                            'Sac',
+                          ]
                               .map((u) =>
                                   DropdownMenuItem(value: u, child: Text(u)))
                               .toList(),
@@ -1451,7 +1472,7 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
                   true, 'Wholesale → Retail', Icons.arrow_forward_rounded),
               const SizedBox(width: 10),
               _directionChip(
-                  false, 'Retail → Wholesale', Icons.arrow_back_rounded),
+                  false, 'Retail → Wholesale', Icons.arrow_forward_rounded),
             ]),
             const SizedBox(height: 16),
 
@@ -1547,8 +1568,6 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
           ),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, color: active ? color : context.subLabelColor, size: 16),
-          const SizedBox(width: 6),
           Flexible(
               child: Text(label,
                   style: GoogleFonts.inter(

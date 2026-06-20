@@ -178,6 +178,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
   // ── Branch Picker ──────────────────────────────────────────────────────────
 
   void _showBranchPicker(BuildContext context) {
+    if (!ref.read(canSwitchBranchProvider)) return; // non-admins cannot switch
     final user = ref.read(currentUserProvider);
     if ((user?.branchId ?? 0) != 0) return; // locked to assigned branch
 
@@ -395,8 +396,8 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
                   ? user!.branchName
                   : 'All Branches';
           final isSpecific = activeBranch != null && activeBranch.id > 0;
-          if ((user?.branchId ?? 0) != 0) {
-            // Locked to assigned branch — show static chip
+          if ((user?.branchId ?? 0) != 0 || !ref.watch(canSwitchBranchProvider)) {
+            // Locked to assigned branch / non-admin — show static chip
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(

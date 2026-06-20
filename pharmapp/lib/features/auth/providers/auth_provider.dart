@@ -52,6 +52,14 @@ final currentBranchProvider = Provider<({int id, String name})?> ((ref) {
   return (id: user.branchId, name: user.branchName);
 });
 
+/// Whether the current user may switch the active branch. Only admin-level
+/// roles can change branches; regular staff are locked to their assigned /
+/// selected branch and must not be able to switch.
+final canSwitchBranchProvider = Provider<bool>((ref) {
+  final role = ref.watch(currentUserProvider)?.role;
+  return const {'Admin', 'Manager', 'Wholesale Manager'}.contains(role);
+});
+
 // ── Repository provider ───────────────────────────────────────────────────────
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

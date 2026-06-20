@@ -103,6 +103,8 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
   }
 
   void _showBranchPicker(BuildContext context) {
+    // Only admin-level roles may switch branches.
+    if (!ref.read(canSwitchBranchProvider)) return;
     final user = ref.read(currentUserProvider);
     // Users with a backend-assigned branch are locked — cannot switch.
     if ((user?.branchId ?? 0) != 0) return;
@@ -833,8 +835,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
               ? activeBranch.name
               : 'All Branches';
           final isSpecific = activeBranch != null && activeBranch.id > 0;
+          final canSwitch = ref.watch(canSwitchBranchProvider);
           return GestureDetector(
-            onTap: () => _showBranchPicker(context),
+            onTap: canSwitch ? () => _showBranchPicker(context) : null,
             child: Container(
               margin: const EdgeInsets.only(top: 3),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -860,10 +863,12 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                     style: TextStyle(
                         color: isSpecific ? EnhancedTheme.primaryTeal : context.subLabelColor,
                         fontSize: 10, fontWeight: FontWeight.w700)),
-                const SizedBox(width: 2),
-                Icon(Icons.expand_more_rounded,
-                    color: isSpecific ? EnhancedTheme.primaryTeal : context.subLabelColor,
-                    size: 10),
+                if (canSwitch) ...[
+                  const SizedBox(width: 2),
+                  Icon(Icons.expand_more_rounded,
+                      color: isSpecific ? EnhancedTheme.primaryTeal : context.subLabelColor,
+                      size: 10),
+                ],
               ]),
             ),
           );
