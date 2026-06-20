@@ -35,6 +35,21 @@ class AuthRepository {
 
   bool get _isLocal => _dio == null;
 
+  /// Wipes the cached offline credential fingerprint + user cache for both org
+  /// users and prescribers. Call on explicit logout so a signed-out account can
+  /// no longer authenticate offline. The per-install salts are intentionally
+  /// kept (device identity, not user data).
+  static Future<void> clearOfflineCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kCredHash);
+    await prefs.remove(_kCredPhone);
+    await prefs.remove(_kOfflineUser);
+    await prefs.remove(_kLoginAttempts);
+    await prefs.remove(_kLoginLockUntil);
+    await prefs.remove(_kPrescriberCredHash);
+    await prefs.remove(_kPrescriberCredPhone);
+  }
+
   /// Fetches the current authenticated user's profile from the backend.
   /// Returns the cached/stub user in local dev mode.
   Future<User> fetchCurrentUser(User fallback) async {

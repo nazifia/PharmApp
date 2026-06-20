@@ -10,7 +10,6 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/offline/eager_sync_service.dart';
 import '../../../core/services/auth_storage.dart';
-import '../../../core/services/offline_credential_store.dart';
 import '../../../features/branches/providers/branch_provider.dart';
 import '../../../features/networks/providers/network_provider.dart';
 import '../../../features/prescriptions/providers/prescriber_provider.dart';
@@ -125,7 +124,7 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
 
       await AuthStorage.write('auth_token',   token);
       await AuthStorage.write('current_user', jsonEncode(user.toJson()));
-      await OfflineCredentialStore.saveHash(phone, password);
+      // Offline credential fingerprint is persisted by AuthRepository.login().
 
       state = AuthFlowState.authenticated;
 
@@ -134,26 +133,9 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
       // Auto-open a shift for this user so sales are linked immediately.
       _autoOpenShift(user);
     } catch (e) {
-      // Network unreachable → attempt offline credential verification.
-      if (e is DioException && e.response == null) {
-        final token    = await AuthStorage.read('auth_token');
-        final userData = await AuthStorage.read('current_user');
-        if (token != null && userData != null) {
-          final verified = await OfflineCredentialStore.verify(phone, password);
-          if (verified) {
-            final user = User.fromJson(
-                jsonDecode(userData) as Map<String, dynamic>);
-            _ref.read(authTokenProvider.notifier).state   = token;
-            _ref.read(currentUserProvider.notifier).state = user;
-            if (user.branchId != 0) {
-              _ref.read(activeBranchProvider.notifier).state =
-                  Branch(id: user.branchId, name: user.branchName);
-            }
-            state = AuthFlowState.authenticated;
-            return;
-          }
-        }
-      }
+      // Offline credential verification is handled inside AuthRepository.login()
+      // (_tryOfflineLogin), which returns a session map on success. Reaching
+      // here means login genuinely failed — surface the message.
       _errorMessage = _friendly(e);
       state = AuthFlowState.error;
     }
