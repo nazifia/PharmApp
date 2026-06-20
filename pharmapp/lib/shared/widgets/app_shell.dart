@@ -65,6 +65,16 @@ class AppShell extends ConsumerStatefulWidget {
           _MoreSheet(isAdmin: isAdmin, isWholesale: isWholesale, ref: ref),
     );
   }
+
+  /// Lets a dual-capable user (retail + wholesale POS access) pick which POS
+  /// to open from the bottom-nav POS tab.
+  static void _showPosChooser(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _PosChooserSheet(),
+    );
+  }
 }
 
 class _AppShellState extends ConsumerState<AppShell>
@@ -378,6 +388,9 @@ class _AppShellState extends ConsumerState<AppShell>
         role.contains('Wholesale') || (user?.isWholesaleOperator ?? false);
     final canInventory = Rbac.canViewInventory(user);
     final canCustomers = Rbac.can(user, AppPermission.readCustomers);
+    final canRetailPOS = Rbac.can(user, AppPermission.retailPOS);
+    final canWholesalePOS = Rbac.can(user, AppPermission.wholesalePOS);
+    final canBothPOS = canRetailPOS && canWholesalePOS;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final location = GoRouterState.of(context).matchedLocation;
     final isOnline = ref.watch(isOnlineProvider);
@@ -429,8 +442,14 @@ class _AppShellState extends ConsumerState<AppShell>
             ? '/wholesale-dashboard'
             : '/dashboard';
 
-    final posRoute =
-        isWholesale ? '/dashboard/wholesale-pos' : '/dashboard/pos';
+    // Single-mode users go straight to their POS. Dual-capable users get a
+    // chooser (handled via onPosTap below); posRoute is only used to highlight
+    // the tab, so default it to the role-primary POS.
+    final posRoute = canWholesalePOS && !canRetailPOS
+        ? '/dashboard/wholesale-pos'
+        : isWholesale
+            ? '/dashboard/wholesale-pos'
+            : '/dashboard/pos';
 
     return InactivityGuard(
       child: Scaffold(
@@ -451,6 +470,9 @@ class _AppShellState extends ConsumerState<AppShell>
         canInventory: canInventory,
         canCustomers: canCustomers,
         pendingCount: pending,
+        onPosTap: canBothPOS
+            ? () => AppShell._showPosChooser(context)
+            : null,
         onMoreTap: () =>
             AppShell._showMoreSheet(context, ref, isAdmin, isWholesale),
       ),
@@ -964,6 +986,10 @@ class _AppBottomNav extends StatelessWidget {
   final int pendingCount;
   final VoidCallback onMoreTap;
 
+  /// When non-null, tapping the POS tab runs this (chooser sheet) instead of
+  /// navigating directly to [posRoute]. Used for dual-capable users.
+  final VoidCallback? onPosTap;
+
   const _AppBottomNav({
     required this.isDark,
     required this.homeRoute,
@@ -973,6 +999,7 @@ class _AppBottomNav extends StatelessWidget {
     required this.canCustomers,
     required this.pendingCount,
     required this.onMoreTap,
+    this.onPosTap,
   });
 
   int _selectedIndex(List<_NavItem> items) {
@@ -1048,7 +1075,9 @@ class _AppBottomNav extends StatelessWidget {
                         label: item.label,
                         isSelected: sel,
                         badgeCount: badge,
-                        onTap: () => context.go(item.route),
+                        onTap: (idx == 1 && onPosTap != null)
+                            ? onPosTap!
+                            : () => context.go(item.route),
                       ),
                     );
                   }),
@@ -1064,6 +1093,131 @@ class _AppBottomNav extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── POS chooser sheet (dual-capable users) ────────────────────────────────────
+
+class _PosChooserSheet extends StatelessWidget {
+  const _PosChooserSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    void nav(String route) {
+      Navigator.pop(context);
+      context.go(route);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.06),
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black26,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Choose Point of Sale',
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(
+                  child: _PosChoiceCard(
+                    icon: Icons.storefront_rounded,
+                    label: 'Retail POS',
+                    color: EnhancedTheme.primaryTeal,
+                    isDark: isDark,
+                    onTap: () => nav('/dashboard/pos'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _PosChoiceCard(
+                    icon: Icons.store_rounded,
+                    label: 'Wholesale POS',
+                    color: EnhancedTheme.accentCyan,
+                    isDark: isDark,
+                    onTap: () => nav('/dashboard/wholesale-pos'),
+                  ),
+                ),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PosChoiceCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _PosChoiceCard({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: isDark ? 0.12 : 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+          ),
+          child: Column(children: [
+            Icon(icon, color: color, size: 30),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black87,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ]),
         ),
       ),
     );
