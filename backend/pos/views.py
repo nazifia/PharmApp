@@ -1182,7 +1182,7 @@ def stock_check_report(request):
 
         check_cost_diff = 0.0
         for ci in items:
-            discrepancy = (ci.actual_quantity or ci.expected_quantity) - ci.expected_quantity
+            discrepancy = float((ci.actual_quantity or ci.expected_quantity) - ci.expected_quantity)
             unit_price = float(getattr(ci.item, "price", 0) or 0)
             check_cost_diff += discrepancy * unit_price
         total_cost_difference += check_cost_diff
