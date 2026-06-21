@@ -1577,8 +1577,9 @@ class LocalDb {
 
   static final _dateRe = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
-  ({String clause, List<Object?> args}) _periodWhere(String period, {String table = ''}) {
-    final col = table.isEmpty ? 'created_at' : '$table.created_at';
+  ({String clause, List<Object?> args}) _periodWhere(String period,
+      {String table = '', String column = 'created_at'}) {
+    final col = table.isEmpty ? column : '$table.$column';
     if (period.startsWith('custom:')) {
       final parts = period.split(':');
       if (parts.length >= 3 &&
@@ -1636,8 +1637,29 @@ class LocalDb {
       FROM sales WHERE date(created_at) = date('now') AND status='completed' ''');
     final tr = todayRows.first;
     final r = rows.first;
+    // Expenses for the selected period, split by source (cash drawer vs other).
+    final we = _periodWhere(period, column: 'date');
+    final expRows = await d.rawQuery('''
+      SELECT COALESCE(SUM(CASE WHEN payment_source='cash' THEN amount ELSE 0 END),0) as cash,
+             COALESCE(SUM(CASE WHEN payment_source!='cash' THEN amount ELSE 0 END),0) as other
+      FROM expenses WHERE ${we.clause}''', we.args);
+    final er = expRows.first;
+    final expCash  = (er['cash'] as num).toDouble();
+    final expOther = (er['other'] as num).toDouble();
+    final cashSales  = (r['cash'] as num).toDouble();
+    final otherSales = (r['pos'] as num).toDouble()
+        + (r['transfer'] as num).toDouble()
+        + (r['wallet'] as num).toDouble();
     return {
       'period': period,
+      'expenses': {
+        'cash': expCash, 'other': expOther, 'total': expCash + expOther,
+      },
+      'net': {
+        'cash': cashSales - expCash,
+        'other': otherSales - expOther,
+        'total': cashSales + otherSales - expCash - expOther,
+      },
       'todayPaymentMethods': {
         'cash': (tr['cash'] as num).toDouble(),
         'pos': (tr['pos'] as num).toDouble(),

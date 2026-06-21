@@ -729,20 +729,21 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     ]);
   }
 
-  // -- Today's sales minus expenses, split by till (cash / other) --------------
+  // -- Period sales minus expenses, split by till (cash / other) ---------------
   Widget _netCard(BuildContext context, SalesReportData data) {
-    final exp = data.todayExpenses;
-    final net = data.todayNet;
-    final cashSales = data.todayPaymentMethods['cash'] ?? 0;
-    final otherSales = (data.todayPaymentMethods['pos'] ?? 0)
-        + (data.todayPaymentMethods['transfer'] ?? 0)
-        + (data.todayPaymentMethods['wallet'] ?? 0);
+    final exp = data.expenses;
+    final net = data.net;
+    final cashSales = data.paymentMethods['cash'] ?? 0;
+    final otherSales = (data.paymentMethods['pos'] ?? 0)
+        + (data.paymentMethods['transfer'] ?? 0)
+        + (data.paymentMethods['wallet'] ?? 0);
     final expTotal = exp['total'] ?? 0;
     if (cashSales <= 0 && otherSales <= 0 && expTotal <= 0) {
       return const SizedBox.shrink();
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _sectionHeader(context, "Today's Net (Sales − Expenses)",
+      _sectionHeader(context,
+          '${_customRange != null ? "${_fmtDate(_customRange!.start)} – ${_fmtDate(_customRange!.end)}" : _period} Net (Sales − Expenses)',
           Icons.calculate_rounded, EnhancedTheme.primaryTeal),
       const SizedBox(height: 12),
       GlassCard(
