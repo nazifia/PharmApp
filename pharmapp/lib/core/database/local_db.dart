@@ -1515,7 +1515,7 @@ class LocalDb {
     final total = await d.rawQuery(
         'SELECT COUNT(*) as cnt, COALESCE(SUM(quantity),0) as total FROM dispensing_log');
     final today = await d.rawQuery(
-        "SELECT COUNT(*) as cnt FROM dispensing_log WHERE date(date) = date('now')");
+        "SELECT COUNT(*) as cnt FROM dispensing_log WHERE date(date) = date('now','localtime')");
     return {
       'totalDispensed': total.first['total'] ?? 0,
       'totalEntries': total.first['cnt'] ?? 0,
@@ -1594,17 +1594,17 @@ class LocalDb {
     }
     switch (period) {
       case 'today':
-        return (clause: "date($col) = date('now')", args: []);
+        return (clause: "date($col) = date('now','localtime')", args: []);
       case 'week':
-        return (clause: "$col >= datetime('now', '-7 days')", args: []);
+        return (clause: "$col >= datetime('now', '-7 days', 'localtime')", args: []);
       case 'month':
-        return (clause: "$col >= datetime('now', '-1 month')", args: []);
+        return (clause: "$col >= datetime('now', '-1 month', 'localtime')", args: []);
       case 'quarter':
-        return (clause: "$col >= datetime('now', '-3 months')", args: []);
+        return (clause: "$col >= datetime('now', '-3 months', 'localtime')", args: []);
       case 'year':
-        return (clause: "$col >= datetime('now', '-1 year')", args: []);
+        return (clause: "$col >= datetime('now', '-1 year', 'localtime')", args: []);
       default:
-        return (clause: "$col >= datetime('now', '-30 days')", args: []);
+        return (clause: "$col >= datetime('now', '-30 days', 'localtime')", args: []);
     }
   }
 
@@ -1634,7 +1634,7 @@ class LocalDb {
              COALESCE(SUM(payment_pos),0) as pos,
              COALESCE(SUM(payment_bank_transfer),0) as transfer,
              COALESCE(SUM(payment_wallet),0) as wallet
-      FROM sales WHERE date(created_at) = date('now') AND status='completed' ''');
+      FROM sales WHERE date(created_at) = date('now','localtime') AND status='completed' ''');
     final tr = todayRows.first;
     final r = rows.first;
     // Expenses for the selected period, split by source (cash drawer vs other).
@@ -1789,11 +1789,11 @@ class LocalDb {
     final d = await db;
     final today = await d.rawQuery('''
       SELECT COALESCE(SUM(total_amount),0) as rev, COUNT(*) as cnt
-      FROM sales WHERE is_wholesale=1 AND date(created_at)=date('now') AND status='completed' ''');
+      FROM sales WHERE is_wholesale=1 AND date(created_at)=date('now','localtime') AND status='completed' ''');
     final unitsToday = await d.rawQuery('''
       SELECT COALESCE(SUM(si.quantity),0) as units
       FROM sale_items si JOIN sales s ON si.sale_id=s.id
-      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now') AND s.status='completed' ''');
+      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now','localtime') AND s.status='completed' ''');
     final debt = await d.rawQuery(
         "SELECT COALESCE(SUM(outstanding_debt),0) as d FROM customers WHERE is_wholesale=1");
     final custCount = await d
@@ -1805,7 +1805,7 @@ class LocalDb {
     final topProductsRows = await d.rawQuery('''
       SELECT si.name, SUM(si.quantity) as qty, SUM(si.quantity * si.price) as revenue
       FROM sale_items si JOIN sales s ON si.sale_id=s.id
-      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now') AND s.status='completed'
+      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now','localtime') AND s.status='completed'
       GROUP BY si.name ORDER BY qty DESC LIMIT 5 ''');
 
     // Pending transfers
