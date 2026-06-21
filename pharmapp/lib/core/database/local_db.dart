@@ -26,7 +26,7 @@ class LocalDb {
   Future<Database> _open() async {
     final dir = await getDatabasesPath();
     return openDatabase(p.join(dir, 'pharmapp.db'),
-        version: 5, onCreate: _create, onUpgrade: _upgrade);
+        version: 6, onCreate: _create, onUpgrade: _upgrade);
   }
 
   Future<void> _upgrade(Database db, int oldVersion, int newVersion) async {
@@ -47,6 +47,10 @@ class LocalDb {
           "ALTER TABLE items ADD COLUMN unit_of_dispensing TEXT NOT NULL DEFAULT ''");
       await db.execute(
           "ALTER TABLE items ADD COLUMN markup REAL NOT NULL DEFAULT 0");
+    }
+    if (oldVersion < 6) {
+      await db.execute(
+          "ALTER TABLE expenses ADD COLUMN payment_source TEXT NOT NULL DEFAULT 'cash'");
     }
   }
 
@@ -138,6 +142,7 @@ class LocalDb {
       category_id INTEGER,
       amount REAL NOT NULL,
       description TEXT DEFAULT '',
+      payment_source TEXT NOT NULL DEFAULT 'cash',
       date TEXT NOT NULL)''');
 
     await db.execute('''CREATE TABLE procurements(
@@ -1026,6 +1031,7 @@ class LocalDb {
               'categoryId': r['category_id'],
               'amount': (r['amount'] as num).toDouble(),
               'description': r['description'] ?? '',
+              'paymentSource': r['payment_source'] ?? 'cash',
               'date': r['date'],
             })
         .toList();
@@ -1035,13 +1041,15 @@ class LocalDb {
       {required int categoryId,
       required double amount,
       String description = '',
-      String? date}) async {
+      String? date,
+      String paymentSource = 'cash'}) async {
     final d = await db;
     final expDate = date ?? _now();
     final id = await d.insert('expenses', {
       'category_id': categoryId,
       'amount': amount,
       'description': description,
+      'payment_source': paymentSource,
       'date': expDate,
     });
     return {
@@ -1049,6 +1057,7 @@ class LocalDb {
       'categoryId': categoryId,
       'amount': amount,
       'description': description,
+      'paymentSource': paymentSource,
       'date': expDate
     };
   }

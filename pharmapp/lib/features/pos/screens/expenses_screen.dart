@@ -513,6 +513,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     final amountCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     DateTime selectedDate = DateTime.now();
+    String paymentSource = 'cash';
 
     showModalBottomSheet(
       context: context,
@@ -619,6 +620,46 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 ),
                 const SizedBox(height: 14),
 
+                // Paid from — which till the money leaves (nets off daily sales)
+                Text('Paid from', style: TextStyle(color: context.subLabelColor, fontSize: 12,
+                    fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                Row(children: [
+                  for (final s in const [('cash', 'Cash', Icons.payments_rounded),
+                                         ('other', 'Other', Icons.credit_card_rounded)]) ...[
+                    Expanded(child: GestureDetector(
+                      onTap: () => setSheet(() => paymentSource = s.$1),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: paymentSource == s.$1
+                              ? EnhancedTheme.primaryTeal.withValues(alpha: 0.12)
+                              : context.cardColor,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: paymentSource == s.$1
+                                  ? EnhancedTheme.primaryTeal
+                                  : context.borderColor,
+                              width: paymentSource == s.$1 ? 1.5 : 1),
+                        ),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(s.$3, size: 16,
+                              color: paymentSource == s.$1
+                                  ? EnhancedTheme.primaryTeal : context.subLabelColor),
+                          const SizedBox(width: 8),
+                          Text(s.$2, style: TextStyle(
+                            color: paymentSource == s.$1
+                                ? EnhancedTheme.primaryTeal : context.subLabelColor,
+                            fontSize: 13, fontWeight: FontWeight.w700)),
+                        ]),
+                      ),
+                    )),
+                    if (s.$1 == 'cash') const SizedBox(width: 10),
+                  ],
+                ]),
+                const SizedBox(height: 14),
+
                 // Date picker
                 GestureDetector(
                   onTap: () async {
@@ -679,6 +720,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                         amount: double.tryParse(amountCtrl.text) ?? 0,
                         description: descCtrl.text,
                         date: selectedDate.toIso8601String().split('T').first,
+                        paymentSource: paymentSource,
                       );
                       if (ctx.mounted) Navigator.pop(ctx);
                       _loadAll();

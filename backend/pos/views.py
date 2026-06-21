@@ -803,11 +803,15 @@ def expense_list(request):
         expense_date = _date.fromisoformat(raw_date) if isinstance(raw_date, str) else (raw_date or timezone.localdate())
     except (ValueError, TypeError):
         expense_date = timezone.localdate()
+    source = (data.get("payment_source") or data.get("paymentSource") or "cash").lower()
+    if source not in ("cash", "other"):
+        source = "cash"
     expense = Expense.objects.create(
         organization=org,
         category=cat,
         amount=data.get("amount", 0),
         description=data.get("description", ""),
+        payment_source=source,
         date=expense_date,
         created_by=request.user if request.user.is_authenticated else None,
     )

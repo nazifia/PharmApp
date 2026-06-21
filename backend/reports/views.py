@@ -11,7 +11,7 @@ from authapp.permissions import IsAdminOrManager, IsReportsUser, SENIOR_ROLES
 from authapp.utils import require_org
 from customers.models import Customer
 from inventory.models import Item
-from pos.models import Cashier, Sale, SaleItem
+from pos.models import Cashier, Expense, Sale, SaleItem
 
 
 # ── Date range helper ─────────────────────────────────────────────────────────
@@ -162,6 +162,37 @@ def sales_report(request):
         'wallet':   round(float(today_pay['wallet'] or 0), 2),
     }
 
+    # Today's expenses split by source (cash drawer vs other), netted off sales.
+    today_exp = (
+        Expense.objects
+        .filter(organization=org, date=timezone.localdate())
+        .values('payment_source')
+        .annotate(t=db_models.Sum('amount'))
+    )
+    exp_cash = exp_other = 0.0
+    for r in today_exp:
+        amt = float(r['t'] or 0)
+        if r['payment_source'] == 'cash':
+            exp_cash += amt
+        else:
+            exp_other += amt
+
+    cash_sales  = today_payment_methods['cash']
+    other_sales = (today_payment_methods['pos']
+                   + today_payment_methods['transfer']
+                   + today_payment_methods['wallet'])
+
+    today_expenses = {
+        'cash':  round(exp_cash, 2),
+        'other': round(exp_other, 2),
+        'total': round(exp_cash + exp_other, 2),
+    }
+    today_net = {
+        'cash':  round(cash_sales - exp_cash, 2),
+        'other': round(other_sales - exp_other, 2),
+        'total': round(cash_sales + other_sales - exp_cash - exp_other, 2),
+    }
+
     return Response({
         'period':         period,
         'dateFrom':       str(start),
@@ -174,6 +205,8 @@ def sales_report(request):
         'dailyBreakdown': daily,
         'paymentMethods': payment_methods,
         'todayPaymentMethods': today_payment_methods,
+        'todayExpenses': today_expenses,
+        'todayNet': today_net,
     })
 
 

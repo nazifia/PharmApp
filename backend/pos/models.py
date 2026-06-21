@@ -485,6 +485,12 @@ class Expense(models.Model):
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.CharField(max_length=300, blank=True, default="")
+    # Which till the money left: 'cash' drawer or 'other' (pos/transfer/wallet).
+    payment_source = models.CharField(
+        max_length=10,
+        choices=[("cash", "Cash"), ("other", "Other")],
+        default="cash",
+    )
     date = models.DateField()
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
@@ -504,6 +510,7 @@ class Expense(models.Model):
             "categoryName": self.category.name,
             "amount": float(self.amount),
             "description": self.description,
+            "paymentSource": self.payment_source,
             "date": self.date.isoformat(),
         }
 

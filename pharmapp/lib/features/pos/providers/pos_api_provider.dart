@@ -680,19 +680,22 @@ class PosApiClient {
     required double amount,
     String description = '',
     String? date,
+    String paymentSource = 'cash',
   }) async {
     if (_isLocal) {
       return LocalDb.instance.createExpense(
           categoryId: categoryId,
           amount: amount,
           description: description,
-          date: date);
+          date: date,
+          paymentSource: paymentSource);
     }
     try {
       final res = await _dio!.post('/pos/expenses/', data: {
         'category_id': categoryId,
         'amount': amount,
         'description': description,
+        'payment_source': paymentSource,
         if (date != null) 'date': date,
       });
       return res.data as Map<String, dynamic>;
@@ -2222,13 +2225,13 @@ class ExpenseNotifier extends StateNotifier<AsyncValue<void>> {
 
   Future<Map<String, dynamic>?> createExpense({
     required int categoryId, required double amount,
-    String description = '', String? date,
+    String description = '', String? date, String paymentSource = 'cash',
   }) async {
     state = const AsyncValue.loading();
     try {
       final result = await _api.createExpense(
         categoryId: categoryId, amount: amount,
-        description: description, date: date);
+        description: description, date: date, paymentSource: paymentSource);
       state = const AsyncValue.data(null);
       return result;
     } on DioException catch (e, st) {
@@ -2236,7 +2239,8 @@ class ExpenseNotifier extends StateNotifier<AsyncValue<void>> {
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/expenses/',
           body: {'category_id': categoryId, 'amount': amount,
-                 'description': description, if (date != null) 'date': date},
+                 'description': description, 'payment_source': paymentSource,
+                 if (date != null) 'date': date},
           description: 'Create expense ₦$amount',
         );
         // Patch the expense list cache so the new expense appears immediately.
@@ -2250,6 +2254,7 @@ class ExpenseNotifier extends StateNotifier<AsyncValue<void>> {
           'category_id': categoryId,
           'amount': amount,
           'description': description,
+          'paymentSource': paymentSource,
           'date': date ?? DateTime.now().toIso8601String().split('T').first,
           'status': 'pending_sync',
         };

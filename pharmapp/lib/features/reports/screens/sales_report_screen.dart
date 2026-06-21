@@ -723,8 +723,59 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       _paymentMethodsCard(context, "Today's Payments", data.todayPaymentMethods,
           'No payments recorded today'),
+      _netCard(context, data),
       _paymentMethodsCard(context, 'Payment Methods', data.paymentMethods,
           'No payments recorded for this period'),
+    ]);
+  }
+
+  // -- Today's sales minus expenses, split by till (cash / other) --------------
+  Widget _netCard(BuildContext context, SalesReportData data) {
+    final exp = data.todayExpenses;
+    final net = data.todayNet;
+    final cashSales = data.todayPaymentMethods['cash'] ?? 0;
+    final otherSales = (data.todayPaymentMethods['pos'] ?? 0)
+        + (data.todayPaymentMethods['transfer'] ?? 0)
+        + (data.todayPaymentMethods['wallet'] ?? 0);
+    final expTotal = exp['total'] ?? 0;
+    if (cashSales <= 0 && otherSales <= 0 && expTotal <= 0) {
+      return const SizedBox.shrink();
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _sectionHeader(context, "Today's Net (Sales − Expenses)",
+          Icons.calculate_rounded, EnhancedTheme.primaryTeal),
+      const SizedBox(height: 12),
+      GlassCard(
+        padding: const EdgeInsets.all(18),
+        child: Column(children: [
+          _netRow(context, 'Cash', cashSales, exp['cash'] ?? 0, net['cash'] ?? 0,
+              EnhancedTheme.successGreen),
+          const SizedBox(height: 16),
+          _netRow(context, 'Other', otherSales, exp['other'] ?? 0, net['other'] ?? 0,
+              EnhancedTheme.infoBlue),
+          Divider(height: 28, color: context.borderColor),
+          _netRow(context, 'Total', cashSales + otherSales, expTotal,
+              net['total'] ?? 0, EnhancedTheme.primaryTeal, bold: true),
+        ]),
+      ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+      const SizedBox(height: 22),
+    ]);
+  }
+
+  Widget _netRow(BuildContext context, String label, double sales, double expense,
+      double net, Color color, {bool bold = false}) {
+    final w = bold ? FontWeight.w900 : FontWeight.w700;
+    return Row(children: [
+      Expanded(child: Text(label,
+          style: GoogleFonts.inter(color: Colors.black, fontSize: bold ? 14 : 13,
+              fontWeight: w))),
+      Expanded(child: Text('${_fmt(sales)} − ${_fmt(expense)}',
+          textAlign: TextAlign.end,
+          style: TextStyle(color: Colors.black54, fontSize: 11))),
+      const SizedBox(width: 10),
+      Text(_fmt(net), style: TextStyle(
+          color: net >= 0 ? color : EnhancedTheme.errorRed,
+          fontSize: bold ? 15 : 13, fontWeight: w)),
     ]);
   }
 

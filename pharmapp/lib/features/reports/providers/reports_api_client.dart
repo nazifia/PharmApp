@@ -42,11 +42,16 @@ class SalesReportData {
   final Map<String, double> paymentMethods;
   /// Today's payments per method — independent of the selected period.
   final Map<String, double> todayPaymentMethods;
+  /// Today's expenses by source: keys 'cash','other','total'.
+  final Map<String, double> todayExpenses;
+  /// Today's sales minus expenses, by till: keys 'cash','other','total'.
+  final Map<String, double> todayNet;
   SalesReportData({required this.period, required this.totalRevenue,
       required this.totalRetail, required this.totalWholesale,
       required this.totalSales, required this.topItems,
       this.dailySales = const [], this.paymentMethods = const {},
-      this.todayPaymentMethods = const {}});
+      this.todayPaymentMethods = const {},
+      this.todayExpenses = const {}, this.todayNet = const {}});
   factory SalesReportData.fromJson(Map<String, dynamic> j) => SalesReportData(
         period: (j['period'] as String?) ?? 'month',
         totalRevenue: (j['totalRevenue'] as num?)?.toDouble() ?? 0,
@@ -60,6 +65,10 @@ class SalesReportData {
         paymentMethods: ((j['paymentMethods'] as Map?) ?? {}).map(
             (k, v) => MapEntry(k as String, (v as num?)?.toDouble() ?? 0)),
         todayPaymentMethods: ((j['todayPaymentMethods'] as Map?) ?? {}).map(
+            (k, v) => MapEntry(k as String, (v as num?)?.toDouble() ?? 0)),
+        todayExpenses: ((j['todayExpenses'] as Map?) ?? {}).map(
+            (k, v) => MapEntry(k as String, (v as num?)?.toDouble() ?? 0)),
+        todayNet: ((j['todayNet'] as Map?) ?? {}).map(
             (k, v) => MapEntry(k as String, (v as num?)?.toDouble() ?? 0)));
 }
 
