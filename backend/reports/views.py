@@ -44,6 +44,24 @@ def _date_range(period: str):
     return today.replace(day=1), today   # default: current month
 
 
+def _resolve_range(request):
+    """Honor explicit ?from=&to= (yyyy-mm-dd); else fall back to ?period=."""
+    f = request.query_params.get('from')
+    t = request.query_params.get('to')
+    if f and t:
+        try:
+            start = date.fromisoformat(f)
+            end = date.fromisoformat(t)
+            if start > end:
+                start, end = end, start
+            return 'custom', start, end
+        except ValueError:
+            pass
+    period = request.query_params.get('period', 'month')
+    start, end = _date_range(period)
+    return period, start, end
+
+
 # ── Sales report ──────────────────────────────────────────────────────────────
 
 @api_view(['GET'])
@@ -54,8 +72,7 @@ def sales_report(request):
     if err:
         return err
 
-    period = request.query_params.get('period', 'month')
-    start, end = _date_range(period)
+    period, start, end = _resolve_range(request)
 
     sales = Sale.objects.filter(
         organization=org,
