@@ -281,7 +281,7 @@ def checkout(request):
 
         if customer and wallet > 0:
             customer.wallet_balance = Decimal(str(customer.wallet_balance)) - wallet
-            customer.last_visit = timezone.now().date()
+            customer.last_visit = timezone.localdate()
             customer.save()
             WalletTransaction.objects.create(
                 customer=customer,
@@ -291,7 +291,7 @@ def checkout(request):
             )
 
         if customer:
-            customer.last_visit = timezone.now().date()
+            customer.last_visit = timezone.localdate()
             customer.save()
 
         # Record split payments
@@ -731,7 +731,7 @@ def dispensing_stats(request):
     org, err = require_org(request)
     if err:
         return err
-    today = timezone.now().date()
+    today = timezone.localdate()
     branch_id_str = request.query_params.get("branch_id", "").strip()
     branch_filter = {}
     if branch_id_str and branch_id_str.isdigit() and int(branch_id_str) > 0:
@@ -800,9 +800,9 @@ def expense_list(request):
     cat = get_object_or_404(ExpenseCategory, pk=data.get("category_id") or data.get("categoryId"))
     raw_date = data.get("date")
     try:
-        expense_date = _date.fromisoformat(raw_date) if isinstance(raw_date, str) else (raw_date or timezone.now().date())
+        expense_date = _date.fromisoformat(raw_date) if isinstance(raw_date, str) else (raw_date or timezone.localdate())
     except (ValueError, TypeError):
-        expense_date = timezone.now().date()
+        expense_date = timezone.localdate()
     expense = Expense.objects.create(
         organization=org,
         category=cat,
@@ -839,7 +839,7 @@ def monthly_report(request):
     if err:
         return err
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     month = int(request.query_params.get("month", today.month))
     year = int(request.query_params.get("year", today.year))
 

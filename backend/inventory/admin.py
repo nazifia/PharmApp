@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count, F, FloatField, Q, Sum
 from django.utils.html import format_html
-from django.utils.timezone import now
+from django.utils.timezone import localdate
 
 from authapp.admin_mixins import OrgScopedAdminMixin
 from .models import Item, RetailItem, WholesaleItem
@@ -66,7 +66,7 @@ def _status_badge(obj):
 def _expiry_display(obj):
     if not obj.expiry_date:
         return "—"
-    today = now().date()
+    today = localdate()
     days = (obj.expiry_date - today).days
     if days < 0:
         color, label = "#dc3545", f"{obj.expiry_date} (expired)"

@@ -27,7 +27,7 @@ def wholesale_dashboard(request):
     if err:
         return err
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     sales = Sale.objects.filter(organization=org, is_wholesale=True)
     today_sales = sales.filter(created__date=today)
 
@@ -166,7 +166,7 @@ def wholesale_sale_by_user(request):
     if err:
         return err
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     date_from = request.query_params.get("from", today.isoformat())
     date_to = request.query_params.get("to", today.isoformat())
 
@@ -422,7 +422,7 @@ def wholesale_expiry_alert(request):
     org, err = require_org(request)
     if err:
         return err
-    today = timezone.now().date()
+    today = timezone.localdate()
     items = Item.objects.filter(
         organization=org,
         store="wholesale",

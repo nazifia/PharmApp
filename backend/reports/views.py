@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from django.db import models as db_models
+from django.utils import timezone
 from django.db.models import F
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -23,7 +24,7 @@ def _date_range(period: str):
     'quarter' → first day of the current quarter → today
     'year'    → 1 Jan of the current year → today
     """
-    today = date.today()
+    today = timezone.localdate()
 
     if period == 'today':
         return today, today
@@ -205,7 +206,7 @@ def inventory_report(request):
         for i in low_stock.order_by('stock')[:20]
     ]
 
-    today  = date.today()
+    today  = timezone.localdate()
     in_30  = today + timedelta(days=30)
     expiring = items.filter(
         expiry_date__isnull=False,
@@ -346,7 +347,7 @@ def monthly_report(request):
     if err:
         return err
 
-    today = date.today()
+    today = timezone.localdate()
     try:
         year  = int(request.query_params.get('year',  today.year))
         month = int(request.query_params.get('month', today.month))

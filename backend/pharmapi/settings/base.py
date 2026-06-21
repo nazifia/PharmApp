@@ -304,7 +304,9 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+# Local pharmacy timezone — day/report boundaries roll at local midnight.
+# ponytail: single global TZ; add per-org TZ if orgs span timezones.
+TIME_ZONE = "Africa/Lagos"
 USE_TZ = True
 
 LOGIN_REDIRECT_URL = "/admin/"

@@ -49,7 +49,7 @@ def item_list(request):
             from django.utils import timezone
             from datetime import timedelta
 
-            today = timezone.now().date()
+            today = timezone.localdate()
             soon = today + timedelta(days=90)
             items = items.filter(
                 expiry_date__isnull=False, expiry_date__lte=soon, stock__gt=0

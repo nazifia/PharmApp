@@ -426,7 +426,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                         validator: (v) => double.tryParse(v ?? '') == null ? 'Invalid' : null)),
                   ]),
                   const SizedBox(height: 12),
-                  _sheetField(barcodeCtrl, 'Barcode (optional)', keyboardType: TextInputType.number),
+                  _sheetField(barcodeCtrl, 'Barcode (optional)', keyboardType: TextInputType.text),
                   const SizedBox(height: 12),
                   _sheetField(expiryCtrl, 'Expiry Date (YYYY-MM-DD)',
                       keyboardType: TextInputType.datetime,

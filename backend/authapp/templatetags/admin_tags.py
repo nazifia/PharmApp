@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from django import template
 from django.db.models import Sum, Count, Max
-from django.utils.timezone import now
+from django.utils.timezone import now, localdate
 
 register = template.Library()
 
@@ -43,7 +43,7 @@ def org_dashboard_stats(context):
 # ── Platform-wide stats (superuser) ──────────────────────────────────────────
 
 def _platform_stats(Organization, PharmUser, Item, Customer, Sale, Expense):
-    today = now().date()
+    today = localdate()
 
     total_orgs      = Organization.objects.count()
     total_users     = PharmUser.objects.filter(is_superuser=False, is_active=True).count()
@@ -89,7 +89,7 @@ def _platform_stats(Organization, PharmUser, Item, Customer, Sale, Expense):
 # ── Org-scoped stats (org admin) ──────────────────────────────────────────────
 
 def _org_stats(org, PharmUser, Item, Customer, Sale, Expense, PaymentRequest):
-    today = now().date()
+    today = localdate()
 
     users_qs     = PharmUser.objects.filter(organization=org, is_superuser=False)
     items_qs     = Item.objects.filter(organization=org)
