@@ -40,10 +40,13 @@ class SalesReportData {
   final List<DailySale> dailySales;
   /// Payment received per method: keys 'cash','pos','transfer','wallet'.
   final Map<String, double> paymentMethods;
+  /// Today's payments per method — independent of the selected period.
+  final Map<String, double> todayPaymentMethods;
   SalesReportData({required this.period, required this.totalRevenue,
       required this.totalRetail, required this.totalWholesale,
       required this.totalSales, required this.topItems,
-      this.dailySales = const [], this.paymentMethods = const {}});
+      this.dailySales = const [], this.paymentMethods = const {},
+      this.todayPaymentMethods = const {}});
   factory SalesReportData.fromJson(Map<String, dynamic> j) => SalesReportData(
         period: (j['period'] as String?) ?? 'month',
         totalRevenue: (j['totalRevenue'] as num?)?.toDouble() ?? 0,
@@ -55,6 +58,8 @@ class SalesReportData {
         dailySales: (j['dailyBreakdown'] as List? ?? [])
             .map((e) => DailySale.fromJson(e as Map<String, dynamic>)).toList(),
         paymentMethods: ((j['paymentMethods'] as Map?) ?? {}).map(
+            (k, v) => MapEntry(k as String, (v as num?)?.toDouble() ?? 0)),
+        todayPaymentMethods: ((j['todayPaymentMethods'] as Map?) ?? {}).map(
             (k, v) => MapEntry(k as String, (v as num?)?.toDouble() ?? 0)));
 }
 

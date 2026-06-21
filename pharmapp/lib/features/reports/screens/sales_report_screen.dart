@@ -720,7 +720,16 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
 
   // -- Payment methods total per method (cash/pos/transfer/wallet) -------------
   Widget _paymentMethodsSection(BuildContext context, SalesReportData data) {
-    final pm = data.paymentMethods;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _paymentMethodsCard(context, "Today's Payments", data.todayPaymentMethods,
+          'No payments recorded today'),
+      _paymentMethodsCard(context, 'Payment Methods', data.paymentMethods,
+          'No payments recorded for this period'),
+    ]);
+  }
+
+  Widget _paymentMethodsCard(BuildContext context, String title,
+      Map<String, double> pm, String emptyMsg) {
     final total = pm.values.fold(0.0, (a, b) => a + b);
     const methods = [
       ('cash', 'Cash', Icons.payments_rounded, EnhancedTheme.successGreen),
@@ -729,12 +738,12 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       ('wallet', 'Wallet', Icons.account_balance_wallet_rounded, EnhancedTheme.warningAmber),
     ];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _sectionHeader(context, 'Payment Methods', Icons.account_balance_wallet_rounded, EnhancedTheme.successGreen),
+      _sectionHeader(context, title, Icons.account_balance_wallet_rounded, EnhancedTheme.successGreen),
       const SizedBox(height: 12),
       GlassCard(
         padding: const EdgeInsets.all(18),
         child: total <= 0
-            ? _emptyInCard('No payments recorded for this period')
+            ? _emptyInCard(emptyMsg)
             : Column(children: [
                 for (final m in methods) ...[
                   _breakdownRow(m.$2, pm[m.$1] ?? 0, total, m.$4, m.$3),

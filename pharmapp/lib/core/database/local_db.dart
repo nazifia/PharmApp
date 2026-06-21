@@ -1618,9 +1618,23 @@ class LocalDb {
       FROM sale_items si JOIN sales s ON s.id=si.sale_id
       WHERE ${wS.clause} AND s.status='completed'
       GROUP BY si.item_name ORDER BY revenue DESC LIMIT 5''', wS.args);
+    // Today's payments per method — independent of period.
+    final todayRows = await d.rawQuery('''
+      SELECT COALESCE(SUM(payment_cash),0) as cash,
+             COALESCE(SUM(payment_pos),0) as pos,
+             COALESCE(SUM(payment_bank_transfer),0) as transfer,
+             COALESCE(SUM(payment_wallet),0) as wallet
+      FROM sales WHERE date(created_at) = date('now') AND status='completed' ''');
+    final tr = todayRows.first;
     final r = rows.first;
     return {
       'period': period,
+      'todayPaymentMethods': {
+        'cash': (tr['cash'] as num).toDouble(),
+        'pos': (tr['pos'] as num).toDouble(),
+        'transfer': (tr['transfer'] as num).toDouble(),
+        'wallet': (tr['wallet'] as num).toDouble(),
+      },
       'totalRevenue': (r['total'] as num).toDouble(),
       'totalRetail': (r['retail'] as num).toDouble(),
       'totalWholesale': (r['wholesale'] as num).toDouble(),

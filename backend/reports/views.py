@@ -146,6 +146,22 @@ def sales_report(request):
         'wallet':   round(float(pay['wallet'] or 0), 2),
     }
 
+    # Today's payments per method — always for the current day, independent of period.
+    today_pay = Sale.objects.filter(
+        organization=org, created__date=timezone.localdate(),
+    ).aggregate(
+        cash=db_models.Sum('payment_cash'),
+        pos=db_models.Sum('payment_pos'),
+        transfer=db_models.Sum('payment_transfer'),
+        wallet=db_models.Sum('payment_wallet'),
+    )
+    today_payment_methods = {
+        'cash':     round(float(today_pay['cash'] or 0), 2),
+        'pos':      round(float(today_pay['pos'] or 0), 2),
+        'transfer': round(float(today_pay['transfer'] or 0), 2),
+        'wallet':   round(float(today_pay['wallet'] or 0), 2),
+    }
+
     return Response({
         'period':         period,
         'dateFrom':       str(start),
@@ -157,6 +173,7 @@ def sales_report(request):
         'topItems':       top_items,
         'dailyBreakdown': daily,
         'paymentMethods': payment_methods,
+        'todayPaymentMethods': today_payment_methods,
     })
 
 
