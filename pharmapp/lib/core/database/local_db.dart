@@ -1606,6 +1606,10 @@ class LocalDb {
       SELECT COALESCE(SUM(total_amount),0) as total,
              COALESCE(SUM(CASE WHEN is_wholesale=0 THEN total_amount ELSE 0 END),0) as retail,
              COALESCE(SUM(CASE WHEN is_wholesale=1 THEN total_amount ELSE 0 END),0) as wholesale,
+             COALESCE(SUM(payment_cash),0) as cash,
+             COALESCE(SUM(payment_pos),0) as pos,
+             COALESCE(SUM(payment_bank_transfer),0) as transfer,
+             COALESCE(SUM(payment_wallet),0) as wallet,
              COUNT(*) as cnt
       FROM sales WHERE ${w.clause} AND status='completed' ''', w.args);
     final top = await d.rawQuery('''
@@ -1621,6 +1625,12 @@ class LocalDb {
       'totalRetail': (r['retail'] as num).toDouble(),
       'totalWholesale': (r['wholesale'] as num).toDouble(),
       'totalSales': r['cnt'],
+      'paymentMethods': {
+        'cash': (r['cash'] as num).toDouble(),
+        'pos': (r['pos'] as num).toDouble(),
+        'transfer': (r['transfer'] as num).toDouble(),
+        'wallet': (r['wallet'] as num).toDouble(),
+      },
       'topItems': top
           .map((i) => {
                 'itemId': 0,

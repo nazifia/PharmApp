@@ -440,6 +440,9 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
         const SizedBox(height: 22),
 
+        // -- Payment Methods ---------------------------------------------------
+        _paymentMethodsSection(context, data),
+
         // -- Top Selling Items -------------------------------------------------
         _sectionHeader(context, 'Top Selling Items', Icons.emoji_events_rounded, EnhancedTheme.warningAmber),
         const SizedBox(height: 12),
@@ -713,6 +716,34 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             textAlign: TextAlign.center),
       ]),
     );
+  }
+
+  // -- Payment methods total per method (cash/pos/transfer/wallet) -------------
+  Widget _paymentMethodsSection(BuildContext context, SalesReportData data) {
+    final pm = data.paymentMethods;
+    final total = pm.values.fold(0.0, (a, b) => a + b);
+    const methods = [
+      ('cash', 'Cash', Icons.payments_rounded, EnhancedTheme.successGreen),
+      ('pos', 'POS / Card', Icons.credit_card_rounded, EnhancedTheme.infoBlue),
+      ('transfer', 'Bank Transfer', Icons.account_balance_rounded, EnhancedTheme.accentPurple),
+      ('wallet', 'Wallet', Icons.account_balance_wallet_rounded, EnhancedTheme.warningAmber),
+    ];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _sectionHeader(context, 'Payment Methods', Icons.account_balance_wallet_rounded, EnhancedTheme.successGreen),
+      const SizedBox(height: 12),
+      GlassCard(
+        padding: const EdgeInsets.all(18),
+        child: total <= 0
+            ? _emptyInCard('No payments recorded for this period')
+            : Column(children: [
+                for (final m in methods) ...[
+                  _breakdownRow(m.$2, pm[m.$1] ?? 0, total, m.$4, m.$3),
+                  if (m.$1 != 'wallet') const SizedBox(height: 16),
+                ],
+              ]),
+      ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+      const SizedBox(height: 22),
+    ]);
   }
 
   Widget _breakdownRow(String label, double value, double total, Color color, IconData icon) {

@@ -38,10 +38,12 @@ class SalesReportData {
   final String period; final double totalRevenue; final double totalRetail;
   final double totalWholesale; final int totalSales; final List<TopItem> topItems;
   final List<DailySale> dailySales;
+  /// Payment received per method: keys 'cash','pos','transfer','wallet'.
+  final Map<String, double> paymentMethods;
   SalesReportData({required this.period, required this.totalRevenue,
       required this.totalRetail, required this.totalWholesale,
       required this.totalSales, required this.topItems,
-      this.dailySales = const []});
+      this.dailySales = const [], this.paymentMethods = const {}});
   factory SalesReportData.fromJson(Map<String, dynamic> j) => SalesReportData(
         period: (j['period'] as String?) ?? 'month',
         totalRevenue: (j['totalRevenue'] as num?)?.toDouble() ?? 0,
@@ -51,7 +53,9 @@ class SalesReportData {
         topItems: (j['topItems'] as List? ?? [])
             .map((e) => TopItem.fromJson(e as Map<String, dynamic>)).toList(),
         dailySales: (j['dailyBreakdown'] as List? ?? [])
-            .map((e) => DailySale.fromJson(e as Map<String, dynamic>)).toList());
+            .map((e) => DailySale.fromJson(e as Map<String, dynamic>)).toList(),
+        paymentMethods: ((j['paymentMethods'] as Map?) ?? {}).map(
+            (k, v) => MapEntry(k as String, (v as num?)?.toDouble() ?? 0)));
 }
 
 class LowStockItem {

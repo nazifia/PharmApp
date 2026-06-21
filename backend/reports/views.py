@@ -131,6 +131,20 @@ def sales_report(request):
         for r in daily_qs
     ]
 
+    # Payment received per method (cash/pos/transfer/wallet) for the period.
+    pay = sales.aggregate(
+        cash=db_models.Sum('payment_cash'),
+        pos=db_models.Sum('payment_pos'),
+        transfer=db_models.Sum('payment_transfer'),
+        wallet=db_models.Sum('payment_wallet'),
+    )
+    payment_methods = {
+        'cash':     round(float(pay['cash'] or 0), 2),
+        'pos':      round(float(pay['pos'] or 0), 2),
+        'transfer': round(float(pay['transfer'] or 0), 2),
+        'wallet':   round(float(pay['wallet'] or 0), 2),
+    }
+
     return Response({
         'period':         period,
         'dateFrom':       str(start),
@@ -141,6 +155,7 @@ def sales_report(request):
         'totalSales':     sales.count(),
         'topItems':       top_items,
         'dailyBreakdown': daily,
+        'paymentMethods': payment_methods,
     })
 
 

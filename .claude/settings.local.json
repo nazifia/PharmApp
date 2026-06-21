@@ -161,7 +161,10 @@
       "Bash(pkill -f dartaotruntime)",
       "Bash(echo \"launched pid $!\")",
       "PowerShell(cd backend; if \\(Test-Path venv\\\\Scripts\\\\python.exe\\) { $py = \"venv\\\\Scripts\\\\python.exe\" } else { $py = \"python\" }; & $py manage.py makemigrations prescriptions; if \\($?\\) { & $py manage.py check })",
-      "PowerShell(cd backend; if \\(Test-Path venv\\\\Scripts\\\\python.exe\\) { $py = \"venv\\\\Scripts\\\\python.exe\" } else { $py = \"python\" }; & $py manage.py migrate prescriptions)"
+      "PowerShell(cd backend; if \\(Test-Path venv\\\\Scripts\\\\python.exe\\) { $py = \"venv\\\\Scripts\\\\python.exe\" } else { $py = \"python\" }; & $py manage.py migrate prescriptions)",
+      "Bash(:)",
+      "Read(//c/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp/2d3cc6d0-5cc3-43e9-8357-fc93b877d7e0/tasks/**)",
+      "Bash(flutter test *)"
     ]
   }
 }
