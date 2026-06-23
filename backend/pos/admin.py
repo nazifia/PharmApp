@@ -129,7 +129,7 @@ class ReceiptPaymentInline(admin.TabularInline):
 class SaleAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     list_display = [
         "receipt_id", "customer", "buyer_name", "sale_type_badge",
-        "total_amount", "payment_method", "status_display",
+        "total_amount", "payment_method_display", "status_display",
         "cashier", "dispenser", "created",
     ]
     list_filter   = ["status", "payment_method", "is_wholesale", "created"]
@@ -168,6 +168,23 @@ class SaleAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     @admin.display(description="Status")
     def status_display(self, obj):
         return status_badge(obj.status)
+
+    @admin.display(description="Payment")
+    def payment_method_display(self, obj):
+        # Derive the real method from the amount breakdown so every method shows
+        # (and legacy rows with stale/invalid payment_method strings render right).
+        buckets = [
+            ("Cash",     obj.payment_cash),
+            ("POS",      obj.payment_pos),
+            ("Transfer", obj.payment_transfer),
+            ("Wallet",   obj.payment_wallet),
+        ]
+        used = [(label, amt) for label, amt in buckets if amt and amt > 0]
+        if len(used) > 1:
+            return "Split (" + ", ".join(label for label, _ in used) + ")"
+        if len(used) == 1:
+            return used[0][0]
+        return obj.get_payment_method_display()  # nothing recorded — fall back
 
     @admin.display(description="Type")
     def sale_type_badge(self, obj):

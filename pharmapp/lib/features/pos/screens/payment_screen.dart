@@ -44,8 +44,8 @@ extension _PayMethodLabel on _PayMethod {
   String get apiKey {
     switch (this) {
       case _PayMethod.cash:         return 'cash';
-      case _PayMethod.card:         return 'card';
-      case _PayMethod.bankTransfer: return 'bank_transfer';
+      case _PayMethod.card:         return 'pos';
+      case _PayMethod.bankTransfer: return 'transfer';
       case _PayMethod.wallet:       return 'wallet';
       case _PayMethod.split:        return 'split';
     }
