@@ -24,6 +24,17 @@ def _verify_prescriber_token(token: str):
     except Exception:
         return None
 
+
+def _portal_token_owner(request, prescriber) -> bool:
+    """True only if the X-Prescriber-Token in the request belongs to `prescriber`.
+
+    Object-level auth: a valid token for prescriber A must NOT grant access to
+    prescriber B's records.
+    """
+    token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
+    tok_presc = _verify_prescriber_token(token) if token else None
+    return tok_presc is not None and tok_presc.pk == prescriber.pk
+
 from authapp.utils import require_org, log_activity
 from authapp.permissions import IsPrescriptionUser, PRESCRIPTIONS_WRITE
 from authapp.models import PharmacyNetworkMembership
@@ -1012,6 +1023,10 @@ def prescriber_patients(request, pk):
     except Prescriber.DoesNotExist:
         return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    # Patient PII — require pharmacy staff JWT or this prescriber's own portal token.
+    if not request.user.is_authenticated and not _portal_token_owner(request, prescriber):
+        return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
     from customers.models import Customer
 
     if request.method == 'GET':
@@ -1305,10 +1320,8 @@ def prescriber_commissions(request, pk):
     except Prescriber.DoesNotExist:
         return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    if not request.user.is_authenticated:
-        token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
-        if not token or _verify_prescriber_token(token) is None:
-            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+    if not request.user.is_authenticated and not _portal_token_owner(request, prescriber):
+        return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     qs = PrescriberCommission.objects.filter(prescriber=prescriber).select_related('prescriber')
 
@@ -1343,10 +1356,8 @@ def prescriber_commission_summary(request, pk):
     except Prescriber.DoesNotExist:
         return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    if not request.user.is_authenticated:
-        token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
-        if not token or _verify_prescriber_token(token) is None:
-            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+    if not request.user.is_authenticated and not _portal_token_owner(request, prescriber):
+        return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     from django.db.models import Sum
     from decimal import Decimal
@@ -1579,10 +1590,8 @@ def prescriber_consultations(request, pk):
     except Prescriber.DoesNotExist:
         return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    if not request.user.is_authenticated:
-        token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
-        if not token or _verify_prescriber_token(token) is None:
-            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+    if not request.user.is_authenticated and not _portal_token_owner(request, prescriber):
+        return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     qs = ConsultationPayout.objects.filter(prescriber=prescriber).select_related('prescriber')
 
@@ -1617,10 +1626,8 @@ def prescriber_consultation_summary(request, pk):
     except Prescriber.DoesNotExist:
         return Response({'detail': 'Prescriber not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    if not request.user.is_authenticated:
-        token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
-        if not token or _verify_prescriber_token(token) is None:
-            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+    if not request.user.is_authenticated and not _portal_token_owner(request, prescriber):
+        return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     from django.db.models import Sum
     from decimal import Decimal
