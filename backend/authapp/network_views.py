@@ -289,6 +289,13 @@ def network_remove_member(request, network_id, org_id):
     if membership.role != 'owner':
         return Response({'detail': 'Only network owners can remove members.'}, status=status.HTTP_403_FORBIDDEN)
 
+    # ponytail: only the org that created the network may remove its members
+    if network.created_by_id != org.id:
+        return Response(
+            {'detail': 'Only the network creator can remove members.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     if org_id == org.id:
         return Response({'detail': 'Use /leave/ to remove yourself.'}, status=status.HTTP_400_BAD_REQUEST)
 
