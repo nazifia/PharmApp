@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
@@ -103,6 +104,28 @@ class AuthRepository {
       throw Exception('You are offline. Connect to the internet and try again.');
     }
 
+    // Interface is up, but the network may still be dead (wifi with no
+    // internet, captive portal). Race the real login against a short probe:
+    // if the server hasn't answered by then AND the typed credentials match
+    // the offline fingerprint, log in offline immediately instead of making
+    // the user wait out the full connect timeout. If they don't match, keep
+    // waiting — a slow-but-alive server must still get the final word.
+    final remote = _remoteLogin(phoneNumber, password);
+    try {
+      return await remote.timeout(const Duration(seconds: 4));
+    } on TimeoutException {
+      final offline = await _tryOfflineLogin(phoneNumber, password, silent: true)
+          ?? await _tryPrescriberOfflineLogin(phoneNumber, password);
+      if (offline != null) {
+        remote.ignore(); // discard the still-pending request's eventual result
+        return offline;
+      }
+      return await remote;
+    }
+  }
+
+  Future<Map<String, dynamic>> _remoteLogin(
+      String phoneNumber, String password) async {
     try {
       final res = await _dio!.post(
         '/auth/login/',
@@ -175,13 +198,20 @@ class AuthRepository {
   /// Returns a login result map on success.
   /// Returns null if no offline credentials exist for this phone.
   /// Throws [Exception] on lockout or too many attempts (message shown to user).
-  Future<Map<String, dynamic>?> _tryOfflineLogin(String phoneNumber, String password) async {
+  ///
+  /// [silent] — probe mode used while a real network login is still pending
+  /// (dead-wifi race): on any failure returns null instead of throwing, and
+  /// never mutates the attempt counter or lockout state, so a slow-but-alive
+  /// server keeps the final word on whether the password is right.
+  Future<Map<String, dynamic>?> _tryOfflineLogin(
+      String phoneNumber, String password, {bool silent = false}) async {
     final prefs = await SharedPreferences.getInstance();
 
     // ── Lockout check ────────────────────────────────────────────────────────
     final lockUntilMs = prefs.getInt(_kLoginLockUntil) ?? 0;
     final nowMs       = DateTime.now().millisecondsSinceEpoch;
     if (nowMs < lockUntilMs) {
+      if (silent) return null;
       final remainingMin = ((lockUntilMs - nowMs) / 60000).ceil();
       throw Exception(
         'Too many failed attempts. Offline login locked for $remainingMin more minute(s).\n'
@@ -198,6 +228,7 @@ class AuthRepository {
     final inputHash = Hmac(sha256, salt).convert(utf8.encode('$phoneNumber:$password')).toString();
 
     if (inputHash != storedHash) {
+      if (silent) return null;
       // Wrong password — increment attempt counter; lock if threshold reached.
       final attempts = (prefs.getInt(_kLoginAttempts) ?? 0) + 1;
       if (attempts >= _kMaxAttempts) {
@@ -232,6 +263,7 @@ class AuthRepository {
     final token = await AuthStorage.read('auth_token')
         ?? prefs.getString(_kOfflineToken);
     if (token == null) {
+      if (silent) return null;
       // Credentials verified but no token survives on this device (pre-fix
       // install). Be explicit — the generic "you are offline" message made
       // users think their password was wrong.
