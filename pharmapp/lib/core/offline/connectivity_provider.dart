@@ -6,8 +6,15 @@ import '../config/app_config.dart';
 /// Use this when the stream may have missed a connectivity-change event
 /// (known issue on Windows and some web environments with connectivity_plus).
 Future<bool> checkConnectivityNow() async {
-  final result = await Connectivity().checkConnectivity();
-  return result.any((r) => r != ConnectivityResult.none);
+  try {
+    final result = await Connectivity().checkConnectivity();
+    return result.any((r) => r != ConnectivityResult.none);
+  } catch (_) {
+    // Plugin unavailable or platform query failed — assume online. The
+    // network call itself will fail fast if we're actually offline, and
+    // that failure path already falls back to the offline credential check.
+    return true;
+  }
 }
 
 /// Stream of raw connectivity status.

@@ -113,6 +113,20 @@ void main() {
     );
   });
 
+  test('offline login still works after logout (live session keys wiped)',
+      () async {
+    await doOnlineLogin();
+    // Logout deletes the live session keys but keeps offline credentials.
+    await AuthStorage.delete('auth_token');
+    await AuthStorage.delete('current_user');
+
+    adapter.online = false;
+    final res = await repo.login(phone, password);
+
+    expect(res['token'], 'jwt-token-abc');
+    expect(res['user'].phoneNumber, phone);
+  });
+
   test('clearOfflineCredentials disables subsequent offline login', () async {
     await doOnlineLogin();
     await AuthRepository.clearOfflineCredentials();

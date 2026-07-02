@@ -118,6 +118,22 @@ void main() {
     expect((res['prescriber'] as Prescriber).id, 7);
   });
 
+  test('prescriber offline login still works after logout (live keys wiped)',
+      () async {
+    await doOnlinePrescriberLogin();
+    // Logout deletes the live session keys but keeps offline credentials.
+    await AuthStorage.delete('prescriber_token');
+    await AuthStorage.delete('prescriber_data');
+
+    adapter.online = false;
+    final res = await repo.login(phone, password);
+
+    expect(res['token'], 'prescriber-jwt-xyz');
+    expect(res['user_type'], 'prescriber');
+    expect((res['prescriber'] as Prescriber).id, 7);
+    expect(res['prescriber_raw'], isA<Map<String, dynamic>>());
+  });
+
   test('clearOfflineCredentials disables subsequent prescriber offline login',
       () async {
     await doOnlinePrescriberLogin();

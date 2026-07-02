@@ -5,7 +5,6 @@ import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/services/auth_storage.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
-import 'package:pharmapp/features/auth/providers/auth_repository.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/prescriptions/providers/prescriber_provider.dart';
 import 'package:pharmapp/features/reports/providers/shift_api_client.dart';
@@ -127,7 +126,11 @@ class AuthService {
     await AuthStorage.delete('current_user');
     await AuthStorage.delete('prescriber_token');
     await AuthStorage.delete('prescriber_data');
-    await AuthRepository.clearOfflineCredentials();
+    // Offline credentials (HMAC fingerprint + offline user/token copies) are
+    // deliberately KEPT on logout — logout is the only path to the login
+    // screen, so wiping them made offline login impossible in practice
+    // (staff log out at end of shift, then can't sign in without internet).
+    // Server-side deactivation still locks the account out once online.
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('active_branch');
     _ref.read(currentUserProvider.notifier).state      = null;

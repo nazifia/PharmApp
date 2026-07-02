@@ -27,6 +27,8 @@ const _kLockMinutes    = 15;
 const _kPrescriberCredHash  = 'prescriber_offline_cred_hash';
 const _kPrescriberCredPhone = 'prescriber_offline_cred_phone';
 const _kPrescriberCredSalt  = 'prescriber_offline_cred_salt';
+const _kPrescriberOfflineToken = 'prescriber_offline_token'; // survive logout,
+const _kPrescriberOfflineData  = 'prescriber_offline_data';  // like _kOfflineUser/_kOfflineToken
 
 class AuthRepository {
   final Dio? _dio;
@@ -41,9 +43,10 @@ class AuthRepository {
   bool get _isLocal => _dio == null;
 
   /// Wipes the cached offline credential fingerprint + user cache for both org
-  /// users and prescribers. Call on explicit logout so a signed-out account can
-  /// no longer authenticate offline. The per-install salts are intentionally
-  /// kept (device identity, not user data).
+  /// users and prescribers ("forget this device"). NOT called on normal logout —
+  /// offline login must keep working after a logout, otherwise it is unusable
+  /// (the login screen is only reachable via logout). The per-install salts are
+  /// intentionally kept (device identity, not user data).
   static Future<void> clearOfflineCredentials() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kCredHash);
@@ -54,6 +57,8 @@ class AuthRepository {
     await prefs.remove(_kLoginLockUntil);
     await prefs.remove(_kPrescriberCredHash);
     await prefs.remove(_kPrescriberCredPhone);
+    await prefs.remove(_kPrescriberOfflineToken);
+    await prefs.remove(_kPrescriberOfflineData);
   }
 
   /// Fetches the current authenticated user's profile from the backend.
@@ -146,6 +151,10 @@ class AuthRepository {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_kPrescriberCredHash,  pHash);
         await prefs.setString(_kPrescriberCredPhone, phoneNumber);
+        // Offline copies — the live prescriber_token/prescriber_data keys are
+        // deleted on logout, so offline login needs its own that survive it.
+        await prefs.setString(_kPrescriberOfflineToken, token);
+        await prefs.setString(_kPrescriberOfflineData,  jsonEncode(prescriberJson));
 
         return {
           'token':           token,
@@ -252,7 +261,13 @@ class AuthRepository {
     // Fall back to the main auth storage in case of a pre-fix install.
     final offlineUserData = prefs.getString(_kOfflineUser)
         ?? await AuthStorage.read('current_user');
-    if (offlineUserData == null) return null;
+    if (offlineUserData == null) {
+      if (silent) return null;
+      throw Exception(
+        'Password correct, but the offline session on this device has expired.\n'
+        'Connect to the internet once to sign in again.',
+      );
+    }
 
     final user = User.fromJson(jsonDecode(offlineUserData) as Map<String, dynamic>);
 
@@ -288,14 +303,22 @@ class AuthRepository {
     final inputHash = Hmac(sha256, salt).convert(utf8.encode('$phone:$password')).toString();
     if (inputHash != storedHash) return null;
 
-    // Credentials match — restore cached prescriber session.
-    final token          = await AuthStorage.read('prescriber_token');
-    final prescriberData = await AuthStorage.read('prescriber_data');
+    // Credentials match — restore cached prescriber session. Prefer the live
+    // session keys; fall back to the offline copies that survive logout.
+    final token = await AuthStorage.read('prescriber_token')
+        ?? prefs.getString(_kPrescriberOfflineToken);
+    final prescriberData = await AuthStorage.read('prescriber_data')
+        ?? prefs.getString(_kPrescriberOfflineData);
     if (token == null || prescriberData == null) return null;
 
-    final prescriber =
-        Prescriber.fromJson(jsonDecode(prescriberData) as Map<String, dynamic>);
-    return {'token': token, 'user_type': 'prescriber', 'prescriber': prescriber};
+    final rawMap     = jsonDecode(prescriberData) as Map<String, dynamic>;
+    final prescriber = Prescriber.fromJson(rawMap);
+    return {
+      'token':          token,
+      'user_type':      'prescriber',
+      'prescriber':     prescriber,
+      'prescriber_raw': rawMap, // so AuthNotifier re-persists the live session keys
+    };
   }
 
   /// Per-install HMAC salt for prescriber credentials (separate from org salt).
