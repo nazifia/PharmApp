@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/shared/models/branch.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const _kBranchesCacheKey = 'cache_branches';
 
 // ── API client ────────────────────────────────────────────────────────────────
 
@@ -10,10 +14,28 @@ class BranchApiClient {
   BranchApiClient(this._dio);
 
   Future<List<Branch>> list() async {
-    final res = await _dio.get('/branches/');
-    return (res.data as List<dynamic>)
-        .map((e) => Branch.fromJson(e as Map<String, dynamic>))
-        .toList();
+    try {
+      final res = await _dio.get('/branches/');
+      final data = res.data as List<dynamic>;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kBranchesCacheKey, jsonEncode(data));
+      return data
+          .map((e) => Branch.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      // Connection-level failure — serve cached branches if available.
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kBranchesCacheKey);
+        if (raw != null) {
+          return (jsonDecode(raw) as List)
+              .map((b) => Branch.fromJson(b as Map<String, dynamic>))
+              .toList();
+        }
+        throw Exception('You are offline and no cached branch list is available.');
+      }
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to load branches');
+    }
   }
 
   Future<Branch> create({
