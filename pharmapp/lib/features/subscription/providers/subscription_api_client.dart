@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 // BillingInfo, BillingContact, PlatformPaymentAccount are defined in subscription.dart
+
+const _kSubscriptionCacheKey = 'cache_subscription';
 
 class SubscriptionApiClient {
   final Dio _dio;
@@ -10,16 +14,30 @@ class SubscriptionApiClient {
 
   /// GET /subscription/ — returns current org subscription.
   /// Falls back to a default trial if the endpoint is not yet deployed.
+  /// Offline: serves the last-known subscription so feature gating keeps
+  /// working without a connection.
   Future<Subscription> getSubscription() async {
     try {
       final res = await _dio.get(
         '/subscription/',
         options: Options(extra: {'skipTokenClear': true}),
       );
-      return Subscription.fromJson(res.data as Map<String, dynamic>);
+      final data = res.data as Map<String, dynamic>;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kSubscriptionCacheKey, jsonEncode(data));
+      return Subscription.fromJson(data);
     } on DioException catch (e) {
       // 404/401 mean endpoint not deployed or auth mismatch → fall back to trial
       if (e.response?.statusCode == 404 || e.response?.statusCode == 401) {
+        return Subscription.defaultTrial();
+      }
+      // Connection failure — serve last-known subscription.
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kSubscriptionCacheKey);
+        if (raw != null) {
+          return Subscription.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        }
         return Subscription.defaultTrial();
       }
       rethrow;

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pharmapp/core/offline/connectivity_provider.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/services/auth_storage.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -65,10 +66,13 @@ class AuthService {
       final userData = await AuthStorage.read('current_user');
 
       if (token != null && userData != null) {
-        // Reject locally-expired JWTs before restoring the session.
-        // This prevents the 401 storm that occurs when expired credentials
-        // are restored and every startup provider fires a rejected request.
-        if (_isJwtExpired(token)) {
+        // Reject locally-expired JWTs before restoring the session — but only
+        // when online. This prevents the 401 storm that occurs when expired
+        // credentials are restored and every startup provider fires a rejected
+        // request. Offline, an expired token is harmless (no request can reach
+        // the server) and wiping it would lock the user out of cached data
+        // until connectivity returns — so keep the session alive.
+        if (_isJwtExpired(token) && await checkConnectivityNow()) {
           await AuthStorage.delete('auth_token');
           await AuthStorage.delete('current_user');
           return false;

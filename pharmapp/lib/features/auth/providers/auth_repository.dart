@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/local_db.dart';
+import '../../../core/offline/connectivity_provider.dart';
 import '../../../core/services/auth_storage.dart';
 import '../../../shared/models/prescriber.dart';
 import '../../../shared/models/user.dart';
@@ -13,6 +14,9 @@ const _kCredHash       = 'offline_cred_hash';
 const _kCredPhone      = 'offline_cred_phone';
 const _kCredSalt       = 'offline_cred_salt';       // 32-byte random per-install salt (base64)
 const _kOfflineUser    = 'offline_user_cache';      // user JSON, NOT wiped by 401 interceptor
+const _kOfflineToken   = 'offline_auth_token';      // token copy, NOT wiped by 401 interceptor
+                                                    // or the startup expired-JWT purge — offline
+                                                    // login must survive token expiry
 const _kLoginAttempts  = 'offline_login_attempts';  // consecutive wrong-password count
 const _kLoginLockUntil = 'offline_login_lock_until'; // epoch-ms lockout expiry
 const _kMaxAttempts    = 5;
@@ -44,6 +48,7 @@ class AuthRepository {
     await prefs.remove(_kCredHash);
     await prefs.remove(_kCredPhone);
     await prefs.remove(_kOfflineUser);
+    await prefs.remove(_kOfflineToken);
     await prefs.remove(_kLoginAttempts);
     await prefs.remove(_kLoginLockUntil);
     await prefs.remove(_kPrescriberCredHash);
@@ -87,6 +92,17 @@ class AuthRepository {
       return {'token': 'local_${user.id}_${DateTime.now().millisecondsSinceEpoch}', 'user': user};
     }
 
+    // No network interface at all — skip the doomed request (and its 10s
+    // connect timeout) and go straight to the offline credential check.
+    if (!await checkConnectivityNow()) {
+      final result = await _tryOfflineLogin(phoneNumber, password);
+      if (result != null) return result;
+      final prescriberResult =
+          await _tryPrescriberOfflineLogin(phoneNumber, password);
+      if (prescriberResult != null) return prescriberResult;
+      throw Exception('You are offline. Connect to the internet and try again.');
+    }
+
     try {
       final res = await _dio!.post(
         '/auth/login/',
@@ -126,9 +142,11 @@ class AuthRepository {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_kCredHash,  hash);
       await prefs.setString(_kCredPhone, phoneNumber);
-      // Store user separately — this key is NOT wiped by the 401 interceptor,
-      // so offline login can reconstruct the session even after token expiry.
+      // Store user + token separately — these keys are NOT wiped by the 401
+      // interceptor, so offline login can reconstruct the session even after
+      // token expiry.
       await prefs.setString(_kOfflineUser, jsonEncode(user.toJson()));
+      await prefs.setString(_kOfflineToken, token);
       // Successful online login clears any previous lockout state.
       await prefs.remove(_kLoginAttempts);
       await prefs.remove(_kLoginLockUntil);
@@ -207,11 +225,21 @@ class AuthRepository {
 
     final user = User.fromJson(jsonDecode(offlineUserData) as Map<String, dynamic>);
 
-    // Reuse the stored token if still present. If no token exists (e.g. it was
-    // wiped by a prior 401), surface null so the caller knows not to make
-    // authenticated API calls — never fabricate a placeholder token.
-    final token = await AuthStorage.read('auth_token');
-    if (token == null) return null;
+    // Reuse the live token if present; otherwise fall back to the offline copy
+    // (survives the 401 interceptor and the startup expired-JWT purge). An
+    // expired token is fine offline — no authenticated call can succeed anyway,
+    // and the first online 401 forces a proper re-login. Never fabricate one.
+    final token = await AuthStorage.read('auth_token')
+        ?? prefs.getString(_kOfflineToken);
+    if (token == null) {
+      // Credentials verified but no token survives on this device (pre-fix
+      // install). Be explicit — the generic "you are offline" message made
+      // users think their password was wrong.
+      throw Exception(
+        'Password correct, but the offline session on this device has expired.\n'
+        'Connect to the internet once to sign in again.',
+      );
+    }
     return {'token': token, 'user': user};
   }
 

@@ -1,7 +1,12 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/shift.dart';
+
+const _kWsShiftListCacheKey = 'cache_ws_shifts';
+const _kWsCurrentShiftCacheKey = 'cache_ws_current_shift';
 
 class WholesaleShiftQuery {
   final String? from;
@@ -37,19 +42,47 @@ class WholesaleShiftApiClient {
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      // ponytail: single last-result cache, not per-query — offline shows last viewed range
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kWsShiftListCacheKey, jsonEncode(list));
       return list.map((j) => Shift.fromJson(j as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
+      if (e.response == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_kWsShiftListCacheKey);
+        if (raw != null) {
+          return (jsonDecode(raw) as List)
+              .map((j) => Shift.fromJson(j as Map<String, dynamic>))
+              .toList();
+        }
+        throw Exception('You are offline and no cached shift data is available.');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to load shifts');
     }
   }
 
   Future<Shift?> fetchCurrentShift() async {
+    final prefs = await SharedPreferences.getInstance();
     try {
       final res = await _dio.get('/pos/shifts/current/');
-      if (res.statusCode == 204 || res.data == null) return null;
+      if (res.statusCode == 204 || res.data == null) {
+        await prefs.remove(_kWsCurrentShiftCacheKey);
+        return null;
+      }
+      await prefs.setString(_kWsCurrentShiftCacheKey, jsonEncode(res.data));
       return Shift.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404 || e.response?.statusCode == 204) return null;
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 204) {
+        await prefs.remove(_kWsCurrentShiftCacheKey);
+        return null;
+      }
+      if (e.response == null) {
+        final raw = prefs.getString(_kWsCurrentShiftCacheKey);
+        if (raw != null) {
+          return Shift.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        }
+        return null; // offline, no cached shift — don't block the UI
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to fetch current shift');
     }
   }
@@ -61,6 +94,9 @@ class WholesaleShiftApiClient {
       });
       return Shift.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      if (e.response == null) {
+        throw Exception('Opening a shift requires an internet connection.');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to open shift');
     }
   }
@@ -72,6 +108,9 @@ class WholesaleShiftApiClient {
       });
       return Shift.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      if (e.response == null) {
+        throw Exception('Closing a shift requires an internet connection.');
+      }
       throw Exception(e.response?.data?['detail'] ?? 'Failed to close shift');
     }
   }

@@ -188,6 +188,8 @@ class PrescriptionApiClient {
     int customerId, {
     bool undispensedOnly = false,
   }) async {
+    final cacheKey =
+        'cache_rx_cust_${customerId}_${undispensedOnly ? 'u' : 'a'}';
     try {
       final params = <String, dynamic>{};
       if (undispensedOnly) params['undispensed'] = '1';
@@ -199,11 +201,20 @@ class PrescriptionApiClient {
       final list = data is Map && data.containsKey('results')
           ? data['results'] as List
           : data as List;
+      await _cache(cacheKey, list);
       return list
           .map((e) => Prescription.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      if (e.response == null) rethrow;
+      if (e.response == null) {
+        final cached = await _getCache(cacheKey);
+        if (cached is List) {
+          return cached
+              .map((e) => Prescription.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+        rethrow;
+      }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to load prescriptions');
     }
