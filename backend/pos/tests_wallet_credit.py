@@ -73,6 +73,11 @@ class WalletCreditSalesTest(TestCase):
         self.assertEqual(report["creditCount"], 1)
         self.assertEqual(report["creditSales"], 500.0)
 
+        # item still reported as dispensed (qty counts credit), revenue stays 0
+        row = next(r for r in report["topItems"] if r["itemId"] == self.item.id)
+        self.assertEqual(float(row["qty"]), 1.0)
+        self.assertEqual(row["revenue"], 0.0)
+
     def test_topup_counts_as_received(self):
         WalletTransaction.objects.create(
             customer=self.customer, txn_type="topup", amount=Decimal("3000"),

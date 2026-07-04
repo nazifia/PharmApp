@@ -98,31 +98,47 @@ def sales_report(request):
     )
     total_revenue = total_retail + total_wholesale
 
-    # Use SaleItem.name (stored at checkout) so deleted items still appear.
-    top_items_qs = (
-        SaleItem.objects
-        .filter(sale__in=sales)
-        .values('item_id', 'name')
-        .annotate(
-            qty=db_models.Sum('quantity'),
-            revenue=db_models.Sum(
-                db_models.ExpressionWrapper(
-                    db_models.F('quantity') * db_models.F('price'),
-                    output_field=db_models.FloatField(),
-                )
-            ),
+    # Dispensed/sold quantities count EVERY sale regardless of payment method
+    # or status (credit included) — this is what physically left the shelf.
+    # Revenue stays money-accurate: credit sales are excluded so per-item
+    # revenue matches totalRevenue below. Use SaleItem.name (stored at
+    # checkout) so deleted items still appear.
+    dispensed_qty = {
+        (r['item_id'], r['name']): r['qty'] or 0
+        for r in (
+            SaleItem.objects
+            .filter(sale__in=all_sales)
+            .values('item_id', 'name')
+            .annotate(qty=db_models.Sum('quantity'))
         )
-        .order_by('-qty')[:10]
-    )
+    }
+    item_revenue = {
+        (r['item_id'], r['name']): float(r['revenue'] or 0)
+        for r in (
+            SaleItem.objects
+            .filter(sale__in=sales)
+            .values('item_id', 'name')
+            .annotate(
+                revenue=db_models.Sum(
+                    db_models.ExpressionWrapper(
+                        db_models.F('quantity') * db_models.F('price'),
+                        output_field=db_models.FloatField(),
+                    )
+                ),
+            )
+        )
+    }
 
     top_items = [
         {
-            'itemId':  r['item_id'],
-            'name':    r['name'] or 'Unknown',
-            'qty':     r['qty'] or 0,
-            'revenue': float(r['revenue'] or 0),
+            'itemId':  item_id,
+            'name':    name or 'Unknown',
+            'qty':     qty,
+            'revenue': item_revenue.get((item_id, name), 0.0),
         }
-        for r in top_items_qs
+        for (item_id, name), qty in sorted(
+            dispensed_qty.items(), key=lambda kv: kv[1], reverse=True
+        )[:10]
     ]
 
     # Daily breakdown for sparkline / bar charts
