@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from authapp.models import CommissionConfig
 from authapp.permissions import IsAdminOrManager, IsReportsUser, SENIOR_ROLES
 from authapp.utils import require_org
-from customers.models import Customer
+from customers.models import Customer, WalletTransaction
 from inventory.models import Item
 from pos.models import Cashier, Expense, Sale, SaleItem
 
@@ -75,11 +75,17 @@ def sales_report(request):
 
     period, start, end = _resolve_range(request)
 
-    sales = Sale.objects.filter(
+    all_sales = Sale.objects.filter(
         organization=org,
         created__date__gte=start,
         created__date__lte=end,
     )
+    # Credit (insufficient-wallet) sales are tracked separately, not in the total.
+    credit_sales = all_sales.filter(status='credit')
+    credit_total = float(credit_sales.aggregate(t=db_models.Sum('total_amount'))['t'] or 0)
+    credit_count = credit_sales.count()
+
+    sales = all_sales.exclude(status='credit')
 
     retail_sales    = sales.filter(is_wholesale=False)
     wholesale_sales = sales.filter(is_wholesale=True)
@@ -132,34 +138,48 @@ def sales_report(request):
         for r in daily_qs
     ]
 
-    # Payment received per method (cash/pos/transfer/wallet) for the period.
+    # Money actually received. cash/pos/transfer come from sales; the "wallet"
+    # bucket is wallet TOP-UPS (real cash in), not wallet spends — a wallet spend
+    # is prepaid money already received at top-up, so counting it here would
+    # double-count. Wallet spends still contribute to totalRevenue above.
+    topups = WalletTransaction.objects.filter(
+        customer__organization=org, txn_type='topup'
+    )
+    period_topups = float(
+        topups.filter(created__date__gte=start, created__date__lte=end)
+        .aggregate(t=db_models.Sum('amount'))['t'] or 0
+    )
+    today_topups = float(
+        topups.filter(created__date=timezone.localdate())
+        .aggregate(t=db_models.Sum('amount'))['t'] or 0
+    )
+
+    # Payment received per method (cash/pos/transfer) for the period.
     pay = sales.aggregate(
         cash=db_models.Sum('payment_cash'),
         pos=db_models.Sum('payment_pos'),
         transfer=db_models.Sum('payment_transfer'),
-        wallet=db_models.Sum('payment_wallet'),
     )
     payment_methods = {
         'cash':     round(float(pay['cash'] or 0), 2),
         'pos':      round(float(pay['pos'] or 0), 2),
         'transfer': round(float(pay['transfer'] or 0), 2),
-        'wallet':   round(float(pay['wallet'] or 0), 2),
+        'wallet':   round(period_topups, 2),
     }
 
     # Today's payments per method — always for the current day, independent of period.
     today_pay = Sale.objects.filter(
         organization=org, created__date=timezone.localdate(),
-    ).aggregate(
+    ).exclude(status='credit').aggregate(
         cash=db_models.Sum('payment_cash'),
         pos=db_models.Sum('payment_pos'),
         transfer=db_models.Sum('payment_transfer'),
-        wallet=db_models.Sum('payment_wallet'),
     )
     today_payment_methods = {
         'cash':     round(float(today_pay['cash'] or 0), 2),
         'pos':      round(float(today_pay['pos'] or 0), 2),
         'transfer': round(float(today_pay['transfer'] or 0), 2),
-        'wallet':   round(float(today_pay['wallet'] or 0), 2),
+        'wallet':   round(today_topups, 2),
     }
 
     # Expenses for the selected range, split by source (cash drawer vs other),
@@ -201,6 +221,8 @@ def sales_report(request):
         'totalRevenue':   total_revenue,
         'totalRetail':    total_retail,
         'totalWholesale': total_wholesale,
+        'creditSales':    round(credit_total, 2),
+        'creditCount':    credit_count,
         'totalSales':     sales.count(),
         'topItems':       top_items,
         'dailyBreakdown': daily,
@@ -345,7 +367,7 @@ def profit_report(request):
         organization=org,
         created__date__gte=start,
         created__date__lte=end,
-    )
+    ).exclude(status='credit')
     revenue = float(sales.aggregate(t=db_models.Sum('total_amount'))['t'] or 0)
 
     cogs_result = SaleItem.objects.filter(
@@ -414,7 +436,7 @@ def monthly_report(request):
         organization=org,
         created__date__gte=start,
         created__date__lte=end,
-    )
+    ).exclude(status='credit')
 
     daily_qs = (
         sales

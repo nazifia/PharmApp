@@ -440,6 +440,43 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
         const SizedBox(height: 22),
 
+        // -- Credit Sales (insufficient-wallet, excluded from total) -----------
+        if (data.creditCount > 0) ...[
+          GlassCard(
+            padding: const EdgeInsets.all(18),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: EnhancedTheme.warningAmber.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.account_balance_wallet_rounded,
+                    color: EnhancedTheme.warningAmber),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Credit Sales',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    Text('${data.creditCount} sale(s) on wallet credit — not in total',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white.withOpacity(0.6))),
+                  ],
+                ),
+              ),
+              Text(_fmt(data.creditSales),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: EnhancedTheme.warningAmber)),
+            ]),
+          ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+          const SizedBox(height: 22),
+        ],
+
         // -- Payment Methods ---------------------------------------------------
         _paymentMethodsSection(context, data),
 

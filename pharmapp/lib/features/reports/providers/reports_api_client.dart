@@ -37,6 +37,8 @@ class DailySale {
 class SalesReportData {
   final String period; final double totalRevenue; final double totalRetail;
   final double totalWholesale; final int totalSales; final List<TopItem> topItems;
+  /// Insufficient-wallet sales booked on credit — excluded from totalRevenue.
+  final double creditSales; final int creditCount;
   final List<DailySale> dailySales;
   /// Payment received per method: keys 'cash','pos','transfer','wallet'.
   final Map<String, double> paymentMethods;
@@ -49,6 +51,7 @@ class SalesReportData {
   SalesReportData({required this.period, required this.totalRevenue,
       required this.totalRetail, required this.totalWholesale,
       required this.totalSales, required this.topItems,
+      this.creditSales = 0, this.creditCount = 0,
       this.dailySales = const [], this.paymentMethods = const {},
       this.todayPaymentMethods = const {},
       this.expenses = const {}, this.net = const {}});
@@ -58,6 +61,8 @@ class SalesReportData {
         totalRetail: (j['totalRetail'] as num?)?.toDouble() ?? 0,
         totalWholesale: (j['totalWholesale'] as num?)?.toDouble() ?? 0,
         totalSales: (j['totalSales'] as num?)?.toInt() ?? 0,
+        creditSales: (j['creditSales'] as num?)?.toDouble() ?? 0,
+        creditCount: (j['creditCount'] as num?)?.toInt() ?? 0,
         topItems: (j['topItems'] as List? ?? [])
             .map((e) => TopItem.fromJson(e as Map<String, dynamic>)).toList(),
         dailySales: (j['dailyBreakdown'] as List? ?? [])

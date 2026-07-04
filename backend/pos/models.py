@@ -92,6 +92,10 @@ class Sale(models.Model):
             ("completed", "Completed"),
             ("returned", "Returned"),
             ("partial_return", "Partial Return"),
+            # Wallet paid but balance was insufficient — goods dispensed on credit.
+            # Recorded as a customer wallet transaction (debt) but NOT counted in
+            # daily sales total / revenue reports.
+            ("credit", "Credit"),
         ],
     )
     branch = models.ForeignKey(
@@ -875,6 +879,7 @@ class Shift(models.Model):
         sales = self.shift_sales.all()
         if not sales.exists():
             sales = self.sales_in_shift
+        sales = sales.exclude(status='credit')  # unfunded wallet credit not counted
         agg = sales.aggregate(
             total_sales=Sum('total_amount'),
             total_cash=Sum('payment_cash'),

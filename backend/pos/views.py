@@ -187,13 +187,17 @@ def checkout(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    wallet_insufficient = False
     if wallet > 0:
         if not customer:
             return Response(
                 {"detail": "Wallet payment requires a customer"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        # Wallet is allowed to go negative (credit/debt for registered customers)
+        # Wallet is allowed to go negative (credit/debt for registered customers).
+        # When it does, the sale is booked as "credit": still dispensed and logged
+        # to the customer's wallet transactions, but excluded from daily sales total.
+        wallet_insufficient = Decimal(str(customer.wallet_balance)) < wallet
 
     branch = None
     if branch_id:
@@ -231,6 +235,7 @@ def checkout(request):
             payment_wallet=wallet,
             payment_method=payment_method,
             is_wholesale=is_wholesale,
+            status="credit" if wallet_insufficient else "completed",
             buyer_name=buyer_name,
             buyer_address=buyer_address,
             hmo_card_number=hmo_card_number or '',
@@ -633,6 +638,12 @@ def complete_payment_request(request, pk):
             if pr.dispenser else None
         )
 
+        wallet_amt = Decimal(str(payment.get("wallet", 0)))
+        wallet_insufficient = bool(
+            pr.customer and wallet_amt > 0
+            and Decimal(str(pr.customer.wallet_balance)) < wallet_amt
+        )
+
         sale = Sale.objects.create(
             organization=org,
             customer=pr.customer,
@@ -640,10 +651,11 @@ def complete_payment_request(request, pk):
             cashier=completing_cashier or pr.cashier,
             shift=dispenser_shift,
             total_amount=pr.total_amount,
+            status="credit" if wallet_insufficient else "completed",
             payment_cash=Decimal(str(payment.get("cash", 0))),
             payment_pos=Decimal(str(payment.get("pos", 0))),
             payment_transfer=Decimal(str(payment.get("bankTransfer", 0))),
-            payment_wallet=Decimal(str(payment.get("wallet", 0))),
+            payment_wallet=wallet_amt,
             payment_method=payment_method,
             buyer_name=pr.buyer_name,
         )
@@ -678,7 +690,6 @@ def complete_payment_request(request, pk):
                 discount_amount=pri.discount_amount,
             )
 
-        wallet_amt = Decimal(str(payment.get("wallet", 0)))
         if pr.customer and wallet_amt > 0:
             pr.customer.wallet_balance = (
                 Decimal(str(pr.customer.wallet_balance)) - wallet_amt
