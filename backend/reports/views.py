@@ -138,20 +138,29 @@ def sales_report(request):
         for r in daily_qs
     ]
 
-    # Money actually received. cash/pos/transfer come from sales; the "wallet"
-    # bucket is wallet TOP-UPS (real cash in), not wallet spends — a wallet spend
-    # is prepaid money already received at top-up, so counting it here would
-    # double-count. Wallet spends still contribute to totalRevenue above.
+    # Money actually received. cash/pos/transfer come from sales AND from wallet
+    # TOP-UPS (real cash in), each attributed to the funding method chosen at
+    # top-up. Wallet spends are NOT counted here — a spend is prepaid money
+    # already received at top-up, so counting it would double-count. Wallet
+    # spends still contribute to totalRevenue above. The "wallet" bucket holds
+    # only legacy top-ups recorded before a funding method was captured.
     topups = WalletTransaction.objects.filter(
         customer__organization=org, txn_type='topup'
     )
-    period_topups = float(
+
+    def _topups_by_method(qs):
+        agg = {'cash': 0.0, 'pos': 0.0, 'transfer': 0.0, 'wallet': 0.0}
+        for r in qs.values('method').annotate(t=db_models.Sum('amount')):
+            m = r['method'] or ''
+            amt = float(r['t'] or 0)
+            agg[m if m in ('cash', 'pos', 'transfer') else 'wallet'] += amt
+        return agg
+
+    period_topups = _topups_by_method(
         topups.filter(created__date__gte=start, created__date__lte=end)
-        .aggregate(t=db_models.Sum('amount'))['t'] or 0
     )
-    today_topups = float(
+    today_topups = _topups_by_method(
         topups.filter(created__date=timezone.localdate())
-        .aggregate(t=db_models.Sum('amount'))['t'] or 0
     )
 
     # Payment received per method (cash/pos/transfer) for the period.
@@ -161,10 +170,10 @@ def sales_report(request):
         transfer=db_models.Sum('payment_transfer'),
     )
     payment_methods = {
-        'cash':     round(float(pay['cash'] or 0), 2),
-        'pos':      round(float(pay['pos'] or 0), 2),
-        'transfer': round(float(pay['transfer'] or 0), 2),
-        'wallet':   round(period_topups, 2),
+        'cash':     round(float(pay['cash'] or 0) + period_topups['cash'], 2),
+        'pos':      round(float(pay['pos'] or 0) + period_topups['pos'], 2),
+        'transfer': round(float(pay['transfer'] or 0) + period_topups['transfer'], 2),
+        'wallet':   round(period_topups['wallet'], 2),
     }
 
     # Today's payments per method — always for the current day, independent of period.
@@ -176,10 +185,10 @@ def sales_report(request):
         transfer=db_models.Sum('payment_transfer'),
     )
     today_payment_methods = {
-        'cash':     round(float(today_pay['cash'] or 0), 2),
-        'pos':      round(float(today_pay['pos'] or 0), 2),
-        'transfer': round(float(today_pay['transfer'] or 0), 2),
-        'wallet':   round(today_topups, 2),
+        'cash':     round(float(today_pay['cash'] or 0) + today_topups['cash'], 2),
+        'pos':      round(float(today_pay['pos'] or 0) + today_topups['pos'], 2),
+        'transfer': round(float(today_pay['transfer'] or 0) + today_topups['transfer'], 2),
+        'wallet':   round(today_topups['wallet'], 2),
     }
 
     # Expenses for the selected range, split by source (cash drawer vs other),

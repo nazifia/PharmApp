@@ -18,6 +18,7 @@ class WalletScreen extends ConsumerStatefulWidget {
 class _WalletScreenState extends ConsumerState<WalletScreen> {
   final _amountCtrl = TextEditingController();
   bool _isTopUp = true;
+  String _fundMethod = 'cash';   // funding method for top-ups
 
   late final int _customerId;
 
@@ -41,7 +42,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
     final notifier = ref.read(walletNotifierProvider(_customerId).notifier);
     final success = _isTopUp
-        ? await notifier.topUp(amount)
+        ? await notifier.topUp(amount, method: _fundMethod)
         : await notifier.deduct(amount);
 
     _amountCtrl.clear();
@@ -311,6 +312,29 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         ),
                       ),
                     ]),
+
+                    // Funding method — only relevant when topping up
+                    if (_isTopUp) ...[
+                      const SizedBox(height: 14),
+                      Row(children: [
+                        const Icon(Icons.payments_rounded,
+                            color: EnhancedTheme.successGreen, size: 14),
+                        const SizedBox(width: 6),
+                        Text('Funding method',
+                            style: TextStyle(
+                                color: context.subLabelColor,
+                                fontSize: 12, fontWeight: FontWeight.w600)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        ('cash', 'Cash', Icons.money_rounded),
+                        ('pos', 'POS', Icons.credit_card_rounded),
+                        ('transfer', 'Transfer', Icons.swap_horiz_rounded),
+                      ].map((m) => Expanded(child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: _methodChip(m.$1, m.$2, m.$3),
+                      ))).toList()),
+                    ],
                     const SizedBox(height: 14),
 
                     // Quick amount buttons
@@ -505,6 +529,34 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
+  Widget _methodChip(String value, String label, IconData icon) {
+    final active = _fundMethod == value;
+    const color = EnhancedTheme.successGreen;
+    return GestureDetector(
+      onTap: () => setState(() => _fundMethod = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          color: active ? color.withValues(alpha: 0.15) : context.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: active ? color : context.borderColor,
+              width: active ? 1.5 : 1),
+        ),
+        child: Column(children: [
+          Icon(icon, size: 16, color: active ? color : context.subLabelColor),
+          const SizedBox(height: 3),
+          Text(label,
+              style: TextStyle(
+                  color: active ? color : context.labelColor,
+                  fontSize: 11,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500)),
+        ]),
+      ),
+    );
+  }
+
   Widget _modeBtn({
     required String label,
     required IconData icon,
@@ -584,10 +636,27 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 child: Icon(icon, color: color, size: 22)),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(tx.displayType,
-                    style: GoogleFonts.outfit(
-                        color: context.labelColor,
-                        fontSize: 14, fontWeight: FontWeight.w700)),
+                Row(children: [
+                  Flexible(child: Text(tx.displayType,
+                      style: GoogleFonts.outfit(
+                          color: context.labelColor,
+                          fontSize: 14, fontWeight: FontWeight.w700),
+                      overflow: TextOverflow.ellipsis)),
+                  if (tx.methodLabel.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: EnhancedTheme.successGreen.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(tx.methodLabel,
+                          style: const TextStyle(
+                              color: EnhancedTheme.successGreen,
+                              fontSize: 9, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ]),
                 if (tx.note.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(tx.note,

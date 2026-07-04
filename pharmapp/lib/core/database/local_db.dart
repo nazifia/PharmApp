@@ -593,7 +593,8 @@ class LocalDb {
   Future<void> deleteCustomer(int id) async =>
       (await db).delete('customers', where: 'id = ?', whereArgs: [id]);
 
-  Future<void> topUpWallet(int customerId, double amount) async {
+  Future<void> topUpWallet(int customerId, double amount,
+      {String method = 'cash'}) async {
     final d = await db;
     // Atomic increment — no read-then-write race.
     await d.rawUpdate(
@@ -606,7 +607,7 @@ class LocalDb {
       'customer_id': customerId,
       'type': 'top_up',
       'amount': amount,
-      'note': 'Top-up',
+      'note': 'Top-up via $method',
       'date': _now(),
       'balance_after': newBal,
     });

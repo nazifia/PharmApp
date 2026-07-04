@@ -97,10 +97,14 @@ class Customer(models.Model):
 
 class WalletTransaction(models.Model):
     TYPES = [('topup', 'Top-up'), ('deduct', 'Deduction'), ('purchase', 'Purchase')]
+    METHODS = [('cash', 'Cash'), ('pos', 'POS'), ('transfer', 'Transfer')]
 
     customer  = models.ForeignKey(Customer, related_name='wallet_transactions',
                                   on_delete=models.CASCADE)
     txn_type  = models.CharField(max_length=20, choices=TYPES)
+    # Funding method for top-ups (how the money came in). Blank for other types
+    # and for legacy top-ups recorded before this field existed.
+    method    = models.CharField(max_length=20, choices=METHODS, blank=True, default='')
     amount    = models.DecimalField(max_digits=12, decimal_places=2)
     note      = models.CharField(max_length=300, blank=True, default='')
     created   = models.DateTimeField(auto_now_add=True)
@@ -109,6 +113,7 @@ class WalletTransaction(models.Model):
         return {
             'id':        self.id,
             'type':      self.txn_type,
+            'method':    self.method or None,
             'amount':    float(self.amount),
             'note':      self.note,
             'createdAt': self.created.isoformat(),

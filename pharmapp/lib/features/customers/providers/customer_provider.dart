@@ -231,10 +231,10 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
     _ref.invalidate(walletTransactionsProvider(_customerId));
   }
 
-  Future<bool> topUp(double amount) async {
+  Future<bool> topUp(double amount, {String method = 'cash'}) async {
     state = const AsyncValue.loading();
     try {
-      await _api.topUpWallet(_customerId, amount);
+      await _api.topUpWallet(_customerId, amount, method: method);
       _refresh();
       state = const AsyncValue.data(null);
       return true;
@@ -242,7 +242,7 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
       if (e.response == null) {
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/customers/$_customerId/wallet/topup/',
-          body: {'amount': amount},
+          body: {'amount': amount, 'method': method},
           description: 'Wallet top-up ₦$amount for customer #$_customerId',
         );
         state = const AsyncValue.data(null);

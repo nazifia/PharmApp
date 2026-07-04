@@ -12,13 +12,14 @@ const _kCustomersCachePrefix = 'cache_customers';
 class WalletTransaction {
   final int id;
   final String type;
+  final String method;
   final double amount;
   final String note;
   final String date;
   final double? balanceAfter;
 
   WalletTransaction({required this.id, required this.type, required this.amount,
-      required this.note, required this.date, this.balanceAfter});
+      required this.note, required this.date, this.method = '', this.balanceAfter});
 
   factory WalletTransaction.fromJson(Map<String, dynamic> j) {
     final rawDate = (j['date'] ?? j['createdAt'] as String?) ?? '';
@@ -34,11 +35,22 @@ class WalletTransaction {
     return WalletTransaction(
       id: (j['id'] as num?)?.toInt() ?? 0,
       type: (j['type'] as String?) ?? '',
+      method: (j['method'] as String?) ?? '',
       amount: (j['amount'] as num?)?.toDouble() ?? 0.0,
       note: (j['note'] as String?) ?? '',
       date: formatted,
       balanceAfter: ((j['balanceAfter'] ?? j['balance_after']) as num?)?.toDouble(),
     );
+  }
+
+  /// Human label for the funding method (top-ups only), e.g. "Cash".
+  String get methodLabel {
+    switch (method.toLowerCase()) {
+      case 'cash': return 'Cash';
+      case 'pos': return 'POS';
+      case 'transfer': return 'Transfer';
+      default: return '';
+    }
   }
 
   bool get isCredit {
@@ -327,10 +339,11 @@ class CustomerApiClient {
     }
   }
 
-  Future<void> topUpWallet(int id, double amount) async {
-    if (_isLocal) return LocalDb.instance.topUpWallet(id, amount);
+  Future<void> topUpWallet(int id, double amount, {String method = 'cash'}) async {
+    if (_isLocal) return LocalDb.instance.topUpWallet(id, amount, method: method);
     try {
-      await _dio!.post('/customers/$id/wallet/topup/', data: {'amount': amount});
+      await _dio!.post('/customers/$id/wallet/topup/',
+          data: {'amount': amount, 'method': method});
     } on DioException catch (e) {
       if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to top up wallet');

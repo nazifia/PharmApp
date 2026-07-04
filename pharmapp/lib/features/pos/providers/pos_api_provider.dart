@@ -165,7 +165,7 @@ class PosApiClient {
           reason: reason);
     }
     try {
-      final res = await _dio!.post('/pos/sales/$saleId/return-item/', data: {
+      final res = await _dio!.post('/pos/sales/$saleId/return/', data: {
         'sale_item_id': saleItemId,
         'quantity': quantity,
         'refund_method': refundMethod,
@@ -1469,7 +1469,7 @@ class PosApiClient {
           reason: reason);
     }
     try {
-      final res = await _dio!.post('/pos/sales/$saleId/return-item/', data: {
+      final res = await _dio!.post('/pos/sales/$saleId/return/', data: {
         'sale_item_id': saleItemId,
         'quantity': quantity,
         'refund_method': refundMethod,
@@ -1985,7 +1985,7 @@ class PosReturnNotifier extends StateNotifier<AsyncValue<void>> {
     } on DioException catch (e, st) {
       if (e.response == null) {
         await _ref.read(offlineMutationQueueProvider.notifier).enqueue(
-          'POST', '/pos/sales/$saleId/return-item/',
+          'POST', '/pos/sales/$saleId/return/',
           body: {'sale_item_id': saleItemId, 'quantity': quantity,
                  'refund_method': refundMethod, 'reason': reason},
           description: 'Return item from sale #$saleId',

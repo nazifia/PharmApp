@@ -171,6 +171,9 @@ def wallet_topup(request, pk):
     except (ValueError, TypeError):
         return Response({"detail": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
     note = request.data.get("note", "")
+    method = request.data.get("method", "cash")
+    if method not in ("cash", "pos", "transfer"):
+        method = "cash"
 
     if amount <= 0:
         return Response(
@@ -187,7 +190,7 @@ def wallet_topup(request, pk):
         customer.wallet_balance = float(customer.wallet_balance) + amount
         customer.save()
         txn = WalletTransaction.objects.create(
-            customer=customer, txn_type="topup", amount=amount, note=note
+            customer=customer, txn_type="topup", amount=amount, note=note, method=method
         )
     log_activity(request, action='Wallet Top-up', category='customers',
                  description=f'Wallet top-up ₦{amount:,.0f} for "{customer.name}"')
