@@ -2,7 +2,10 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+
+const _kScannerFacingKey = 'scanner_camera_facing';
 
 class BarcodeScannerSheet extends StatefulWidget {
   final void Function(String code) onBarcodeScanned;
@@ -18,6 +21,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
   final TextEditingController _manualCtrl = TextEditingController();
   bool _scanned = false;
   bool _cameraFailed = false;
+  CameraFacing _facing = kIsWeb ? CameraFacing.front : CameraFacing.back;
 
   @override
   void initState() {
@@ -25,9 +29,33 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
     // Web desktops have no back camera — front maps to the webcam.
     _controller = MobileScannerController(
       detectionSpeed: DetectionSpeed.noDuplicates,
-      facing: kIsWeb ? CameraFacing.front : CameraFacing.back,
+      facing: _facing,
       autoStart: true,
     );
+    _restoreFacing();
+  }
+
+  Future<void> _restoreFacing() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_kScannerFacingKey);
+    if (saved == null || !mounted) return;
+    final wanted =
+        saved == 'front' ? CameraFacing.front : CameraFacing.back;
+    if (wanted != _facing) {
+      _controller.switchCamera();
+      setState(() => _facing = wanted);
+    }
+  }
+
+  Future<void> _flipCamera() async {
+    _controller.switchCamera();
+    final next = _facing == CameraFacing.back
+        ? CameraFacing.front
+        : CameraFacing.back;
+    setState(() => _facing = next);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _kScannerFacingKey, next == CameraFacing.front ? 'front' : 'back');
   }
 
   @override
@@ -92,6 +120,15 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
                         fontWeight: FontWeight.w700),
                   ),
                 ),
+                if (!_cameraFailed)
+                  IconButton(
+                    tooltip: _facing == CameraFacing.back
+                        ? 'Switch to front camera'
+                        : 'Switch to rear camera',
+                    icon: const Icon(Icons.cameraswitch_rounded,
+                        color: Colors.white70, size: 22),
+                    onPressed: _flipCamera,
+                  ),
                 IconButton(
                   icon: const Icon(Icons.close_rounded,
                       color: Colors.white70, size: 22),
