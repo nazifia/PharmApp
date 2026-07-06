@@ -27,6 +27,8 @@ class _HardwareScannerListenerState extends State<HardwareScannerListener> {
   final _buffer = StringBuffer();
   DateTime? _firstKeyTime;
   Timer? _resetTimer;
+  Timer? _scannedFlashTimer;
+  bool _justScanned = false;
 
   // Scanners: < 40 ms per char. Humans: > 80 ms per char.
   static const int _maxAvgMsPerChar = 40;
@@ -43,11 +45,18 @@ class _HardwareScannerListenerState extends State<HardwareScannerListener> {
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _resetTimer?.cancel();
+    _scannedFlashTimer?.cancel();
     super.dispose();
   }
 
   bool _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
+
+    // Only the foreground route consumes scanner input. Without this, a
+    // background screen (under a pushed cart/payment route or an open scanner
+    // sheet) still fires its callback — adding items to the wrong screen or
+    // swallowing manual keystrokes typed into a sheet.
+    if (!mounted || ModalRoute.of(context)?.isCurrent == false) return false;
 
     final key = event.logicalKey;
 
@@ -100,6 +109,17 @@ class _HardwareScannerListenerState extends State<HardwareScannerListener> {
         _buffer.clear();
         _firstKeyTime = null;
         _resetTimer?.cancel();
+        // Confirm the scan registered without the operator watching the screen:
+        // a buzz + click, and a 1s green "Scanned" flash on the indicator.
+        HapticFeedback.mediumImpact();
+        SystemSound.play(SystemSoundType.click);
+        if (widget.showIndicator && mounted) {
+          setState(() => _justScanned = true);
+          _scannedFlashTimer?.cancel();
+          _scannedFlashTimer = Timer(const Duration(seconds: 1), () {
+            if (mounted) setState(() => _justScanned = false);
+          });
+        }
         widget.onBarcodeScanned(code);
         return;
       }
@@ -112,35 +132,39 @@ class _HardwareScannerListenerState extends State<HardwareScannerListener> {
   @override
   Widget build(BuildContext context) {
     if (!widget.showIndicator) return widget.child;
+    final color =
+        _justScanned ? EnhancedTheme.successGreen : EnhancedTheme.primaryTeal;
     return Stack(children: [
       widget.child,
       Positioned(
         top: 0,
         right: 12,
         child: SafeArea(
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
             margin: const EdgeInsets.only(top: 6),
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
-              color: EnhancedTheme.primaryTeal.withValues(alpha: 0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                  color: EnhancedTheme.primaryTeal.withValues(alpha: 0.35)),
+              border: Border.all(color: color.withValues(alpha: 0.35)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: 5,
-                height: 5,
-                decoration: const BoxDecoration(
-                  color: EnhancedTheme.primaryTeal,
-                  shape: BoxShape.circle,
-                ),
-              ),
+              _justScanned
+                  ? Icon(Icons.check_rounded, size: 10, color: color)
+                  : Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
               const SizedBox(width: 5),
-              const Text(
-                'Scanner ready',
+              Text(
+                _justScanned ? 'Scanned' : 'Scanner ready',
                 style: TextStyle(
-                  color: EnhancedTheme.primaryTeal,
+                  color: color,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.2,
