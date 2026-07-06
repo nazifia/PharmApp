@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/cart_item.dart';
 import '../../../shared/models/item.dart';
@@ -21,6 +22,7 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     } else {
       state = [...state, CartItem(item: item, quantity: 1, discount: 0.0)];
     }
+    HapticFeedback.selectionClick(); // confirm item landed in cart
   }
 
   void removeItem(int itemId) {

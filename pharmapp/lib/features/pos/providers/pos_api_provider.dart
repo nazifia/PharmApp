@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
@@ -1153,6 +1154,9 @@ class PosApiClient {
 
   // ── Barcode ────────────────────────────────────────────────────────────────
   Future<Map<String, dynamic>?> lookupBarcode(String code) async {
+    // Empty code makes the backend skip its filter and return the whole list;
+    // list[0] would then be an arbitrary item.
+    if (code.trim().isEmpty) return null;
     if (_isLocal) return LocalDb.instance.getItemByBarcode(code);
     try {
       final res = await _dio!
@@ -1912,6 +1916,7 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
           .enqueue(payload, consultationFee: consultationFee);
       await _saveLocalDispensingEntriesFromPayload(payload, pending.id);
       state = const AsyncValue.data(null);
+      HapticFeedback.heavyImpact(); // confirm sale queued
       return {'offline': true};
     }
 
@@ -1931,6 +1936,7 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
       );
       await _saveLocalDispensingEntries(result);
       state = const AsyncValue.data(null);
+      HapticFeedback.heavyImpact(); // confirm sale completed
       return result;
     } on DioException catch (e, st) {
       // Connection-level failure even though we thought we were online.

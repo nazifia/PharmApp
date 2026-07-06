@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/item.dart';
 
@@ -54,6 +55,7 @@ class WsCartNotifier extends StateNotifier<List<WsCartLine>> {
         ),
       ];
     }
+    HapticFeedback.selectionClick(); // confirm item landed in cart
   }
 
   void addItemWithQty(Item item, double qty) {
@@ -76,6 +78,7 @@ class WsCartNotifier extends StateNotifier<List<WsCartLine>> {
         ),
       ];
     }
+    HapticFeedback.selectionClick(); // confirm item landed in cart
   }
 
   void removeItem(int id) => state = state.where((l) => l.id != id).toList();
