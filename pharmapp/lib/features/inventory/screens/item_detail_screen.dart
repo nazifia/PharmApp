@@ -304,6 +304,30 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     child: ElevatedButton(
                       onPressed: saving ? null : () async {
                         if (!formKey.currentState!.validate()) return;
+                        // Reject a barcode already used by a *different* item —
+                        // duplicates make scan lookup ambiguous (last-wins).
+                        final enteredBarcode = barcodeCtrl.text.trim();
+                        if (enteredBarcode.isNotEmpty &&
+                            enteredBarcode.toUpperCase() != 'N/A') {
+                          final lower = enteredBarcode.toLowerCase();
+                          final clash = ref.read(retailBarcodeLookupProvider)[lower] ??
+                              ref.read(wholesaleBarcodeLookupProvider)[lower];
+                          if (clash != null && clash.id != item.id) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              margin: const EdgeInsets.all(16),
+                              content: Row(children: [
+                                const Icon(Icons.error_rounded, color: Colors.black, size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text('Barcode already used by "${clash.name}"',
+                                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                              ]),
+                            ));
+                            return;
+                          }
+                        }
                         setModal(() => saving = true);
                         final payload = {
                           'name':                nameCtrl.text.trim(),

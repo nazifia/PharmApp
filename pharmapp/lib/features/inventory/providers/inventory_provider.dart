@@ -77,14 +77,23 @@ final itemDetailProvider = FutureProvider.autoDispose.family<Item, int>((ref, id
 });
 
 /// O(1) barcode → Item lookup maps, rebuilt only when inventory reloads.
+Map<String, Item> _buildBarcodeMap(List<Item> items) {
+  final map = <String, Item>{};
+  for (final i in items) {
+    final key = i.barcode.trim().toLowerCase();
+    // Skip items with no real barcode so they never false-match a scan.
+    if (key.isEmpty || key == 'n/a') continue;
+    map[key] = i;
+  }
+  return map;
+}
+
 final retailBarcodeLookupProvider = Provider<Map<String, Item>>((ref) {
-  final items = ref.watch(retailInventoryProvider).valueOrNull ?? [];
-  return {for (final i in items) i.barcode.toLowerCase(): i};
+  return _buildBarcodeMap(ref.watch(retailInventoryProvider).valueOrNull ?? []);
 });
 
 final wholesaleBarcodeLookupProvider = Provider<Map<String, Item>>((ref) {
-  final items = ref.watch(wholesaleInventoryProvider).valueOrNull ?? [];
-  return {for (final i in items) i.barcode.toLowerCase(): i};
+  return _buildBarcodeMap(ref.watch(wholesaleInventoryProvider).valueOrNull ?? []);
 });
 
 // ── Inventory write notifier (offline-aware) ─────────────────────────────────

@@ -123,6 +123,9 @@ class InventoryApiClient {
   }
 
   Future<Item?> fetchItemByBarcode(String barcode) async {
+    // Empty code would make the backend skip its filter and return the whole
+    // list — picking list[0] then yields an arbitrary item.
+    if (barcode.trim().isEmpty) return null;
     if (_isLocal) {
       final row = await LocalDb.instance.getItemByBarcode(barcode);
       return row != null ? _toItem(row) : null;
