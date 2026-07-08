@@ -142,7 +142,7 @@ JAZZMIN_SETTINGS = {
     "related_modal_active": True,
     "custom_css": "admin/css/custom_admin.css",
     "custom_js": "admin/js/theme_toggle.js",
-    "use_google_fonts_cdn": True,
+    "use_google_fonts_cdn": False,  # skip render-blocking external CDN request
     "show_ui_builder": False,
 
     "changeform_format": "horizontal_tabs",

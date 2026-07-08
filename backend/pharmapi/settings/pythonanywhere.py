@@ -28,8 +28,34 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        # Persistent connection — skip reopen per request.
+        "CONN_MAX_AGE": 60,
+        # WAL + tuned PRAGMAs: concurrent reads during writes, 64MB page cache,
+        # memory temp store. Biggest single speedup for SQLite on shared tier.
+        "OPTIONS": {
+            "transaction_mode": "IMMEDIATE",
+            "init_command": (
+                "PRAGMA journal_mode=WAL;"
+                "PRAGMA synchronous=NORMAL;"
+                "PRAGMA cache_size=-64000;"
+                "PRAGMA temp_store=MEMORY;"
+                "PRAGMA busy_timeout=5000;"
+            ),
+        },
     }
 }
+
+# ── Cache + sessions ──────────────────────────────────────────────────────────
+# Local-memory cache (single worker on free tier). Sessions read from cache,
+# write-through to DB — cuts one SQLite hit off every authenticated request.
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "pharmapp-locmem",
+    }
+}
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
 # ── Static files (WhiteNoise) ─────────────────────────────────────────────────
 
