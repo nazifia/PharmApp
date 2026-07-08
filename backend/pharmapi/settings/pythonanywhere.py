@@ -72,6 +72,10 @@ STORAGES = {
 
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 
+# Cache static (Jazzmin CSS/JS) 1 day in the browser — refresh/nav reuse them
+# instead of re-fetching. Assets are unhashed, so keep it modest, not immutable.
+WHITENOISE_MAX_AGE = 86400
+
 # ── CORS ──────────────────────────────────────────────────────────────────────
 
 _cors_origins = [o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]

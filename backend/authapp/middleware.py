@@ -1,5 +1,6 @@
 import time
 
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.shortcuts import redirect
 
@@ -15,9 +16,14 @@ class MaintenanceModeMiddleware:
     def __call__(self, request):
         if request.path.startswith('/api/') and not request.path.startswith('/admin/'):
             try:
-                from authapp.models import SiteConfig
-                cfg = SiteConfig.objects.filter(pk=1).first()
-                if cfg and cfg.maintenance_mode:
+                # Cache the flag 30s — avoid a SiteConfig query on every API hit.
+                on = cache.get('maintenance_mode')
+                if on is None:
+                    from authapp.models import SiteConfig
+                    cfg = SiteConfig.objects.filter(pk=1).first()
+                    on = bool(cfg and cfg.maintenance_mode)
+                    cache.set('maintenance_mode', on, 30)
+                if on:
                     return JsonResponse(
                         {'detail': 'The system is under maintenance. Please try again later.'},
                         status=503,
@@ -52,5 +58,8 @@ class AdminInactivityMiddleware:
             request.session.flush()
             return redirect('/admin/login/')
 
-        request.session['last_admin_activity'] = now
+        # Only write the session (a DB write) once per minute, not every
+        # request. Timeout resolution stays well under the 30-min window.
+        if last is None or (now - last) > 60:
+            request.session['last_admin_activity'] = now
         return self.get_response(request)
