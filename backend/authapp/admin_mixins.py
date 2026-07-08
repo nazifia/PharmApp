@@ -64,6 +64,40 @@ class OrgScopedAdminMixin:
     def get_queryset(self, request):
         return self._org_filter(request, super().get_queryset(request))
 
+    def get_list_select_related(self, request):
+        # Superusers get an injected "organization" column (see get_list_display).
+        # Add it to list_select_related so the changelist joins it instead of
+        # firing one query per row. Must go through this hook — pre-setting
+        # select_related() on get_queryset makes ChangeList skip its own
+        # list_select_related entirely (it only applies when none is set yet).
+        base = super().get_list_select_related(request)
+        if not (request.user.is_superuser and self._has_org_fk(self.model)):
+            return base
+        if base is True:
+            return True  # already joins every FK
+        fields = list(base) if base else []
+        if not base:
+            # Empty base → ChangeList would auto-select every FK column in
+            # list_display. Returning a non-empty list disables that, so
+            # replicate it here (the org column is among them).
+            for name in self.get_list_display(request):
+                try:
+                    f = self.model._meta.get_field(name)
+                except Exception:
+                    continue
+                if f.is_relation and (f.many_to_one or f.one_to_one):
+                    fields.append(name)
+        if "organization" not in fields:
+            fields.append("organization")
+        return fields
+
+    @staticmethod
+    def _has_org_fk(model) -> bool:
+        try:
+            return model._meta.get_field("organization").is_relation
+        except Exception:
+            return False
+
     def save_model(self, request, obj, form, change):
         """Auto-assign the user's organisation when creating a new record."""
         if not change:
