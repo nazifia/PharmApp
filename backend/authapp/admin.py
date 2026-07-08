@@ -1,11 +1,14 @@
+from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.html import conditional_escape, format_html, mark_safe
 from django.urls import reverse
 from django.db import transaction
 from django.db.models import Count, Q
 
 from .admin_mixins import OrgScopedAdminMixin
+from .utils import normalize_ng_phone
 from .models import (
     ActivityLog, CommissionConfig, Organization,
     PharmUser, PharmacyNetwork, PharmacyNetworkMembership,
@@ -323,6 +326,39 @@ class UserPermissionOverrideInline(admin.TabularInline):
         return super().get_queryset(request).select_related('user')
 
 
+class _PhoneCleanMixin:
+    """
+    Validates phone_number in admin forms: normalizes to canonical
+    0XXXXXXXXXX and rejects duplicates across stored +234... / 234... / 0...
+    variants.
+    """
+    def clean_phone_number(self):
+        raw = (self.cleaned_data.get('phone_number') or '').strip()
+        # Unchanged (possibly legacy-format) numbers pass through untouched.
+        if self.instance.pk and raw == self.instance.phone_number:
+            return raw
+        phone = normalize_ng_phone(raw)
+        if phone is None:
+            raise forms.ValidationError(
+                'Enter a valid Nigerian mobile number (e.g. 08012345678).')
+        variants = [phone, '+234' + phone[1:], '234' + phone[1:]]
+        if PharmUser.objects.filter(phone_number__in=variants).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('A user with this phone number already exists.')
+        return phone
+
+
+class PharmUserAdminForm(_PhoneCleanMixin, UserChangeForm):
+    class Meta(UserChangeForm.Meta):
+        model = PharmUser
+        fields = '__all__'
+
+
+class PharmUserAddForm(_PhoneCleanMixin, UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        model = PharmUser
+        fields = ('phone_number',)
+
+
 @admin.register(PharmUser)
 class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
     """
@@ -334,6 +370,8 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
 
     change_form_template = 'admin/authapp/pharmuser/change_form.html'
 
+    form = PharmUserAdminForm
+    add_form = PharmUserAddForm
     inlines = [UserPermissionOverrideInline]
 
     list_display = [
@@ -399,6 +437,9 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
         rof = list(self.readonly_fields)
         if not request.user.is_superuser:
             rof.append("organization")
+            # Phone number is the login credential — only superusers may change it.
+            if obj is not None:
+                rof.append("phone_number")
         return rof
 
     # ── Role restrictions ─────────────────────────────────────────────────

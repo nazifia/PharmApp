@@ -16,7 +16,7 @@ from inventory.models import Item
 from customers.models import Customer, WalletTransaction
 from authapp.models import PharmUser
 from branches.models import Branch
-from authapp.utils import require_org, log_activity
+from authapp.utils import require_org, log_activity, normalize_ng_phone
 from authapp.permissions import require_permission, REPORTS_ROLES
 from .models import (
     Cashier,
@@ -1379,7 +1379,16 @@ def user_list(request):
             {"detail": "Phone and password required"},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    if PharmUser.objects.filter(phone_number=phone).exists():
+    phone = normalize_ng_phone(phone)
+    if phone is None:
+        return Response(
+            {"detail": "Enter a valid Nigerian mobile number "
+                       "(e.g. 08012345678 or +2348012345678)."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if PharmUser.objects.filter(
+        phone_number__in=[phone, '+234' + phone[1:], '234' + phone[1:]]
+    ).exists():
         return Response(
             {"detail": "Phone already registered"}, status=status.HTTP_400_BAD_REQUEST
         )
@@ -1405,7 +1414,15 @@ def user_detail(request, pk):
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     data = request.data
-    user.phone_number = data.get("phoneNumber", user.phone_number)
+    if "phoneNumber" in data and data["phoneNumber"].strip():
+        new_phone = normalize_ng_phone(data["phoneNumber"])
+        if new_phone is None:
+            return Response(
+                {"detail": "Enter a valid Nigerian mobile number "
+                           "(e.g. 08012345678 or +2348012345678)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.phone_number = new_phone
     user.role = data.get("role", user.role)
     user.is_active = data.get("isActive", user.is_active)
     if "username" in data:

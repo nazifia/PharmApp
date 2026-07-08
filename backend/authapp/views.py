@@ -11,7 +11,7 @@ from .models import Organization, PharmUser, ActivityLog, PharmacyNetwork, Pharm
 from .permissions import (
     IsAdminOrManager, PERMISSION_LABELS, _PERMISSION_ROLE_MAP, get_effective_permissions
 )
-from .utils import log_activity
+from .utils import log_activity, normalize_ng_phone
 
 
 def _token_for(user):
@@ -32,7 +32,15 @@ def login_view(request):
                         status=status.HTTP_400_BAD_REQUEST)
 
     # ── Try org user first ────────────────────────────────────────────────────
-    user = authenticate(request, username=phone, password=password)
+    # Try the NCC-canonical form first, then the raw input (legacy accounts
+    # stored before phone normalization was introduced).
+    phone_norm = normalize_ng_phone(phone)
+    candidates = [p for p in dict.fromkeys([phone_norm, phone]) if p]
+    user = None
+    for candidate in candidates:
+        user = authenticate(request, username=candidate, password=password)
+        if user is not None:
+            break
     if user is not None:
         if not user.is_active:
             return Response({'detail': 'Account is disabled.'},
@@ -51,14 +59,15 @@ def login_view(request):
     from prescriptions.models import Prescriber
 
     try:
-        prescriber = Prescriber.objects.select_related('hospital').get(phone=phone)
-    except Prescriber.DoesNotExist:
-        prescriber = None
-    except Prescriber.MultipleObjectsReturned:
-        return Response(
-            {'detail': 'Multiple accounts found with this phone. Contact admin.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        matches = list(
+            Prescriber.objects.select_related('hospital').filter(phone__in=candidates)[:2]
         )
+        if len(matches) > 1:
+            return Response(
+                {'detail': 'Multiple accounts found with this phone. Contact admin.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        prescriber = matches[0] if matches else None
     except Exception:
         # DB-level error (e.g. missing migration on server) — treat as no prescriber
         # so login still returns JSON 401 instead of crashing with an HTML 500.
@@ -99,12 +108,20 @@ def register_org_view(request):
         return Response({'detail': 'org_name is required.'}, status=status.HTTP_400_BAD_REQUEST)
     if not phone:
         return Response({'detail': 'phone_number is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    phone = normalize_ng_phone(phone)
+    if phone is None:
+        return Response(
+            {'detail': 'Enter a valid Nigerian mobile number '
+                       '(e.g. 08012345678 or +2348012345678).'},
+            status=status.HTTP_400_BAD_REQUEST)
     if not password or len(password) < 8:
         return Response({'detail': 'password must be at least 8 characters.'}, status=status.HTTP_400_BAD_REQUEST)
     if not re.search(r'[A-Za-z]', password) or not re.search(r'\d', password):
         return Response({'detail': 'password must contain at least one letter and one digit.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if PharmUser.objects.filter(phone_number=phone).exists():
+    # Also match legacy variants of the same number (+234…, 234…).
+    variants = [phone, '+234' + phone[1:], '234' + phone[1:]]
+    if PharmUser.objects.filter(phone_number__in=variants).exists():
         return Response({'detail': 'A user with this phone number already exists.'},
                         status=status.HTTP_400_BAD_REQUEST)
 

@@ -167,7 +167,17 @@
       "Bash(flutter test *)",
       "Bash(grep -q \"^.serena\" .gitignore)",
       "Bash(echo \".serena/\")",
-      "Bash(./venv/Scripts/python.exe manage.py migrate pos)"
+      "Bash(./venv/Scripts/python.exe manage.py migrate pos)",
+      "Bash(rtk git *)",
+      "Bash(./venv/Scripts/python.exe manage.py runserver 0.0.0.0:8000 --noreload)",
+      "Bash(break)",
+      "Bash(venv/Scripts/python.exe manage.py makemigrations pos)",
+      "Bash(venv/Scripts/python.exe manage.py test pos.tests_wallet_credit -v2)",
+      "Bash(venv/Scripts/python.exe manage.py test pos.tests_wallet_credit)",
+      "Bash(grep -iE \"^django|^Django\" requirements*.txt)",
+      "Bash(python -c \"import django; print\\('django', django.get_version\\(\\)\\)\")",
+      "Bash(DJANGO_SECRET_KEY=x DJANGO_ALLOWED_HOSTS=localhost CORS_ALLOWED_ORIGINS=https://x.com DJANGO_SETTINGS_MODULE=pharmapi.settings.pythonanywhere python -c \"import django; django.setup\\(\\); from django.conf import settings; print\\('SESSION', settings.SESSION_ENGINE\\); print\\('OPT', settings.DATABASES['default']['OPTIONS']['transaction_mode']\\); print\\('CACHE ok', 'default' in settings.CACHES\\)\")",
+      "Bash(DJANGO_SECRET_KEY=x DJANGO_ALLOWED_HOSTS=localhost CORS_ALLOWED_ORIGINS=https://x.com DJANGO_SETTINGS_MODULE=pharmapi.settings.pythonanywhere python -c \"import django; django.setup\\(\\); from django.conf import settings; print\\('WHITENOISE_MAX_AGE', settings.WHITENOISE_MAX_AGE\\)\")"
     ]
   }
 }

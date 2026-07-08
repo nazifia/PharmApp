@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/phone_utils.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/shared/widgets/custom_button.dart';
 import 'package:pharmapp/shared/widgets/custom_textfield.dart';
@@ -372,15 +373,7 @@ class _RegisterOrgScreenState extends ConsumerState<RegisterOrgScreen>
                     Icons.phone_outlined,
                     color: EnhancedTheme.primaryTeal,
                   ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Enter phone number';
-                    }
-                    if (v.trim().length < 10) {
-                      return 'Enter a valid phone number';
-                    }
-                    return null;
-                  },
+                  validator: nigerianPhoneValidator,
                 ),
                 const SizedBox(height: 14),
 

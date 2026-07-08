@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/phone_utils.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -206,6 +207,11 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
               SizedBox(width: double.infinity, child: ElevatedButton(
                 onPressed: () async {
                   if (nameCtrl.text.isEmpty) return;
+                  if (phoneCtrl.text.trim().isNotEmpty &&
+                      !isValidNigerianContactPhone(phoneCtrl.text)) {
+                    _showPhoneError(ctx);
+                    return;
+                  }
                   try {
                     await ref.read(posApiProvider).createSupplier(
                       name: nameCtrl.text,
@@ -325,6 +331,11 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
               SizedBox(width: double.infinity, child: ElevatedButton(
                 onPressed: () async {
                   if (nameCtrl.text.isEmpty) return;
+                  if (phoneCtrl.text.trim().isNotEmpty &&
+                      !isValidNigerianContactPhone(phoneCtrl.text)) {
+                    _showPhoneError(ctx);
+                    return;
+                  }
                   try {
                     await ref.read(posApiProvider).updateSupplier(
                       id,
@@ -381,6 +392,17 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
         );
       },
     );
+  }
+
+  void _showPhoneError(BuildContext ctx) {
+    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+      backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: const Text('Enter a valid Nigerian phone number (e.g. 08012345678)',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+    ));
   }
 
   Widget _sheetField(TextEditingController ctrl, String hint, IconData icon,

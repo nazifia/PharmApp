@@ -16,6 +16,13 @@ class HospitalAdmin(admin.ModelAdmin):
     search_fields = ('name', 'city', 'phone')
     readonly_fields = ('created_at',)
 
+    def get_readonly_fields(self, request, obj=None):
+        rof = list(self.readonly_fields)
+        # Hospitals are a global shared table — only superusers may change contact phone.
+        if not request.user.is_superuser and obj is not None:
+            rof.append('phone')
+        return rof
+
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(_prescriber_count=Count('prescribers'))
 

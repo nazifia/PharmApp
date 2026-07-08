@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/phone_utils.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import '../providers/prescriber_provider.dart';
 
@@ -472,10 +473,7 @@ class _RegisterPatientSheetState
                     _field(_phoneCtrl, 'Phone Number *',
                         icon: Icons.phone_rounded,
                         keyboardType: TextInputType.phone,
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty)
-                                ? 'Required'
-                                : null),
+                        validator: nigerianPhoneValidator),
                     const SizedBox(height: 12),
                     _field(_emailCtrl, 'Email (optional)',
                         icon: Icons.email_rounded,

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/phone_utils.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/shared/widgets/glass_card.dart';
@@ -468,7 +469,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 14),
                     _sheetField(phoneCtrl, 'Phone Number', Icons.phone_rounded, context,
                         keyboardType: TextInputType.phone,
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Phone is required' : null),
+                        validator: nigerianPhoneValidator),
                     const SizedBox(height: 14),
                     _sheetField(emailCtrl, 'Email (optional)', Icons.email_outlined, context,
                         keyboardType: TextInputType.emailAddress),

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/phone_utils.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
 import '../providers/prescription_provider.dart';
 import '../providers/prescriber_provider.dart';
@@ -877,6 +878,13 @@ class _WritePrescriptionScreenState
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
+                  if (nigerianPhoneValidatorOptional(_walkInPhoneCtrl.text) != null) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      content: Text('Enter a valid Nigerian number (e.g. 08012345678)'),
+                    ));
+                    return;
+                  }
                   Navigator.pop(ctx);
                   _proceedAsWalkIn();
                 },

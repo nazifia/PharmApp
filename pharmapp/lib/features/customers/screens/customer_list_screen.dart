@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/phone_utils.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/shared/models/branch.dart';
@@ -173,7 +174,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                         validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
                     const SizedBox(height: 14),
                     _sheetField(phoneCtrl, 'Phone Number *', keyboardType: TextInputType.phone,
-                        validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
+                        validator: nigerianPhoneValidator),
                     const SizedBox(height: 20),
                     Text('Customer Type', style: TextStyle(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
                     const SizedBox(height: 10),

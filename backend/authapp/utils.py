@@ -1,5 +1,24 @@
+import re
+
 from rest_framework.response import Response
 from rest_framework import status
+
+# NCC National Numbering Plan mobile prefixes: 070x, 080x, 081x, 090x, 091x.
+_NG_MOBILE = re.compile(r'^0(70|80|81|90|91)\d{8}$')
+
+
+def normalize_ng_phone(raw):
+    """
+    Normalize a Nigerian mobile number to canonical local format 0XXXXXXXXXX
+    (11 digits). Accepts +234..., 234... and local 0... forms, with spaces,
+    dashes, dots or parentheses. Returns None if not a valid NCC mobile number.
+    """
+    digits = re.sub(r'[\s\-().]', '', raw or '')
+    if digits.startswith('+234'):
+        digits = '0' + digits[4:]
+    elif digits.startswith('234') and len(digits) == 13:
+        digits = '0' + digits[3:]
+    return digits if _NG_MOBILE.match(digits) else None
 
 
 def require_org(request):

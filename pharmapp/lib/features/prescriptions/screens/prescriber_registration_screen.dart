@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/phone_utils.dart';
 import 'package:pharmapp/shared/models/hospital.dart';
 import '../providers/prescriber_provider.dart';
 import 'prescriber_form_screen.dart' show HospitalPickerSheet;
@@ -320,8 +321,7 @@ class _PrescriberRegistrationScreenState
                 _field(_phoneCtrl, 'Phone Number *',
                     icon: Icons.phone_rounded,
                     keyboardType: TextInputType.phone,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required for login' : null),
+                    validator: nigerianPhoneValidator),
                 const SizedBox(height: 14),
 
                 // Hospital picker

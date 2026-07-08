@@ -21,7 +21,10 @@
       "Bash(Get-ChildItem -Recurse \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp\\\\lib\\\\features\" -Filter \"*provider*\" -File)",
       "Bash(Select-Object FullName)",
       "PowerShell(cd C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\pharmapp; \\(Get-Command flutter -ErrorAction SilentlyContinue\\).Source; Select-String -Path pubspec.yaml -Pattern \"build_runner\" | Select-Object -First 3)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

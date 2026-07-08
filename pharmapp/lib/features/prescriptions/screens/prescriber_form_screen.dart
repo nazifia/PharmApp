@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/core/utils/phone_utils.dart';
 import 'package:pharmapp/shared/models/hospital.dart';
 import 'package:pharmapp/shared/models/prescriber.dart';
 import '../providers/hospital_provider.dart';
@@ -307,7 +308,8 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                     // Phone
                     _field(_phoneCtrl, 'Phone Number',
                         icon: Icons.phone_rounded,
-                        keyboardType: TextInputType.phone),
+                        keyboardType: TextInputType.phone,
+                        validator: nigerianPhoneValidatorOptional),
                     const SizedBox(height: 14),
 
                     // Hospital picker
@@ -525,6 +527,14 @@ class _HospitalPickerSheetState extends ConsumerState<HospitalPickerSheet> {
   Future<void> _createHospital() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
+    if (_phoneCtrl.text.trim().isNotEmpty &&
+        !isValidNigerianContactPhone(_phoneCtrl.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('Enter a valid Nigerian phone number (e.g. 08012345678 or 01 landline)'),
+      ));
+      return;
+    }
     setState(() => _creating = true);
 
     final h = await ref.read(hospitalNotifierProvider.notifier).createHospital({
