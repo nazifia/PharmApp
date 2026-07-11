@@ -209,21 +209,23 @@ class ReportsApiClient {
   String _bs(int? branchId) =>
       (branchId != null && branchId > 0) ? '_b$branchId' : '';
 
+  /// Query params for a period key. Period may be 'today'|'week'|'month'|
+  /// 'quarter'|'year' or 'custom:yyyy-MM-dd:yyyy-MM-dd' (sent as from/to).
+  Map<String, dynamic> _periodParams(String period) {
+    if (period.startsWith('custom:')) {
+      final parts = period.split(':');
+      if (parts.length >= 3) return {'from': parts[1], 'to': parts[2]};
+    }
+    return {'period': period};
+  }
+
   Future<SalesReportData> fetchSalesReport(String period, {int? branchId}) async {
-    // Period may be 'today'|'week'|'month'|'year' or 'custom:yyyy-MM-dd:yyyy-MM-dd'
-    final isCustom = period.startsWith('custom:');
     if (_isLocal) {
       return SalesReportData.fromJson(await LocalDb.instance.getSalesReport(period));
     }
     final cacheKey = '$_kSalesReportPrefix${_bs(branchId)}$period';
     try {
-      final Map<String, dynamic> queryParams;
-      if (isCustom) {
-        final parts = period.split(':');
-        queryParams = {'from': parts[1], 'to': parts[2]};
-      } else {
-        queryParams = {'period': period};
-      }
+      final queryParams = _periodParams(period);
       if (branchId != null && branchId > 0) queryParams['branch_id'] = branchId;
       final res = await _dio!.get('/reports/sales/', queryParameters: queryParams);
       final prefs = await SharedPreferences.getInstance();
@@ -288,7 +290,7 @@ class ReportsApiClient {
     if (_isLocal) return ProfitReportData.fromJson(await LocalDb.instance.getProfitReport(period));
     final cacheKey = '$_kProfitReportPrefix${_bs(branchId)}$period';
     try {
-      final params = <String, dynamic>{'period': period};
+      final params = _periodParams(period);
       if (branchId != null && branchId > 0) params['branch_id'] = branchId;
       final res = await _dio!.get('/reports/profit/', queryParameters: params);
       final prefs = await SharedPreferences.getInstance();
@@ -315,7 +317,7 @@ class ReportsApiClient {
     final userSeg = userId != null ? '_u$userId' : '';
     final cacheKey = '$_kCashierSalesReportPrefix$period$userSeg';
     try {
-      final params = <String, dynamic>{'period': period};
+      final params = _periodParams(period);
       if (userId != null) params['user_id'] = userId;
       final res = await _dio!.get('/reports/cashier-sales/', queryParameters: params);
       final prefs = await SharedPreferences.getInstance();
@@ -385,7 +387,7 @@ class ReportsApiClient {
     final cacheKey = '$_kStaffPerformancePrefix$period';
     try {
       final res = await _dio!.get(
-          '/reports/staff-performance/', queryParameters: {'period': period});
+          '/reports/staff-performance/', queryParameters: _periodParams(period));
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(cacheKey, jsonEncode(res.data));
       return StaffPerformanceData.fromJson(res.data as Map<String, dynamic>);

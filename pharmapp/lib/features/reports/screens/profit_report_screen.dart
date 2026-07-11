@@ -15,6 +15,7 @@ import 'package:pharmapp/shared/widgets/glass_card.dart';
 import 'package:pharmapp/shared/widgets/screen_header.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
+import '../shared/report_date_range.dart';
 import '../shared/report_exporter.dart';
 
 class ProfitReportScreen extends ConsumerStatefulWidget {
@@ -27,13 +28,22 @@ class ProfitReportScreen extends ConsumerStatefulWidget {
 class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
   String _period = 'This Month';
   final _periods = ['This Week', 'This Month', 'This Quarter', 'This Year'];
+  DateTimeRange? _customRange;
 
   String get _apiPeriod {
+    if (_customRange != null) return customPeriodKey(_customRange!);
     switch (_period) {
       case 'This Week':    return 'week';
       case 'This Quarter': return 'quarter';
       case 'This Year':    return 'year';
       default:             return 'month';
+    }
+  }
+
+  Future<void> _openDatePicker() async {
+    final picked = await pickReportDateRange(context, initial: _customRange);
+    if (picked != null && mounted) {
+      setState(() => _customRange = picked);
     }
   }
 
@@ -83,12 +93,19 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
 
           // ── Period pill selector ───────────────────────────────────────────
           _buildPeriodSelector(),
+          customRangeBanner(
+            range: _customRange,
+            onChange: _openDatePicker,
+            onClear: () => setState(() => _customRange = null),
+            color: EnhancedTheme.successGreen,
+          ),
 
           Expanded(child: RefreshIndicator(
             onRefresh: _refresh,
             color: EnhancedTheme.primaryTeal,
             child: reportAsync.when(
-            loading: () => Padding(
+            loading: () => SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               child: Column(children: [
                 EnhancedTheme.loadingShimmer(height: 110, radius: 20),
@@ -138,6 +155,13 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
       subtitle: 'Revenue, cost & margin analysis',
       onBack: () => context.canPop() ? context.pop() : context.go(AppShell.roleFallback(ref)),
       actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: dateRangeButton(context,
+              range: _customRange,
+              onTap: _openDatePicker,
+              color: EnhancedTheme.successGreen),
+        ),
         // Export button
         Builder(builder: (ctx) {
           final hasExport = ref.watch(hasFeatureProvider(SaasFeature.exportData));
@@ -180,7 +204,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.bar_chart_rounded, color: EnhancedTheme.successGreen, size: 14),
             const SizedBox(width: 6),
-            Text(_period.split(' ').last,
+            Text(_customRange != null ? fmtRangeLabel(_customRange!) : _period.split(' ').last,
                 style: GoogleFonts.inter(
                     color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
           ]),
@@ -196,9 +220,12 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
         borderRadius: 16,
         padding: const EdgeInsets.all(4),
         child: Row(children: _periods.map((p) {
-              final active = p == _period;
+              final active = _customRange == null && p == _period;
               return Expanded(child: GestureDetector(
-                onTap: () => setState(() => _period = p),
+                onTap: () => setState(() {
+                  _period = p;
+                  _customRange = null;
+                }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   padding: const EdgeInsets.symmetric(vertical: 10),

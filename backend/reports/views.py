@@ -45,7 +45,7 @@ def _date_range(period: str):
     return today.replace(day=1), today   # default: current month
 
 
-def _resolve_range(request):
+def _resolve_range(request, default='month'):
     """Honor explicit ?from=&to= (yyyy-mm-dd); else fall back to ?period=."""
     f = request.query_params.get('from')
     t = request.query_params.get('to')
@@ -58,7 +58,7 @@ def _resolve_range(request):
             return 'custom', start, end
         except ValueError:
             pass
-    period = request.query_params.get('period', 'month')
+    period = request.query_params.get('period', default)
     start, end = _date_range(period)
     return period, start, end
 
@@ -184,6 +184,7 @@ def sales_report(request):
         cash=db_models.Sum('payment_cash'),
         pos=db_models.Sum('payment_pos'),
         transfer=db_models.Sum('payment_transfer'),
+        wallet=db_models.Sum('payment_wallet'),
     )
     payment_methods = {
         'cash':     round(float(pay['cash'] or 0) + period_topups['cash'], 2),
@@ -223,10 +224,13 @@ def sales_report(request):
         else:
             exp_other += amt
 
-    cash_sales  = payment_methods['cash']
-    other_sales = (payment_methods['pos']
-                   + payment_methods['transfer']
-                   + payment_methods['wallet'])
+    # The net card is labeled "Sales − Expenses" in the app, so it must
+    # reconcile with totalRevenue: sale payments only (wallet spends included),
+    # NO wallet top-ups — top-ups stay in paymentMethods (money-received view).
+    cash_sales  = round(float(pay['cash'] or 0), 2)
+    other_sales = round(float(pay['pos'] or 0)
+                        + float(pay['transfer'] or 0)
+                        + float(pay['wallet'] or 0), 2)
 
     expenses = {
         'cash':  round(exp_cash, 2),
@@ -385,8 +389,7 @@ def profit_report(request):
     if err:
         return err
 
-    period = request.query_params.get('period', 'month')
-    start, end = _date_range(period)
+    period, start, end = _resolve_range(request)
 
     sales = Sale.objects.filter(
         organization=org,
@@ -511,8 +514,7 @@ def cashier_sales_report(request):
     if err:
         return err
 
-    period = request.query_params.get('period', 'today')
-    start, end = _date_range(period)
+    period, start, end = _resolve_range(request, default='today')
 
     is_senior = request.user.role in ('Admin', 'Manager', 'Wholesale Manager')
 
@@ -603,8 +605,7 @@ def staff_performance(request):
     if err:
         return err
 
-    period = request.query_params.get('period', 'today')
-    start, end = _date_range(period)
+    period, start, end = _resolve_range(request, default='today')
 
     sales_qs = Sale.objects.filter(
         organization=org,

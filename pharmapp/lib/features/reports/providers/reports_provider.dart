@@ -50,8 +50,13 @@ final profitReportProvider =
 /// Plain 'today' → backend uses auth to scope (own data or all).
 final cashierSalesReportProvider =
     FutureProvider.family<CashierSalesData, String>((ref, key) {
+  // Custom periods embed colons: 'custom:yyyy-MM-dd:yyyy-MM-dd[:userId]'
   final parts = key.split(':');
-  final period = parts[0];
-  final userId = parts.length > 1 ? int.tryParse(parts[1]) : null;
+  final isCustom = parts[0] == 'custom' && parts.length >= 3;
+  final period = isCustom ? parts.take(3).join(':') : parts[0];
+  final userSeg = isCustom
+      ? (parts.length > 3 ? parts[3] : null)
+      : (parts.length > 1 ? parts[1] : null);
+  final userId = userSeg != null ? int.tryParse(userSeg) : null;
   return ref.watch(reportsApiProvider).fetchCashierSalesReport(period, userId: userId);
 });

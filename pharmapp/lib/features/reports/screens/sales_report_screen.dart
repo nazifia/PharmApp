@@ -15,6 +15,7 @@ import 'package:pharmapp/shared/widgets/empty_state.dart';
 import 'package:pharmapp/shared/widgets/glass_card.dart';
 import '../providers/reports_provider.dart';
 import '../providers/reports_api_client.dart';
+import '../shared/report_date_range.dart';
 import '../shared/report_exporter.dart';
 
 class SalesReportScreen extends ConsumerStatefulWidget {
@@ -32,11 +33,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   // -- Computed period key -----------------------------------------------------
 
   String get _apiPeriod {
-    if (_customRange != null) {
-      final from = _customRange!.start.toIso8601String().split('T').first;
-      final to   = _customRange!.end.toIso8601String().split('T').first;
-      return 'custom:$from:$to';
-    }
+    if (_customRange != null) return customPeriodKey(_customRange!);
     switch (_period) {
       case 'This Week':  return 'week';
       case 'This Month': return 'month';
@@ -62,62 +59,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   }
 
   Future<void> _openDatePicker() async {
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      initialDateRange: _customRange,
-      builder: (ctx, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: EnhancedTheme.primaryTeal,
-            onPrimary: Colors.white,
-            secondary: EnhancedTheme.accentCyan,
-            surface: Color(0xFF1E293B),
-            onSurface: Color(0xFFE2E8F0),
-            onSurfaceVariant: Color(0xFF94A3B8),
-            outline: Color(0xFF334155),
-          ),
-          datePickerTheme: DatePickerThemeData(
-            backgroundColor: const Color(0xFF1E293B),
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            surfaceTintColor: Colors.transparent,
-            rangePickerBackgroundColor: const Color(0xFF0F172A),
-            rangePickerElevation: 0,
-            rangePickerSurfaceTintColor: Colors.transparent,
-            rangePickerHeaderBackgroundColor: EnhancedTheme.primaryTeal,
-            rangePickerHeaderForegroundColor: Colors.white,
-            rangePickerHeaderHeadlineStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
-            weekdayStyle: TextStyle(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.9), fontWeight: FontWeight.w700, fontSize: 11),
-            dayStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            dayForegroundColor: WidgetStateProperty.resolveWith((s) {
-              if (s.contains(WidgetState.selected)) return Colors.white;
-              if (s.contains(WidgetState.disabled)) return const Color(0xFF475569);
-              return const Color(0xFFE2E8F0);
-            }),
-            dayBackgroundColor: WidgetStateProperty.resolveWith((s) {
-              if (s.contains(WidgetState.selected)) return EnhancedTheme.primaryTeal;
-              return Colors.transparent;
-            }),
-            dayOverlayColor: WidgetStatePropertyAll(EnhancedTheme.primaryTeal.withValues(alpha: 0.12)),
-            todayForegroundColor: const WidgetStatePropertyAll(EnhancedTheme.accentCyan),
-            todayBackgroundColor: WidgetStatePropertyAll(EnhancedTheme.accentCyan.withValues(alpha: 0.12)),
-            todayBorder: const BorderSide(color: EnhancedTheme.accentCyan, width: 1.5),
-            rangeSelectionBackgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.18),
-            rangeSelectionOverlayColor: WidgetStatePropertyAll(EnhancedTheme.primaryTeal.withValues(alpha: 0.10)),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: EnhancedTheme.primaryTeal,
-              textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: 0.4),
-            ),
-          ),
-          dividerColor: const Color(0xFF334155),
-        ),
-        child: child!,
-      ),
-    );
+    final picked = await pickReportDateRange(context, initial: _customRange);
     if (picked != null && mounted) {
       setState(() => _customRange = picked);
     }
@@ -269,53 +211,17 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
 
   // -- Custom range banner (shown when a date range is active) -----------------
 
-  Widget _customRangeBanner() {
-    if (_customRange == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: GestureDetector(
-        onTap: _openDatePicker,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [
-              EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
-              EnhancedTheme.accentCyan.withValues(alpha: 0.08),
-            ]),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4)),
-          ),
-          child: Row(children: [
-            const Icon(Icons.calendar_month_rounded, color: EnhancedTheme.primaryTeal, size: 15),
-            const SizedBox(width: 8),
-            Expanded(child: Text(
-              '${_fmtDate(_customRange!.start)} � ${_fmtDate(_customRange!.end)}',
-              style: const TextStyle(
-                  color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w700),
-            )),
-            const Text('Change', style: TextStyle(color: EnhancedTheme.accentCyan, fontSize: 11, fontWeight: FontWeight.w600)),
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: () => setState(() => _customRange = null),
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: EnhancedTheme.primaryTeal.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.close_rounded, color: EnhancedTheme.primaryTeal, size: 13),
-              ),
-            ),
-          ]),
-        ),
-      ),
-    ).animate().fadeIn(duration: 250.ms).slideY(begin: -0.15, end: 0);
-  }
+  Widget _customRangeBanner() => customRangeBanner(
+        range: _customRange,
+        onChange: _openDatePicker,
+        onClear: () => setState(() => _customRange = null),
+      );
 
   // -- States ------------------------------------------------------------------
 
   Widget _loadingState() {
-    return Padding(
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       child: Column(children: [
         EnhancedTheme.loadingShimmer(height: 200, radius: 20),
@@ -574,20 +480,32 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       );
     }
 
-    final retail = data.totalRetail;
-    final wholesale = data.totalWholesale;
-    final total = data.totalRevenue;
+    // Real per-day revenue from the backend; synthetic wave only as fallback.
+    List<FlSpot> spots;
+    List<String> labels;
+    final daily = data.dailySales;
+    if (daily.isNotEmpty) {
+      // fl_chart needs ≥2 points to draw a line — duplicate a lone day flat.
+      final pts = daily.length == 1 ? [daily.first, daily.first] : daily;
+      spots = [for (var i = 0; i < pts.length; i++) FlSpot(i.toDouble(), pts[i].revenue)];
+      labels = [for (final d in pts) _dayLabel(d.date)];
+    } else {
+      final retail = data.totalRetail;
+      final wholesale = data.totalWholesale;
+      final total = data.totalRevenue;
+      final int n = _periodPointCount();
+      spots = List.generate(n, (i) {
+        final baseVal = retail * 0.6 + wholesale * 0.4;
+        final wave = baseVal * (0.3 + 0.7 * _waveFactor(i, n));
+        return FlSpot(i.toDouble(), wave);
+      });
+      spots[spots.length - 1] = FlSpot((n - 1).toDouble(), total);
+      labels = _periodLabels();
+    }
+    final pointCount = spots.length;
 
-    final int pointCount = _periodPointCount();
-    final spots = List.generate(pointCount, (i) {
-      final baseVal = retail * 0.6 + wholesale * 0.4;
-      final wave = baseVal * (0.3 + 0.7 * _waveFactor(i, pointCount));
-      return FlSpot(i.toDouble(), wave);
-    });
-    spots[spots.length - 1] = FlSpot((pointCount - 1).toDouble(), total);
-
-    final maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    final labels = _periodLabels();
+    final rawMaxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final maxY = rawMaxY > 0 ? rawMaxY : 1.0;
 
     return LayoutBuilder(
       builder: (context, constraints) => ClipRRect(
@@ -727,6 +645,12 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           return '${d.day}/${d.month}';
         });
     }
+  }
+
+  /// 'yyyy-MM-dd' → 'd/M'; falls back to the raw string on parse failure.
+  String _dayLabel(String iso) {
+    final d = DateTime.tryParse(iso);
+    return d == null ? iso : '${d.day}/${d.month}';
   }
 
   double _waveFactor(int i, int total) {

@@ -15,6 +15,7 @@ import 'package:pharmapp/shared/widgets/app_shell.dart';
 import 'package:pharmapp/shared/widgets/empty_state.dart';
 import 'package:pharmapp/shared/widgets/glass_card.dart';
 import '../providers/commission_provider.dart';
+import '../shared/report_date_range.dart';
 
 class CommissionReportScreen extends ConsumerStatefulWidget {
   const CommissionReportScreen({super.key});
@@ -28,18 +29,27 @@ class _CommissionReportScreenState
     extends ConsumerState<CommissionReportScreen> {
   String _period = 'Today';
   final _periods = ['Today', 'This Week', 'This Month', 'This Quarter', 'This Year'];
+  DateTimeRange? _customRange;
 
   final Map<int, TextEditingController> _rateControllers = {};
   final Map<int, TextEditingController> _bonusControllers = {};
   final Set<int> _editingIds = {};
 
   String get _apiPeriod {
+    if (_customRange != null) return customPeriodKey(_customRange!);
     switch (_period) {
       case 'This Week':    return 'week';
       case 'This Month':   return 'month';
       case 'This Quarter': return 'quarter';
       case 'This Year':    return 'year';
       default:             return 'today';
+    }
+  }
+
+  Future<void> _openDatePicker() async {
+    final picked = await pickReportDateRange(context, initial: _customRange);
+    if (picked != null && mounted) {
+      setState(() => _customRange = picked);
     }
   }
 
@@ -58,8 +68,9 @@ class _CommissionReportScreenState
   }
 
   void _shareReport(StaffPerformanceData data) {
+    final label = _customRange != null ? fmtRangeLabel(_customRange!) : _period;
     final buf = StringBuffer();
-    buf.writeln('PharmApp — Commission Report ($_period)');
+    buf.writeln('PharmApp — Commission Report ($label)');
     buf.writeln('Total Commissions: ${_fmt(data.totalCommissions)}');
     buf.writeln('');
     for (final s in data.staff) {
@@ -73,7 +84,7 @@ class _CommissionReportScreenState
       buf.writeln('  Payout: ${_fmt(s.totalPayout)}');
       buf.writeln('');
     }
-    Share.share(buf.toString(), subject: 'Commission Report — $_period');
+    Share.share(buf.toString(), subject: 'Commission Report — $label');
   }
 
   Future<void> _saveRate(int userId, double? bonus) async {
@@ -153,6 +164,12 @@ class _CommissionReportScreenState
           _buildHeader(context, isSenior, perfAsync),
           const SizedBox(height: 8),
           _periodSelector(),
+          customRangeBanner(
+            range: _customRange,
+            onChange: _openDatePicker,
+            onClear: () => setState(() => _customRange = null),
+            color: EnhancedTheme.successGreen,
+          ),
           const SizedBox(height: 4),
           Expanded(child: RefreshIndicator(
             onRefresh: _refresh,
@@ -196,6 +213,11 @@ class _CommissionReportScreenState
             Text('Staff earnings & payout tracking',
                 style: TextStyle(color: context.hintColor, fontSize: 11)),
           ])),
+          dateRangeButton(context,
+              range: _customRange,
+              onTap: _openDatePicker,
+              color: EnhancedTheme.successGreen),
+          const SizedBox(width: 8),
           if (perfAsync.hasValue)
             GestureDetector(
               onTap: () => _shareReport(perfAsync.requireValue),
@@ -230,9 +252,12 @@ class _CommissionReportScreenState
       child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: _periods.map((p) {
-              final active = p == _period;
+              final active = _customRange == null && p == _period;
               return GestureDetector(
-                onTap: () => setState(() => _period = p),
+                onTap: () => setState(() {
+                  _period = p;
+                  _customRange = null;
+                }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -728,6 +753,8 @@ class _CommissionReportScreenState
       case 'month':   return 'Month';
       case 'quarter': return 'Quarter';
       case 'year':    return 'Year';
+      case 'custom':
+        return _customRange != null ? fmtRangeLabel(_customRange!) : 'Custom';
       default:        return p;
     }
   }

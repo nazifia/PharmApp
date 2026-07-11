@@ -16,6 +16,7 @@ import 'package:pharmapp/shared/widgets/glass_card.dart';
 import '../providers/reports_api_client.dart';
 import '../providers/reports_provider.dart';
 import '../providers/commission_provider.dart';
+import '../shared/report_date_range.dart';
 
 class CashierSalesScreen extends ConsumerStatefulWidget {
   const CashierSalesScreen({super.key});
@@ -27,12 +28,21 @@ class CashierSalesScreen extends ConsumerStatefulWidget {
 class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
   String _period = 'Today';
   final _periods = ['Today', 'This Week', 'This Month'];
+  DateTimeRange? _customRange;
 
   String get _apiPeriod {
+    if (_customRange != null) return customPeriodKey(_customRange!);
     switch (_period) {
       case 'This Week':  return 'week';
       case 'This Month': return 'month';
       default:           return 'today';
+    }
+  }
+
+  Future<void> _openDatePicker() async {
+    final picked = await pickReportDateRange(context, initial: _customRange);
+    if (picked != null && mounted) {
+      setState(() => _customRange = picked);
     }
   }
 
@@ -76,6 +86,13 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
           ),
           const SizedBox(height: 8),
           _periodSelector(),
+          customRangeBanner(
+            range: _customRange,
+            onChange: _openDatePicker,
+            onClear: () => setState(() => _customRange = null),
+            color: EnhancedTheme.accentOrange,
+            accent: EnhancedTheme.warningAmber,
+          ),
           const SizedBox(height: 4),
           Expanded(child: RefreshIndicator(
             onRefresh: _refresh,
@@ -117,6 +134,11 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
           style: TextStyle(color: context.hintColor, fontSize: 11),
         ),
       ])),
+      dateRangeButton(context,
+          range: _customRange,
+          onTap: _openDatePicker,
+          color: EnhancedTheme.accentOrange),
+      const SizedBox(width: 8),
       Container(
         padding: const EdgeInsets.all(9),
         decoration: BoxDecoration(
@@ -137,9 +159,12 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
       borderRadius: 14,
       padding: const EdgeInsets.all(4),
       child: Row(children: _periods.map((p) {
-            final active = p == _period;
+            final active = _customRange == null && p == _period;
             return Expanded(child: GestureDetector(
-              onTap: () => setState(() => _period = p),
+              onTap: () => setState(() {
+                _period = p;
+                _customRange = null;
+              }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 margin: const EdgeInsets.symmetric(horizontal: 2),
