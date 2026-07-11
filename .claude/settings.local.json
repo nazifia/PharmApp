@@ -180,7 +180,13 @@
       "Bash(DJANGO_SECRET_KEY=x DJANGO_ALLOWED_HOSTS=localhost CORS_ALLOWED_ORIGINS=https://x.com DJANGO_SETTINGS_MODULE=pharmapi.settings.pythonanywhere python -c \"import django; django.setup\\(\\); from django.conf import settings; print\\('WHITENOISE_MAX_AGE', settings.WHITENOISE_MAX_AGE\\)\")",
       "PowerShell(& .\\\\venv\\\\Scripts\\\\python.exe manage.py check 2>&1 | Select-Object -Last 5)",
       "PowerShell(& \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\manage.py\" check)",
-      "PowerShell(& \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\manage.py\" test inventory customers pos authapp subscription --verbosity 1 2>&1 | Select-Object -Last 6)"
+      "PowerShell(& \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\manage.py\" test inventory customers pos authapp subscription --verbosity 1 2>&1 | Select-Object -Last 6)",
+      "Bash(venv/Scripts/python.exe \"C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp\\\\2187212c-246e-4976-b76e-22c8d88b626a\\\\scratchpad\\\\admin_crawl.py\")",
+      "Bash(CRAWL_AS=staff venv/Scripts/python.exe \"C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp\\\\2187212c-246e-4976-b76e-22c8d88b626a\\\\scratchpad\\\\admin_crawl.py\")",
+      "Bash(venv/Scripts/python.exe *)",
+      "Bash(echo \"exit $?\")",
+      "Bash(./venv/Scripts/python.exe manage.py check)",
+      "Bash(./venv/Scripts/python.exe -)"
     ]
   }
 }
