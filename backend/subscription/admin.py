@@ -647,8 +647,13 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 request, self.model._meta, object_id
             )
 
-        # Handle quick-action buttons before the normal form processing
-        if request.method == 'POST' and '_quick_action' in request.POST:
+        # Handle quick-action buttons before the normal form processing.
+        # This runs BEFORE super().change_view()'s permission check, so gate it.
+        if (
+            request.method == 'POST'
+            and '_quick_action' in request.POST
+            and self.has_change_permission(request, obj)
+        ):
             action = request.POST['_quick_action']
             note   = request.POST.get('action_note', '').strip()
             redirect = self._handle_quick_action(request, obj, action, note)

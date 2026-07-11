@@ -177,7 +177,10 @@
       "Bash(grep -iE \"^django|^Django\" requirements*.txt)",
       "Bash(python -c \"import django; print\\('django', django.get_version\\(\\)\\)\")",
       "Bash(DJANGO_SECRET_KEY=x DJANGO_ALLOWED_HOSTS=localhost CORS_ALLOWED_ORIGINS=https://x.com DJANGO_SETTINGS_MODULE=pharmapi.settings.pythonanywhere python -c \"import django; django.setup\\(\\); from django.conf import settings; print\\('SESSION', settings.SESSION_ENGINE\\); print\\('OPT', settings.DATABASES['default']['OPTIONS']['transaction_mode']\\); print\\('CACHE ok', 'default' in settings.CACHES\\)\")",
-      "Bash(DJANGO_SECRET_KEY=x DJANGO_ALLOWED_HOSTS=localhost CORS_ALLOWED_ORIGINS=https://x.com DJANGO_SETTINGS_MODULE=pharmapi.settings.pythonanywhere python -c \"import django; django.setup\\(\\); from django.conf import settings; print\\('WHITENOISE_MAX_AGE', settings.WHITENOISE_MAX_AGE\\)\")"
+      "Bash(DJANGO_SECRET_KEY=x DJANGO_ALLOWED_HOSTS=localhost CORS_ALLOWED_ORIGINS=https://x.com DJANGO_SETTINGS_MODULE=pharmapi.settings.pythonanywhere python -c \"import django; django.setup\\(\\); from django.conf import settings; print\\('WHITENOISE_MAX_AGE', settings.WHITENOISE_MAX_AGE\\)\")",
+      "PowerShell(& .\\\\venv\\\\Scripts\\\\python.exe manage.py check 2>&1 | Select-Object -Last 5)",
+      "PowerShell(& \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\manage.py\" check)",
+      "PowerShell(& \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" \"C:\\\\Users\\\\Dell\\\\Desktop\\\\MY_PRODUCTS\\\\PharmApp\\\\backend\\\\manage.py\" test inventory customers pos authapp subscription --verbosity 1 2>&1 | Select-Object -Last 6)"
     ]
   }
 }

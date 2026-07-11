@@ -432,18 +432,21 @@ class ExpenseCategoryAdmin(admin.ModelAdmin):
     ordering = ["name"]
 
     def get_queryset(self, request):
-        # Stash request so expense_count can scope to the viewer's org.
-        self._request = request
-        return super().get_queryset(request)
-
-    @admin.display(description="# Expenses")
-    def expense_count(self, obj):
-        qs = obj.expense_set
-        request = getattr(self, "_request", None)
-        if request and not request.user.is_superuser:
+        # Annotate the org-scoped count here (one query, thread-safe) instead
+        # of stashing request on self, which leaks across concurrent requests.
+        from django.db.models import Q
+        if request.user.is_superuser:
+            flt = Q()
+        else:
             org = getattr(request.user, "organization", None)
-            qs = qs.filter(organization=org) if org else qs.none()
-        return qs.count()
+            flt = Q(expense__organization=org) if org else Q(expense__pk=None)
+        return super().get_queryset(request).annotate(
+            _expense_count=Count("expense", filter=flt)
+        )
+
+    @admin.display(description="# Expenses", ordering="_expense_count")
+    def expense_count(self, obj):
+        return obj._expense_count
 
 
 @admin.register(Expense)

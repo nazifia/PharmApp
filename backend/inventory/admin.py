@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count, F, FloatField, Q, Sum
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.timezone import localdate
 
 from authapp.admin_mixins import OrgScopedAdminMixin
@@ -25,13 +26,9 @@ class StockStatusFilter(admin.SimpleListFilter):
         if self.value() == "out":
             return queryset.filter(stock__lte=0)
         if self.value() == "low":
-            # stock > 0 AND stock <= low_stock_threshold
-            return queryset.filter(stock__gt=0).extra(
-                where=["stock <= low_stock_threshold"]
-            )
+            return queryset.filter(stock__gt=0, stock__lte=F("low_stock_threshold"))
         if self.value() == "ok":
-            # stock > low_stock_threshold
-            return queryset.extra(where=["stock > low_stock_threshold"])
+            return queryset.filter(stock__gt=F("low_stock_threshold"))
         return queryset
 
 
@@ -107,18 +104,15 @@ def move_to_wholesale(modeladmin, request, queryset):
 
 @admin.action(description="Top up stock by +10 units")
 def topup_stock_10(modeladmin, request, queryset):
-    for item in queryset:
-        item.stock += 10
-        item.save(update_fields=["stock"])
-    modeladmin.message_user(request, f"{queryset.count()} item(s) topped up by 10 units.")
+    # F() update: atomic against concurrent POS stock decrements.
+    updated = queryset.update(stock=F("stock") + 10)
+    modeladmin.message_user(request, f"{updated} item(s) topped up by 10 units.")
 
 
 @admin.action(description="Top up stock by +50 units")
 def topup_stock_50(modeladmin, request, queryset):
-    for item in queryset:
-        item.stock += 50
-        item.save(update_fields=["stock"])
-    modeladmin.message_user(request, f"{queryset.count()} item(s) topped up by 50 units.")
+    updated = queryset.update(stock=F("stock") + 50)
+    modeladmin.message_user(request, f"{updated} item(s) topped up by 50 units.")
 
 
 @admin.action(description="Reset out-of-stock items to 1 unit")
@@ -204,7 +198,7 @@ class BaseItemAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     def _stats_html(self, qs):
         total    = qs.count()
         out      = qs.filter(stock__lte=0).count()
-        low      = qs.filter(stock__gt=0).extra(where=["stock <= low_stock_threshold"]).count()
+        low      = qs.filter(stock__gt=0, stock__lte=F("low_stock_threshold")).count()
         in_stock = total - out - low
         stock_val = qs.aggregate(v=Sum(F("stock") * F("price"), output_field=FloatField()))["v"] or 0
 
@@ -227,7 +221,8 @@ class BaseItemAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
             + pill("Stock Value", f"₦{float(stock_val):,.0f}", "#6f42c1")
             + '</div>'
         )
-        return format_html(html)
+        # All interpolated values are internally generated numbers — safe.
+        return mark_safe(html)
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}

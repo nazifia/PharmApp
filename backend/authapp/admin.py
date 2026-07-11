@@ -483,6 +483,18 @@ class PharmUserAdmin(OrgScopedAdminMixin, UserAdmin):
 
         obj = self.get_object(request, object_id)
 
+        # Custom POST handlers below run BEFORE super().change_view()'s
+        # permission check — enforce change permission here or a view-only
+        # staff user could mutate roles/overrides.
+        _can_change = obj is not None and self.has_change_permission(request, obj)
+        if (
+            request.method == 'POST'
+            and ('_quick_role' in request.POST or '_save_permissions' in request.POST)
+            and not _can_change
+        ):
+            self.message_user(request, "You don't have permission to change this user.", messages.ERROR)
+            return HttpResponseRedirect(request.path)
+
         # ── Quick role button ─────────────────────────────────────────────
         if request.method == 'POST' and '_quick_role' in request.POST and obj:
             new_role = request.POST['_quick_role']
@@ -693,7 +705,9 @@ class SiteConfigAdmin(admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         cfg = SiteConfig.get_solo()
 
-        if request.method == "POST":
+        # super().changelist_view() checks permission AFTER this code runs —
+        # enforce here so a non-superuser POST can't flip env/maintenance first.
+        if request.method == "POST" and request.user.is_superuser:
             action = request.POST.get("env_action")
             if action in ("dev", "prod"):
                 cfg.active_environment = action

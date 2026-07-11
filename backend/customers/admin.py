@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db import transaction
 from django.db.models import Sum
 from django.utils.html import format_html
 
@@ -85,6 +86,7 @@ class CustomerAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
         self.message_user(request, f"{updated} customer(s) marked as retail.")
 
     @admin.action(description="Reset wallet balance to zero")
+    @transaction.atomic
     def reset_wallet_balance(self, request, queryset):
         txns = []
         for customer in queryset.exclude(wallet_balance=0):
@@ -133,6 +135,10 @@ class WalletTransactionAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+    def has_delete_permission(self, request, obj=None):
+        # Wallet transactions are the money audit trail — superuser only.
+        return request.user.is_superuser
 
     @admin.display(description="Type")
     def txn_type_badge(self, obj):
