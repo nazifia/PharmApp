@@ -439,9 +439,9 @@ class ExpenseCategoryAdmin(admin.ModelAdmin):
             flt = Q()
         else:
             org = getattr(request.user, "organization", None)
-            flt = Q(expense__organization=org) if org else Q(expense__pk=None)
+            flt = Q(expenses__organization=org) if org else Q(expenses__pk=None)
         return super().get_queryset(request).annotate(
-            _expense_count=Count("expense", filter=flt)
+            _expense_count=Count("expenses", filter=flt)
         )
 
     @admin.display(description="# Expenses", ordering="_expense_count")
@@ -498,7 +498,7 @@ class SupplierAdmin(OrgScopedAdminMixin, admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        return super().get_queryset(request).annotate(_procurement_count=Count("procurement"))
+        return super().get_queryset(request).annotate(_procurement_count=Count("procurements"))
 
     @admin.display(description="Procurements", ordering="_procurement_count")
     def procurement_count(self, obj):
@@ -636,7 +636,7 @@ class StockCheckItemAdmin(admin.ModelAdmin):
         diff = obj.actual_quantity - obj.expected_quantity
         color = "#28a745" if diff == 0 else ("#dc3545" if diff < 0 else "#fd7e14")
         return format_html(
-            '<span style="color:{};font-weight:bold">{}</span>', color, f"{diff:+d}"
+            '<span style="color:{};font-weight:bold">{}</span>', color, f"{diff:+}"
         )
 
     @admin.display(description="Status")
