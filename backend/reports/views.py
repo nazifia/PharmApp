@@ -1,7 +1,9 @@
 from datetime import date, timedelta
+from decimal import Decimal
 from django.db import models as db_models
 from django.utils import timezone
-from django.db.models import F
+from django.db.models import F, Value
+from django.db.models.functions import Greatest, Least
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -15,6 +17,25 @@ from pos.models import Cashier, Expense, Sale, SaleItem
 
 
 # ── Date range helper ─────────────────────────────────────────────────────────
+
+def _cash_applied():
+    """Cash actually applied to the sale, per row.
+
+    Legacy sales stored cash *tendered* (change not deducted), so summing
+    payment_cash raw overstates money kept. Change is given from cash, so cap
+    cash at total_amount minus the other payment methods, floored at 0.
+    New sales are already clamped at checkout; for them this is a no-op.
+    """
+    return Greatest(
+        Least(
+            F('payment_cash'),
+            F('total_amount') - F('payment_pos')
+            - F('payment_transfer') - F('payment_wallet'),
+        ),
+        Value(Decimal('0')),
+        output_field=db_models.DecimalField(),
+    )
+
 
 def _date_range(period: str):
     """
@@ -181,7 +202,7 @@ def sales_report(request):
 
     # Payment received per method (cash/pos/transfer) for the period.
     pay = sales.aggregate(
-        cash=db_models.Sum('payment_cash'),
+        cash=db_models.Sum(_cash_applied()),
         pos=db_models.Sum('payment_pos'),
         transfer=db_models.Sum('payment_transfer'),
         wallet=db_models.Sum('payment_wallet'),
@@ -197,7 +218,7 @@ def sales_report(request):
     today_pay = Sale.objects.filter(
         organization=org, created__date=timezone.localdate(),
     ).exclude(status='credit').aggregate(
-        cash=db_models.Sum('payment_cash'),
+        cash=db_models.Sum(_cash_applied()),
         pos=db_models.Sum('payment_pos'),
         transfer=db_models.Sum('payment_transfer'),
     )
@@ -225,12 +246,12 @@ def sales_report(request):
             exp_other += amt
 
     # The net card is labeled "Sales − Expenses" in the app, so it must
-    # reconcile with totalRevenue: sale payments only (wallet spends included),
-    # NO wallet top-ups — top-ups stay in paymentMethods (money-received view).
+    # reconcile with totalRevenue exactly: cash is the applied (change-clamped)
+    # amount, and "other" is derived as revenue minus cash so overpayment noise
+    # in the non-cash fields can never break the reconciliation. Wallet top-ups
+    # stay in paymentMethods (money-received view), not here.
     cash_sales  = round(float(pay['cash'] or 0), 2)
-    other_sales = round(float(pay['pos'] or 0)
-                        + float(pay['transfer'] or 0)
-                        + float(pay['wallet'] or 0), 2)
+    other_sales = round(total_revenue - cash_sales, 2)
 
     expenses = {
         'cash':  round(exp_cash, 2),
@@ -554,7 +575,7 @@ def cashier_sales_report(request):
         .annotate(
             total_amount=db_models.Sum('total_amount'),
             total_sales=db_models.Count('id'),
-            cash_amount=db_models.Sum('payment_cash'),
+            cash_amount=db_models.Sum(_cash_applied()),
             pos_amount=db_models.Sum('payment_pos'),
             transfer_amount=db_models.Sum('payment_transfer'),
             wallet_amount=db_models.Sum('payment_wallet'),

@@ -187,6 +187,13 @@ def checkout(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    # Overpayment is cash tendered; change is returned from the cash drawer.
+    # Store the cash actually kept so payment fields sum to total_amount and
+    # reports reconcile with revenue.
+    change = payment_total - total
+    if change > 0:
+        cash = max(cash - change, Decimal("0"))
+
     wallet_insufficient = False
     if wallet > 0:
         if not customer:
@@ -644,6 +651,14 @@ def complete_payment_request(request, pk):
             and Decimal(str(pr.customer.wallet_balance)) < wallet_amt
         )
 
+        # Same change-clamp as checkout: keep only the cash applied to the sale.
+        cash_amt = Decimal(str(payment.get("cash", 0)))
+        pos_amt = Decimal(str(payment.get("pos", 0)))
+        transfer_amt = Decimal(str(payment.get("bankTransfer", 0)))
+        change = (cash_amt + pos_amt + transfer_amt + wallet_amt) - pr.total_amount
+        if change > 0:
+            cash_amt = max(cash_amt - change, Decimal("0"))
+
         sale = Sale.objects.create(
             organization=org,
             customer=pr.customer,
@@ -652,9 +667,9 @@ def complete_payment_request(request, pk):
             shift=dispenser_shift,
             total_amount=pr.total_amount,
             status="credit" if wallet_insufficient else "completed",
-            payment_cash=Decimal(str(payment.get("cash", 0))),
-            payment_pos=Decimal(str(payment.get("pos", 0))),
-            payment_transfer=Decimal(str(payment.get("bankTransfer", 0))),
+            payment_cash=cash_amt,
+            payment_pos=pos_amt,
+            payment_transfer=transfer_amt,
             payment_wallet=wallet_amt,
             payment_method=payment_method,
             buyer_name=pr.buyer_name,
