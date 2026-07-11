@@ -5,8 +5,8 @@ Loaded in templates with {% load admin_tags %}.
 from datetime import timedelta
 
 from django import template
-from django.db.models import Sum, Count, Max
-from django.utils.timezone import now, localdate
+from django.db.models import Sum, Count, Max, Q, F
+from django.utils.timezone import localdate
 
 register = template.Library()
 
@@ -47,20 +47,23 @@ def _platform_stats(Organization, PharmUser, Item, Customer, Sale, Expense):
 
     total_orgs      = Organization.objects.count()
     total_users     = PharmUser.objects.filter(is_superuser=False, is_active=True).count()
-    total_items     = Item.objects.count()
     total_customers = Customer.objects.count()
 
-    completed_sales = Sale.objects.filter(status="completed")
-    today_sales     = completed_sales.filter(created__date=today)
+    sale_agg = Sale.objects.filter(status="completed").aggregate(
+        total_sales=Count("id"),
+        total_revenue=Sum("total_amount"),
+        today_sales=Count("id", filter=Q(created__date=today)),
+        today_revenue=Sum("total_amount", filter=Q(created__date=today)),
+    )
 
-    total_revenue   = completed_sales.aggregate(v=Sum("total_amount"))["v"] or 0
-    today_revenue   = today_sales.aggregate(v=Sum("total_amount"))["v"] or 0
-    total_expenses  = Expense.objects.aggregate(v=Sum("amount"))["v"] or 0
+    item_agg = Item.objects.aggregate(
+        total=Count("id"),
+        out=Count("id", filter=Q(stock__lte=0)),
+        low=Count("id", filter=Q(stock__gt=0, stock__lte=F("low_stock_threshold"))),
+    )
 
-    out_of_stock    = Item.objects.filter(stock__lte=0).count()
-    low_stock       = Item.objects.filter(stock__gt=0).extra(
-        where=["stock <= low_stock_threshold"]
-    ).count()
+    total_expenses = Expense.objects.aggregate(v=Sum("amount"))["v"] or 0
+    total_revenue  = sale_agg["total_revenue"] or 0
 
     recent_orgs = Organization.objects.order_by("-created_at")[:5]
 
@@ -71,16 +74,16 @@ def _platform_stats(Organization, PharmUser, Item, Customer, Sale, Expense):
         "is_superuser":   True,
         "total_orgs":     total_orgs,
         "total_users":    total_users,
-        "total_items":    total_items,
+        "total_items":    item_agg["total"],
         "total_customers": total_customers,
-        "total_sales":    completed_sales.count(),
-        "today_sales":    today_sales.count(),
+        "total_sales":    sale_agg["total_sales"],
+        "today_sales":    sale_agg["today_sales"],
         "total_revenue":  float(total_revenue),
-        "today_revenue":  float(today_revenue),
+        "today_revenue":  float(sale_agg["today_revenue"] or 0),
         "total_expenses": float(total_expenses),
         "net_revenue":    float(total_revenue) - float(total_expenses),
-        "out_of_stock":   out_of_stock,
-        "low_stock":      low_stock,
+        "out_of_stock":   item_agg["out"],
+        "low_stock":      item_agg["low"],
         "recent_orgs":    recent_orgs,
         **sub_stats,
     }
@@ -91,23 +94,30 @@ def _platform_stats(Organization, PharmUser, Item, Customer, Sale, Expense):
 def _org_stats(org, PharmUser, Item, Customer, Sale, Expense, PaymentRequest):
     today = localdate()
 
-    users_qs     = PharmUser.objects.filter(organization=org, is_superuser=False)
-    items_qs     = Item.objects.filter(organization=org)
-    customers_qs = Customer.objects.filter(organization=org)
-    sales_qs     = Sale.objects.filter(organization=org, status="completed")
-    today_sales  = sales_qs.filter(created__date=today)
-    expenses_qs  = Expense.objects.filter(organization=org)
-    pending_reqs = PaymentRequest.objects.filter(organization=org, status="pending")
+    user_agg = PharmUser.objects.filter(organization=org, is_superuser=False).aggregate(
+        total=Count("id"),
+        active=Count("id", filter=Q(is_active=True)),
+    )
 
-    total_revenue  = sales_qs.aggregate(v=Sum("total_amount"))["v"] or 0
-    today_revenue  = today_sales.aggregate(v=Sum("total_amount"))["v"] or 0
-    total_expenses = expenses_qs.aggregate(v=Sum("amount"))["v"] or 0
-    last_sale      = Sale.objects.filter(organization=org).aggregate(v=Max("created"))["v"]
+    item_agg = Item.objects.filter(organization=org).aggregate(
+        active=Count("id", filter=Q(status="active")),
+        out=Count("id", filter=Q(stock__lte=0)),
+        low=Count("id", filter=Q(stock__gt=0, stock__lte=F("low_stock_threshold"))),
+    )
 
-    out_of_stock = items_qs.filter(stock__lte=0).count()
-    low_stock    = items_qs.filter(stock__gt=0).extra(
-        where=["stock <= low_stock_threshold"]
-    ).count()
+    sale_agg = Sale.objects.filter(organization=org).aggregate(
+        total_sales=Count("id", filter=Q(status="completed")),
+        total_revenue=Sum("total_amount", filter=Q(status="completed")),
+        today_sales=Count("id", filter=Q(status="completed", created__date=today)),
+        today_revenue=Sum("total_amount", filter=Q(status="completed", created__date=today)),
+        last_sale=Max("created"),
+    )
+
+    total_customers = Customer.objects.filter(organization=org).count()
+    total_expenses  = Expense.objects.filter(organization=org).aggregate(v=Sum("amount"))["v"] or 0
+    pending_count   = PaymentRequest.objects.filter(organization=org, status="pending").count()
+
+    total_revenue = sale_agg["total_revenue"] or 0
 
     # ── Subscription stats ────────────────────────────────────────────────────
     sub_stats = _subscription_org_stats(org)
@@ -115,20 +125,20 @@ def _org_stats(org, PharmUser, Item, Customer, Sale, Expense, PaymentRequest):
     return {
         "is_superuser":    False,
         "org":             org,
-        "active_users":    users_qs.filter(is_active=True).count(),
-        "total_users":     users_qs.count(),
-        "total_items":     items_qs.filter(status="active").count(),
-        "out_of_stock":    out_of_stock,
-        "low_stock":       low_stock,
-        "total_customers": customers_qs.count(),
-        "total_sales":     sales_qs.count(),
-        "today_sales":     today_sales.count(),
+        "active_users":    user_agg["active"],
+        "total_users":     user_agg["total"],
+        "total_items":     item_agg["active"],
+        "out_of_stock":    item_agg["out"],
+        "low_stock":       item_agg["low"],
+        "total_customers": total_customers,
+        "total_sales":     sale_agg["total_sales"],
+        "today_sales":     sale_agg["today_sales"],
         "total_revenue":   float(total_revenue),
-        "today_revenue":   float(today_revenue),
+        "today_revenue":   float(sale_agg["today_revenue"] or 0),
         "total_expenses":  float(total_expenses),
         "net_revenue":     float(total_revenue) - float(total_expenses),
-        "pending_requests": pending_reqs.count(),
-        "last_sale":       last_sale,
+        "pending_requests": pending_count,
+        "last_sale":       sale_agg["last_sale"],
         **sub_stats,
     }
 
@@ -144,11 +154,26 @@ def _subscription_platform_stats():
         _now_dt = _now()
         in_7 = _now_dt + timedelta(days=7)
 
+        agg = Subscription.objects.aggregate(
+            trial=Count("id", filter=Q(plan="trial")),
+            starter=Count("id", filter=Q(plan="starter")),
+            professional=Count("id", filter=Q(plan="professional")),
+            enterprise=Count("id", filter=Q(plan="enterprise")),
+            active=Count("id", filter=Q(status="active")),
+            expired=Count("id", filter=Q(status="expired")),
+            suspended=Count("id", filter=Q(status="suspended")),
+            expiring=Count("id", filter=Q(
+                plan="trial",
+                trial_ends_at__gte=_now_dt,
+                trial_ends_at__lte=in_7,
+            )),
+        )
+
         plan_counts = {
-            'trial':        Subscription.objects.filter(plan='trial').count(),
-            'starter':      Subscription.objects.filter(plan='starter').count(),
-            'professional': Subscription.objects.filter(plan='professional').count(),
-            'enterprise':   Subscription.objects.filter(plan='enterprise').count(),
+            'trial':        agg["trial"],
+            'starter':      agg["starter"],
+            'professional': agg["professional"],
+            'enterprise':   agg["enterprise"],
         }
 
         live_prices = PlanPricing.get_all_prices()
@@ -159,16 +184,12 @@ def _subscription_platform_stats():
         )
 
         return {
-            "sub_plan_counts":    plan_counts,
-            "sub_mrr":            round(mrr, 2),
-            "sub_active":         Subscription.objects.filter(status='active').count(),
-            "sub_expiring":       Subscription.objects.filter(
-                                      plan='trial',
-                                      trial_ends_at__gte=_now_dt,
-                                      trial_ends_at__lte=in_7,
-                                  ).count(),
-            "sub_expired":        Subscription.objects.filter(status='expired').count(),
-            "sub_suspended":      Subscription.objects.filter(status='suspended').count(),
+            "sub_plan_counts": plan_counts,
+            "sub_mrr":         round(mrr, 2),
+            "sub_active":      agg["active"],
+            "sub_expiring":    agg["expiring"],
+            "sub_expired":     agg["expired"],
+            "sub_suspended":   agg["suspended"],
         }
     except Exception:
         return {}

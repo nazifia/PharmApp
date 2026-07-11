@@ -4,39 +4,42 @@
 
 {% block content %}
 <style>
+  /* Bootstrap 5.3 theme vars — follow the admin's light/dark toggle */
   .matrix-wrap { overflow-x: auto; }
   .matrix-table { border-collapse: collapse; width: 100%; min-width: 750px; }
-  .matrix-table th, .matrix-table td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
-  .matrix-table th { background: #f8fafc; font-weight: 600; text-align: center; }
+  .matrix-table th, .matrix-table td { padding: 8px 12px; border-bottom: 1px solid var(--bs-border-color, #e2e8f0); font-size: 13px; }
+  .matrix-table th { background: var(--bs-tertiary-bg, #f8fafc); font-weight: 600; text-align: center; }
   .matrix-table th.feat-col { text-align: left; }
-  .matrix-table tr:hover td { background: #f1f5f9; }
+  .matrix-table tr:hover td { background: var(--bs-secondary-bg, #f1f5f9); }
   .plan-header { padding: 4px 14px; border-radius: 14px; color: #fff; font-size: 12px; font-weight: 700; display: inline-block; }
   .toggle-cell { text-align: center; }
   .toggle-cell input[type=checkbox] { width: 18px; height: 18px; accent-color: #0D9488; cursor: pointer; }
-  .label-input { border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 12px; width: 170px; }
+  .label-input { border: 1px solid var(--bs-border-color, #cbd5e1); background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #1e293b); border-radius: 6px; padding: 4px 8px; font-size: 12px; width: 170px; }
   .label-input:focus { outline: none; border-color: #0D9488; }
-  .sort-input { border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 6px; font-size: 12px; width: 52px; text-align: center; }
+  .sort-input { border: 1px solid var(--bs-border-color, #cbd5e1); background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #1e293b); border-radius: 6px; padding: 4px 6px; font-size: 12px; width: 52px; text-align: center; }
   .sort-input:focus { outline: none; border-color: #0D9488; }
-  .section-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .section-card { background: var(--bs-body-bg, #fff); border: 1px solid var(--bs-border-color, #e2e8f0); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
   .action-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
   .btn { padding: 8px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; }
   .btn-sm { padding: 4px 10px; font-size: 11px; }
   .btn-primary { background: #0D9488; color: #fff; }
   .btn-danger  { background: #EF4444; color: #fff; }
-  .btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #475569; }
+  .btn-outline { background: transparent; border: 1px solid var(--bs-border-color, #cbd5e1); color: var(--bs-secondary-color, #475569); }
   .btn:hover   { opacity: 0.85; }
-  .add-row { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .add-row input { border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
+  .add-row { background: var(--bs-tertiary-bg, #f8fafc); border: 1px solid var(--bs-border-color, #e2e8f0); border-radius: 8px; padding: 14px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .add-row input { border: 1px solid var(--bs-border-color, #cbd5e1); background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #1e293b); border-radius: 6px; padding: 6px 10px; font-size: 13px; }
   .add-row input:focus { outline: none; border-color: #0D9488; }
-  .hint { font-size: 11px; color: #94a3b8; }
-  h2 { font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 4px 0; }
-  .sub { font-size: 12px; color: #64748b; margin-bottom: 14px; }
+  .hint { font-size: 11px; color: var(--bs-secondary-color, #94a3b8); }
+  h2 { font-size: 15px; font-weight: 700; color: var(--bs-body-color, #1e293b); margin: 0 0 4px 0; }
+  .sub, .muted { font-size: 12px; color: var(--bs-secondary-color, #64748b); }
+  .sub { margin-bottom: 14px; }
+  .field-label { font-size: 12px; font-weight: 600; color: var(--bs-secondary-color, #475569); display: block; margin-bottom: 3px; }
   .del-btn { background: none; border: none; color: #EF4444; cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 4px; border-radius: 4px; }
-  .del-btn:hover { background: #fee2e2; }
+  .del-btn:hover { background: rgba(239, 68, 68, 0.15); }
 </style>
 
 <h1>Plan Feature Matrix</h1>
-<p style="color:#64748b;font-size:13px">
+<p class="muted" style="font-size:13px">
   Toggle checkboxes to add/remove features per plan. Edit labels to rename them in the Flutter app.
   Adjust <strong>Order</strong> (lower = first). Click <strong>Save Matrix</strong> when done.
   Use the 🗑 button to permanently delete a feature from all plans.
@@ -97,7 +100,7 @@
                 class="label-input" placeholder="Feature label…">
             </td>
             <td>
-              <code style="font-size:11px;color:#64748b">{{ row.key }}</code>
+              <code class="muted" style="font-size:11px">{{ row.key }}</code>
             </td>
             <td class="toggle-cell">
               <input type="number" name="sort_{{ row.key }}" value="{{ row.sort }}"
@@ -116,7 +119,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="{{ plan_list|length|add:4 }}" style="text-align:center;color:#94a3b8;padding:20px">
+          <tr><td colspan="{{ plan_list|length|add:4 }}" class="muted" style="text-align:center;padding:20px">
             No features found. Click "Reset to Defaults" to seed defaults.
           </td></tr>
           {% endfor %}
@@ -148,12 +151,12 @@
     {% csrf_token %}
     <div class="add-row">
       <div>
-        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:3px">Feature Key</label>
+        <label class="field-label">Feature Key</label>
         <input type="text" name="new_key" placeholder="e.g. sms_alerts" style="width:180px">
         <div class="hint">Lowercase, underscores only. Must match the Flutter app key.</div>
       </div>
       <div>
-        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:3px">Display Label</label>
+        <label class="field-label">Display Label</label>
         <input type="text" name="new_label" placeholder="e.g. SMS Alerts" style="width:200px">
         <div class="hint">Shown in the in-app subscription screen.</div>
       </div>
@@ -165,7 +168,7 @@
 </div>
 
 {# ── Quick-view: standard changelist link ────────────────────────────────── #}
-<p style="font-size:12px;color:#94a3b8;margin-top:8px">
+<p class="muted" style="margin-top:8px">
   Need to edit individual rows directly?
   <a href="?o=3.2" style="color:#0D9488">Use the standard list view</a>.
 </p>

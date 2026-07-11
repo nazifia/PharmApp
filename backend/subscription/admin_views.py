@@ -59,10 +59,16 @@ def saas_dashboard_view(request):
     )
 
     # ── Status breakdown ─────────────────────────────────────────────────────
-    active_count    = Subscription.objects.filter(status='active').count()
-    trial_count     = Subscription.objects.filter(status__in=['trial', 'expiring']).count()
-    expired_count   = Subscription.objects.filter(status='expired').count()
-    suspended_count = Subscription.objects.filter(status='suspended').count()
+    status_agg = Subscription.objects.aggregate(
+        active=Count('id', filter=Q(status='active')),
+        trial=Count('id', filter=Q(status__in=['trial', 'expiring'])),
+        expired=Count('id', filter=Q(status='expired')),
+        suspended=Count('id', filter=Q(status='suspended')),
+    )
+    active_count    = status_agg['active']
+    trial_count     = status_agg['trial']
+    expired_count   = status_agg['expired']
+    suspended_count = status_agg['suspended']
 
     # ── Trials expiring in next 7 days ────────────────────────────────────────
     in_7_days = now + timezone.timedelta(days=7)

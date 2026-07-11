@@ -52,7 +52,6 @@ JAZZMIN_SETTINGS = {
 
     # ── User menu (top right) ─────────────────────────────────────────────────
     "usermenu_links": [
-        {"name": "Support", "url": "#", "icon": "fas fa-life-ring"},
         {"model": "authapp.PharmUser"},
     ],
 

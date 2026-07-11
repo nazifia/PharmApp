@@ -355,7 +355,6 @@
 <script>
 /* Live-update the Effective column as toggles change */
 (function () {
-  var rows = {{ perm_rows|length }};
   /* role_defaults keyed by perm key */
   var defaults = {
     {% for row in perm_rows %}"{{ row.key }}": {{ row.role_default|yesno:"true,false" }},{% endfor %}
