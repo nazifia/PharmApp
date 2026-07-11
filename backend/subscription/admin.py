@@ -24,7 +24,8 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import admin, messages
 from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Q
+from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
@@ -586,29 +587,35 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_select_related = ('organization',)
 
     def get_queryset(self, request):
-        # Collapse the three per-row usage COUNT queries into one annotated query.
-        # distinct=True is required: annotating counts over three different reverse
-        # relations in one query fans out the joins, so non-distinct counts would
-        # multiply each other.
+        # One correlated subquery per usage count. Annotating three reverse
+        # relations in a single joined query fans out to users×items×sales
+        # rows per org (even with distinct=True the join is still built),
+        # which locks up SQLite for minutes on production data.
+        from authapp.models import PharmUser
+        from inventory.models import Item
+        from pos.models import Sale
+
         month_start = timezone.now().replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
+
+        def _count(qs):
+            return Coalesce(
+                Subquery(
+                    qs.filter(organization=OuterRef('organization'))
+                    .order_by()
+                    .values('organization')
+                    .annotate(c=Count('pk'))
+                    .values('c'),
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            )
+
         return super().get_queryset(request).annotate(
-            _users_count=Count(
-                'organization__users',
-                filter=Q(organization__users__is_active=True),
-                distinct=True,
-            ),
-            _items_count=Count(
-                'organization__items',
-                filter=Q(organization__items__status='active'),
-                distinct=True,
-            ),
-            _tx_count=Count(
-                'organization__sales',
-                filter=Q(organization__sales__created__gte=month_start),
-                distinct=True,
-            ),
+            _users_count=_count(PharmUser.objects.filter(is_active=True)),
+            _items_count=_count(Item.objects.filter(status='active')),
+            _tx_count=_count(Sale.objects.filter(created__gte=month_start)),
         )
 
     actions = [
