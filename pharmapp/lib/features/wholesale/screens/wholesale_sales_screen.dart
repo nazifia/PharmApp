@@ -9,6 +9,7 @@ import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
 import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
+import 'package:pharmapp/features/reports/shared/report_date_range.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
@@ -76,6 +77,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
   int _dateFilter = 0; // 0=Today, 1=This Week, 2=This Month, 3=All
+  DateTimeRange? _customRange;
 
   @override
   void dispose() {
@@ -85,6 +87,12 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
 
   ({String? from, String? to}) get _dateRange {
     final now = DateTime.now();
+    if (_customRange != null) {
+      return (
+        from: _customRange!.start.toIso8601String().split('T').first,
+        to: _customRange!.end.toIso8601String().split('T').first,
+      );
+    }
     switch (_dateFilter) {
       case 0:
         return (
@@ -160,6 +168,11 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
           _buildHeader(context),
           _buildSearchBar(context),
           _buildDateFilterChips(),
+          customRangeBanner(
+            range: _customRange,
+            onChange: _openDatePicker,
+            onClear: () => setState(() => _customRange = null),
+          ),
           Expanded(child: RefreshIndicator(
             color: EnhancedTheme.primaryTeal,
             onRefresh: _refresh,
@@ -277,11 +290,19 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
 
   // ── Date Filter Chips ──────────────────────────────────────────────────────
 
+  Future<void> _openDatePicker() async {
+    final picked = await pickReportDateRange(context, initial: _customRange);
+    if (picked != null && mounted) {
+      setState(() => _customRange = picked);
+    }
+  }
+
   Widget _buildDateFilterChips() {
     const filters = ['Today', 'This Week', 'This Month', 'All'];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-      child: ClipRRect(
+      child: Row(children: [
+        Expanded(child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -293,9 +314,12 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
               border: Border.all(color: context.borderColor),
             ),
             child: Row(children: filters.asMap().entries.map((e) {
-              final active = e.key == _dateFilter;
+              final active = _customRange == null && e.key == _dateFilter;
               return Expanded(child: GestureDetector(
-                onTap: () => setState(() => _dateFilter = e.key),
+                onTap: () => setState(() {
+                  _dateFilter = e.key;
+                  _customRange = null;
+                }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   padding: const EdgeInsets.symmetric(vertical: 9),
@@ -320,7 +344,10 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
             }).toList()),
           ),
         ),
-      ),
+        )),
+        const SizedBox(width: 6),
+        dateRangeButton(context, range: _customRange, onTap: _openDatePicker),
+      ]),
     ).animate().fadeIn(delay: 140.ms).slideY(begin: -0.1);
   }
 
