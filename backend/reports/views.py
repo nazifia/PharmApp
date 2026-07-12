@@ -573,14 +573,16 @@ def cashier_sales_report(request):
             'dispenser__role',
         )
         .annotate(
-            total_amount=db_models.Sum('total_amount'),
+            # alias must not shadow the total_amount field: _cash_applied()'s
+            # F('total_amount') would resolve to the aggregate and 500
+            sum_amount=db_models.Sum('total_amount'),
             total_sales=db_models.Count('id'),
             cash_amount=db_models.Sum(_cash_applied()),
             pos_amount=db_models.Sum('payment_pos'),
             transfer_amount=db_models.Sum('payment_transfer'),
             wallet_amount=db_models.Sum('payment_wallet'),
         )
-        .order_by('-total_amount')
+        .order_by('-sum_amount')
     )
 
     users = []
@@ -588,7 +590,7 @@ def cashier_sales_report(request):
     grand_count = 0
 
     for u in user_stats:
-        amt = float(u['total_amount'] or 0)
+        amt = float(u['sum_amount'] or 0)
         cnt = u['total_sales'] or 0
         grand_total += amt
         grand_count += cnt
