@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:bonsoir/bonsoir.dart';
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,6 +33,8 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   String _language           = 'English';
   bool _logoUploading        = false;
   bool _discovering          = false;
+  bool _backingUp            = false;
+  bool _restoring            = false;
 
   @override
   void initState() {
@@ -91,6 +97,34 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                       ],
                       const SizedBox(height: 16),
                       _sectionCard('System', [
+                        if (isAdmin) ...[
+                          _tapTile(
+                            Icons.cloud_download_outlined, 'Backup Data',
+                            'Export all pharmacy data as a JSON file',
+                            _backingUp ? () {} : _downloadBackup,
+                            iconColor: EnhancedTheme.infoBlue,
+                            trailing: _backingUp
+                                ? const SizedBox(
+                                    width: 18, height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: EnhancedTheme.infoBlue))
+                                : Icon(Icons.chevron_right, color: context.hintColor, size: 18),
+                          ),
+                          _divider(),
+                          _tapTile(
+                            Icons.settings_backup_restore_rounded, 'Restore Data',
+                            'Import a previously exported backup file',
+                            _restoring ? () {} : _restoreBackup,
+                            iconColor: EnhancedTheme.warningAmber,
+                            trailing: _restoring
+                                ? const SizedBox(
+                                    width: 18, height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: EnhancedTheme.warningAmber))
+                                : Icon(Icons.chevron_right, color: context.hintColor, size: 18),
+                          ),
+                          _divider(),
+                        ],
                         _tapTile(
                           Icons.cleaning_services_outlined, 'Clear Cache',
                           'Free up local storage',
@@ -206,6 +240,149 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _downloadBackup() async {
+    setState(() => _backingUp = true);
+    try {
+      final dio = ref.read(dioProvider);
+      final res = await dio.get<List<int>>(
+        '/auth/org/backup/',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = Uint8List.fromList(res.data ?? const []);
+      if (bytes.isEmpty) throw Exception('Empty backup received');
+
+      final slug  = ref.read(currentUserProvider)?.organizationSlug ?? 'org';
+      final stamp = DateTime.now().toIso8601String().substring(0, 10);
+      final name  = 'pharmapp_backup_${slug}_$stamp.json';
+
+      await Share.shareXFiles(
+        [XFile.fromData(bytes, mimeType: 'application/json', name: name)],
+        fileNameOverrides: [name],
+        subject: 'PharmApp backup',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: Row(children: [
+          const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text('Backup exported: $name',
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+        ]),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: Row(children: [
+          const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(
+              'Backup failed: ${e.toString().replaceFirst('Exception: ', '')}',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+        ]),
+      ));
+    } finally {
+      if (mounted) setState(() => _backingUp = false);
+    }
+  }
+
+  Future<void> _restoreBackup() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+      withData: true,
+    );
+    final file = picked?.files.firstOrNull;
+    final bytes = file?.bytes;
+    if (file == null || bytes == null || !mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text('Restore Data', style: TextStyle(color: context.labelColor)),
+        content: Text(
+            'Restore from "${file.name}"?\n\nExisting records with matching IDs '
+            'will be overwritten with the backup\'s data. This cannot be undone.',
+            style: TextStyle(color: context.subLabelColor)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel', style: TextStyle(color: context.hintColor))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Restore',
+                  style: TextStyle(color: EnhancedTheme.warningAmber))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _restoring = true);
+    try {
+      final dio = ref.read(dioProvider);
+      final form = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: file.name),
+      });
+      final res = await dio.post('/auth/org/backup/restore/', data: form);
+      final results = (res.data?['results'] as Map?) ?? {};
+      var created = 0, updated = 0;
+      for (final v in results.values) {
+        if (v is Map) {
+          created += (v['created'] as int?) ?? 0;
+          updated += (v['updated'] as int?) ?? 0;
+        }
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.92),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        content: Row(children: [
+          const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(
+              'Restore complete — $created created, $updated updated',
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+        ]),
+      ));
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final detail = e.response?.data is Map
+          ? (e.response!.data['detail']?.toString() ?? 'Restore failed')
+          : 'Restore failed';
+      _restoreError(detail);
+    } catch (e) {
+      if (!mounted) return;
+      _restoreError(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _restoring = false);
+    }
+  }
+
+  void _restoreError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.92),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      content: Row(children: [
+        const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+        const SizedBox(width: 10),
+        Expanded(child: Text(msg,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+      ]),
+    ));
   }
 
   Future<void> _pickAndUploadLogo() async {

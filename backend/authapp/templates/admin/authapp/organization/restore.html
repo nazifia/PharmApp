@@ -1,0 +1,20 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div style="max-width:640px">
+  <h2>Restore backup into “{{ org.name }}”</h2>
+  <p style="color:#b45309;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.4);
+            border-radius:8px;padding:10px 14px">
+    ⚠️ Existing records with matching IDs will be <strong>overwritten</strong> with the
+    backup's data. Rows belonging to other organisations are never touched.
+    This cannot be undone — consider downloading a fresh backup first.
+  </p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <p><input type="file" name="file" accept=".json,application/json" required></p>
+    <input type="submit" class="default" value="Restore backup"
+           onclick="return confirm('Restore this backup into {{ org.name|escapejs }}? Matching records will be overwritten.');">
+    <a class="button" href="{% url 'admin:authapp_organization_changelist' %}" style="margin-left:8px">Cancel</a>
+  </form>
+</div>
+{% endblock %}

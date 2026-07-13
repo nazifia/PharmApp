@@ -1,13 +1,18 @@
+import json
+
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render
 from django.utils.html import conditional_escape, format_html, mark_safe
-from django.urls import reverse
+from django.urls import path, reverse
 from django.db import transaction
 from django.db.models import Count, Q
 
 from .admin_mixins import OrgScopedAdminMixin
+from .backup_views import backup_http_response, restore_org_backup
 from .utils import normalize_ng_phone
 from .models import (
     ActivityLog, CommissionConfig, Organization,
@@ -99,7 +104,7 @@ def _subscription_inline():
 class OrganizationAdmin(admin.ModelAdmin):
     """Visible and editable by superusers only."""
 
-    list_display  = ["name", "slug", "phone", "user_count", "subscription_plan", "subscription_status", "created_at"]
+    list_display  = ["name", "slug", "phone", "user_count", "subscription_plan", "subscription_status", "backup_links", "created_at"]
     search_fields = ["name", "slug", "phone"]
     readonly_fields = ["slug", "created_at", "user_count"]
     ordering = ["name"]
@@ -201,6 +206,91 @@ class OrganizationAdmin(admin.ModelAdmin):
     def user_count(self, obj):
         val = getattr(obj, "_user_count", None)
         return val if val is not None else obj.users.count()
+
+    # ── Backup / Restore ──────────────────────────────────────────────────
+
+    @admin.display(description="Backup")
+    def backup_links(self, obj):
+        return format_html(
+            '<a class="button" style="padding:2px 8px;font-size:11px" href="{}">⬇ Backup</a>&nbsp;'
+            '<a class="button" style="padding:2px 8px;font-size:11px" href="{}">⬆ Restore</a>',
+            reverse('admin:authapp_organization_backup', args=[obj.pk]),
+            reverse('admin:authapp_organization_restore', args=[obj.pk]),
+        )
+
+    def get_urls(self):
+        custom = [
+            path('<int:org_id>/backup/',
+                 self.admin_site.admin_view(self.backup_view),
+                 name='authapp_organization_backup'),
+            path('<int:org_id>/restore/',
+                 self.admin_site.admin_view(self.restore_view),
+                 name='authapp_organization_restore'),
+        ]
+        return custom + super().get_urls()
+
+    def backup_view(self, request, org_id):
+        if not request.user.is_superuser:
+            self.message_user(request, "Only superusers can export org backups.", messages.ERROR)
+            return HttpResponseRedirect(reverse('admin:authapp_organization_changelist'))
+        org = get_object_or_404(Organization, pk=org_id)
+        ActivityLog.objects.create(
+            organization=org, user=request.user,
+            username=getattr(request.user, 'full_name', '') or request.user.phone_number,
+            role=getattr(request.user, 'role', ''),
+            action='Backup', category='settings',
+            description=f"Superuser exported backup of '{org.name}' via admin site.",
+        )
+        return backup_http_response(org, exported_by=request.user.phone_number)
+
+    def restore_view(self, request, org_id):
+        changelist_url = reverse('admin:authapp_organization_changelist')
+        if not request.user.is_superuser:
+            self.message_user(request, "Only superusers can restore org backups.", messages.ERROR)
+            return HttpResponseRedirect(changelist_url)
+        org = get_object_or_404(Organization, pk=org_id)
+
+        if request.method == 'POST':
+            upload = request.FILES.get('file')
+            if upload is None:
+                self.message_user(request, "Choose a backup file first.", messages.ERROR)
+            else:
+                try:
+                    data = json.load(upload)
+                    results = restore_org_backup(org, data)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    self.message_user(request, "Invalid backup file: not valid JSON.", messages.ERROR)
+                except ValueError as exc:
+                    self.message_user(request, str(exc), messages.ERROR)
+                else:
+                    created = sum(r.get('created', 0) for r in results.values())
+                    updated = sum(r.get('updated', 0) for r in results.values())
+                    skipped = sum(r.get('skipped', 0) for r in results.values())
+                    ActivityLog.objects.create(
+                        organization=org, user=request.user,
+                        username=getattr(request.user, 'full_name', '') or request.user.phone_number,
+                        role=getattr(request.user, 'role', ''),
+                        action='Restore', category='settings',
+                        description=(
+                            f"Superuser restored backup into '{org.name}' via admin site: "
+                            f"{created} created, {updated} updated, {skipped} skipped."
+                        ),
+                    )
+                    self.message_user(
+                        request,
+                        f"Restore into '{org.name}' complete: {created} created, "
+                        f"{updated} updated, {skipped} skipped.",
+                        messages.SUCCESS,
+                    )
+                    return HttpResponseRedirect(changelist_url)
+
+        context = {
+            **self.admin_site.each_context(request),
+            'title': f'Restore backup — {org.name}',
+            'org': org,
+            'opts': self.model._meta,
+        }
+        return render(request, 'admin/authapp/organization/restore.html', context)
 
     # ── Superuser-only permissions ─────────────────────────────────────────
 
