@@ -17,6 +17,10 @@ class Organization(models.Model):
         default=10,
         help_text='Minutes of inactivity before the app logs the user out. 0 = never.',
     )
+    last_reminded_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='When the org admin was last sent an inactivity reminder.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):

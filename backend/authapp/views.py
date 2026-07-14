@@ -45,6 +45,8 @@ def login_view(request):
         if not user.is_active:
             return Response({'detail': 'Account is disabled.'},
                             status=status.HTTP_403_FORBIDDEN)
+        user.last_login = timezone.now()
+        user.save(update_fields=['last_login'])
         log_activity(request, action='Login', category='auth',
                      description=f'Successful login ({user.role})', user=user)
         return Response({

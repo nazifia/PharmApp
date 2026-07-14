@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, render
 from django.utils.html import conditional_escape, format_html, mark_safe
 from django.urls import path, reverse
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 
 from .admin_mixins import OrgScopedAdminMixin
 from .backup_views import backup_http_response, restore_org_backup
@@ -104,10 +104,10 @@ def _subscription_inline():
 class OrganizationAdmin(admin.ModelAdmin):
     """Visible and editable by superusers only."""
 
-    list_display  = ["name", "slug", "phone", "user_count", "auto_logout_minutes", "subscription_plan", "subscription_status", "backup_links", "created_at"]
+    list_display  = ["name", "slug", "phone", "user_count", "auto_logout_minutes", "subscription_plan", "subscription_status", "last_activity", "last_reminded", "backup_links", "created_at"]
     list_editable = ["auto_logout_minutes"]
     search_fields = ["name", "slug", "phone"]
-    readonly_fields = ["slug", "created_at", "user_count"]
+    readonly_fields = ["slug", "created_at", "user_count", "last_reminded_at"]
     ordering = ["name"]
     inlines  = []   # populated in get_inlines()
     actions  = ["show_delete_impact"]
@@ -116,7 +116,10 @@ class OrganizationAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         # select_related avoids a subscription query per row; annotate avoids a
         # COUNT per row for the Users column.
-        return super().get_queryset(request).annotate(_user_count=Count("users"))
+        return super().get_queryset(request).annotate(
+            _user_count=Count("users", distinct=True),
+            _last_activity=Max("users__last_login"),
+        )
 
     def get_inlines(self, request, obj):
         inlines = list(_subscription_inline())
@@ -207,6 +210,28 @@ class OrganizationAdmin(admin.ModelAdmin):
     def user_count(self, obj):
         val = getattr(obj, "_user_count", None)
         return val if val is not None else obj.users.count()
+
+    @admin.display(description="Last activity", ordering="_last_activity")
+    def last_activity(self, obj):
+        from django.utils import timezone
+        last = getattr(obj, "_last_activity", None)
+        if last is None:
+            return format_html('<span style="color:#64748b;font-size:11px">never</span>')
+        days = (timezone.now() - last).days
+        c = '#EF4444' if days >= 7 else '#10B981'
+        return format_html(
+            '<span style="color:{};font-size:11px">{} ({}d ago)</span>',
+            c, last.strftime('%d %b %Y'), days,
+        )
+
+    @admin.display(description="Last reminded", ordering="last_reminded_at")
+    def last_reminded(self, obj):
+        if obj.last_reminded_at is None:
+            return format_html('<span style="color:#64748b;font-size:11px">—</span>')
+        return format_html(
+            '<span style="font-size:11px">{}</span>',
+            obj.last_reminded_at.strftime('%d %b %Y %H:%M'),
+        )
 
     # ── Backup / Restore ──────────────────────────────────────────────────
 
