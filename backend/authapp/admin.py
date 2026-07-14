@@ -104,7 +104,8 @@ def _subscription_inline():
 class OrganizationAdmin(admin.ModelAdmin):
     """Visible and editable by superusers only."""
 
-    list_display  = ["name", "slug", "phone", "user_count", "subscription_plan", "subscription_status", "backup_links", "created_at"]
+    list_display  = ["name", "slug", "phone", "user_count", "auto_logout_minutes", "subscription_plan", "subscription_status", "backup_links", "created_at"]
+    list_editable = ["auto_logout_minutes"]
     search_fields = ["name", "slug", "phone"]
     readonly_fields = ["slug", "created_at", "user_count"]
     ordering = ["name"]

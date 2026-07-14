@@ -23,6 +23,19 @@ const _kLoginLockUntil = 'offline_login_lock_until'; // epoch-ms lockout expiry
 const _kMaxAttempts    = 5;
 const _kLockMinutes    = 15;
 
+/// Org-configured inactivity timeout (minutes, 0 = never) — read by
+/// InactivityGuard. Set from the backend's `autoLogoutMinutes` on every
+/// login / profile refresh.
+const kAutoLogoutMinutesKey = 'auto_logout_minutes';
+
+Future<void> _stashAutoLogoutMinutes(Map<String, dynamic> userJson) async {
+  final minutes = userJson['autoLogoutMinutes'];
+  if (minutes is int) {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(kAutoLogoutMinutesKey, minutes);
+  }
+}
+
 // Prescriber-specific offline credential keys (separate namespace from org user)
 const _kPrescriberCredHash  = 'prescriber_offline_cred_hash';
 const _kPrescriberCredPhone = 'prescriber_offline_cred_phone';
@@ -72,7 +85,9 @@ class AuthRepository {
         '/auth/me/',
         options: Options(extra: {'skipTokenClear': true}),
       );
-      return User.fromJson(res.data as Map<String, dynamic>);
+      final json = res.data as Map<String, dynamic>;
+      await _stashAutoLogoutMinutes(json);
+      return User.fromJson(json);
     } catch (_) {
       // Network unreachable or endpoint absent — return the cached user unchanged
       return fallback;
@@ -164,7 +179,9 @@ class AuthRepository {
         };
       }
 
-      final user = User.fromJson(data['user'] as Map<String, dynamic>);
+      final userJson = data['user'] as Map<String, dynamic>;
+      final user = User.fromJson(userJson);
+      await _stashAutoLogoutMinutes(userJson);
 
       // Persist HMAC-SHA256 credential fingerprint for offline login.
       // Uses a per-install random salt so the hash is unique to this device

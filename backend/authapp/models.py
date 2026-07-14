@@ -13,6 +13,10 @@ class Organization(models.Model):
     address = models.TextField(blank=True, default='')
     phone   = models.CharField(max_length=20, blank=True, default='')
     logo    = models.ImageField(upload_to='org_logos/', blank=True, null=True)
+    auto_logout_minutes = models.PositiveIntegerField(
+        default=10,
+        help_text='Minutes of inactivity before the app logs the user out. 0 = never.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
@@ -115,6 +119,7 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
             'organizationLogo':     org.logo.url if org and org.logo else '',
             'branchId':             self.branch_id or 0,
             'branchName':           self.branch.name if self.branch_id else '',
+            'autoLogoutMinutes':    org.auto_logout_minutes if org else 10,
             'permissions':          _get_user_permissions(self),
         }
 
