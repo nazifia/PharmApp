@@ -10,18 +10,33 @@ class ActivityLogFilter {
   final String category; // 'all' or specific category
   final String search;
   final int page;
+  final DateTime? start; // inclusive lower bound on timestamp
+  final DateTime? end;   // inclusive upper bound on timestamp
 
   const ActivityLogFilter({
     this.category = 'all',
     this.search = '',
     this.page = 1,
+    this.start,
+    this.end,
   });
 
-  ActivityLogFilter copyWith({String? category, String? search, int? page}) {
+  bool get hasRange => start != null || end != null;
+
+  ActivityLogFilter copyWith({
+    String? category,
+    String? search,
+    int? page,
+    DateTime? start,
+    DateTime? end,
+    bool clearRange = false,
+  }) {
     return ActivityLogFilter(
       category: category ?? this.category,
       search: search ?? this.search,
       page: page ?? this.page,
+      start: clearRange ? null : (start ?? this.start),
+      end: clearRange ? null : (end ?? this.end),
     );
   }
 
@@ -30,10 +45,12 @@ class ActivityLogFilter {
       other is ActivityLogFilter &&
       other.category == category &&
       other.search == search &&
-      other.page == page;
+      other.page == page &&
+      other.start == start &&
+      other.end == end;
 
   @override
-  int get hashCode => Object.hash(category, search, page);
+  int get hashCode => Object.hash(category, search, page, start, end);
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -120,6 +137,20 @@ class ActivityLogNotifier extends StateNotifier<ActivityLogState> {
     fetch();
   }
 
+  void setRange({DateTime? start, DateTime? end}) {
+    state = state.copyWith(
+      filter: state.filter
+          .copyWith(clearRange: true)
+          .copyWith(start: start, end: end, page: 1),
+    );
+    fetch();
+  }
+
+  void clearRange() {
+    state = state.copyWith(filter: state.filter.copyWith(clearRange: true, page: 1));
+    fetch();
+  }
+
   Future<List<ActivityLog>> _fetchPage(ActivityLogFilter filter) async {
     final dio = _dio;
     if (dio == null) return const [];
@@ -129,6 +160,8 @@ class ActivityLogNotifier extends StateNotifier<ActivityLogState> {
       'page_size': 30,
       if (filter.category != 'all') 'category': filter.category,
       if (filter.search.isNotEmpty) 'search': filter.search,
+      if (filter.start != null) 'start': filter.start!.toIso8601String(),
+      if (filter.end != null) 'end': filter.end!.toIso8601String(),
     };
 
     try {

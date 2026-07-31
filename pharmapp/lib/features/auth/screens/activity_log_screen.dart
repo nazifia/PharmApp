@@ -93,6 +93,33 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
     }
   }
 
+  /// Preset range starts, all anchored to midnight so the active-chip check is exact.
+  static DateTime _midnightDaysAgo(int days) {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day).subtract(Duration(days: days));
+  }
+
+  static final _presets = <(String, int)>[('Today', 0), ('7d', 7), ('30d', 30)];
+
+  /// Native date picker then time picker. Null if either step is cancelled.
+  Future<DateTime?> _pickDateTime(DateTime? initial) async {
+    final now = DateTime.now();
+    final base = initial ?? now;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: base,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 1, 12, 31),
+    );
+    if (date == null || !mounted) return null;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(base),
+    );
+    if (time == null) return null;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
   String _relativeTime(DateTime dt) {
     final diff = DateTime.now().difference(dt);
     if (diff.inSeconds < 60)  return 'Just now';
@@ -281,6 +308,83 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                   ),
                 ).animate().fadeIn(delay: 80.ms, duration: 300.ms),
 
+                const SizedBox(height: 10),
+
+                // ── Date & time range ────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(children: [
+                    for (final (label, days) in _presets) ...[
+                      Builder(builder: (_) {
+                        final start = _midnightDaysAgo(days);
+                        final isActive = state.filter.end == null &&
+                            state.filter.start == start;
+                        return _PresetChip(
+                          label: label,
+                          isActive: isActive,
+                          onTap: () => isActive
+                              ? notifier.clearRange()
+                              : notifier.setRange(start: start),
+                        );
+                      }),
+                      const SizedBox(width: 6),
+                    ],
+                  ]),
+                ).animate().fadeIn(delay: 90.ms, duration: 300.ms),
+
+                const SizedBox(height: 8),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(children: [
+                    Expanded(
+                      child: _RangeButton(
+                        label: 'From',
+                        value: state.filter.start,
+                        onTap: () async {
+                          final picked = await _pickDateTime(state.filter.start);
+                          if (picked != null) {
+                            notifier.setRange(
+                                start: picked, end: state.filter.end);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _RangeButton(
+                        label: 'To',
+                        value: state.filter.end,
+                        onTap: () async {
+                          final picked = await _pickDateTime(state.filter.end);
+                          if (picked != null) {
+                            notifier.setRange(
+                                start: state.filter.start, end: picked);
+                          }
+                        },
+                      ),
+                    ),
+                    if (state.filter.hasRange) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => notifier.clearRange(),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: EnhancedTheme.errorRed.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: EnhancedTheme.errorRed
+                                    .withValues(alpha: 0.3)),
+                          ),
+                          child: const Icon(Icons.close_rounded,
+                              color: EnhancedTheme.errorRed, size: 18),
+                        ),
+                      ),
+                    ],
+                  ]),
+                ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
+
                 const SizedBox(height: 12),
 
                 // ── Log list ─────────────────────────────────────────────────
@@ -343,6 +447,99 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Preset range chip ─────────────────────────────────────────────────────────
+
+class _PresetChip extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _PresetChip({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const color = EnhancedTheme.accentPurple;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? color.withValues(alpha: 0.18) : context.cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? color.withValues(alpha: 0.5) : context.borderColor,
+            width: isActive ? 1.5 : 1,
+          ),
+        ),
+        child: Text(label,
+            style: TextStyle(
+              color: isActive ? color : context.hintColor,
+              fontSize: 11.5,
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+            )),
+      ),
+    );
+  }
+}
+
+// ── Date/time range button ────────────────────────────────────────────────────
+
+class _RangeButton extends StatelessWidget {
+  final String label;
+  final DateTime? value;
+  final VoidCallback onTap;
+
+  const _RangeButton({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSet = value != null;
+    const color = EnhancedTheme.accentPurple;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: isSet ? color.withValues(alpha: 0.12) : context.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSet ? color.withValues(alpha: 0.45) : context.borderColor,
+            width: isSet ? 1.5 : 1,
+          ),
+        ),
+        child: Row(children: [
+          Icon(Icons.event_rounded,
+              size: 15, color: isSet ? color : context.hintColor),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              isSet
+                  ? DateFormat('d MMM yyyy, HH:mm').format(value!)
+                  : '$label — any',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isSet ? color : context.hintColor,
+                fontSize: 11.5,
+                fontWeight: isSet ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+        ]),
       ),
     );
   }

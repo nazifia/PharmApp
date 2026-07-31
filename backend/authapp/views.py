@@ -362,7 +362,8 @@ def user_permissions_view(request, user_id):
 def activity_log_view(request):
     """
     GET /auth/activity-log/
-    Query params: page (int), page_size (int, max 100), category (str), search (str)
+    Query params: page (int), page_size (int, max 100), category (str), search (str),
+                  start / end (ISO-8601 datetime, inclusive range on timestamp)
     Returns: { count, results: [...] }
     """
     org = active_org(request)
@@ -383,6 +384,23 @@ def activity_log_view(request):
         qs = qs.filter(organization=org)
     if category:
         qs = qs.filter(category=category)
+
+    # ponytail: parse_datetime handles the ISO strings the app sends; naive values
+    # are made aware in the current timezone so the comparison matches stored UTC.
+    from django.utils.dateparse import parse_datetime
+    from django.utils import timezone as dj_tz
+    for param, lookup in (('start', 'timestamp__gte'), ('end', 'timestamp__lte')):
+        raw = request.query_params.get(param, '').strip()
+        if not raw:
+            continue
+        dt = parse_datetime(raw)
+        if dt is None:
+            return Response({'detail': f'Invalid {param} datetime.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if dj_tz.is_naive(dt):
+            dt = dj_tz.make_aware(dt, dj_tz.get_current_timezone())
+        qs = qs.filter(**{lookup: dt})
+
     if search:
         from django.db.models import Q
         qs = qs.filter(
