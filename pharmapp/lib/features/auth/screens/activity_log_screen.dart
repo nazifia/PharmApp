@@ -482,6 +482,28 @@ class _LogTile extends StatelessWidget {
                                     fontWeight: FontWeight.w500)),
                           ),
                         ],
+                        // Org chip — only sent when a superuser views across tenants
+                        if (log.organizationName.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: EnhancedTheme.accentPurple
+                                    .withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(log.organizationName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: EnhancedTheme.accentPurple,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                        ],
                       ]),
                     ],
                   ),

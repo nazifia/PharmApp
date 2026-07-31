@@ -285,8 +285,8 @@ class ActivityLog(models.Model):
             models.Index(fields=['organization', 'category']),
         ]
 
-    def to_api_dict(self):
-        return {
+    def to_api_dict(self, with_org=False):
+        d = {
             'id':          self.id,
             'user_id':     self.user_id or 0,
             'username':    self.username,
@@ -297,6 +297,11 @@ class ActivityLog(models.Model):
             'ip_address':  self.ip_address,
             'timestamp':   self.timestamp.isoformat(),
         }
+        # only the cross-tenant (superuser) view needs to tell orgs apart
+        if with_org:
+            d['organization_id']   = self.organization_id or 0
+            d['organization_name'] = self.organization.name if self.organization_id else ''
+        return d
 
     def __str__(self):
         return f"[{self.category}] {self.username}: {self.action}"

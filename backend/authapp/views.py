@@ -365,8 +365,8 @@ def activity_log_view(request):
     Query params: page (int), page_size (int, max 100), category (str), search (str)
     Returns: { count, results: [...] }
     """
-    org = getattr(request.user, 'organization', None)
-    if org is None:
+    org = active_org(request)
+    if org is None and not request.user.is_superuser:
         return Response({'detail': 'No organisation linked.'}, status=status.HTTP_403_FORBIDDEN)
 
     page      = max(1, int(request.query_params.get('page', 1)))
@@ -374,7 +374,13 @@ def activity_log_view(request):
     category  = request.query_params.get('category', '').strip()
     search    = request.query_params.get('search', '').strip()
 
-    qs = ActivityLog.objects.filter(organization=org)
+    # ponytail: superuser with no org sees every org's log; scoped users unchanged
+    cross_org = org is None
+    qs = ActivityLog.objects.all()
+    if cross_org:
+        qs = qs.select_related('organization')
+    else:
+        qs = qs.filter(organization=org)
     if category:
         qs = qs.filter(category=category)
     if search:
@@ -391,5 +397,5 @@ def activity_log_view(request):
 
     return Response({
         'count':   total,
-        'results': [log.to_api_dict() for log in logs],
+        'results': [log.to_api_dict(with_org=cross_org) for log in logs],
     })

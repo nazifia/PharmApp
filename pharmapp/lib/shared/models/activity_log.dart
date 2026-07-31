@@ -9,6 +9,7 @@ class ActivityLog {
   final String description;
   final DateTime timestamp;
   final String? ipAddress;
+  final String organizationName; // '' unless superuser viewing across tenants
 
   const ActivityLog({
     required this.id,
@@ -20,6 +21,7 @@ class ActivityLog {
     required this.description,
     required this.timestamp,
     this.ipAddress,
+    this.organizationName = '',
   });
 
   factory ActivityLog.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,7 @@ class ActivityLog {
       description: json['description'] as String? ?? '',
       timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
       ipAddress: json['ip_address'] as String?,
+      organizationName: json['organization_name'] as String? ?? '',
     );
   }
 }
