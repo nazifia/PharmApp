@@ -166,28 +166,8 @@ class OrgEditorNotifier extends StateNotifier<AsyncValue<OrgSubscriptionSummary?
     }
   }
 
-  /// Fetch deletion impact counts without deleting.
-  Future<Map<String, int>?> getDeletionImpact() async {
-    try {
-      return await _ref
-          .read(superuserApiClientProvider)
-          .getOrgDeletionImpact(orgId);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Permanently delete this organization.
-  /// Returns null on success or an error message on failure.
-  Future<String?> delete() async {
-    try {
-      await _ref.read(superuserApiClientProvider).deleteOrganization(orgId);
-      _ref.read(orgListProvider.notifier).removeOrg(orgId);
-      return null;
-    } catch (e) {
-      return e.toString();
-    }
-  }
+  // Deletion lives in widgets/delete_org_dialog.dart — it is reachable from
+  // the dashboard too, where this per-org notifier is not loaded.
 }
 
 final orgEditorProvider = StateNotifierProvider.family<OrgEditorNotifier,

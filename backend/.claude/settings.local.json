@@ -32,7 +32,10 @@
       "PowerShell(python manage.py test subscription.tests_org_impact 2>&1 | Select-Object -Last 25)",
       "PowerShell(python manage.py test subscription.tests_org_impact 2>&1 | Select-Object -Last 20)",
       "PowerShell(python manage.py test subscription.tests_org_impact authapp.tests_superuser_tenants 2>&1 | Select-Object -Last 12)",
-      "PowerShell(python manage.py test subscription.tests_org_impact -v 2)"
+      "PowerShell(python manage.py test subscription.tests_org_impact -v 2)",
+      "PowerShell(git ls-files \":/pharmapp/.firebase\"; \"--- root .gitignore ---\"; Get-Content ../.gitignore; \"--- pharmapp/.gitignore exists? ---\"; Test-Path ../pharmapp/.gitignore)",
+      "PowerShell(git checkout *)",
+      "PowerShell(python \"C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp-backend\\\\d62982bc-7971-43cd-a6f7-5a67509befec\\\\scratchpad\\\\splice.py\")"
     ]
   }
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/superuser/providers/superuser_provider.dart';
+import 'package:pharmapp/features/superuser/widgets/delete_org_dialog.dart';
 import 'package:pharmapp/shared/models/org_subscription_summary.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 
@@ -447,6 +448,13 @@ class _OrgCard extends ConsumerWidget {
                         icon: const Icon(Icons.login_rounded,
                             color: Colors.black54, size: 18),
                         onPressed: () => _enter(context, ref),
+                      ),
+                      IconButton(
+                        tooltip: 'Delete ${org.name}',
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            color: EnhancedTheme.errorRed, size: 18),
+                        // Card list rebuilds itself once the org is removed.
+                        onPressed: () => confirmDeleteOrg(context, ref, org),
                       ),
                     ],
                   ),
