@@ -14,6 +14,7 @@ import '../../../features/branches/providers/branch_provider.dart';
 import '../../../features/networks/providers/network_provider.dart';
 import '../../../features/prescriptions/providers/prescriber_provider.dart';
 import '../../../features/reports/providers/shift_api_client.dart';
+import '../../../features/superuser/providers/superuser_api_client.dart';
 import '../../../shared/models/prescriber.dart';
 import 'auth_repository.dart';
 
@@ -191,6 +192,30 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
       _errorMessage = _friendly(e);
       state = AuthFlowState.error;
     }
+  }
+
+  /// Superuser only — enter a tenant. Swaps the session token for one carrying
+  /// that org's id, so every org-scoped API call returns that pharmacy's data.
+  /// ponytail: online-only — no offline credential cache is written for the
+  /// switched org; the superuser keeps their own org for offline login.
+  Future<void> enterOrg(int orgId) async {
+    final result = await _ref.read(superuserApiClientProvider).switchOrg(orgId);
+    final token  = result['access'] as String;
+    final user   = User.fromJson(result['user'] as Map<String, dynamic>);
+
+    _ref.read(authTokenProvider.notifier).state   = token;
+    _ref.read(currentUserProvider.notifier).state = user;
+
+    // Branches belong to the previous tenant — drop the selection.
+    _ref.read(activeBranchProvider.notifier).state =
+        user.branchId != 0 ? Branch(id: user.branchId, name: user.branchName) : null;
+
+    await AuthStorage.write('auth_token',   token);
+    await AuthStorage.write('current_user', jsonEncode(user.toJson()));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('active_branch');
+
+    state = AuthFlowState.authenticated;
   }
 
   /// Re-fetches the current user's profile from the backend and updates

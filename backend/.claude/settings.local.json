@@ -24,7 +24,15 @@
       "Bash(python *)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "PowerShell(python manage.py test authapp.tests_superuser_tenants -v 2)",
+      "PowerShell(python -c \"import django,os;os.environ.setdefault\\('DJANGO_SETTINGS_MODULE','pharmapi.settings'\\);django.setup\\(\\);from django.urls import resolve;print\\(resolve\\('/api/superuser/organizations/'\\)\\)\")",
+      "Bash(grep \"///\")",
+      "PowerShell(python manage.py test authapp.tests_superuser_tenants 2>&1 | Select-Object -Last 12)",
+      "PowerShell(python manage.py test subscription.tests_org_impact 2>&1 | Select-Object -Last 25)",
+      "PowerShell(python manage.py test subscription.tests_org_impact 2>&1 | Select-Object -Last 20)",
+      "PowerShell(python manage.py test subscription.tests_org_impact authapp.tests_superuser_tenants 2>&1 | Select-Object -Last 12)",
+      "PowerShell(python manage.py test subscription.tests_org_impact -v 2)"
     ]
   }
 }

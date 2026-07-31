@@ -191,7 +191,9 @@
       "Bash(./venv/Scripts/python.exe manage.py shell)",
       "Bash(./venv/Scripts/python.exe manage.py shell -c \"exec\\(open\\(r'/tmp/repro.py'\\).read\\(\\)\\)\")",
       "Bash(./venv/Scripts/python.exe manage.py shell -c \"exec\\(open\\(r'C:/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp/7040e1eb-4422-4747-9a6f-3c9ab92db145/scratchpad/repro.py'\\).read\\(\\)\\)\")",
-      "Bash(./venv/Scripts/python.exe manage.py shell -c ' *)"
+      "Bash(./venv/Scripts/python.exe manage.py shell -c ' *)",
+      "Skill(artifact-design)",
+      "Artifact"
     ]
   }
 }

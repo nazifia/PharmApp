@@ -117,7 +117,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
         if (isAuthenticated) {
           if (needsBranchSelection()) return '/select-branch';
-          return _getRoleRoute(user?.role);
+          return _landingRoute(user);
         }
         return null;
       }
@@ -130,7 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Already selected a branch (or skipped) — leave /select-branch
       if (loc == '/select-branch' && !needsBranchSelection()) {
-        return _getRoleRoute(user?.role);
+        return _landingRoute(user);
       }
 
       // Force branch selection before any protected screen
@@ -250,6 +250,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // ── Subscription feature gates (redirect to paywall) ──────────────────
+      // Superusers never hit the paywall — they administer every tenant.
+      if (Rbac.isSuperuser(user)) return null;
 
       // Catch-all: expired / suspended / cancelled subscriptions lose access
       // to all protected routes. isAccessible covers active, trial, and expiring.
@@ -458,6 +460,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     errorBuilder: (context, state) => _ErrorScreen(error: state.error?.toString()),
   );
 });
+
+/// Landing route after login. A superuser with no org of their own starts on
+/// the platform admin screen, where they pick which pharmacy to enter.
+String _landingRoute(User? user) {
+  if (Rbac.isSuperuser(user) && user!.organizationId == 0) return '/superuser';
+  return _getRoleRoute(user?.role);
+}
 
 String _getRoleRoute(String? role) {
   switch (role) {

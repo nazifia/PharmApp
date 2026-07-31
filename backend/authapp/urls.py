@@ -14,6 +14,9 @@ urlpatterns = [
     path('users/<int:user_id>/permissions/',    views.user_permissions_view,  name='auth-user-permissions'),
     path('activity-log/',                       views.activity_log_view,      name='auth-activity-log'),
 
+    # ── Superuser cross-tenant access ────────────────────────────────────────
+    path('switch-org/',                         views.switch_org_view,        name='auth-switch-org'),
+
     # ── Pharmacy networks ─────────────────────────────────────────────────────
     path('networks/',                                          nv.network_list,          name='network-list'),
     path('networks/join-default/',                             nv.network_join_default,  name='network-join-default'),

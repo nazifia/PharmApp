@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
+import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/superuser/providers/superuser_provider.dart';
 import 'package:pharmapp/shared/models/org_subscription_summary.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
@@ -361,12 +362,25 @@ class _FilterChip extends StatelessWidget {
 
 // ── Org Card ──────────────────────────────────────────────────────────────────
 
-class _OrgCard extends StatelessWidget {
+class _OrgCard extends ConsumerWidget {
   final OrgSubscriptionSummary org;
   const _OrgCard({required this.org});
 
+  /// Logs the superuser into this tenant and lands on its dashboard.
+  Future<void> _enter(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(authFlowProvider.notifier).enterOrg(org.id);
+      if (context.mounted) context.go('/admin-dashboard');
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not enter ${org.name}: $e')),
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final planColor  = _planColor(org.plan);
     final statusColor = _statusColor(org.status);
     final days        = org.trialDaysRemaining;
@@ -428,6 +442,12 @@ class _OrgCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       // Status badge
                       _Badge(label: _statusLabel(org.status), color: statusColor),
+                      IconButton(
+                        tooltip: 'Enter ${org.name}',
+                        icon: const Icon(Icons.login_rounded,
+                            color: Colors.black54, size: 18),
+                        onPressed: () => _enter(context, ref),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),

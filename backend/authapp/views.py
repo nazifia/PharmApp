@@ -11,7 +11,7 @@ from .models import Organization, PharmUser, ActivityLog, PharmacyNetwork, Pharm
 from .permissions import (
     IsAdminOrManager, PERMISSION_LABELS, _PERMISSION_ROLE_MAP, get_effective_permissions
 )
-from .utils import log_activity, normalize_ng_phone
+from .utils import active_org, log_activity, normalize_ng_phone
 
 
 def _token_for(user):
@@ -89,7 +89,36 @@ def login_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me_view(request):
-    return Response(request.user.to_api_dict())
+    return Response(request.user.to_api_dict(org=active_org(request)))
+
+
+# ── Superuser cross-tenant access ─────────────────────────────────────────────
+# A superuser logs in normally, lists every org (GET /subscription/superuser/
+# organizations/), then switches into one. The chosen org is baked into a fresh
+# JWT (`org_id` claim) which authapp.utils.active_org() reads — so every
+# org-scoped view works unchanged.
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def switch_org_view(request):
+    if not request.user.is_superuser:
+        return Response({'detail': 'Superuser only.'}, status=status.HTTP_403_FORBIDDEN)
+
+    org_id = request.data.get('org_id')
+    org = Organization.objects.filter(pk=org_id).first() if org_id else None
+    if org is None:
+        return Response({'detail': 'Organization not found.'},
+                        status=status.HTTP_404_NOT_FOUND)
+
+    refresh = RefreshToken.for_user(request.user)
+    refresh['org_id'] = org.id
+    log_activity(request, action='Switch organization', category='auth',
+                 description=f'Superuser entered {org.name} (#{org.id})')
+    return Response({
+        'access':    str(refresh.access_token),
+        'user_type': 'org',
+        'user':      request.user.to_api_dict(org=org),
+    })
 
 
 @api_view(['POST'])
@@ -182,7 +211,7 @@ def org_view(request):
     Body: { org_name?: string, address?: string }
     Updates org name and/or address. At least one field required.
     """
-    org = request.user.organization
+    org = active_org(request)
     if org is None:
         return Response({'detail': 'No organisation linked to this account.'},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -214,7 +243,7 @@ def org_logo_view(request):
     Multipart: { logo: <file> }
     Replaces the caller's organisation logo and returns { logoUrl }.
     """
-    org = request.user.organization
+    org = active_org(request)
     if org is None:
         return Response({'detail': 'No organisation linked to this account.'},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -257,7 +286,7 @@ def user_permissions_view(request, user_id):
     # Scope: caller must be in same org (or superuser)
     try:
         target = PharmUser.objects.get(
-            pk=user_id, organization=request.user.organization
+            pk=user_id, organization=active_org(request)
         )
     except PharmUser.DoesNotExist:
         return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)

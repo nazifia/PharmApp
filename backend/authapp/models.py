@@ -104,8 +104,9 @@ class PharmUser(AbstractBaseUser, PermissionsMixin):
     def get_full_name(self):
         return self.full_name or self.phone_number
 
-    def to_api_dict(self):
-        org = self.organization
+    def to_api_dict(self, org=None):
+        # org override = superuser acting inside another tenant (switch-org)
+        org = org or self.organization
         return {
             'id':                   self.id,
             'phoneNumber':          self.phone_number,

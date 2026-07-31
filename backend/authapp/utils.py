@@ -21,14 +21,39 @@ def normalize_ng_phone(raw):
     return digits if _NG_MOBILE.match(digits) else None
 
 
+def active_org(request):
+    """
+    The organization this request acts inside.
+
+    Normally the user's own org. A superuser may act inside ANY tenant by
+    logging in and then calling /api/auth/switch-org/, which mints a token
+    carrying an `org_id` claim (see authapp.views.switch_org_view).
+    """
+    user = getattr(request, 'user', None)
+    if getattr(user, 'is_superuser', False):
+        payload = getattr(request.auth, 'payload', None) or {}
+        org_id  = payload.get('org_id')
+        if org_id:
+            from authapp.models import Organization
+            org = Organization.objects.filter(pk=org_id).first()
+            if org is not None:
+                return org
+    return getattr(user, 'organization', None)
+
+
 def require_org(request):
     """
     Returns (organization, None) for a normal authenticated user
     or (None, 403_Response) if the user has no organization linked.
-    Superusers are also required to have an org when using the API.
+    Superusers without an org must pick one via /api/auth/switch-org/.
     """
-    org = getattr(request.user, 'organization', None)
+    org = active_org(request)
     if org is None:
+        if getattr(request.user, 'is_superuser', False):
+            return None, Response(
+                {'detail': 'Select a pharmacy to manage.', 'code': 'select_org'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         return None, Response(
             {'detail': 'Your account is not linked to an organization. '
                        'Contact your administrator or register a new pharmacy.'},

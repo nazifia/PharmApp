@@ -201,12 +201,17 @@ def superuser_org_list(request):
     return Response([_org_to_superuser_dict(org) for org in orgs])
 
 
-# ── GET /api/superuser/organizations/{id}/ ───────────────────────────────────
+# ── GET|DELETE /api/superuser/organizations/{id}/ ────────────────────────────
 
-@api_view(['GET'])
+@api_view(['GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def superuser_org_detail(request, org_id):
-    """Get one organization's subscription detail. Superuser only."""
+    """
+    GET    — one organization's subscription detail.
+    DELETE — permanently remove the org and everything cascading from it
+             (exactly what the /impact/ preview reports). Irreversible.
+    Superuser only.
+    """
     err = _require_superuser(request)
     if err:
         return err
@@ -216,7 +221,64 @@ def superuser_org_detail(request, org_id):
     except Organization.DoesNotExist:
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+    if request.method == 'DELETE':
+        # Refuse to delete the org the caller is currently attached to —
+        # that would strip their own session's tenant out from under them.
+        if request.user.organization_id == org.id:
+            return Response(
+                {'detail': 'Cannot delete the organization you belong to.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        org.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     return Response(_org_to_superuser_dict(org))
+
+
+# ── GET /api/subscription/superuser/organizations/{id}/impact/ ───────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def superuser_org_impact(request, org_id):
+    """
+    Record counts that deleting this org would touch — shown in the delete
+    confirmation dialog. Uses Django's own cascade collector, so it stays
+    correct as models are added; nothing here deletes anything.
+    """
+    err = _require_superuser(request)
+    if err:
+        return err
+
+    try:
+        org = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    from django.db.models.deletion import Collector
+
+    collector = Collector(using=Organization.objects.db)
+    collector.collect([org])
+
+    counts = {}
+
+    def _add(model, n):
+        if model is Organization or not n:
+            return
+        label = str(model._meta.verbose_name_plural)
+        counts[label] = counts.get(label, 0) + n
+
+    for model, objs in collector.data.items():
+        _add(model, len(objs))
+    for qs in collector.fast_deletes:
+        _add(qs.model, qs.count())
+    # SET_NULL relations survive the delete — say so rather than imply removal.
+    for (field, _value), instances_list in collector.field_updates.items():
+        n = sum(len(objs) for objs in instances_list)
+        if n:
+            label = f'{field.model._meta.verbose_name_plural} unlinked (kept)'
+            counts[label] = counts.get(label, 0) + n
+
+    return Response(dict(sorted(counts.items(), key=lambda kv: -kv[1])))
 
 
 # ── PATCH /api/superuser/organizations/{id}/subscription/ ────────────────────
