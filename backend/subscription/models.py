@@ -92,6 +92,11 @@ PLAN_PRICES = {
 
 SUPPORTED_CURRENCIES = ['USD', 'GBP', 'EUR', 'NGN', 'GHS', 'KES', 'ZAR']
 
+CURRENCY_SYMBOLS = {
+    'USD': '$', 'GBP': '£', 'EUR': '€', 'NGN': '₦',
+    'GHS': 'GH₵', 'KES': 'KSh', 'ZAR': 'R',
+}
+
 
 # ── Editable plan pricing ─────────────────────────────────────────────────────
 
@@ -159,6 +164,14 @@ class PlanPricing(models.Model):
         for pp in cls.objects.all():
             result[pp.plan] = float(pp.monthly_price)
         return result
+
+    @classmethod
+    def currency_symbol(cls):
+        """Symbol for the currency plans are priced in.
+        ponytail: all plans assumed to share one currency — first paid row wins."""
+        pp = cls.objects.exclude(plan='trial').order_by('plan').first()
+        code = pp.currency if pp else 'USD'
+        return CURRENCY_SYMBOLS.get(code, code + ' ')
 
     @classmethod
     def ensure_defaults(cls):

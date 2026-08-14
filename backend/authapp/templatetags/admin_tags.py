@@ -159,6 +159,10 @@ def _subscription_platform_stats():
             starter=Count("id", filter=Q(plan="starter")),
             professional=Count("id", filter=Q(plan="professional")),
             enterprise=Count("id", filter=Q(plan="enterprise")),
+            # Billing counts — only active subs actually generate revenue
+            paid_starter=Count("id", filter=Q(plan="starter", status="active")),
+            paid_professional=Count("id", filter=Q(plan="professional", status="active")),
+            paid_enterprise=Count("id", filter=Q(plan="enterprise", status="active")),
             active=Count("id", filter=Q(status="active")),
             expired=Count("id", filter=Q(status="expired")),
             suspended=Count("id", filter=Q(status="suspended")),
@@ -176,9 +180,15 @@ def _subscription_platform_stats():
             'enterprise':   agg["enterprise"],
         }
 
+        billing_counts = {
+            'starter':      agg["paid_starter"],
+            'professional': agg["paid_professional"],
+            'enterprise':   agg["paid_enterprise"],
+        }
+
         live_prices = PlanPricing.get_all_prices()
         mrr = sum(
-            plan_counts.get(plan, 0) * price
+            billing_counts.get(plan, 0) * price
             for plan, price in live_prices.items()
             if plan != 'trial'
         )
@@ -186,6 +196,7 @@ def _subscription_platform_stats():
         return {
             "sub_plan_counts": plan_counts,
             "sub_mrr":         round(mrr, 2),
+            "sub_currency":    PlanPricing.currency_symbol(),
             "sub_active":      agg["active"],
             "sub_expiring":    agg["expiring"],
             "sub_expired":     agg["expired"],

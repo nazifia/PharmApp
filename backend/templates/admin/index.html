@@ -143,8 +143,8 @@
   <div class="dash-stat dash-stat--green">
     <div class="dash-stat__icon"><i class="fas fa-dollar-sign"></i></div>
     <div class="dash-stat__body">
-      <div class="dash-stat__val">${{ stats.sub_mrr|floatformat:0 }}</div>
-      <div class="dash-stat__lbl">MRR (est.)</div>
+      <div class="dash-stat__val">{{ stats.sub_currency }}{{ stats.sub_mrr|floatformat:0 }}</div>
+      <div class="dash-stat__lbl">MRR (est., active only)</div>
     </div>
   </div>
   {% if stats.sub_expiring > 0 %}

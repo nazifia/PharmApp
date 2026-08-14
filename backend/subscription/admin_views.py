@@ -50,13 +50,23 @@ def saas_dashboard_view(request):
     }
     total_orgs = sum(plan_counts.values())
 
-    # ── MRR estimate (uses live DB prices) ───────────────────────────────────
+    # ── MRR estimate (live DB prices, active subs only) ──────────────────────
+    paid_dist = (
+        Subscription.objects
+        .filter(status='active')
+        .exclude(plan='trial')
+        .values('plan')
+        .annotate(count=Count('id'))
+    )
+    paid_map = {row['plan']: row['count'] for row in paid_dist}
+
     live_prices = PlanPricing.get_all_prices()
     mrr = sum(
-        plan_counts.get(plan, 0) * price
+        paid_map.get(plan, 0) * price
         for plan, price in live_prices.items()
         if plan != 'trial'
     )
+    currency_symbol = PlanPricing.currency_symbol()
 
     # ── Status breakdown ─────────────────────────────────────────────────────
     status_agg = Subscription.objects.aggregate(
@@ -124,6 +134,7 @@ def saas_dashboard_view(request):
         'total_orgs':      total_orgs,
         'plan_counts':     plan_counts,
         'mrr':             mrr,
+        'currency_symbol': currency_symbol,
         'active_count':    active_count,
         'trial_count':     trial_count,
         'expired_count':   expired_count,
