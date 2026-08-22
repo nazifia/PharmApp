@@ -14,6 +14,7 @@ from authapp.utils import require_org
 from customers.models import Customer, WalletTransaction
 from inventory.models import Item
 from pos.models import Cashier, Expense, Sale, SaleItem
+from pos.profit import REVENUE_STATUSES, profit_figures, returns_in
 
 
 # ── Date range helper ─────────────────────────────────────────────────────────
@@ -111,12 +112,22 @@ def sales_report(request):
     retail_sales    = sales.filter(is_wholesale=False)
     wholesale_sales = sales.filter(is_wholesale=True)
 
+    # Refunds are netted off on the date they were recorded, matching the
+    # profit report, so a refund never rewrites the month its sale fell in.
+    period_returns = returns_in(
+        org, created_at__date__gte=start, created_at__date__lte=end,
+    )
+
+    def _refunded(qs):
+        return float(qs.aggregate(t=db_models.Sum('amount'))['t'] or 0)
+
+    total_refunds = _refunded(period_returns)
     total_retail = float(
         retail_sales.aggregate(t=db_models.Sum('total_amount'))['t'] or 0
-    )
+    ) - _refunded(period_returns.filter(sale__is_wholesale=False))
     total_wholesale = float(
         wholesale_sales.aggregate(t=db_models.Sum('total_amount'))['t'] or 0
-    )
+    ) - _refunded(period_returns.filter(sale__is_wholesale=True))
     total_revenue = total_retail + total_wholesale
 
     # Dispensed/sold quantities count EVERY sale regardless of payment method
@@ -250,7 +261,10 @@ def sales_report(request):
     # amount, and "other" is derived as revenue minus cash so overpayment noise
     # in the non-cash fields can never break the reconciliation. Wallet top-ups
     # stay in paymentMethods (money-received view), not here.
-    cash_sales  = round(float(pay['cash'] or 0), 2)
+    # A cash refund leaves the drawer, so it comes off the cash bucket; every
+    # other refund method falls into "other" via the derivation below.
+    cash_refunds = _refunded(period_returns.filter(refund_method='cash'))
+    cash_sales  = round(float(pay['cash'] or 0) - cash_refunds, 2)
     other_sales = round(total_revenue - cash_sales, 2)
 
     expenses = {
@@ -268,9 +282,10 @@ def sales_report(request):
         'period':         period,
         'dateFrom':       str(start),
         'dateTo':         str(end),
-        'totalRevenue':   total_revenue,
-        'totalRetail':    total_retail,
-        'totalWholesale': total_wholesale,
+        'totalRevenue':   round(total_revenue, 2),
+        'totalRetail':    round(total_retail, 2),
+        'totalWholesale': round(total_wholesale, 2),
+        'totalRefunds':   round(total_refunds, 2),
         'creditSales':    round(credit_total, 2),
         'creditCount':    credit_count,
         'totalSales':     sales.count(),
@@ -416,43 +431,21 @@ def profit_report(request):
         organization=org,
         created__date__gte=start,
         created__date__lte=end,
-    ).exclude(status='credit')
-    revenue = float(sales.aggregate(t=db_models.Sum('total_amount'))['t'] or 0)
-
-    cogs_result = SaleItem.objects.filter(
-        sale__in=sales,
-        item__isnull=False,
-        item__cost__gt=0,
-    ).aggregate(
-        total_cost=db_models.Sum(
-            db_models.ExpressionWrapper(
-                db_models.F('quantity') * F('item__cost'),
-                output_field=db_models.FloatField(),
-            )
-        )
+        status__in=REVENUE_STATUSES,
     )
-    cogs = float(cogs_result['total_cost'] or 0)
-
-    if cogs > 0:
-        cost   = cogs
-        profit = revenue - cost
-        margin = (profit / revenue * 100) if revenue > 0 else 0.0
-        estimated = False
-    else:
-        cost      = revenue * 0.70
-        profit    = revenue * 0.30
-        margin    = 30.0
-        estimated = True   # no item cost data — margin is an estimate
+    figures = profit_figures(sales, returns_in(
+        org, created_at__date__gte=start, created_at__date__lte=end,
+    ))
 
     return Response({
         'period':    period,
         'dateFrom':  str(start),
         'dateTo':    str(end),
-        'revenue':   round(revenue, 2),
-        'cost':      round(cost, 2),
-        'profit':    round(profit, 2),
-        'margin':    round(margin, 1),
-        'estimated': estimated,
+        # Share of line revenue backed by a recorded cost price. Below 1 the
+        # profit is overstated: the uncosted lines contribute no COGS.
+        'costCoverage': figures.pop('coverage'),
+        'estimated': figures['cost'] == 0,
+        **figures,
     })
 
 

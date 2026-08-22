@@ -20,13 +20,19 @@ class LocalDb {
   static String _hash(String s) => sha256.convert(utf8.encode(s)).toString();
 
   static String _now() => DateTime.now().toIso8601String();
+  /// Statuses that count as a booked sale, matching the backend's
+  /// REVENUE_STATUSES. A returned sale still belongs to the period it was made
+  /// in; the refund is netted off separately, on the date it was taken.
+  static const _sold = "status IN ('completed','partial_return','returned')";
+  static const _soldS = "s.status IN ('completed','partial_return','returned')";
+
 
   // ── Schema ─────────────────────────────────────────────────────────────────
 
   Future<Database> _open() async {
     final dir = await getDatabasesPath();
     return openDatabase(p.join(dir, 'pharmapp.db'),
-        version: 6, onCreate: _create, onUpgrade: _upgrade);
+        version: 7, onCreate: _create, onUpgrade: _upgrade);
   }
 
   Future<void> _upgrade(Database db, int oldVersion, int newVersion) async {
@@ -52,7 +58,26 @@ class LocalDb {
       await db.execute(
           "ALTER TABLE expenses ADD COLUMN payment_source TEXT NOT NULL DEFAULT 'cash'");
     }
+    if (oldVersion < 7) {
+      await db.execute(
+          'ALTER TABLE sale_items ADD COLUMN return_qty REAL NOT NULL DEFAULT 0');
+      await db.execute(_createSaleReturns);
+      // Returns taken before this version were subtracted straight off
+      // sales.total_amount and left no row, so they stay netted where they
+      // are. Nothing to backfill — and nothing double-counted either.
+    }
   }
+
+  static const _createSaleReturns = '''CREATE TABLE sale_returns(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sale_id INTEGER NOT NULL,
+      sale_item_id INTEGER NOT NULL,
+      quantity REAL NOT NULL,
+      amount REAL NOT NULL,
+      cost_price REAL NOT NULL DEFAULT 0,
+      refund_method TEXT NOT NULL DEFAULT 'wallet',
+      reason TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL)''';
 
   Future<void> _create(Database db, int v) async {
     await db.execute('''CREATE TABLE users(
@@ -125,7 +150,10 @@ class LocalDb {
       quantity INTEGER NOT NULL DEFAULT 1,
       price REAL NOT NULL,
       cost_price REAL NOT NULL DEFAULT 0,
-      discount REAL NOT NULL DEFAULT 0)''');
+      discount REAL NOT NULL DEFAULT 0,
+      return_qty REAL NOT NULL DEFAULT 0)''');
+
+    await db.execute(_createSaleReturns);
 
     await db.execute('''CREATE TABLE suppliers(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -914,6 +942,7 @@ class LocalDb {
                 'price': i['price'],
                 'costPrice': i['cost_price'],
                 'discount': i['discount'],
+                'returnQty': i['return_qty'] ?? 0,
                 'subtotal': ((i['price'] as num) * (i['quantity'] as num) -
                         (i['discount'] as num))
                     .toDouble(),
@@ -922,28 +951,60 @@ class LocalDb {
     };
   }
 
+  /// Mirrors the backend: the sale keeps its original total and the refund is
+  /// written to `sale_returns` with its own date, so reports can net it off the
+  /// period it actually happened in rather than the one the sale fell in.
   Future<Map<String, dynamic>> returnSaleItem(int saleId,
       {required int saleItemId,
       required num quantity,
       String refundMethod = 'wallet',
       String reason = ''}) async {
     final d = await db;
+    if (quantity <= 0) throw Exception('Quantity must be positive');
     final rows =
         await d.query('sale_items', where: 'id = ?', whereArgs: [saleItemId]);
-    if (rows.isNotEmpty) {
-      final si = rows.first;
+    if (rows.isEmpty) throw Exception('Sale item not found');
+
+    final si = rows.first;
+    final lineQty = (si['quantity'] as num).toDouble();
+    final remaining = lineQty - (si['return_qty'] as num? ?? 0).toDouble();
+    if (quantity > remaining) {
+      throw Exception('Can only return $remaining more units');
+    }
+
+    // Refund the discount pro rata. Subtracting the whole line discount for a
+    // partial return over-refunded every time.
+    final lineTotal = (si['price'] as num).toDouble() * lineQty -
+        (si['discount'] as num).toDouble();
+    final refund = lineQty > 0 ? lineTotal / lineQty * quantity : 0.0;
+    final costPrice = (si['cost_price'] as num? ?? 0).toDouble();
+
+    await d.transaction((txn) async {
       final itemId = si['item_id'] as int?;
       if (itemId != null) {
-        await d.rawUpdate('UPDATE items SET stock = stock + ? WHERE id = ?',
+        await txn.rawUpdate('UPDATE items SET stock = stock + ? WHERE id = ?',
             [quantity, itemId]);
       }
-      final refund = (si['price'] as num).toDouble() * quantity -
-          (si['discount'] as num).toDouble();
-      await d.rawUpdate(
-          'UPDATE sales SET total_amount = total_amount - ? WHERE id = ?',
-          [refund, saleId]);
-    }
-    return {'success': true, 'saleId': saleId};
+      await txn.rawUpdate(
+          'UPDATE sale_items SET return_qty = return_qty + ? WHERE id = ?',
+          [quantity, saleItemId]);
+      await txn.insert('sale_returns', {
+        'sale_id': saleId,
+        'sale_item_id': saleItemId,
+        'quantity': quantity,
+        'amount': refund,
+        'cost_price': costPrice,
+        'refund_method': refundMethod,
+        'reason': reason,
+        'created_at': _now(),
+      });
+      final open = Sqflite.firstIntValue(await txn.rawQuery(
+          'SELECT COUNT(*) FROM sale_items WHERE sale_id = ? AND return_qty < quantity',
+          [saleId]));
+      await txn.rawUpdate('UPDATE sales SET status = ? WHERE id = ?',
+          [open == 0 ? 'returned' : 'partial_return', saleId]);
+    });
+    return {'success': true, 'saleId': saleId, 'refundAmount': refund};
   }
 
   // ── SUPPLIERS ──────────────────────────────────────────────────────────────
@@ -1622,12 +1683,12 @@ class LocalDb {
              COALESCE(SUM(payment_bank_transfer),0) as transfer,
              COALESCE(SUM(payment_wallet),0) as wallet,
              COUNT(*) as cnt
-      FROM sales WHERE ${w.clause} AND status='completed' ''', w.args);
+      FROM sales WHERE ${w.clause} AND $_sold ''', w.args);
     final top = await d.rawQuery('''
       SELECT si.item_name as name, SUM(si.quantity) as qty,
              SUM(si.price*si.quantity-si.discount) as revenue
       FROM sale_items si JOIN sales s ON s.id=si.sale_id
-      WHERE ${wS.clause} AND s.status='completed'
+      WHERE ${wS.clause} AND $_soldS
       GROUP BY si.item_name ORDER BY revenue DESC LIMIT 5''', wS.args);
     // Today's payments per method — independent of period.
     final todayRows = await d.rawQuery('''
@@ -1635,7 +1696,20 @@ class LocalDb {
              COALESCE(SUM(payment_pos),0) as pos,
              COALESCE(SUM(payment_bank_transfer),0) as transfer,
              COALESCE(SUM(payment_wallet),0) as wallet
-      FROM sales WHERE date(created_at) = date('now','localtime') AND status='completed' ''');
+      FROM sales WHERE date(created_at) = date('now','localtime') AND $_sold ''');
+    // Refunds come off on the date they were taken, matching the profit
+    // report and the backend. Cash refunds leave the drawer, so they reduce
+    // the cash bucket; the rest land in "other".
+    final wR = _periodWhere(period, table: 'r');
+    final refRows = await d.rawQuery('''
+      SELECT COALESCE(SUM(r.amount),0) as total,
+             COALESCE(SUM(CASE WHEN s.is_wholesale=0 THEN r.amount ELSE 0 END),0) as retail,
+             COALESCE(SUM(CASE WHEN s.is_wholesale=1 THEN r.amount ELSE 0 END),0) as wholesale,
+             COALESCE(SUM(CASE WHEN r.refund_method='cash' THEN r.amount ELSE 0 END),0) as cash
+      FROM sale_returns r JOIN sales s ON s.id=r.sale_id
+      WHERE ${wR.clause} AND $_soldS ''', wR.args);
+    final rf = refRows.first;
+    final refunds = (rf['total'] as num).toDouble();
     final tr = todayRows.first;
     final r = rows.first;
     // Expenses for the selected period, split by source (cash drawer vs other).
@@ -1647,10 +1721,12 @@ class LocalDb {
     final er = expRows.first;
     final expCash  = (er['cash'] as num).toDouble();
     final expOther = (er['other'] as num).toDouble();
-    final cashSales  = (r['cash'] as num).toDouble();
+    final cashSales  = (r['cash'] as num).toDouble()
+        - (rf['cash'] as num).toDouble();
     final otherSales = (r['pos'] as num).toDouble()
         + (r['transfer'] as num).toDouble()
-        + (r['wallet'] as num).toDouble();
+        + (r['wallet'] as num).toDouble()
+        - (refunds - (rf['cash'] as num).toDouble());
     return {
       'period': period,
       'expenses': {
@@ -1667,9 +1743,12 @@ class LocalDb {
         'transfer': (tr['transfer'] as num).toDouble(),
         'wallet': (tr['wallet'] as num).toDouble(),
       },
-      'totalRevenue': (r['total'] as num).toDouble(),
-      'totalRetail': (r['retail'] as num).toDouble(),
-      'totalWholesale': (r['wholesale'] as num).toDouble(),
+      'totalRevenue': (r['total'] as num).toDouble() - refunds,
+      'totalRetail':
+          (r['retail'] as num).toDouble() - (rf['retail'] as num).toDouble(),
+      'totalWholesale': (r['wholesale'] as num).toDouble()
+          - (rf['wholesale'] as num).toDouble(),
+      'totalRefunds': refunds,
       'totalSales': r['cnt'],
       'paymentMethods': {
         'cash': (r['cash'] as num).toDouble(),
@@ -1738,19 +1817,47 @@ class LocalDb {
   Future<Map<String, dynamic>> getProfitReport(String period) async {
     final d = await db;
     final w = _periodWhere(period, table: 's');
-    final rows = await d.rawQuery('''
-      SELECT COALESCE(SUM(s.total_amount),0) as revenue,
-             COALESCE(SUM(si.cost_price*si.quantity),0) as cost
-      FROM sales s LEFT JOIN sale_items si ON si.sale_id=s.id
-      WHERE ${w.clause} AND s.status='completed' ''', w.args);
-    final revenue = (rows.first['revenue'] as num? ?? 0).toDouble();
-    final cost = (rows.first['cost'] as num? ?? 0).toDouble();
+    // Revenue and cost are summed in separate queries on purpose: joining
+    // sale_items repeats each sale row once per line, which multiplied
+    // total_amount by the number of items on the receipt.
+    final revRows = await d.rawQuery('''
+      SELECT COALESCE(SUM(s.total_amount),0) as revenue
+      FROM sales s WHERE ${w.clause} AND $_soldS ''', w.args);
+    // Refunds are netted off the period they were RECORDED in, not the one
+    // their sale fell in, so a refund can never rewrite a closed month.
+    final wR = _periodWhere(period, table: 'r');
+    final refRows = await d.rawQuery('''
+      SELECT COALESCE(SUM(r.amount),0) as refunds,
+             COALESCE(SUM(r.cost_price*r.quantity),0) as returnedCost
+      FROM sale_returns r JOIN sales s ON s.id=r.sale_id
+      WHERE ${wR.clause} AND $_soldS ''', wR.args);
+    // Lines with no cost price contribute no cost — they are reported through
+    // costCoverage rather than counted as pure profit.
+    final costRows = await d.rawQuery('''
+      SELECT COALESCE(SUM(CASE WHEN si.cost_price>0
+                               THEN si.cost_price*si.quantity ELSE 0 END),0) as cost,
+             COALESCE(SUM(CASE WHEN si.cost_price>0
+                               THEN si.price*si.quantity ELSE 0 END),0) as costed,
+             COALESCE(SUM(si.price*si.quantity),0) as lineTotal
+      FROM sale_items si JOIN sales s ON si.sale_id=s.id
+      WHERE ${w.clause} AND $_soldS ''', w.args);
+    final refunds = (refRows.first['refunds'] as num? ?? 0).toDouble();
+    final revenue =
+        (revRows.first['revenue'] as num? ?? 0).toDouble() - refunds;
+    final cost = (costRows.first['cost'] as num? ?? 0).toDouble() -
+        (refRows.first['returnedCost'] as num? ?? 0).toDouble();
+    final costed = (costRows.first['costed'] as num? ?? 0).toDouble();
+    final lineTotal = (costRows.first['lineTotal'] as num? ?? 0).toDouble();
     final profit = revenue - cost;
     return {
       'period': period,
       'revenue': revenue,
+      'cost': cost,
+      'refunds': refunds,
       'profit': profit,
       'margin': revenue > 0 ? (profit / revenue * 100) : 0.0,
+      'costCoverage': lineTotal > 0 ? (costed / lineTotal) : 0.0,
+      'estimated': cost == 0,
     };
   }
 
@@ -1763,12 +1870,12 @@ class LocalDb {
       SELECT strftime('%d', created_at) as day,
              SUM(total_amount) as revenue, COUNT(*) as cnt
       FROM sales WHERE strftime('%m',created_at)=? AND strftime('%Y',created_at)=?
-        AND status='completed'
+        AND $_sold
       GROUP BY day ORDER BY day ASC''', [m, y]);
     final total = await d.rawQuery('''
       SELECT COALESCE(SUM(total_amount),0) as revenue, COUNT(*) as cnt
       FROM sales WHERE strftime('%m',created_at)=? AND strftime('%Y',created_at)=?
-        AND status='completed' ''', [m, y]);
+        AND $_sold ''', [m, y]);
     return {
       'month': int.parse(m),
       'year': int.parse(y),
@@ -1790,11 +1897,11 @@ class LocalDb {
     final d = await db;
     final today = await d.rawQuery('''
       SELECT COALESCE(SUM(total_amount),0) as rev, COUNT(*) as cnt
-      FROM sales WHERE is_wholesale=1 AND date(created_at)=date('now','localtime') AND status='completed' ''');
+      FROM sales WHERE is_wholesale=1 AND date(created_at)=date('now','localtime') AND $_sold ''');
     final unitsToday = await d.rawQuery('''
       SELECT COALESCE(SUM(si.quantity),0) as units
       FROM sale_items si JOIN sales s ON si.sale_id=s.id
-      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now','localtime') AND s.status='completed' ''');
+      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now','localtime') AND $_soldS ''');
     final debt = await d.rawQuery(
         "SELECT COALESCE(SUM(outstanding_debt),0) as d FROM customers WHERE is_wholesale=1");
     final custCount = await d
@@ -1806,7 +1913,7 @@ class LocalDb {
     final topProductsRows = await d.rawQuery('''
       SELECT si.name, SUM(si.quantity) as qty, SUM(si.quantity * si.price) as revenue
       FROM sale_items si JOIN sales s ON si.sale_id=s.id
-      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now','localtime') AND s.status='completed'
+      WHERE s.is_wholesale=1 AND date(s.created_at)=date('now','localtime') AND $_soldS
       GROUP BY si.name ORDER BY qty DESC LIMIT 5 ''');
 
     // Pending transfers
@@ -1851,7 +1958,7 @@ class LocalDb {
   Future<List<Map<String, dynamic>>> getWholesaleSalesByUser(
       {String? from, String? to}) async {
     final d = await db;
-    final conds = <String>['is_wholesale = 1', "status = 'completed'"];
+    final conds = <String>['is_wholesale = 1', _sold];
     final args = <dynamic>[];
     if (from != null) {
       conds.add('created_at >= ?');
@@ -1884,7 +1991,7 @@ class LocalDb {
           SELECT COALESCE(SUM(si.quantity), 0) as total_items
           FROM sale_items si
           JOIN sales s ON s.id = si.sale_id
-          WHERE s.served_by = ? AND s.is_wholesale = 1 AND s.status = 'completed'
+          WHERE s.served_by = ? AND s.is_wholesale = 1 AND $_soldS
           ${from != null ? "AND s.created_at >= ?" : ""}
           ${to != null ? "AND s.created_at <= ?" : ""}
         ''', [servedBy, if (from != null) from, if (to != null) to]);

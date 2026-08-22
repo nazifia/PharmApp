@@ -467,9 +467,15 @@ def wholesale_sale_return(request, pk):
     if err:
         return err
     sale = get_object_or_404(Sale, pk=pk, organization=org, is_wholesale=True)
-    item_id = request.data.get("saleItemId")
+    # The app posts snake_case here while the rest of the API is camelCase;
+    # accept both so a return is never silently 404'd.
+    item_id = request.data.get("saleItemId") or request.data.get("sale_item_id")
     qty = int(request.data.get("quantity", 0))
-    refund_method = request.data.get("refundMethod", "wallet")
+    refund_method = (
+        request.data.get("refundMethod")
+        or request.data.get("refund_method")
+        or "wallet"
+    )
     reason = request.data.get("reason", "")
 
     if qty <= 0:

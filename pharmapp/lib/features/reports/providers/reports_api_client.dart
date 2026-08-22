@@ -122,14 +122,20 @@ class CustomerReportData {
 }
 
 class ProfitReportData {
-  final String period; final double revenue; final double profit; final double margin;
-  ProfitReportData({required this.period, required this.revenue,
-      required this.profit, required this.margin});
+  final String period; final double revenue; final double cost;
+  final double profit; final double margin;
+  /// Share of line revenue (0..1) backed by a recorded cost price. Below 1 the
+  /// profit is overstated — the uncosted lines contribute no cost of goods.
+  final double costCoverage;
+  ProfitReportData({required this.period, required this.revenue, required this.cost,
+      required this.profit, required this.margin, required this.costCoverage});
   factory ProfitReportData.fromJson(Map<String, dynamic> j) => ProfitReportData(
         period: (j['period'] as String?) ?? 'month',
         revenue: (j['revenue'] as num?)?.toDouble() ?? 0,
+        cost: (j['cost'] as num?)?.toDouble() ?? 0,
         profit: (j['profit'] as num?)?.toDouble() ?? 0,
-        margin: (j['margin'] as num?)?.toDouble() ?? 0);
+        margin: (j['margin'] as num?)?.toDouble() ?? 0,
+        costCoverage: (j['costCoverage'] as num?)?.toDouble() ?? 1.0);
 }
 
 class CashierUserSummary {
@@ -301,7 +307,8 @@ class ReportsApiClient {
         final prefs = await SharedPreferences.getInstance();
         final raw = prefs.getString(cacheKey);
         if (raw != null) return ProfitReportData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-        return ProfitReportData(period: period, revenue: 0, profit: 0, margin: 0);
+        return ProfitReportData(
+            period: period, revenue: 0, cost: 0, profit: 0, margin: 0, costCoverage: 1);
       }
       throw Exception(_detail(e.response?.data) ?? 'Failed to load profit report');
     }

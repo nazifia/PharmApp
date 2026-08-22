@@ -694,6 +694,21 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
     ]);
   }
 
+  /// Profit is only as good as the cost prices entered. Say so plainly rather
+  /// than presenting an overstated figure as fact.
+  String _coverageNote(ProfitReportData data) {
+    if (data.costCoverage >= 0.999) {
+      return 'Profit calculated from the cost price recorded on each sale.';
+    }
+    if (data.costCoverage <= 0) {
+      return 'No cost prices recorded, so no cost of goods could be deducted. '
+          'Add cost prices in Inventory to see real profit.';
+    }
+    final missing = ((1 - data.costCoverage) * 100).round();
+    return '$missing% of sales have no cost price recorded, so profit here is '
+        'overstated. Add cost prices in Inventory for a true figure.';
+  }
+
   Widget _infoNote(BuildContext context, ProfitReportData data) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
@@ -717,9 +732,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(child: Text(
-                data.margin > 0
-                    ? 'Profit calculated from item cost prices where available.'
-                    : 'No cost data available. Profit is estimated at 30% of revenue.',
+                _coverageNote(data),
                 style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 12))),
           ]),
         ),

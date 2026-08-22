@@ -189,6 +189,10 @@ class SaleItem(models.Model):
     unit = models.CharField(max_length=20, blank=True, default="")
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     price = models.DecimalField(max_digits=12, decimal_places=2)
+    # Unit cost snapshotted at checkout. Profit reports read this, never
+    # Item.cost, so editing a cost price later cannot rewrite past profit —
+    # and a deleted item (item FK is SET_NULL) still has its COGS.
+    cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
     barcode = models.CharField(max_length=100, blank=True, default="")

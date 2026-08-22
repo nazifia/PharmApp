@@ -274,6 +274,7 @@ def checkout(request):
                 unit=ri["unit"],
                 quantity=qty,
                 price=ri["price"],
+                cost=item.cost if item else Decimal("0"),
                 discount=ri["discount"],
                 barcode=ri["barcode"],
             )
@@ -389,9 +390,15 @@ def return_item(request, pk):
     if err:
         return err
     sale = get_object_or_404(Sale, pk=pk, organization=org)
-    item_id = request.data.get("saleItemId")
+    # The app posts snake_case here while the rest of the API is camelCase;
+    # accept both so a return is never silently 404'd.
+    item_id = request.data.get("saleItemId") or request.data.get("sale_item_id")
     qty = Decimal(str(request.data.get("quantity", 0)))
-    refund_method = request.data.get("refundMethod", "wallet")
+    refund_method = (
+        request.data.get("refundMethod")
+        or request.data.get("refund_method")
+        or "wallet"
+    )
     reason = request.data.get("reason", "")
 
     if qty <= 0:
@@ -690,6 +697,7 @@ def complete_payment_request(request, pk):
                 unit=pri.unit,
                 quantity=pri.quantity,
                 price=pri.unit_price,
+                cost=pri.item.cost if pri.item else Decimal("0"),
                 discount=pri.discount_amount,
             )
             DispensingLog.objects.create(
@@ -864,6 +872,7 @@ def expense_detail(request, pk):
 def monthly_report(request):
     """Monthly report with sales, expenses, net profit."""
     from pos.models import Sale as PosSale
+    from pos.profit import REVENUE_STATUSES, profit_figures, returns_in
 
     org, err = require_org(request)
     if err:
@@ -877,42 +886,29 @@ def monthly_report(request):
         organization=org,
         created__year=year,
         created__month=month,
-        status__in=["completed", "partial_return"],
+        status__in=REVENUE_STATUSES,
     )
+    figures = profit_figures(sales_qs, returns_in(
+        org, created_at__year=year, created_at__month=month,
+    ))
 
-    sales_total = sales_qs.aggregate(t=Sum("total_amount"))["t"] or 0
-
-    # Cost of goods sold — mirrors the profit_report logic in reports/views.py
-    from django.db.models import FloatField
-    cogs = (
-        SaleItem.objects.filter(
-            sale__in=sales_qs,
-            item__isnull=False,
-            item__cost__gt=0,
-        ).aggregate(
-            t=Sum(F("quantity") * F("item__cost"), output_field=FloatField())
-        )["t"]
-        or 0
-    )
-    # Fall back to 70 % estimate when no cost prices are recorded
-    if cogs == 0 and sales_total > 0:
-        cogs = float(sales_total) * 0.70
-
-    expenses_total = (
+    expenses_total = float(
         Expense.objects.filter(organization=org, date__year=year, date__month=month).aggregate(
             t=Sum("amount")
         )["t"]
         or 0
     )
 
-    net_profit = float(sales_total) - float(cogs) - float(expenses_total)
-
     return Response(
         {
             "month": f"{year}-{month:02d}",
-            "totalSales": float(sales_total),
-            "totalExpenses": float(expenses_total),
-            "netProfit": net_profit,
+            "totalSales": figures["revenue"],
+            "totalCogs": figures["cost"],
+            "totalRefunds": figures["refunds"],
+            "totalExpenses": expenses_total,
+            "grossProfit": figures["profit"],
+            "netProfit": round(figures["profit"] - expenses_total, 2),
+            "costCoverage": figures["coverage"],
         }
     )
 
