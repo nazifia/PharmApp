@@ -231,7 +231,17 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
           .fetchCurrentUser(current);
       _ref.read(currentUserProvider.notifier).state = fresh;
       // Re-enforce backend-assigned branch in case it changed server-side.
-      if (fresh.branchId != 0) {
+      //
+      // Only reassign when the branch ID actually changed. This runs on a
+      // 60-second poll; writing a fresh Branch every tick made
+      // activeBranchProvider emit a new (identity-unequal) value each time,
+      // which invalidated every branch-scoped provider — inventory, customers,
+      // POS, reports, prescriptions — and flipped the whole app back to
+      // loading spinners once a minute until the refetch returned.
+      final activeBranch = _ref.read(activeBranchProvider);
+      final branchChanged = activeBranch?.id != fresh.branchId ||
+          activeBranch?.name != fresh.branchName;
+      if (fresh.branchId != 0 && branchChanged) {
         _ref.read(activeBranchProvider.notifier).state = Branch(
           id:   fresh.branchId,
           name: fresh.branchName,

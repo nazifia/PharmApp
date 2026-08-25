@@ -25,9 +25,11 @@ class EagerSyncNotifier extends StateNotifier<EagerSyncStatus> {
       final dio = _ref.read(dioProvider);
       final inv = InventoryApiClient.remote(dio);
       final cust = CustomerApiClient.remote(dio);
-      // Fetch all store variants — each call caches to SP + SQLite.
+      // Retail + wholesale together already cover every item, and each call
+      // caches to SharedPreferences + SQLite. The unfiltered fetchInventory()
+      // that used to lead this list re-downloaded the same rows a third time
+      // for a cache key no screen reads.
       await Future.wait([
-        inv.fetchInventory(),
         inv.fetchInventory(store: 'retail'),
         inv.fetchInventory(store: 'wholesale'),
         cust.fetchCustomers(),

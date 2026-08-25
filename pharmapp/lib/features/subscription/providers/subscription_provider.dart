@@ -86,7 +86,12 @@ class SubscriptionNotifier extends StateNotifier<AsyncValue<Subscription>>
       state = AsyncValue.data(Subscription.defaultTrial());
       return;
     }
-    state = const AsyncValue.loading();
+    // Keep the previously-resolved subscription attached while reloading.
+    // A bare AsyncValue.loading() dropped every consumer back to
+    // Subscription.defaultTrial() for the duration of the request, so on each
+    // app resume the paid plan's features blinked off (and the router could
+    // bounce a multi-branch user to /select-branch) until the call returned.
+    state = const AsyncValue<Subscription>.loading().copyWithPrevious(state);
     try {
       final sub = await _ref.read(subscriptionApiClientProvider).getSubscription();
       await _saveCache(sub);
@@ -144,9 +149,10 @@ final subscriptionNotifierProvider =
 
 /// The resolved [Subscription] object — returns a defaultTrial while loading.
 final currentSubscriptionProvider = Provider<Subscription>((ref) {
-  return ref
-      .watch(subscriptionNotifierProvider)
-      .maybeWhen(data: (s) => s, orElse: Subscription.defaultTrial);
+  // valueOrNull (not maybeWhen) so a reload that carries the previous value
+  // keeps serving it instead of falling back to trial mid-request.
+  return ref.watch(subscriptionNotifierProvider).valueOrNull ??
+      Subscription.defaultTrial();
 });
 
 /// Whether the current subscription allows access to a named feature.

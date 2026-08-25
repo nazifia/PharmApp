@@ -111,6 +111,18 @@ class _AppShellState extends ConsumerState<AppShell>
   /// handler to decide whether a restart is needed.
   bool _wentOffline = false;
 
+  /// Consecutive offline readings from the retry timer. Debounces
+  /// connectivity_plus false negatives so one bad poll can't restart the app.
+  int _offlineReadings = 0;
+
+  /// When the app was last backgrounded — used to skip the expensive
+  /// force-refresh after a brief tab-out. Null while in the foreground.
+  DateTime? _backgroundedAt;
+
+  /// How long the app must stay backgrounded before a resume is worth a
+  /// full data refresh.
+  static const _staleAfterBackground = Duration(seconds: 60);
+
   @override
   void initState() {
     super.initState();
@@ -165,7 +177,17 @@ class _AppShellState extends ConsumerState<AppShell>
       // the change event (known issue on Windows and some Android setups).
       final isOnlineNow = await checkConnectivityNow();
       final justReconnected = isOnlineNow && !_wasOnlinePrev;
-      if (!isOnlineNow) _wentOffline = true;
+      // connectivity_plus reports a spurious `none` on Windows and on some
+      // Android wifi/mobile handovers. A single bad reading used to arm
+      // _wentOffline, and the next tick then restarted the whole app —
+      // a multi-second freeze with no real network change behind it.
+      // Require two consecutive offline readings (30s) before believing it.
+      if (!isOnlineNow) {
+        _offlineReadings++;
+        if (_offlineReadings >= 2) _wentOffline = true;
+      } else {
+        _offlineReadings = 0;
+      }
       _wasOnlinePrev = isOnlineNow;
       if (justReconnected) {
         _handleReconnect();
@@ -197,11 +219,25 @@ class _AppShellState extends ConsumerState<AppShell>
   /// backgrounded and no stream event will fire on resume.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      // Force-refresh data on resume — connectivity may have changed while
-      // the app was backgrounded and no stream event will fire.
-      _syncIfNeeded(forceRefresh: true);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.inactive) {
+      _backgroundedAt ??= DateTime.now();
+      return;
     }
+    if (state != AppLifecycleState.resumed) return;
+
+    final awayFor = _backgroundedAt == null
+        ? Duration.zero
+        : DateTime.now().difference(_backgroundedAt!);
+    _backgroundedAt = null;
+
+    // A force-refresh invalidates every data provider, which fires a dozen
+    // requests at once. The backend serves them from a single worker, so the
+    // burst serialises and the UI waits on all of it. A quick tab-out doesn't
+    // make the data stale enough to be worth that — only pay for it after a
+    // real absence. Shorter trips still sync the offline queue.
+    _syncIfNeeded(forceRefresh: awayFor >= _staleAfterBackground);
   }
 
   void _invalidateAllDataProviders() {
@@ -376,7 +412,10 @@ class _AppShellState extends ConsumerState<AppShell>
   Widget build(BuildContext context) {
     // Eagerly preload inventory, customers and payment requests so screens
     // are ready instantly when navigated to, and offline reads succeed.
-    ref.watch(inventoryListProvider);
+    // Note: inventoryListProvider (all stores) is deliberately NOT preloaded.
+    // No screen renders it — every consumer reads the retail or wholesale
+    // variant — so fetching it here downloaded the whole item table a second
+    // time on every startup, resume and cache invalidation.
     ref.watch(retailInventoryProvider);
     ref.watch(customerListProvider);
     ref.watch(paymentRequestsPreloadProvider);

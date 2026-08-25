@@ -38,6 +38,9 @@ class _InactivityGuardState extends ConsumerState<InactivityGuard> {
   Timer? _timer;
   int _logoutMinutes = _defaultLogoutMinutes;
 
+  /// Throttles [_onActivity] writes — see the comment there.
+  DateTime _lastWrite = DateTime.fromMillisecondsSinceEpoch(0);
+
   @override
   void initState() {
     super.initState();
@@ -52,7 +55,14 @@ class _InactivityGuardState extends ConsumerState<InactivityGuard> {
   }
 
   void _onActivity(PointerEvent event) {
-    ref.read(lastActivityProvider.notifier).state = DateTime.now();
+    // This fires for every pointer event, including moves at display refresh
+    // rate during a scroll or drag. Writing the provider each time pushed a
+    // new value through the container 60-120x/second for a timeout measured
+    // in minutes. Once every 10 s is precise enough.
+    final now = DateTime.now();
+    if (now.difference(_lastWrite) < const Duration(seconds: 10)) return;
+    _lastWrite = now;
+    ref.read(lastActivityProvider.notifier).state = now;
   }
 
   void _checkInactivity(Timer timer) {

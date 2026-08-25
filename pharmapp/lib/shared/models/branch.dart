@@ -64,4 +64,24 @@ class Branch {
         isMain:    isMain    ?? this.isMain,
         createdAt: createdAt,
       );
+
+  // Value equality — without it every rebuilt Branch is a distinct value, so
+  // assigning one to activeBranchProvider always notified and invalidated
+  // every branch-scoped provider in the app.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Branch &&
+          other.id == id &&
+          other.name == name &&
+          other.address == address &&
+          other.phone == phone &&
+          other.email == email &&
+          other.isActive == isActive &&
+          other.isMain == isMain &&
+          other.createdAt == createdAt;
+
+  @override
+  int get hashCode => Object.hash(
+      id, name, address, phone, email, isActive, isMain, createdAt);
 }
