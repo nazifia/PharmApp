@@ -298,6 +298,29 @@ def sales_report(request):
     })
 
 
+def _value_totals(qs):
+    """Stock-count, cost value and retail value for an Item queryset."""
+    agg = qs.aggregate(
+        c=db_models.Sum(
+            db_models.ExpressionWrapper(
+                db_models.F('stock') * db_models.F('cost'),
+                output_field=db_models.FloatField(),
+            )
+        ),
+        r=db_models.Sum(
+            db_models.ExpressionWrapper(
+                db_models.F('stock') * db_models.F('price'),
+                output_field=db_models.FloatField(),
+            )
+        ),
+    )
+    return {
+        'count':  qs.count(),
+        'cost':   round(float(agg['c'] or 0), 2),
+        'retail': round(float(agg['r'] or 0), 2),
+    }
+
+
 # ── Inventory report ──────────────────────────────────────────────────────────
 
 @api_view(['GET'])
@@ -358,8 +381,41 @@ def inventory_report(request):
             'name':       i.name,
             'stock':      i.stock,
             'expiryDate': str(i.expiry_date),
+            'costValue':  round(float(i.stock) * float(i.cost), 2),
+            'retailValue': round(float(i.stock) * float(i.price), 2),
         }
         for i in expiring
+    ]
+
+    # ── Expired stock — money already lost on the shelf ───────────────────────
+    # stock > 0 only: already-written-off batches carry no value and would
+    # otherwise pad the count forever.
+    expired = items.filter(
+        expiry_date__isnull=False, expiry_date__lt=today, stock__gt=0
+    )
+    expired_totals = _value_totals(expired)
+    expiring_totals = _value_totals(
+        items.filter(
+            expiry_date__isnull=False,
+            expiry_date__lte=in_30,
+            expiry_date__gte=today,
+            stock__gt=0,
+        )
+    )
+
+    expired_items = [
+        {
+            'id':          i.id,
+            'name':        i.name,
+            'brand':       i.brand,
+            'stock':       i.stock,
+            'expiryDate':  str(i.expiry_date),
+            'batchNumber': i.batch_number,
+            'costValue':   round(float(i.stock) * float(i.cost), 2),
+            'retailValue': round(float(i.stock) * float(i.price), 2),
+            'daysExpired': (today - i.expiry_date).days,
+        }
+        for i in expired.order_by('expiry_date')[:50]
     ]
 
     return Response({
@@ -370,6 +426,15 @@ def inventory_report(request):
         'costValue':     round(cost_value, 2),
         'lowStockItems': low_stock_items,
         'expiringItems': expiring_items,
+        # Expired: `Value` is the cost basis (the real write-off), retail is what
+        # it would have sold for.
+        'expiredCount':        expired.count(),
+        'expiredValue':        expired_totals['cost'],
+        'expiredRetailValue':  expired_totals['retail'],
+        'expiredItems':        expired_items,
+        'expiringCount':       expiring_totals['count'],
+        'expiringValue':       expiring_totals['cost'],
+        'expiringRetailValue': expiring_totals['retail'],
     })
 
 

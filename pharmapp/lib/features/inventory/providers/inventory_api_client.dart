@@ -7,6 +7,20 @@ import '../../../shared/models/item.dart';
 
 const _kInventoryCachePrefix = 'cache_inventory';
 
+/// Outcome of a write-off: how many items were cleared and what they were worth.
+class WriteOffResult {
+  final int count;
+  final double costValue;
+  final double retailValue;
+  const WriteOffResult(
+      {required this.count, required this.costValue, required this.retailValue});
+  factory WriteOffResult.fromJson(Map<String, dynamic> j) => WriteOffResult(
+        count: (j['count'] as num?)?.toInt() ?? 0,
+        costValue: (j['costValue'] as num?)?.toDouble() ?? 0,
+        retailValue: (j['retailValue'] as num?)?.toDouble() ?? 0,
+      );
+}
+
 class InventoryApiClient {
   final Dio? _dio;
 
@@ -180,6 +194,27 @@ class InventoryApiClient {
     } on DioException catch (e) {
       if (e.response == null) rethrow;
       throw Exception(e.response?.data?['detail'] ?? 'Failed to adjust stock');
+    }
+  }
+
+  /// Zeroes the stock of expired items and returns what the write-off cost.
+  /// Pass [itemIds] to write off a specific set, or omit for every expired item.
+  /// Online-only — a destructive bulk change is not queued for later sync.
+  Future<WriteOffResult> writeOffExpired({List<int>? itemIds}) async {
+    if (_isLocal) {
+      throw Exception('Writing off expired stock requires a connection.');
+    }
+    try {
+      final res = await _dio!.post('/inventory/write-off-expired/', data: {
+        if (itemIds != null && itemIds.isNotEmpty) 'itemIds': itemIds,
+      });
+      return WriteOffResult.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response == null) {
+        throw Exception('Writing off expired stock requires a connection.');
+      }
+      throw Exception(
+          e.response?.data?['detail'] ?? 'Failed to write off expired stock');
     }
   }
 

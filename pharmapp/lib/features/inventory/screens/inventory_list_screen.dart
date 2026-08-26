@@ -8,6 +8,7 @@ import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
+import 'package:pharmapp/features/inventory/widgets/write_off_expired.dart';
 import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/item.dart';
 import 'package:pharmapp/shared/widgets/app_drawer.dart';
@@ -1099,9 +1100,74 @@ class _StoreInventoryView extends ConsumerWidget {
             ));
           });
         }
+        final banner = _expiryValueBanner(context, ref, filtered);
         if (filtered.isEmpty) return _emptyState(context);
-        return isGrid ? _buildGrid(context, filtered) : _buildList(context, filtered);
+        final list =
+            isGrid ? _buildGrid(context, filtered) : _buildList(context, filtered);
+        if (banner == null) return list;
+        return Column(children: [banner, Expanded(child: list)]);
       },
+    );
+  }
+
+  /// Money tied up in the expired / expiring rows currently on screen.
+  /// Cost value is the write-off; retail is what it would have sold for.
+  Widget? _expiryValueBanner(
+      BuildContext context, WidgetRef ref, List<Item> items) {
+    if (filter != 'Expired' && filter != 'Expiring Soon') return null;
+    final expired = filter == 'Expired';
+    final c = expired ? EnhancedTheme.errorRed : EnhancedTheme.accentOrange;
+    var cost = 0.0, retail = 0.0, units = 0.0;
+    for (final i in items) {
+      cost   += i.costPrice * i.stock;
+      retail += i.price * i.stock;
+      units  += i.stock;
+    }
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.withValues(alpha: 0.32)),
+      ),
+      child: Row(children: [
+        Icon(expired ? Icons.event_busy_rounded : Icons.schedule_rounded,
+            color: c, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(expired ? 'Total expired value' : 'Value expiring in 30 days',
+                style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+            const SizedBox(height: 2),
+            Text(fmtN(cost),
+                style: TextStyle(
+                    color: c, fontSize: 18, fontWeight: FontWeight.w800)),
+          ]),
+        ),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('${items.length} items - ${fmtNum(units)} units',
+              style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+          const SizedBox(height: 2),
+          Text('Retail ${fmtN(retail)}',
+              style: TextStyle(color: context.hintColor, fontSize: 11)),
+        ]),
+        if (expired &&
+            Rbac.can(ref.watch(currentUserProvider), AppPermission.adjustStock)) ...[
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: 'Write off expired stock',
+            onPressed: () => confirmWriteOffExpired(
+              context, ref,
+              itemIds: items.map((i) => i.id).toList(),
+              count: items.length,
+              costValue: cost,
+            ),
+            icon: const Icon(Icons.delete_forever_rounded,
+                color: EnhancedTheme.errorRed, size: 20),
+          ),
+        ],
+      ]),
     );
   }
 

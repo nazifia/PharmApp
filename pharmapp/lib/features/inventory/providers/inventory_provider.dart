@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/offline/offline_queue.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/branches/providers/branch_provider.dart';
+import '../../../features/reports/providers/reports_provider.dart';
 import '../../../shared/models/item.dart';
 import 'inventory_api_client.dart';
 
@@ -373,6 +374,24 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       return null;
+    }
+  }
+
+  /// Writes off expired stock (sets it to zero) and refreshes every view that
+  /// shows stock or its value. Throws when offline — nothing is queued.
+  Future<WriteOffResult> writeOffExpired({List<int>? itemIds}) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _api.writeOffExpired(itemIds: itemIds);
+      _ref.invalidate(retailInventoryProvider);
+      _ref.invalidate(wholesaleInventoryProvider);
+      _ref.invalidate(inventoryListProvider);
+      _ref.invalidate(inventoryReportProvider);
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 

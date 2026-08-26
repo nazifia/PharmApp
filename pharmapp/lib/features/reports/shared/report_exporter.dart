@@ -250,6 +250,18 @@ class ReportExporter {
                     valueColor: _green),
                 pw.Expanded(child: pw.SizedBox()),
               ]),
+              pw.SizedBox(height: 10),
+              pw.Row(children: [
+                _kpiCard('Expired Items', '${data.expiredCount}',
+                    valueColor: _red),
+                _kpiCard('Expired Value (cost)',
+                    _currency(data.expiredValue),
+                    valueColor: _red),
+                _kpiCard('Expiring in 30 Days',
+                    '${data.expiringCount} / ${_currency(data.expiringValue)}',
+                    valueColor: _amber),
+                pw.Expanded(child: pw.SizedBox()),
+              ]),
               if (data.lowStockItems.isNotEmpty) ...[
                 pw.SizedBox(height: 20),
                 _sectionTitle(
@@ -281,6 +293,56 @@ class ReportExporter {
                         status,
                       ], shaded: e.key.isOdd);
                     }),
+                  ],
+                ),
+              ],
+              if (data.expiredItems.isNotEmpty) ...[
+                pw.SizedBox(height: 20),
+                _sectionTitle(
+                    'Expired Stock (${data.expiredItems.length}) — '
+                    '${_currency(data.expiredValue)} at cost'),
+                pw.Table(
+                  border: pw.TableBorder.all(color: _border, width: 0.5),
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(3),
+                    1: const pw.FlexColumnWidth(1.6),
+                    2: const pw.FlexColumnWidth(1.2),
+                    3: const pw.FlexColumnWidth(1.2),
+                    4: const pw.FlexColumnWidth(1.8),
+                    5: const pw.FlexColumnWidth(1.8),
+                  },
+                  children: [
+                    _tableHeaderRow([
+                      'Item Name',
+                      'Batch',
+                      'Expiry',
+                      'Stock',
+                      'Cost Value',
+                      'Retail Value',
+                    ]),
+                    ...data.expiredItems.asMap().entries.map((e) {
+                      final item = e.value;
+                      return _tableDataRow([
+                        item.brand.isEmpty
+                            ? item.name
+                            : '${item.name} (${item.brand})',
+                        item.batchNumber.isEmpty ? '-' : item.batchNumber,
+                        item.expiryDate == null
+                            ? '-'
+                            : DateFormat('d MMM yy').format(item.expiryDate!),
+                        fmtNum(item.stock),
+                        _currency(item.costValue),
+                        _currency(item.retailValue),
+                      ], shaded: e.key.isOdd);
+                    }),
+                    _tableDataRow([
+                      'TOTAL',
+                      '',
+                      '',
+                      '',
+                      _currency(data.expiredValue),
+                      _currency(data.expiredRetailValue),
+                    ]),
                   ],
                 ),
               ],

@@ -6,4 +6,5 @@ urlpatterns = [
     path('items/<int:pk>/',               views.item_detail,            name='item-detail'),
     path('items/<int:pk>/adjust-stock/',  views.adjust_stock,           name='item-adjust-stock'),
     path('availability/',                 views.medication_availability, name='medication-availability'),
+    path('write-off-expired/',            views.write_off_expired,      name='write-off-expired'),
 ]

@@ -86,17 +86,56 @@ class LowStockItem {
         lowStockThreshold: (j['lowStockThreshold'] as num).toInt());
 }
 
+/// A batch that has passed its expiry date — dead stock still on the shelf.
+class ExpiredItem {
+  final int id; final String name; final String brand; final double stock;
+  final DateTime? expiryDate; final String batchNumber;
+  /// What the stock cost to buy — the real write-off.
+  final double costValue;
+  /// What it would have sold for.
+  final double retailValue;
+  final int daysExpired;
+  ExpiredItem({required this.id, required this.name, required this.brand,
+      required this.stock, required this.expiryDate, required this.batchNumber,
+      required this.costValue, required this.retailValue, required this.daysExpired});
+  factory ExpiredItem.fromJson(Map<String, dynamic> j) => ExpiredItem(
+        id: (j['id'] as num?)?.toInt() ?? 0,
+        name: (j['name'] ?? '') as String,
+        brand: (j['brand'] ?? '') as String,
+        stock: (j['stock'] as num?)?.toDouble() ?? 0,
+        expiryDate: DateTime.tryParse((j['expiryDate'] ?? '') as String),
+        batchNumber: (j['batchNumber'] ?? '') as String,
+        costValue: (j['costValue'] as num?)?.toDouble() ?? 0,
+        retailValue: (j['retailValue'] as num?)?.toDouble() ?? 0,
+        daysExpired: (j['daysExpired'] as num?)?.toInt() ?? 0,
+      );
+}
+
 class InventoryReportData {
   final int totalItems; final int lowStockCount; final double stockValue;
   final List<LowStockItem> lowStockItems;
+  final int expiredCount; final double expiredValue; final double expiredRetailValue;
+  final int expiringCount; final double expiringValue; final double expiringRetailValue;
+  final List<ExpiredItem> expiredItems;
   InventoryReportData({required this.totalItems, required this.lowStockCount,
-      required this.stockValue, required this.lowStockItems});
+      required this.stockValue, required this.lowStockItems,
+      this.expiredCount = 0, this.expiredValue = 0, this.expiredRetailValue = 0,
+      this.expiringCount = 0, this.expiringValue = 0, this.expiringRetailValue = 0,
+      this.expiredItems = const []});
   factory InventoryReportData.fromJson(Map<String, dynamic> j) => InventoryReportData(
         totalItems: (j['totalItems'] as num?)?.toInt() ?? 0,
         lowStockCount: (j['lowStockCount'] as num?)?.toInt() ?? 0,
         stockValue: (j['stockValue'] as num?)?.toDouble() ?? 0,
         lowStockItems: (j['lowStockItems'] as List? ?? [])
-            .map((e) => LowStockItem.fromJson(e as Map<String, dynamic>)).toList());
+            .map((e) => LowStockItem.fromJson(e as Map<String, dynamic>)).toList(),
+        expiredCount: (j['expiredCount'] as num?)?.toInt() ?? 0,
+        expiredValue: (j['expiredValue'] as num?)?.toDouble() ?? 0,
+        expiredRetailValue: (j['expiredRetailValue'] as num?)?.toDouble() ?? 0,
+        expiringCount: (j['expiringCount'] as num?)?.toInt() ?? 0,
+        expiringValue: (j['expiringValue'] as num?)?.toDouble() ?? 0,
+        expiringRetailValue: (j['expiringRetailValue'] as num?)?.toDouble() ?? 0,
+        expiredItems: (j['expiredItems'] as List? ?? [])
+            .map((e) => ExpiredItem.fromJson(e as Map<String, dynamic>)).toList());
 }
 
 class TopCustomer {

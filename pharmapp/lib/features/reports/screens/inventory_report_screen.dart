@@ -8,6 +8,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
+import 'package:pharmapp/core/rbac/rbac.dart';
+import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:pharmapp/features/inventory/widgets/write_off_expired.dart';
 import 'package:pharmapp/features/subscription/providers/subscription_provider.dart';
 import 'package:pharmapp/shared/models/subscription.dart';
 import 'package:pharmapp/shared/widgets/app_shell.dart';
@@ -374,10 +377,216 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
               .asMap()
               .entries
               .map((e) => _lowStockRow(context, e.value, e.key)),
+        const SizedBox(height: 24),
+
+        // -- Expired stock value ----------------------------------------------
+        _expiredSection(context, data),
         const SizedBox(height: 32),
       ]),
     );
   }
+
+  /// Total money sitting in expired stock, plus the batches making it up.
+  Widget _expiredSection(BuildContext context, InventoryReportData data) {
+    const red = EnhancedTheme.errorRed;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+                color: red.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.event_busy_rounded, color: red, size: 16)),
+        const SizedBox(width: 10),
+        Expanded(
+            child: Text('Expired Stock Value',
+                style: GoogleFonts.outfit(
+                    color: context.labelColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700))),
+        Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+                color: red.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: red.withValues(alpha: 0.3))),
+            child: Text('${data.expiredCount} items',
+                style: const TextStyle(
+                    color: red, fontSize: 11, fontWeight: FontWeight.w800))),
+        if (data.expiredCount > 0 &&
+            Rbac.can(ref.watch(currentUserProvider), AppPermission.adjustStock)) ...[
+          const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed: () => confirmWriteOffExpired(
+              context, ref,
+              count: data.expiredCount,
+              costValue: data.expiredValue,
+            ),
+            icon: const Icon(Icons.delete_forever_rounded, size: 16),
+            label: const Text('Write off'),
+            style: TextButton.styleFrom(
+              foregroundColor: red,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              minimumSize: const Size(0, 32),
+              textStyle:
+                  const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ]).animate().fadeIn(duration: 350.ms, delay: 140.ms),
+      const SizedBox(height: 12),
+
+      ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  red.withValues(alpha: 0.16),
+                  red.withValues(alpha: 0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: red.withValues(alpha: 0.28)),
+            ),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Write-off (cost value)',
+                      style: TextStyle(
+                          color: Colors.black54,
+                          fontSize: 12,
+                          letterSpacing: 0.4)),
+                  Text(_fmtValue(data.expiredValue),
+                      style: GoogleFonts.outfit(
+                          color: red,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Text('Retail value lost: ${_fmtValue(data.expiredRetailValue)}',
+                      style: TextStyle(color: context.hintColor, fontSize: 11)),
+                  const SizedBox(height: 16),
+                  Row(children: [
+                    Expanded(
+                        child: _kpiBadge('Expired Items', '${data.expiredCount}',
+                            Icons.event_busy_rounded, red)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: _kpiBadge(
+                            'Expiring 30d',
+                            '${data.expiringCount}',
+                            Icons.schedule_rounded,
+                            EnhancedTheme.accentOrange)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: _kpiBadge(
+                            'At Risk',
+                            _fmtValue(data.expiringValue),
+                            Icons.trending_down_rounded,
+                            EnhancedTheme.warningAmber)),
+                  ]),
+                ]),
+          ),
+        ),
+      ).animate().fadeIn(duration: 400.ms, delay: 160.ms).slideY(begin: 0.08, end: 0),
+      const SizedBox(height: 12),
+
+      if (data.expiredItems.isEmpty)
+        const EmptyState(
+          boxed: true,
+          icon: Icons.verified_rounded,
+          title: 'No expired stock',
+          message: 'Nothing on the shelf has passed its expiry date.',
+          color: EnhancedTheme.successGreen,
+        )
+      else
+        ...data.expiredItems
+            .asMap()
+            .entries
+            .map((e) => _expiredRow(context, e.value, e.key)),
+    ]);
+  }
+
+  Widget _expiredRow(BuildContext context, ExpiredItem item, int index) {
+    const c = EnhancedTheme.errorRed;
+    final sub = [
+      if (item.brand.isNotEmpty) item.brand,
+      if (item.batchNumber.isNotEmpty) 'Batch ${item.batchNumber}',
+      '${fmtNum(item.stock)} units',
+    ].join(' - ');
+    final expLabel = item.expiryDate == null
+        ? 'No expiry date'
+        : 'Expired ${item.daysExpired}d ago (${_ymd(item.expiryDate!)})';
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [c.withValues(alpha: 0.10), c.withValues(alpha: 0.04)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: c.withValues(alpha: 0.25))),
+          child: Row(children: [
+            Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    color: c.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.event_busy_rounded, color: c, size: 18)),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(item.name,
+                      style: GoogleFonts.outfit(
+                          color: Colors.black,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(sub,
+                      style: TextStyle(color: context.hintColor, fontSize: 10)),
+                  const SizedBox(height: 2),
+                  Text(expLabel,
+                      style: const TextStyle(color: c, fontSize: 10)),
+                ])),
+            const SizedBox(width: 12),
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text(_fmtValue(item.costValue),
+                  style: const TextStyle(
+                      color: c, fontSize: 15, fontWeight: FontWeight.w800)),
+              const Text('cost value',
+                  style: TextStyle(color: Colors.black38, fontSize: 9)),
+              const SizedBox(height: 4),
+              Text(_fmtValue(item.retailValue),
+                  style: TextStyle(color: context.hintColor, fontSize: 10)),
+              const Text('retail',
+                  style: TextStyle(color: Colors.black38, fontSize: 9)),
+            ]),
+          ]),
+        ),
+      ),
+    )
+        .animate()
+        .fadeIn(
+            duration: 350.ms, delay: Duration(milliseconds: 180 + index * 40))
+        .slideX(begin: 0.05, end: 0);
+  }
+
+  static String _ymd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   Widget _stockPieChart(BuildContext context, InventoryReportData data) {
     if (data.totalItems <= 0) {

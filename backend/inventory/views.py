@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Item, STATUS_ACTIVE
+from .models import Item, STATUS_ACTIVE, STATUS_INACTIVE
 from authapp.utils import require_org, log_activity
 from authapp.permissions import IsInventoryEditor, require_permission
 
@@ -284,6 +284,81 @@ def medication_availability(request):
     # Sort by most stock first so the most-stocked pharmacy appears at the top.
     results.sort(key=lambda x: -x["stock_quantity"])
     return Response(results)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsInventoryEditor])
+def write_off_expired(request):
+    """Zero the stock of expired items and report what it cost.
+
+    POST /inventory/write-off-expired/
+        {"itemIds": [1, 2]}   -> only those items (must be expired)
+        {}                    -> every expired item with stock left
+
+    Stock is set to 0 and the item deactivated; the item row is kept so the
+    write-off stays auditable. Returns the cost and retail value removed.
+    """
+    from django.utils import timezone
+
+    org, err = require_org(request)
+    if err:
+        return err
+
+    today = timezone.localdate()
+    qs = Item.objects.filter(
+        organization=org,
+        expiry_date__isnull=False,
+        expiry_date__lt=today,
+        stock__gt=0,
+    )
+
+    item_ids = request.data.get("itemIds") or request.data.get("item_ids")
+    if item_ids:
+        try:
+            item_ids = [int(i) for i in item_ids]
+        except (TypeError, ValueError):
+            return Response({"detail": "itemIds must be a list of item ids"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        qs = qs.filter(id__in=item_ids)
+
+    items = list(qs)
+    if not items:
+        return Response({
+            "count": 0, "costValue": 0.0, "retailValue": 0.0, "items": [],
+        })
+
+    cost_value = sum(float(i.stock) * float(i.cost) for i in items)
+    retail_value = sum(float(i.stock) * float(i.price) for i in items)
+    written = []
+    for item in items:
+        written.append({
+            "id": item.id,
+            "name": item.name,
+            "stock": float(item.stock),
+            "expiryDate": str(item.expiry_date),
+            "costValue": round(float(item.stock) * float(item.cost), 2),
+        })
+        item.stock = 0
+        item.status = STATUS_INACTIVE
+        item.save(update_fields=["stock", "status", "updated_at"])
+
+    names = ", ".join(i["name"] for i in written[:5])
+    if len(written) > 5:
+        names += f" +{len(written) - 5} more"
+    log_activity(
+        request, action='Write Off Expired', category='inventory',
+        description=(
+            f'Wrote off {len(written)} expired item(s) '
+            f'worth {cost_value:,.2f} at cost: {names}'
+        ),
+    )
+
+    return Response({
+        "count": len(written),
+        "costValue": round(cost_value, 2),
+        "retailValue": round(retail_value, 2),
+        "items": written,
+    })
 
 
 @api_view(["POST"])

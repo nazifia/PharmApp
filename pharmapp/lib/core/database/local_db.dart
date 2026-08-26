@@ -1773,6 +1773,30 @@ class LocalDb {
         'SELECT COUNT(*) as cnt, COALESCE(SUM(cost_price*stock),0) as val FROM items');
     final low = await d.rawQuery(
         'SELECT id,name,stock,low_stock_threshold FROM items WHERE stock<=low_stock_threshold ORDER BY stock ASC');
+
+    final today = DateTime.now();
+    final todayStr = _ymd(today);
+    final in30Str  = _ymd(today.add(const Duration(days: 30)));
+
+    // Expired = expiry strictly before today. Value is the cost basis (what the
+    // write-off actually costs); retail is what it would have sold for.
+    final expiredRows = await d.rawQuery(
+        'SELECT id,name,brand,stock,expiry_date,cost_price,price FROM items '
+        'WHERE expiry_date IS NOT NULL AND expiry_date != "" AND expiry_date < ? '
+        'AND stock > 0 ORDER BY expiry_date ASC',
+        [todayStr]);
+    final expiringRows = await d.rawQuery(
+        'SELECT stock,cost_price,price FROM items '
+        'WHERE expiry_date IS NOT NULL AND expiry_date != "" '
+        'AND expiry_date >= ? AND expiry_date <= ? AND stock > 0',
+        [todayStr, in30Str]);
+
+    double sum(List<Map<String, Object?>> rs, String col) => rs.fold(
+        0.0,
+        (t, r) => t +
+            ((r['stock'] as num? ?? 0).toDouble() *
+                (r[col] as num? ?? 0).toDouble()));
+
     return {
       'totalItems': rows.first['cnt'] ?? 0,
       'lowStockCount': low.length,
@@ -1785,8 +1809,32 @@ class LocalDb {
                 'lowStockThreshold': i['low_stock_threshold'],
               })
           .toList(),
+      'expiredCount': expiredRows.length,
+      'expiredValue': sum(expiredRows, 'cost_price'),
+      'expiredRetailValue': sum(expiredRows, 'price'),
+      'expiringCount': expiringRows.length,
+      'expiringValue': sum(expiringRows, 'cost_price'),
+      'expiringRetailValue': sum(expiringRows, 'price'),
+      'expiredItems': expiredRows.map((i) {
+        final exp = DateTime.tryParse((i['expiry_date'] as String?) ?? '');
+        final stock = (i['stock'] as num? ?? 0).toDouble();
+        return {
+          'id': i['id'],
+          'name': i['name'],
+          'brand': i['brand'] ?? '',
+          'stock': i['stock'],
+          'expiryDate': i['expiry_date'],
+          'batchNumber': '',
+          'costValue': stock * (i['cost_price'] as num? ?? 0).toDouble(),
+          'retailValue': stock * (i['price'] as num? ?? 0).toDouble(),
+          'daysExpired': exp == null ? 0 : today.difference(exp).inDays,
+        };
+      }).toList(),
     };
   }
+
+  static String _ymd(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   Future<Map<String, dynamic>> getCustomerReport() async {
     final d = await db;
