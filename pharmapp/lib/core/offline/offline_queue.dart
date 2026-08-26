@@ -99,13 +99,15 @@ class OfflineQueueNotifier extends StateNotifier<List<PendingSale>> {
   /// [consultationFee] is stored alongside the serialized payload (the freezed
   /// CheckoutPayload has no field for it) so the silent surcharge survives a
   /// later sync replay.
+  /// [id] lets the caller reuse the id it already sent as an `Idempotency-Key`
+  /// on a failed live attempt, so the replay dedupes against it server-side.
   Future<PendingSale> enqueue(CheckoutPayload payload,
-      {double consultationFee = 0}) async {
+      {double consultationFee = 0, String? id}) async {
     await ensureLoaded();
     final payloadJson = payload.toJson();
     if (consultationFee > 0) payloadJson['consultationFee'] = consultationFee;
     final entry = PendingSale(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: id ?? DateTime.now().microsecondsSinceEpoch.toString(),
       payload: payloadJson,
       queuedAt: DateTime.now(),
     );

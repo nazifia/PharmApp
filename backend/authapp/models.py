@@ -439,3 +439,36 @@ class CommissionConfig(models.Model):
 
     def __str__(self):
         return f"{self.user} — {self.commission_rate*100:.1f}%"
+
+
+class IdempotencyRecord(models.Model):
+    """
+    One row per client-supplied ``Idempotency-Key``.
+
+    The mobile app queues writes while offline and replays them on reconnect.
+    A replay that the server already applied — but whose response was lost on a
+    poor link — must not create a second sale, payment, or stock adjustment.
+    The key is created before the view runs and the response is stored after,
+    so a repeat of the same key returns the original response instead of
+    executing the view again.
+
+    Rows are purged after RETENTION_HOURS; a client that retries later than
+    that will execute for real, which is the intended trade-off.
+    """
+    RETENTION_HOURS = 48
+
+    key           = models.CharField(max_length=255, unique=True)
+    method        = models.CharField(max_length=10)
+    path          = models.CharField(max_length=500)
+    # NULL while the original request is still running — a concurrent replay
+    # that sees NULL is told to retry rather than being allowed through.
+    status_code   = models.PositiveSmallIntegerField(null=True, blank=True)
+    response_body = models.TextField(blank=True, default='')
+    content_type  = models.CharField(max_length=100, blank=True, default='application/json')
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['created_at'])]
+
+    def __str__(self):
+        return f"{self.method} {self.path} → {self.status_code or 'in flight'}"

@@ -97,6 +97,7 @@ class SyncService {
         try {
           await ref.read(posApiProvider).submitCheckout(
                 CheckoutPayload.fromJson(sale.payload),
+                idempotencyKey: sale.id,
                 consultationFee:
                     (sale.payload['consultationFee'] as num?)?.toDouble(),
               );
@@ -206,18 +207,19 @@ class SyncService {
       throw ArgumentError('Rejected mutation with non-relative path: ${mut.path}');
     }
     final dio = ref.read(dioProvider);
+    final options = Options(headers: await idempotencyHeader(mut.id));
     switch (mut.method) {
       case 'POST':
-        await dio.post(mut.path, data: mut.body);
+        await dio.post(mut.path, data: mut.body, options: options);
         break;
       case 'PATCH':
-        await dio.patch(mut.path, data: mut.body);
+        await dio.patch(mut.path, data: mut.body, options: options);
         break;
       case 'PUT':
-        await dio.put(mut.path, data: mut.body);
+        await dio.put(mut.path, data: mut.body, options: options);
         break;
       case 'DELETE':
-        await dio.delete(mut.path);
+        await dio.delete(mut.path, options: options);
         break;
       default:
         throw UnsupportedError('Unsupported HTTP method: ${mut.method}');

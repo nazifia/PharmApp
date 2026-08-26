@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pharmapp/core/services/auth_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Base URL ─────────────────────────────────────────────────────────────────
 
@@ -193,6 +196,161 @@ class SafeLogInterceptor extends Interceptor {
   }
 }
 
+// ── Retry interceptor (poor connections) ─────────────────────────────────────
+
+/// Number of requests currently waiting on a retry. `> 0` means the network is
+/// reachable but struggling — the shell shows a "slow connection" banner.
+final slowNetworkProvider = StateProvider<int>((ref) => 0);
+
+/// `true` once a request has exhausted its retries with a connection-level
+/// failure — the device claims to be online but the link is unusable.
+///
+/// Cleared by the next successful response. Callers that have an offline path
+/// (POS checkout, queued mutations) use this to skip a doomed network call
+/// instead of making the user wait out the timeouts.
+final networkDegradedProvider = StateProvider<bool>((ref) => false);
+
+/// Retries transient network failures instead of surfacing them to the user.
+///
+/// Poor connections (2G/3G, congested wifi, a sleeping PythonAnywhere dyno)
+/// fail with a timeout or a dropped socket, not an HTTP error — one retry with
+/// a short backoff usually succeeds.
+///
+/// Only replays requests that are safe to repeat: GET/HEAD, or a request the
+/// caller marked with `extra['idempotent'] = true` / an `Idempotency-Key`
+/// header. Writes without a key are never retried — the first attempt may have
+/// reached the server even though the response was lost.
+class RetryInterceptor extends Interceptor {
+  final Ref _ref;
+  final Dio _dio;
+
+  RetryInterceptor(this._ref, this._dio);
+
+  static const _delays = [Duration(seconds: 1), Duration(seconds: 3)];
+
+  bool _isTransient(DioException err) {
+    switch (err.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.connectionError:
+        return true;
+      default:
+        // Gateway-level failures from a cold/overloaded backend.
+        final code = err.response?.statusCode ?? 0;
+        return code == 502 || code == 503 || code == 504;
+    }
+  }
+
+  bool _isSafeToReplay(RequestOptions o) {
+    final method = o.method.toUpperCase();
+    if (method == 'GET' || method == 'HEAD') return true;
+    if (o.extra['idempotent'] == true) return true;
+    return o.headers.containsKey('Idempotency-Key');
+  }
+
+  /// Final outcome of a transient failure.
+  ///
+  /// Marks the network degraded, and rewrites a gateway error (502/503/504 from
+  /// a sleeping or overloaded backend) into a connection-level [DioException]
+  /// with no response — every offline fallback in the app keys off
+  /// `e.response == null`, so this is what makes them fire for a dead backend
+  /// as well as a dead link.
+  DioException _giveUp(DioException err) {
+    if (!_isTransient(err)) return err;
+    _ref.read(networkDegradedProvider.notifier).state = true;
+    if (err.response == null) return err;
+    return DioException(
+      requestOptions: err.requestOptions,
+      type: DioExceptionType.connectionError,
+      error: err.error ?? 'HTTP ${err.response?.statusCode}',
+      message: 'Backend unreachable (${err.response?.statusCode})',
+    );
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    // A response of any kind means the link is usable again.
+    if (_ref.read(networkDegradedProvider)) {
+      _ref.read(networkDegradedProvider.notifier).state = false;
+    }
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final options = err.requestOptions;
+    final attempt = (options.extra['retry_attempt'] as int?) ?? 0;
+
+    if (attempt >= _delays.length ||
+        !_isTransient(err) ||
+        !_isSafeToReplay(options) ||
+        options.extra['noRetry'] == true) {
+      return handler.next(_giveUp(err));
+    }
+
+    options.extra['retry_attempt'] = attempt + 1;
+    _ref.read(slowNetworkProvider.notifier).update((n) => n + 1);
+    try {
+      await Future<void>.delayed(_delays[attempt]);
+      final response = await _dio.fetch<dynamic>(options);
+      handler.resolve(response);
+    } on DioException catch (e) {
+      handler.next(_giveUp(e));
+    } catch (_) {
+      handler.next(_giveUp(err));
+    } finally {
+      _ref.read(slowNetworkProvider.notifier).update((n) => n > 0 ? n - 1 : 0);
+    }
+  }
+}
+
+/// Aborts a write before it is sent when [networkDegradedProvider] is set.
+///
+/// Throws the same connection-level [DioException] the transport would have
+/// thrown, so the caller's existing `e.response == null` branch queues the
+/// write immediately instead of making the user sit through the timeouts.
+/// Only for writes that have an offline path — a write that must reach the
+/// server should be left to attempt the request.
+void abortIfNetworkDegraded(Ref ref, String path, {String method = 'POST'}) {
+  if (!ref.read(networkDegradedProvider)) return;
+  throw DioException(
+    requestOptions: RequestOptions(path: path, method: method),
+    type: DioExceptionType.connectionError,
+    message: 'Connection is down — queued without attempting the request',
+  );
+}
+
+// ── Idempotency ───────────────────────────────────────────────────────────────
+
+const _kClientInstallIdKey = 'client_install_id';
+String? _cachedClientInstallId;
+
+/// Random id generated once per install and kept in SharedPreferences.
+///
+/// Queue ids are microsecond timestamps, so two devices can produce the same
+/// one. Prefixing with this makes an `Idempotency-Key` unique across the whole
+/// backend, which is what lets the server dedupe by key alone.
+Future<String> clientInstallId() async {
+  if (_cachedClientInstallId != null) return _cachedClientInstallId!;
+  final prefs = await SharedPreferences.getInstance();
+  var id = prefs.getString(_kClientInstallIdKey);
+  if (id == null || id.isEmpty) {
+    final rnd = Random.secure();
+    id = List.generate(
+        8, (_) => rnd.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+    await prefs.setString(_kClientInstallIdKey, id);
+  }
+  _cachedClientInstallId = id;
+  return id;
+}
+
+/// Header that tells the backend to apply this write at most once, however
+/// many times it is replayed. [localId] must be stable across replays of the
+/// same logical write — use the queue entry's id.
+Future<Map<String, String>> idempotencyHeader(String localId) async =>
+    {'Idempotency-Key': '${await clientInstallId()}:$localId'};
+
 // ── Dio provider ──────────────────────────────────────────────────────────────
 
 final dioProvider = Provider<Dio>((ref) {
@@ -201,13 +359,17 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
+      // Generous enough for a 2G/3G link or a cold backend; RetryInterceptor
+      // replays anything that still times out.
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 25),
+      sendTimeout: const Duration(seconds: 25),
     ),
   );
 
   dio.interceptors.addAll([
     AuthInterceptor(ref),
+    RetryInterceptor(ref, dio),
     ErrorNormalizerInterceptor(),
     SafeLogInterceptor(),
   ]);

@@ -109,6 +109,7 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
       if (branchId != null && branchId > 0) data['branch_id'] = branchId;
     }
     try {
+      abortIfNetworkDegraded(_ref, '/customers/');
       final customer = await _api.createCustomer(data);
       _ref.invalidate(customerListProvider);
       state = const AsyncValue.data(null);
@@ -148,6 +149,7 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Customer?> updateCustomer(int id, Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
     try {
+      abortIfNetworkDegraded(_ref, '/customers/$id/', method: 'PATCH');
       final customer = await _api.updateCustomer(id, data);
       _ref.invalidate(customerListProvider);
       _ref.invalidate(customerDetailProvider(id));
@@ -186,6 +188,7 @@ class CustomerNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> deleteCustomer(int id) async {
     state = const AsyncValue.loading();
     try {
+      abortIfNetworkDegraded(_ref, '/customers/$id/', method: 'DELETE');
       await _api.deleteCustomer(id);
       _ref.invalidate(customerListProvider);
       state = const AsyncValue.data(null);
@@ -234,6 +237,7 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> topUp(double amount, {String method = 'cash'}) async {
     state = const AsyncValue.loading();
     try {
+      abortIfNetworkDegraded(_ref, '/customers/$_customerId/wallet/topup/');
       await _api.topUpWallet(_customerId, amount, method: method);
       _refresh();
       state = const AsyncValue.data(null);
@@ -259,6 +263,7 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> deduct(double amount) async {
     state = const AsyncValue.loading();
     try {
+      abortIfNetworkDegraded(_ref, '/customers/$_customerId/wallet/deduct/');
       await _api.deductWallet(_customerId, amount);
       _refresh();
       state = const AsyncValue.data(null);
@@ -298,6 +303,7 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> recordPayment({required double amount, String method = 'cash'}) async {
     state = const AsyncValue.loading();
     try {
+      abortIfNetworkDegraded(_ref, '/customers/$_customerId/record-payment/');
       await _api.recordPayment(_customerId, amount: amount, method: method);
       _refresh();
       state = const AsyncValue.data(null);
