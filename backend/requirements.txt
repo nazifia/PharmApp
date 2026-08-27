@@ -9,3 +9,5 @@ Pillow>=10.0,<11.0
 zeroconf>=0.131.0
 requests>=2.31,<3.0
 tzdata>=2024.1   # named TZ data for zoneinfo on Windows / slim Linux
+openpyxl>=3.1,<4.0   # .xlsx bulk item import
+pdfplumber>=0.11,<1.0   # PDF table import; optional, the endpoint says so if absent

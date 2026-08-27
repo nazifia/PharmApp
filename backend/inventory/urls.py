@@ -1,8 +1,9 @@
 from django.urls import path
-from . import views
+from . import views, import_views
 
 urlpatterns = [
     path('items/',                        views.item_list,              name='item-list'),
+    path('items/bulk-import/',            import_views.bulk_import,     name='item-bulk-import'),
     path('items/<int:pk>/',               views.item_detail,            name='item-detail'),
     path('items/<int:pk>/adjust-stock/',  views.adjust_stock,           name='item-adjust-stock'),
     path('availability/',                 views.medication_availability, name='medication-availability'),

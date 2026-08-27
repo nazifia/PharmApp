@@ -8,6 +8,7 @@ import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
+import 'package:pharmapp/features/inventory/widgets/bulk_import_sheet.dart';
 import 'package:pharmapp/features/inventory/widgets/write_off_expired.dart';
 import 'package:pharmapp/features/subscription/widgets/paywall_widget.dart';
 import 'package:pharmapp/shared/models/item.dart';
@@ -899,6 +900,27 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
           );
         }),
       ])),
+      if (Rbac.can(ref.watch(currentUserProvider), AppPermission.createInventory) ||
+          Rbac.can(ref.watch(currentUserProvider), AppPermission.writeInventory)) ...[
+        Container(
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: IconButton(
+            tooltip: 'Import from CSV, Excel or PDF',
+            icon: Icon(Icons.upload_file_rounded,
+                color: context.subLabelColor, size: 20),
+            onPressed: () async {
+              final imported = await showBulkImportSheet(context,
+                  store: _tabCtrl.index == 0 ? 'retail' : 'wholesale');
+              if (imported) _invalidateCurrent();
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+      ],
       Container(
         decoration: BoxDecoration(
           color: context.cardColor,

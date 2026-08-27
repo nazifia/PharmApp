@@ -21,6 +21,46 @@ class WriteOffResult {
       );
 }
 
+/// Outcome of a CSV / Excel / PDF item upload.
+///
+/// [errors] and [preview] are the rows the backend reports back: skipped rows
+/// with a reason, and up to 50 rows showing what was (or would be) written.
+class BulkImportResult {
+  final bool dryRun;
+  final String fileName;
+  final int totalRows;
+  final int created;
+  final int updated;
+  final int skipped;
+  final List<Map<String, dynamic>> errors;
+  final List<Map<String, dynamic>> preview;
+
+  const BulkImportResult({
+    required this.dryRun,
+    required this.fileName,
+    required this.totalRows,
+    required this.created,
+    required this.updated,
+    required this.skipped,
+    required this.errors,
+    required this.preview,
+  });
+
+  static List<Map<String, dynamic>> _rows(dynamic raw) =>
+      (raw as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
+  factory BulkImportResult.fromJson(Map<String, dynamic> j) => BulkImportResult(
+        dryRun: j['dryRun'] == true,
+        fileName: (j['fileName'] as String?) ?? '',
+        totalRows: (j['totalRows'] as num?)?.toInt() ?? 0,
+        created: (j['created'] as num?)?.toInt() ?? 0,
+        updated: (j['updated'] as num?)?.toInt() ?? 0,
+        skipped: (j['skipped'] as num?)?.toInt() ?? 0,
+        errors: _rows(j['errors']),
+        preview: _rows(j['preview']),
+      );
+}
+
 class InventoryApiClient {
   final Dio? _dio;
 
@@ -215,6 +255,38 @@ class InventoryApiClient {
       }
       throw Exception(
           e.response?.data?['detail'] ?? 'Failed to write off expired stock');
+    }
+  }
+
+  /// Uploads a CSV / Excel / PDF stock sheet and creates or updates the items in it.
+  ///
+  /// Pass [dryRun] to validate the file and get a preview without writing.
+  /// [stockMode] 'replace' overwrites the stock figure; 'add' treats the file as
+  /// a delivery. Online-only — a bulk write is not queued for later sync.
+  Future<BulkImportResult> bulkImportItems({
+    required String fileName,
+    required List<int> bytes,
+    bool dryRun = false,
+    String store = 'retail',
+    String stockMode = 'replace',
+    int? branchId,
+  }) async {
+    if (_isLocal) throw Exception('Importing a file requires a connection.');
+    try {
+      final form = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: fileName),
+        'dryRun': dryRun.toString(),
+        'store': store,
+        'stockMode': stockMode,
+        if (branchId != null && branchId > 0) 'branchId': branchId,
+      });
+      final res = await _dio!.post('/inventory/items/bulk-import/', data: form);
+      return BulkImportResult.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response == null) {
+        throw Exception('Importing a file requires a connection.');
+      }
+      throw Exception(e.response?.data?['detail'] ?? 'Failed to import the file');
     }
   }
 
