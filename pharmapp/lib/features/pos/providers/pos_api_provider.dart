@@ -50,7 +50,6 @@ class PosApiClient {
     double? hmoAmount,
     String? hmoProvider,
     double? consultationFee,
-    String? idempotencyKey,
   }) async {
     if (_isLocal) {
       // Explicitly deep-serialize nested models — freezed toJson() does not
@@ -81,16 +80,7 @@ class PosApiClient {
           if (hmoProvider != null) 'hmo_provider': hmoProvider,
         },
       };
-      // With a key the backend applies the sale at most once, so a lost
-      // response can be retried (here and from the offline queue) without
-      // risking a duplicate sale.
-      final res = await _dio!.post(
-        '/pos/checkout/',
-        data: body,
-        options: idempotencyKey == null
-            ? null
-            : Options(headers: await idempotencyHeader(idempotencyKey)),
-      );
+      final res = await _dio!.post('/pos/checkout/', data: body);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       // No response means a connection-level failure (no internet, timeout, etc.).
@@ -1918,10 +1908,8 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
       }
     }
 
-    // Short-circuit: if device is already offline — or the last request died on
-    // a poor link — enqueue without making the cashier wait out the timeouts.
-    final isOnline = _ref.read(isOnlineProvider) &&
-        !_ref.read(networkDegradedProvider);
+    // Short-circuit: if device is already offline, enqueue without a network call.
+    final isOnline = _ref.read(isOnlineProvider);
     if (!isOnline) {
       final pending = await _ref
           .read(offlineQueueProvider.notifier)
@@ -1934,14 +1922,9 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
 
     final selectedCustomer = _ref.read(selectedCustomerProvider);
 
-    // Generated before the attempt so that if the response is lost, the queued
-    // replay carries the same key and the backend recognises it as one sale.
-    final saleId = DateTime.now().microsecondsSinceEpoch.toString();
-
     try {
       final result = await _ref.read(posApiProvider).submitCheckout(
         payload,
-        idempotencyKey: saleId,
         branchId: branchId,
         hmoCardNumber: selectedCustomer?.hmoCardNumber,
         hmoCoveragePercent: selectedCustomer?.hmoCoveragePercent,
@@ -1962,7 +1945,7 @@ class CheckoutNotifier extends StateNotifier<AsyncValue<void>> {
       if (e.response == null) {
         final pending = await _ref
             .read(offlineQueueProvider.notifier)
-            .enqueue(payload, consultationFee: consultationFee, id: saleId);
+            .enqueue(payload, consultationFee: consultationFee);
         await _saveLocalDispensingEntriesFromPayload(payload, pending.id);
         state = const AsyncValue.data(null);
         return {'offline': true};
@@ -1998,7 +1981,6 @@ class PosReturnNotifier extends StateNotifier<AsyncValue<void>> {
       String reason = ''}) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/sales/$saleId/return/');
       final result = await _api.returnItem(saleId,
           saleItemId: saleItemId,
           quantity: quantity,
@@ -2053,7 +2035,6 @@ class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
       }
     }
     try {
-      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/payment-requests/');
       final result = await _api.sendToCashier(items,
           customerId: customerId, cashierId: cashierId,
           paymentType: paymentType, patientName: patientName,
@@ -2089,7 +2070,6 @@ class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Map<String, dynamic>?> acceptPaymentRequest(int id) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/payment-requests/$id/accept/');
       final result = await _api.acceptPaymentRequest(id);
       state = const AsyncValue.data(null);
       return result;
@@ -2113,7 +2093,6 @@ class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Map<String, dynamic>?> rejectPaymentRequest(int id) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/payment-requests/$id/reject/');
       final result = await _api.rejectPaymentRequest(id);
       state = const AsyncValue.data(null);
       return result;
@@ -2149,7 +2128,6 @@ class ExpenseNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Map<String, dynamic>?> createExpenseCategory(String name) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/expense-categories/');
       final result = await _api.createExpenseCategory(name);
       state = const AsyncValue.data(null);
       return result;

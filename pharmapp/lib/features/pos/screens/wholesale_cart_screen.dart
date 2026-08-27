@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
@@ -491,7 +490,6 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
         (customer?.id == _kWalkInId) ? null : customer?.id;
 
     try {
-      abortIfNetworkDegraded(ref.read(networkDegradedProvider), '/pos/payment-requests/');
       await ref.read(posApiProvider).sendToCashier(
         items,
         customerId:  effectiveCustomerId,

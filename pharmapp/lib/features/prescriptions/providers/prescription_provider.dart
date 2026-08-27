@@ -151,7 +151,6 @@ class PrescriptionNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Prescription?> createPrescription(Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/prescriptions/');
       final prescription = await _api.createPrescription(data);
       _invalidateLists();
       state = const AsyncValue.data(null);
@@ -185,7 +184,6 @@ class PrescriptionNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Prescription?> update(int id, Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/prescriptions/$id/', method: 'PATCH');
       final updated = await _api.updatePrescription(id, data);
       _ref.invalidate(prescriptionDetailProvider(id));
       _invalidateLists();
@@ -220,7 +218,6 @@ class PrescriptionNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Prescription?> dispense(int id, {List<int>? itemIndices}) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/prescriptions/$id/dispense/', method: 'PATCH');
       final updated = await _api.dispensePrescription(id, itemIndices: itemIndices);
       // Only invalidate lists — the detail screen manages its own state via
       // _localRx so the optimistic/PATCH result stays visible without a reload.

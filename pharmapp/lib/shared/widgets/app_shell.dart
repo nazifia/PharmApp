@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pharmapp/core/network/api_client.dart'
-    show slowNetworkProvider, networkDegradedProvider;
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/offline/app_restart_service.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart'
@@ -499,7 +497,6 @@ class _AppShellState extends ConsumerState<AppShell>
       body: Column(children: [
         if (!isOnline || pending > 0) const _OfflineBanner(),
         const _EagerSyncBanner(),
-        const _SlowNetworkBanner(),
         const TrialBanner(),
         const _InstallNativeBanner(),
         Expanded(child: widget.child),
@@ -546,43 +543,6 @@ class _EagerSyncBanner extends ConsumerWidget {
         Text(
           'Syncing offline data…',
           style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-        ),
-      ]),
-    );
-  }
-}
-
-// ── Slow connection banner ────────────────────────────────────────────────────
-
-/// Shown while [RetryInterceptor] is replaying a request — the device is online
-/// but the link is too poor for a request to complete first time.
-class _SlowNetworkBanner extends ConsumerWidget {
-  const _SlowNetworkBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final retrying = ref.watch(slowNetworkProvider) > 0;
-    final degraded = ref.watch(networkDegradedProvider);
-    if (!retrying && !degraded) return const SizedBox.shrink();
-    return Container(
-      width: double.infinity,
-      color: Colors.orange.withValues(alpha: 0.85),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Row(children: [
-        if (retrying)
-          const SizedBox(
-            width: 14, height: 14,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-          )
-        else
-          const Icon(Icons.wifi_tethering_error, size: 14, color: Colors.white),
-        const SizedBox(width: 10),
-        Text(
-          retrying
-              ? 'Slow connection — retrying…'
-              : 'Poor connection — saving your work offline',
-          style: const TextStyle(
-              color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ]),
     );

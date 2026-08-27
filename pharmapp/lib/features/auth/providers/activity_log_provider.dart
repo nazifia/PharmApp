@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/activity_log.dart';
@@ -154,17 +151,6 @@ class ActivityLogNotifier extends StateNotifier<ActivityLogState> {
     fetch();
   }
 
-  /// Only the unfiltered first page is cached — that is what the screen opens
-  /// on, and a filtered page offline would look like a real (empty) result.
-  static const _kCacheKey = 'cache_activity_log';
-
-  bool _isCacheable(ActivityLogFilter f) =>
-      f.page == 1 &&
-      f.category == 'all' &&
-      f.search.isEmpty &&
-      f.start == null &&
-      f.end == null;
-
   Future<List<ActivityLog>> _fetchPage(ActivityLogFilter filter) async {
     final dio = _dio;
     if (dio == null) return const [];
@@ -189,26 +175,12 @@ class ActivityLogNotifier extends StateNotifier<ActivityLogState> {
       } else {
         results = [];
       }
-      if (_isCacheable(filter)) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_kCacheKey, jsonEncode(results));
-      }
       return results
           .map((e) => ActivityLog.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       final body = e.response?.data;
       if (body is Map) throw Exception(body['detail'] ?? 'Failed to load activity log');
-      // Connection-level failure — show the last log we managed to load.
-      if (e.response == null && _isCacheable(filter)) {
-        final prefs = await SharedPreferences.getInstance();
-        final raw = prefs.getString(_kCacheKey);
-        if (raw != null && raw.isNotEmpty) {
-          return (jsonDecode(raw) as List)
-              .map((e) => ActivityLog.fromJson(e as Map<String, dynamic>))
-              .toList();
-        }
-      }
       throw Exception('Network error — check server connection');
     }
   }
