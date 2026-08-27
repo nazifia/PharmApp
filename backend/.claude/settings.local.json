@@ -35,7 +35,25 @@
       "PowerShell(python manage.py test subscription.tests_org_impact -v 2)",
       "PowerShell(git ls-files \":/pharmapp/.firebase\"; \"--- root .gitignore ---\"; Get-Content ../.gitignore; \"--- pharmapp/.gitignore exists? ---\"; Test-Path ../pharmapp/.gitignore)",
       "PowerShell(git checkout *)",
-      "PowerShell(python \"C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp-backend\\\\d62982bc-7971-43cd-a6f7-5a67509befec\\\\scratchpad\\\\splice.py\")"
+      "PowerShell(python \"C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp-backend\\\\d62982bc-7971-43cd-a6f7-5a67509befec\\\\scratchpad\\\\splice.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp-backend\\\\d62982bc-7971-43cd-a6f7-5a67509befec\\\\scratchpad\\\\inspect_db.py\")",
+      "Bash(flutter run *)",
+      "Bash(\"/c/Users/Dell/AppData/Local/Programs/Python/Python312/python.exe\" -c \"import playwright; from playwright.sync_api import sync_playwright; print\\('ok'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"django:%{http_code}\\\\n\" http://127.0.0.1:8000/api/auth/login/)",
+      "Bash(/c/Users/Dell/AppData/Local/Programs/Python/Python312/python.exe *)",
+      "Bash(curl -s -o /dev/null -w \"flutter:%{http_code}\\\\n\" http://127.0.0.1:5000/)",
+      "Bash(flutter build *)",
+      "Bash(sed -i 's|http://127.0.0.1:5000|http://127.0.0.1:5001|' \"C:/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Desktop-MY-PRODUCTS-PharmApp-backend/d62982bc-7971-43cd-a6f7-5a67509befec/scratchpad/drive.py\")",
+      "Bash(curl -s -o /dev/null -w \"web:%{http_code}\\\\n\" http://127.0.0.1:5001/)",
+      "Bash(./venv/Scripts/python.exe -c ' *)",
+      "Bash(./venv/Scripts/python.exe manage.py shell --settings=pharmapi.settings.dev)",
+      "Bash(./venv/Scripts/python.exe *)",
+      "Bash(rtk git *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://PharmApp.pythonanywhere.com/api/subscription/superuser/organizations/)",
+      "Bash(curl -s -i https://PharmApp.pythonanywhere.com/api/subscription/superuser/organizations/)",
+      "PowerShell(python manage.py check 2>&1 | Select-Object -Last 5)",
+      "PowerShell(python manage.py check 2>&1 | Select-Object -Last 3)",
+      "PowerShell(git *)"
     ]
   }
 }
