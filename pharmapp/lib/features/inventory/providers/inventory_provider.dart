@@ -193,7 +193,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
     final branchId = _ref.read(activeBranchProvider)?.id;
     if (branchId != null && branchId > 0) data['branch_id'] = branchId;
     try {
-      abortIfNetworkDegraded(_ref, '/inventory/items/');
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/inventory/items/');
       final item = await _api.createItem(data);
       _ref.invalidate(retailInventoryProvider);
       _ref.invalidate(wholesaleInventoryProvider);
@@ -243,7 +243,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Item?> updateItem(int id, Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref, '/inventory/items/$id/', method: 'PATCH');
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/inventory/items/$id/', method: 'PATCH');
       final item = await _api.updateItem(id, data);
       _ref.invalidate(retailInventoryProvider);
       _ref.invalidate(wholesaleInventoryProvider);
@@ -278,7 +278,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> deleteItem(int id) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref, '/inventory/items/$id/', method: 'DELETE');
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/inventory/items/$id/', method: 'DELETE');
       await _api.deleteItem(id);
       _ref.invalidate(retailInventoryProvider);
       _ref.invalidate(wholesaleInventoryProvider);
@@ -312,7 +312,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> transferStock(int itemId, int toBranchId, int quantity, String reason) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref, '/inventory/items/$itemId/transfer/');
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/inventory/items/$itemId/transfer/');
       await _api.transferStock(itemId, toBranchId, quantity, reason);
       _ref.invalidate(retailInventoryProvider);
       _ref.invalidate(wholesaleInventoryProvider);
@@ -348,7 +348,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Item?> adjustStock(int id, int adjustment, String reason) async {
     state = const AsyncValue.loading();
     try {
-      abortIfNetworkDegraded(_ref, '/inventory/items/$id/adjust-stock/');
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/inventory/items/$id/adjust-stock/');
       final item = await _api.adjustStock(id, adjustment, reason);
       _ref.invalidate(retailInventoryProvider);
       _ref.invalidate(wholesaleInventoryProvider);

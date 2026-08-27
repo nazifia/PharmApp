@@ -1998,6 +1998,7 @@ class PosReturnNotifier extends StateNotifier<AsyncValue<void>> {
       String reason = ''}) async {
     state = const AsyncValue.loading();
     try {
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/sales/$saleId/return/');
       final result = await _api.returnItem(saleId,
           saleItemId: saleItemId,
           quantity: quantity,
@@ -2052,6 +2053,7 @@ class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
       }
     }
     try {
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/payment-requests/');
       final result = await _api.sendToCashier(items,
           customerId: customerId, cashierId: cashierId,
           paymentType: paymentType, patientName: patientName,
@@ -2087,6 +2089,7 @@ class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Map<String, dynamic>?> acceptPaymentRequest(int id) async {
     state = const AsyncValue.loading();
     try {
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/payment-requests/$id/accept/');
       final result = await _api.acceptPaymentRequest(id);
       state = const AsyncValue.data(null);
       return result;
@@ -2110,6 +2113,7 @@ class PaymentRequestNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Map<String, dynamic>?> rejectPaymentRequest(int id) async {
     state = const AsyncValue.loading();
     try {
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/payment-requests/$id/reject/');
       final result = await _api.rejectPaymentRequest(id);
       state = const AsyncValue.data(null);
       return result;
@@ -2145,6 +2149,7 @@ class ExpenseNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Map<String, dynamic>?> createExpenseCategory(String name) async {
     state = const AsyncValue.loading();
     try {
+      abortIfNetworkDegraded(_ref.read(networkDegradedProvider), '/pos/expense-categories/');
       final result = await _api.createExpenseCategory(name);
       state = const AsyncValue.data(null);
       return result;

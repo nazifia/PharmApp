@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart';
+import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/shared/models/sale.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -105,7 +106,10 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
     if (_actingIds.contains(id)) return; // already in-flight
     setState(() => _actingIds.add(id));
     try {
-      final isOnline = ref.read(isOnlineProvider);
+      // A dead-but-connected link counts as offline here — queue it rather
+      // than making the cashier wait out the timeouts.
+      final isOnline = ref.read(isOnlineProvider) &&
+          !ref.read(networkDegradedProvider);
       if (!isOnline) {
         await ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/payment-requests/$id/accept/',
@@ -147,7 +151,10 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
     if (_actingIds.contains(id)) return; // already in-flight
     setState(() => _actingIds.add(id));
     try {
-      final isOnline = ref.read(isOnlineProvider);
+      // A dead-but-connected link counts as offline here — queue it rather
+      // than making the cashier wait out the timeouts.
+      final isOnline = ref.read(isOnlineProvider) &&
+          !ref.read(networkDegradedProvider);
       if (!isOnline) {
         await ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/payment-requests/$id/reject/',
@@ -198,7 +205,10 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
 
     setState(() => _actingIds.add(id));
     try {
-      final isOnline = ref.read(isOnlineProvider);
+      // A dead-but-connected link counts as offline here — queue it rather
+      // than making the cashier wait out the timeouts.
+      final isOnline = ref.read(isOnlineProvider) &&
+          !ref.read(networkDegradedProvider);
       if (!isOnline) {
         await ref.read(offlineMutationQueueProvider.notifier).enqueue(
           'POST', '/pos/payment-requests/$id/complete/',

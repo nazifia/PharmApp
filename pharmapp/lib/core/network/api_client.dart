@@ -312,8 +312,11 @@ class RetryInterceptor extends Interceptor {
 /// write immediately instead of making the user sit through the timeouts.
 /// Only for writes that have an offline path — a write that must reach the
 /// server should be left to attempt the request.
-void abortIfNetworkDegraded(Ref ref, String path, {String method = 'POST'}) {
-  if (!ref.read(networkDegradedProvider)) return;
+/// Pass `ref.read(networkDegradedProvider)` as [degraded] — the flag rather
+/// than the ref, so this works from a widget's WidgetRef too.
+void abortIfNetworkDegraded(bool degraded, String path,
+    {String method = 'POST'}) {
+  if (!degraded) return;
   throw DioException(
     requestOptions: RequestOptions(path: path, method: method),
     type: DioExceptionType.connectionError,

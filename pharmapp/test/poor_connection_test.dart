@@ -42,9 +42,6 @@ Dio _dioWith(ProviderContainer c, _ScriptedAdapter adapter) {
   return dio;
 }
 
-/// Hands the test a [Ref] so it can call ref-taking helpers directly.
-final _refProbeProvider = Provider<Ref>((ref) => ref);
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -96,11 +93,11 @@ void main() {
     addTearDown(c.dispose);
 
     // Healthy link: the write is allowed through to the network.
-    expect(() => abortIfNetworkDegraded(c.read(_refProbeProvider), '/customers/'), returnsNormally);
+    expect(() => abortIfNetworkDegraded(c.read(networkDegradedProvider), '/customers/'), returnsNormally);
 
     c.read(networkDegradedProvider.notifier).state = true;
     expect(
-      () => abortIfNetworkDegraded(c.read(_refProbeProvider), '/customers/'),
+      () => abortIfNetworkDegraded(c.read(networkDegradedProvider), '/customers/'),
       // response == null is what makes the caller's offline branch queue it.
       throwsA(isA<DioException>()
           .having((e) => e.response, 'response', isNull)
