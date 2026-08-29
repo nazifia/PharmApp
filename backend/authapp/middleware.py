@@ -1,7 +1,7 @@
 import time
 
 from django.core.cache import cache
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
 
 
@@ -63,3 +63,69 @@ class AdminInactivityMiddleware:
         if last is None or (now - last) > 60:
             request.session['last_admin_activity'] = now
         return self.get_response(request)
+
+
+class IdempotencyMiddleware:
+    """Makes a retried write safe to send twice.
+
+    Applies only to unsafe /api/ methods carrying an `Idempotency-Key` header —
+    the offline queue sets one per queued item. The first request through
+    claims the key and stores its response; a replay gets that response back
+    instead of creating a second sale, payment, or stock movement.
+
+    Anything that did not complete successfully releases the key, so a genuine
+    retry after a validation or server error still reaches the view.
+    """
+    TTL_SECONDS = 24 * 60 * 60
+    UNSAFE = {'POST', 'PUT', 'PATCH', 'DELETE'}
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        key = (request.headers.get('Idempotency-Key') or '')[:64]
+        if (not key or request.method not in self.UNSAFE
+                or not request.path.startswith('/api/')):
+            return self.get_response(request)
+
+        import hashlib
+        from datetime import timedelta
+        from django.utils import timezone
+        from authapp.models import IdempotencyRecord
+
+        auth = request.headers.get('Authorization', '')
+        token_hash = hashlib.sha256(auth.encode()).hexdigest()[:64]
+        try:
+            cutoff = timezone.now() - timedelta(seconds=self.TTL_SECONDS)
+            IdempotencyRecord.objects.filter(
+                key=key, token_hash=token_hash, created_at__lt=cutoff).delete()
+            record, created = IdempotencyRecord.objects.get_or_create(
+                key=key, token_hash=token_hash)
+        except Exception:
+            # Table missing (migration not applied yet) or DB hiccup — never
+            # block a write over the replay guard.
+            return self.get_response(request)
+
+        if not created:
+            if record.status_code == 0:
+                return JsonResponse(
+                    {'detail': 'This request is already being processed.'},
+                    status=409)
+            return HttpResponse(record.body, status=record.status_code,
+                                content_type='application/json')
+
+        try:
+            response = self.get_response(request)
+        except Exception:
+            record.delete()  # nothing was recorded — let the client retry
+            raise
+
+        applied = (200 <= response.status_code < 300
+                   and not getattr(response, 'streaming', False))
+        if applied:
+            record.status_code = response.status_code
+            record.body = response.content.decode('utf-8', 'replace')
+            record.save(update_fields=['status_code', 'body'])
+        else:
+            record.delete()
+        return response

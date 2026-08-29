@@ -50,6 +50,10 @@ class PosApiClient {
     double? hmoAmount,
     String? hmoProvider,
     double? consultationFee,
+    /// Stable key for a queued sale being replayed. The backend answers a
+    /// repeat of the same key with the original response, so a retry whose
+    /// first response was lost in flight cannot create a second sale.
+    String? idempotencyKey,
   }) async {
     if (_isLocal) {
       // Explicitly deep-serialize nested models — freezed toJson() does not
@@ -80,7 +84,13 @@ class PosApiClient {
           if (hmoProvider != null) 'hmo_provider': hmoProvider,
         },
       };
-      final res = await _dio!.post('/pos/checkout/', data: body);
+      final res = await _dio!.post(
+        '/pos/checkout/',
+        data: body,
+        options: idempotencyKey == null
+            ? null
+            : Options(headers: {'Idempotency-Key': idempotencyKey}),
+      );
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       // No response means a connection-level failure (no internet, timeout, etc.).

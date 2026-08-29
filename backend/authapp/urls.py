@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 from . import network_views as nv
 from .backup_views import org_backup_view, org_restore_view
@@ -6,6 +7,9 @@ from .backup_views import org_backup_view, org_restore_view
 urlpatterns = [
     path('login/',                              views.login_view,             name='auth-login'),
     path('me/',                                 views.me_view,                name='auth-me'),
+    # Lets a client whose access token expired while offline trade its refresh
+    # token for a new one instead of being logged out with writes still queued.
+    path('refresh/',                            TokenRefreshView.as_view(),   name='auth-refresh'),
     path('register-org/',                       views.register_org_view,      name='auth-register-org'),
     path('org/',                                 views.org_view,               name='auth-org'),
     path('org/logo/',                           views.org_logo_view,          name='auth-org-logo'),

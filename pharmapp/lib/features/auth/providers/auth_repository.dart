@@ -28,6 +28,17 @@ const _kLockMinutes    = 15;
 /// login / profile refresh.
 const kAutoLogoutMinutesKey = 'auto_logout_minutes';
 
+/// Persists the refresh token that came back with a login response, so an
+/// access token that expires during an offline stretch can be renewed instead
+/// of ending the session with writes still queued. Prescriber logins have no
+/// refresh token — the key is simply absent there.
+Future<void> _stashRefreshToken(Map<String, dynamic> data) async {
+  final refresh = data['refresh'];
+  if (refresh is String && refresh.isNotEmpty) {
+    await AuthStorage.write('refresh_token', refresh);
+  }
+}
+
 Future<void> _stashAutoLogoutMinutes(Map<String, dynamic> userJson) async {
   final minutes = userJson['autoLogoutMinutes'];
   if (minutes is int) {
@@ -76,7 +87,11 @@ class AuthRepository {
 
   /// Fetches the current authenticated user's profile from the backend.
   /// Returns the cached/stub user in local dev mode.
-  Future<User> fetchCurrentUser(User fallback) async {
+  ///
+  /// [throwOnError] surfaces the failure instead of falling back, so a caller
+  /// can tell "the backend answered" from "the backend is unreachable".
+  Future<User> fetchCurrentUser(User fallback,
+      {bool throwOnError = false}) async {
     if (_isLocal) return fallback;
     try {
       // skipTokenClear: true — a 401 here (endpoint missing or transient)
@@ -89,6 +104,7 @@ class AuthRepository {
       await _stashAutoLogoutMinutes(json);
       return User.fromJson(json);
     } catch (_) {
+      if (throwOnError) rethrow;
       // Network unreachable or endpoint absent — return the cached user unchanged
       return fallback;
     }
@@ -155,6 +171,7 @@ class AuthRepository {
       final data     = res.data as Map<String, dynamic>;
       final token    = data['access'] as String;
       final userType = (data['user_type'] as String?) ?? 'org';
+      await _stashRefreshToken(data);
 
       // Prescriber login — cache HMAC for offline use, then return.
       if (userType == 'prescriber') {
@@ -459,6 +476,7 @@ class AuthRepository {
         options: Options(headers: {'skip_auth': true}),
       );
       final data = res.data as Map<String, dynamic>;
+      await _stashRefreshToken(data);
       return {
         'token': data['access'] as String,
         'user': User.fromJson(data['user'] as Map<String, dynamic>),

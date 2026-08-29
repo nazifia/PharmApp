@@ -212,6 +212,11 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
 
     await AuthStorage.write('auth_token',   token);
     await AuthStorage.write('current_user', jsonEncode(user.toJson()));
+    // Carries the org_id claim, so renewing keeps the superuser in this tenant.
+    final refresh = result['refresh'];
+    if (refresh is String && refresh.isNotEmpty) {
+      await AuthStorage.write('refresh_token', refresh);
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('active_branch');
 
@@ -222,13 +227,15 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
   /// both the in-memory provider and the SharedPreferences cache.
   /// Call this after session restore, after saving permission overrides,
   /// or whenever the app resumes from background.
-  Future<void> refreshProfile() async {
+  /// Returns whether the backend answered — false only when it was
+  /// unreachable, so a caller polling this doubles as a reachability check.
+  Future<bool> refreshProfile() async {
     final current = _ref.read(currentUserProvider);
-    if (current == null) return; // not logged in
+    if (current == null) return true; // not logged in — says nothing about the server
     try {
       final fresh = await _ref
           .read(authRepositoryProvider)
-          .fetchCurrentUser(current);
+          .fetchCurrentUser(current, throwOnError: true);
       _ref.read(currentUserProvider.notifier).state = fresh;
       // Re-enforce backend-assigned branch in case it changed server-side.
       //
@@ -251,8 +258,10 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
             jsonEncode(Branch(id: fresh.branchId, name: fresh.branchName).toJson()));
       }
       await AuthStorage.write('current_user', jsonEncode(fresh.toJson()));
+      return true;
     } catch (e) {
-      // Token revoked server-side — clear session and force re-login.
+      // Token revoked server-side — clear session and force re-login. Reached
+      // only after AuthInterceptor has already failed to renew the token.
       if (e is DioException && e.response?.statusCode == 401) {
         await AuthStorage.delete('auth_token');
         await AuthStorage.delete('current_user');
@@ -262,8 +271,10 @@ class AuthNotifier extends StateNotifier<AuthFlowState> {
         _ref.read(authTokenProvider.notifier).state    = null;
         _ref.read(activeBranchProvider.notifier).state = null;
         state = AuthFlowState.initial;
+        return true; // the server answered, it just rejected us
       }
       // Other errors (network timeout, DNS, etc.) — keep cached user silently.
+      return !(e is DioException && e.response == null);
     }
   }
 

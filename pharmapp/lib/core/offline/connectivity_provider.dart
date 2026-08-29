@@ -1,4 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_config.dart';
 
@@ -45,3 +46,31 @@ final isOnlineProvider = Provider<bool>((ref) {
   );
 });
 
+
+/// Probes the backend itself instead of the network interface.
+///
+/// An interface can stay "connected" while the internet behind it is down —
+/// the router's uplink drops, the laptop keeps its wifi association — and no
+/// connectivity event ever fires, so the offline→online transition would be
+/// missed entirely. Any HTTP answer, 401 included, means the server is up;
+/// only a transport-level failure counts as down.
+Future<bool> pingServer(Dio dio) async {
+  try {
+    await dio.get(
+      '/auth/me/',
+      options: Options(
+        receiveTimeout: const Duration(seconds: 5),
+        sendTimeout: const Duration(seconds: 5),
+        // A token that expired during the offline stretch must not log the user
+        // out just because the reachability probe was the first request back —
+        // the queued items still need a session to sync under.
+        extra: const {'skipTokenClear': true},
+      ),
+    );
+    return true;
+  } on DioException catch (e) {
+    return e.response != null;
+  } catch (_) {
+    return false;
+  }
+}

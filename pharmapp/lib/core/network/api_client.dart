@@ -54,10 +54,64 @@ final orgAccessRevokedProvider = StateProvider<int>((ref) => 0);
 
 // ── Auth interceptor ──────────────────────────────────────────────────────────
 
+/// Trades the stored refresh token for a fresh access token.
+///
+/// Access tokens live 2 hours; an offline stretch routinely outlasts that, and
+/// logging the user out on the first 401 after reconnecting would strand every
+/// write still sitting in the offline queue. Uses a bare [Dio] so it cannot
+/// recurse back through [AuthInterceptor].
+///
+/// Returns the new access token, or null when no refresh token is stored or
+/// the server rejected it.
+/// [client] is only for tests — production callers pass the base URL alone.
+Future<String?> refreshAccessToken(String baseUrl, {Dio? client}) async {
+  final refresh = await AuthStorage.read('refresh_token');
+  if (refresh == null) return null;
+  try {
+    final dio = client ??
+        Dio(BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+        ));
+    final res = await dio.post('/auth/refresh/', data: {'refresh': refresh});
+    final data = res.data as Map<String, dynamic>;
+    final access = data['access'] as String?;
+    if (access == null) return null;
+    await AuthStorage.write('auth_token', access);
+    // ROTATE_REFRESH_TOKENS is on server-side — the old refresh token is spent.
+    final rotated = data['refresh'];
+    if (rotated is String) await AuthStorage.write('refresh_token', rotated);
+    return access;
+  } catch (_) {
+    return null;
+  }
+}
+
 class AuthInterceptor extends Interceptor {
   final Ref _ref;
 
   AuthInterceptor(this._ref);
+
+  /// Shared across concurrent 401s so a burst of failing requests triggers one
+  /// refresh instead of one each.
+  Future<String?>? _refreshInFlight;
+
+  Future<String?> _refreshOnce() =>
+      _refreshInFlight ??= refreshAccessToken(_ref.read(baseUrlProvider))
+          .whenComplete(() => _refreshInFlight = null);
+
+  /// Replays the failed request with the new token. A bare [Dio] again — the
+  /// retry must not re-enter this interceptor and refresh a second time.
+  Future<Response<dynamic>> _retry(RequestOptions options, String token) {
+    options.headers['Authorization'] = 'Bearer $token';
+    options.extra['retried'] = true;
+    return Dio(BaseOptions(
+      baseUrl: options.baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 15),
+    )).fetch(options);
+  }
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -74,7 +128,7 @@ class AuthInterceptor extends Interceptor {
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
     if (err.response?.statusCode == 403) {
       // 403 while authenticated = org suspended or access revoked by superuser.
       // Signal SubscriptionNotifier to refresh so the router guard fires.
@@ -94,10 +148,28 @@ class AuthInterceptor extends Interceptor {
       // user out if the endpoint is absent or transiently unavailable).
       final sentAuth = err.requestOptions.headers.containsKey('Authorization');
       final skipClear = err.requestOptions.extra['skipTokenClear'] == true;
+      final alreadyRetried = err.requestOptions.extra['retried'] == true;
       if (sentAuth && !skipClear) {
+        // The token may simply have aged out while the device was offline.
+        // Refresh and replay once before giving up — a logout here would leave
+        // the queued offline writes unsynced until the user signs in again.
+        if (!alreadyRetried) {
+          final fresh = await _refreshOnce();
+          if (fresh != null) {
+            _ref.read(authTokenProvider.notifier).state = fresh;
+            try {
+              handler.resolve(await _retry(err.requestOptions, fresh));
+              return;
+            } catch (_) {
+              // Retry failed for its own reasons — fall through to the
+              // normal 401 handling below.
+            }
+          }
+        }
         _ref.read(authTokenProvider.notifier).state = null;
         AuthStorage.delete('auth_token').ignore();
         AuthStorage.delete('current_user').ignore();
+        AuthStorage.delete('refresh_token').ignore();
       }
     }
     super.onError(err, handler);

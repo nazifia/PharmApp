@@ -439,3 +439,28 @@ class CommissionConfig(models.Model):
 
     def __str__(self):
         return f"{self.user} — {self.commission_rate*100:.1f}%"
+
+
+class IdempotencyRecord(models.Model):
+    """Replay guard for retried writes.
+
+    The app queues writes while offline and replays them when the connection
+    returns. If a response is lost in flight, the client retries a request the
+    server already applied — which, for a checkout, means a duplicate sale.
+    The client sends a stable `Idempotency-Key` per queued item; the first
+    request stores its response here and every replay is answered from it.
+    """
+    key         = models.CharField(max_length=64)
+    # Hash of the caller's Authorization header, so one client's key can never
+    # be used to replay another client's stored response.
+    token_hash  = models.CharField(max_length=64)
+    # 0 means the original request is still in flight.
+    status_code = models.PositiveSmallIntegerField(default=0)
+    body        = models.TextField(blank=True, default='')
+    created_at  = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        unique_together = ('key', 'token_hash')
+
+    def __str__(self):
+        return f"{self.key} → {self.status_code}"

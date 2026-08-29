@@ -15,8 +15,15 @@ from .utils import active_org, log_activity, normalize_ng_phone
 
 
 def _token_for(user):
+    """Returns an (access, refresh) pair.
+
+    The app queues writes while offline, and an offline stretch routinely
+    outlasts ACCESS_TOKEN_LIFETIME. Without a refresh token the first sync
+    after reconnecting gets a 401 and logs the user out with their work still
+    queued, so every login hands one out.
+    """
     refresh = RefreshToken.for_user(user)
-    return str(refresh.access_token)
+    return str(refresh.access_token), str(refresh)
 
 
 @api_view(['POST'])
@@ -49,8 +56,10 @@ def login_view(request):
         user.save(update_fields=['last_login'])
         log_activity(request, action='Login', category='auth',
                      description=f'Successful login ({user.role})', user=user)
+        access, refresh = _token_for(user)
         return Response({
-            'access':    _token_for(user),
+            'access':    access,
+            'refresh':   refresh,
             'user_type': 'org',
             'user':      user.to_api_dict(),
         })
@@ -116,6 +125,9 @@ def switch_org_view(request):
                  description=f'Superuser entered {org.name} (#{org.id})')
     return Response({
         'access':    str(refresh.access_token),
+        # Carries the org_id claim, so a refreshed access token keeps the
+        # superuser inside the switched tenant instead of snapping back.
+        'refresh':   str(refresh),
         'user_type': 'org',
         'user':      request.user.to_api_dict(org=org),
     })
@@ -197,9 +209,11 @@ def register_org_view(request):
     except Exception:
         pass
 
+    access, refresh = _token_for(user)
     return Response({
-        'access': _token_for(user),
-        'user':   user.to_api_dict(),
+        'access':  access,
+        'refresh': refresh,
+        'user':    user.to_api_dict(),
     }, status=status.HTTP_201_CREATED)
 
 

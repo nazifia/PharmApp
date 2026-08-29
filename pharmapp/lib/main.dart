@@ -11,6 +11,7 @@ import 'core/network/api_client.dart';
 import 'core/services/auth_service.dart';
 import 'core/database/local_db.dart';
 import 'core/offline/app_restart_service.dart';
+import 'core/offline/sync_driver.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -103,6 +104,10 @@ class PharmApp extends ConsumerWidget {
       themeMode:  themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      // Wraps every route, shell or not, so reconnect sync keeps running on
+      // the screens that sit outside AppShell (prescriber portal, subscription,
+      // billing, superuser). Inside MaterialApp, so snackbars have a messenger.
+      builder: (_, child) => SyncDriver(child: child ?? const SizedBox.shrink()),
     );
   }
 }

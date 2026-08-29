@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart';
+import 'package:pharmapp/core/network/api_client.dart'
+    show refreshAccessToken, baseUrlProvider;
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/services/auth_storage.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
@@ -61,7 +63,7 @@ class AuthService {
   /// any permission changes made via Django admin or the UI are picked up.
   Future<bool> checkAuthStatus() async {
     try {
-      final token    = await AuthStorage.read('auth_token');
+      var token      = await AuthStorage.read('auth_token');
       final userData = await AuthStorage.read('current_user');
 
       if (token != null && userData != null) {
@@ -72,9 +74,16 @@ class AuthService {
         // the server) and wiping it would lock the user out of cached data
         // until connectivity returns — so keep the session alive.
         if (_isJwtExpired(token) && await checkConnectivityNow()) {
-          await AuthStorage.delete('auth_token');
-          await AuthStorage.delete('current_user');
-          return false;
+          // Expired after a long offline stretch — renew it rather than ending
+          // the session, which would leave queued writes stranded behind a
+          // login screen. Only a refresh the server rejects logs the user out.
+          token = await refreshAccessToken(_ref.read(baseUrlProvider));
+          if (token == null) {
+            await AuthStorage.delete('auth_token');
+            await AuthStorage.delete('current_user');
+            await AuthStorage.delete('refresh_token');
+            return false;
+          }
         }
         final user = User.fromJson(jsonDecode(userData) as Map<String, dynamic>);
         // 1. Restore immediately from cache so the UI is usable right away
@@ -123,6 +132,7 @@ class AuthService {
     await _closeShiftOnLogout();
 
     await AuthStorage.delete('auth_token');
+    await AuthStorage.delete('refresh_token');
     await AuthStorage.delete('current_user');
     await AuthStorage.delete('prescriber_token');
     await AuthStorage.delete('prescriber_data');
