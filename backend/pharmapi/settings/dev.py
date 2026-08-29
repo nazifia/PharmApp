@@ -35,4 +35,7 @@ CORS_ALLOW_HEADERS = [
     "skip_auth",
     "skip-auth",
     "x-prescriber-token",
+    # Replayed offline writes carry this; without it the browser preflight
+    # blocks every queued checkout and mutation on web.
+    "idempotency-key",
 ]
