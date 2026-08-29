@@ -26,14 +26,13 @@ DATABASES = {
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-# The Flutter client sends a custom `skip_auth` header on public endpoints.
-# It must be explicitly listed or the browser CORS preflight blocks the POST.
+# The Flutter client's custom headers must be listed here or the browser
+# preflight blocks the request. `skip_auth` is not among them: AuthInterceptor
+# strips it before the request leaves the app, so it never reaches the wire.
 from corsheaders.defaults import default_headers  # noqa: E402
 
 CORS_ALLOW_HEADERS = [
     *default_headers,
-    "skip_auth",
-    "skip-auth",
     "x-prescriber-token",
     # Replayed offline writes carry this; without it the browser preflight
     # blocks every queued checkout and mutation on web.

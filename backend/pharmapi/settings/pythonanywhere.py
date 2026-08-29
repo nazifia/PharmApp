@@ -87,8 +87,6 @@ CORS_ALLOW_CREDENTIALS = True
 from corsheaders.defaults import default_headers  # noqa: E402
 CORS_ALLOW_HEADERS = [
     *default_headers,
-    "skip_auth",
-    "skip-auth",
     "x-prescriber-token",
     # Replayed offline writes carry this; without it the browser preflight
     # blocks every queued checkout and mutation on web.
