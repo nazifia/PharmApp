@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pharmapp/core/offline/connectivity_provider.dart'
+    show lastServerContact, serverReachableProvider;
 import 'package:pharmapp/core/services/auth_storage.dart';
 
 // ── Base URL ─────────────────────────────────────────────────────────────────
@@ -127,8 +129,29 @@ class AuthInterceptor extends Interceptor {
     super.onRequest(options, handler);
   }
 
+  /// Every answered request is proof the backend is up, so the offline banner
+  /// clears the moment real traffic succeeds rather than on the next probe.
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    _setReachable(true);
+    super.onResponse(response, handler);
+  }
+
+  void _setReachable(bool reachable) {
+    if (reachable) lastServerContact = DateTime.now();
+    final notifier = _ref.read(serverReachableProvider.notifier);
+    if (notifier.state != reachable) notifier.state = reachable;
+  }
+
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    // A failure with no response never reached the server: the interface is
+    // down, DNS failed, or the backend is dead. Show the banner now instead of
+    // waiting up to 60 s for SyncDriver's scheduled probe. Any status code,
+    // 401 and 500 included, means the server answered — that is reachable.
+    if (err.type != DioExceptionType.cancel) {
+      _setReachable(err.response != null);
+    }
     if (err.response?.statusCode == 403) {
       // 403 while authenticated = org suspended or access revoked by superuser.
       // Signal SubscriptionNotifier to refresh so the router guard fires.

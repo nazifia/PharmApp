@@ -47,6 +47,25 @@ final isOnlineProvider = Provider<bool>((ref) {
 });
 
 
+/// False while the backend is known to be unreachable — an interface that is
+/// up says nothing about the server behind it, so the banner needs this as
+/// well as [isOnlineProvider] to tell the truth.
+///
+/// Written by the reachability probe in SyncDriver and, so the banner does not
+/// wait for the next probe, by every request that fails at transport level
+/// (see AuthInterceptor).
+final serverReachableProvider = StateProvider<bool>((ref) => true);
+
+/// When the backend last answered anything — stamped by [AuthInterceptor] on
+/// every request that gets a reply, and by [pingServer] through it.
+///
+/// SyncDriver's retry timer reads this to decide whether a probe is worth
+/// making: traffic that already proved the server is up in the last few
+/// seconds makes the probe redundant. So a busy app pays nothing, and an idle
+/// one — where a probe is the only way to notice the uplink died — pays one
+/// cheap GET per tick. Null until the first answer of the session.
+DateTime? lastServerContact;
+
 /// Probes the backend itself instead of the network interface.
 ///
 /// An interface can stay "connected" while the internet behind it is down —

@@ -7,7 +7,12 @@ import 'package:pharmapp/core/network/api_client.dart' show dioProvider;
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/offline/app_restart_service.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart'
-    show isOnlineProvider, checkConnectivityNow, pingServer;
+    show
+        isOnlineProvider,
+        lastServerContact,
+        serverReachableProvider,
+        checkConnectivityNow,
+        pingServer;
 import 'package:pharmapp/core/offline/eager_sync_service.dart';
 import 'package:pharmapp/core/offline/offline_queue.dart';
 import 'package:pharmapp/core/offline/sync_service.dart';
@@ -23,14 +28,15 @@ import 'package:pharmapp/features/pos/providers/pos_api_provider.dart';
 import 'package:pharmapp/features/pos/screens/sales_history_screen.dart';
 import 'package:pharmapp/features/reports/providers/reports_provider.dart';
 
+// serverReachableProvider lives in connectivity_provider.dart so the Dio
+// interceptors can write to it without importing this file (which imports
+// them). Re-exported here because the banner reads it from this library.
+export 'package:pharmapp/core/offline/connectivity_provider.dart'
+    show serverReachableProvider;
+
 /// Tracks whether an automatic sync is in flight so the offline banner can
 /// reflect real state without polling [_SyncDriverState]'s private fields.
 final autoSyncingProvider = StateProvider<bool>((ref) => false);
-
-/// False while the backend is known to be unreachable — an interface that is
-/// up says nothing about the server behind it, so the banner needs this as
-/// well as [isOnlineProvider] to tell the truth.
-final serverReachableProvider = StateProvider<bool>((ref) => true);
 
 /// Prints the reconnect decisions to the console (browser devtools on web).
 /// Temporary — flip to false once the reconnect behaviour is confirmed in the
@@ -99,11 +105,6 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
   /// connectivity_plus false negatives so one bad poll can't restart the app.
   int _offlineReadings = 0;
 
-  /// Ticks since the backend was last probed. While the server looks healthy
-  /// it is probed every fourth tick (60 s) rather than every one — enough to
-  /// catch an outage the interface hides, without four requests a minute.
-  int _ticksSinceProbe = 0;
-
   /// True once the backend has been seen unreachable. While set, the retry
   /// timer probes the server directly instead of trusting the interface state,
   /// so a reconnection is detected even when no connectivity event fires.
@@ -116,6 +117,10 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
   /// How long the app must stay backgrounded before a resume is worth a
   /// full data refresh.
   static const _staleAfterBackground = Duration(seconds: 60);
+
+  /// Retry-timer period, and the window in which real traffic counts as a
+  /// fresh reachability reading.
+  static const _tick = Duration(seconds: 15);
 
   @override
   void initState() {
@@ -204,7 +209,7 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
 
   void _startRetryTimer() {
     _retryTimer?.cancel();
-    _retryTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+    _retryTimer = Timer.periodic(_tick, (_) async {
       // Poll actual OS connectivity rather than the cached stream value so that
       // offline→online transitions are detected even when connectivity_plus misses
       // the change event (known issue on Windows and some Android setups).
@@ -214,8 +219,15 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
       // event fires), so the interface alone can never detect that outage.
       // Probe every tick while the server is known down — recovery should be
       // quick — and every fourth tick otherwise.
-      final probeDue = _serverDown || ++_ticksSinceProbe >= 4;
-      if (probeDue) _ticksSinceProbe = 0;
+      // Probe unless the app's own traffic already proved the server is up
+      // within this tick. An idle app makes no requests at all, so without a
+      // probe a dead uplink goes unnoticed until the user next tries to do
+      // something; a busy one suppresses the probe entirely and pays nothing.
+      final lastContact = lastServerContact;
+      final probeDue = _serverDown ||
+          !ref.read(serverReachableProvider) ||
+          lastContact == null ||
+          DateTime.now().difference(lastContact) >= _tick;
       final isOnlineNow = hasInterface && (!probeDue || await _pingServer());
       final justReconnected = isOnlineNow && !_wasOnlinePrev;
       // An outage arms the restart whichever layer failed: a dropped interface,
