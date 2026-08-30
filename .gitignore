@@ -1,1 +1,4 @@
 .serena/
+
+# Agent worktrees — local scratch checkouts, never a real submodule
+.claude/worktrees/
