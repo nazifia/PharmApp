@@ -32,6 +32,15 @@ final autoSyncingProvider = StateProvider<bool>((ref) => false);
 /// well as [isOnlineProvider] to tell the truth.
 final serverReachableProvider = StateProvider<bool>((ref) => true);
 
+/// Prints the reconnect decisions to the console (browser devtools on web).
+/// Temporary — flip to false once the reconnect behaviour is confirmed in the
+/// field. Cheap enough to leave on: a handful of lines per minute.
+const kSyncDiagnostics = true;
+
+void _log(String message) {
+  if (kSyncDiagnostics) debugPrint('[sync] $message');
+}
+
 /// Set just before a reconnect restart, read by the fresh [SyncDriver] on
 /// startup. The restart discards the in-memory forceRefresh intent, so it has
 /// to survive on disk or the post-reconnect refresh is silently dropped.
@@ -109,9 +118,16 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
     WidgetsBinding.instance.addObserver(this);
     // Browser-native online/offline events — more reliable than connectivity_plus
     // on web where OS-level network events may be missed.
+    _log('driver mounted');
     _cancelWebListener = listenBrowserNetwork(
-      onOnline: _handleReconnect,
-      onOffline: () { _wentOffline = true; },
+      onOnline: () {
+        _log('browser online event');
+        _handleReconnect();
+      },
+      onOffline: () {
+        _log('browser offline event');
+        _wentOffline = true;
+      },
     );
     // Sync on startup: runs after the first frame so providers are ready.
     WidgetsBinding.instance.addPostFrameCallback((_) => _startupSync());
@@ -155,6 +171,7 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
   /// A restart only happens when we actually went offline first ([_wentOffline]).
   /// Initial-load online events are ignored.
   void _handleReconnect() {
+    _log('handleReconnect (wentOffline=$_wentOffline)');
     if (!_wentOffline) {
       // Not a real reconnect — just sync as usual.
       _syncIfNeeded(delayMs: 1000, forceRefresh: true);
@@ -168,6 +185,7 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_kPendingReconnectSync, true);
       if (!mounted) return;
+      _log('restarting (web=$kIsWeb)');
       if (kIsWeb) {
         // Web: reload the browser page. Tears down the tree, so do NOT touch
         // the (now-deactivating) context afterwards.
@@ -206,6 +224,8 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
       } else {
         _offlineReadings = 0;
       }
+      _log('tick interface=$hasInterface online=$isOnlineNow '
+          'serverDown=$_serverDown reconnected=$justReconnected');
       _wasOnlinePrev = isOnlineNow;
       if (justReconnected) {
         _handleReconnect();
@@ -349,6 +369,9 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
     }
     // Remember whether the backend answered. syncAll() with empty queues makes
     // no network call at all, so only a run that did work can clear the flag.
+    _log('sync synced=${result.synced} failed=${result.failed} '
+        'connectionFailed=${result.connectionFailed} '
+        'authExpired=${result.authExpired} forceRefresh=$effectiveForceRefresh');
     if (result.connectionFailed) {
       _setServerDown(true);
     } else if (result.hasWork) {
