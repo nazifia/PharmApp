@@ -8,6 +8,10 @@ import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/services/auth_storage.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
+import 'package:pharmapp/features/pos/providers/cart_provider.dart'
+    show cartProvider, kRetailCartKey;
+import 'package:pharmapp/features/pos/providers/wholesale_cart_provider.dart'
+    show wsCartProvider, kWholesaleCartKey;
 import 'package:pharmapp/features/prescriptions/providers/prescriber_provider.dart';
 import 'package:pharmapp/features/reports/providers/shift_api_client.dart';
 import 'package:pharmapp/shared/models/branch.dart';
@@ -133,6 +137,12 @@ class AuthService {
 
     await AuthStorage.delete('auth_token');
     await AuthStorage.delete('refresh_token');
+    // The carts survive a reconnect restart on purpose; they must NOT survive
+    // a logout, or a shared terminal hands one cashier's cart to the next.
+    await AuthStorage.delete(kRetailCartKey);
+    await AuthStorage.delete(kWholesaleCartKey);
+    _ref.read(cartProvider.notifier).clearCart();
+    _ref.read(wsCartProvider.notifier).clearCart();
     await AuthStorage.delete('current_user');
     await AuthStorage.delete('prescriber_token');
     await AuthStorage.delete('prescriber_data');

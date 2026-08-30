@@ -77,6 +77,11 @@ class IdempotencyMiddleware:
     retry after a validation or server error still reaches the view.
     """
     TTL_SECONDS = 24 * 60 * 60
+    # A record still marked in-flight after this long means the original
+    # request died before it could store its response — a killed worker, a
+    # request timeout. Without a takeover window the retry would be answered
+    # 409 forever and the queued item could never sync.
+    INFLIGHT_TAKEOVER_SECONDS = 120
     UNSAFE = {'POST', 'PUT', 'PATCH', 'DELETE'}
 
     def __init__(self, get_response):
@@ -106,11 +111,19 @@ class IdempotencyMiddleware:
             # block a write over the replay guard.
             return self.get_response(request)
 
-        if not created:
-            if record.status_code == 0:
+        if not created and record.status_code == 0:
+            stale = record.created_at <= timezone.now() - timedelta(
+                seconds=self.INFLIGHT_TAKEOVER_SECONDS)
+            if stale:
+                # Abandoned by whoever claimed it — take it over and run.
+                IdempotencyRecord.objects.filter(pk=record.pk).update(
+                    created_at=timezone.now())
+                created = True
+            else:
                 return JsonResponse(
                     {'detail': 'This request is already being processed.'},
                     status=409)
+        if not created:
             return HttpResponse(record.body, status=record.status_code,
                                 content_type='application/json')
 

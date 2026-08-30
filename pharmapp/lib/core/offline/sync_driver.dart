@@ -99,6 +99,11 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
   /// connectivity_plus false negatives so one bad poll can't restart the app.
   int _offlineReadings = 0;
 
+  /// Ticks since the backend was last probed. While the server looks healthy
+  /// it is probed every fourth tick (60 s) rather than every one — enough to
+  /// catch an outage the interface hides, without four requests a minute.
+  int _ticksSinceProbe = 0;
+
   /// True once the backend has been seen unreachable. While set, the retry
   /// timer probes the server directly instead of trusting the interface state,
   /// so a reconnection is detected even when no connectivity event fires.
@@ -205,27 +210,32 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
       // the change event (known issue on Windows and some Android setups).
       final hasInterface = await checkConnectivityNow();
       // An interface being up is not the same as the backend being reachable:
-      // wifi stays associated while the router's uplink is down, and no
-      // connectivity event ever fires for that. Once the server is known to be
-      // unreachable, probe it directly so the recovery is still seen.
-      final isOnlineNow = hasInterface && (!_serverDown || await _pingServer());
+      // wifi stays associated while the uplink is dead (DNS fails, no browser
+      // event fires), so the interface alone can never detect that outage.
+      // Probe every tick while the server is known down — recovery should be
+      // quick — and every fourth tick otherwise.
+      final probeDue = _serverDown || ++_ticksSinceProbe >= 4;
+      if (probeDue) _ticksSinceProbe = 0;
+      final isOnlineNow = hasInterface && (!probeDue || await _pingServer());
       final justReconnected = isOnlineNow && !_wasOnlinePrev;
+      // An outage arms the restart whichever layer failed: a dropped interface,
+      // a dead uplink (interface up, DNS failing) or an unreachable backend all
+      // end with the same stale app, so all three reload on recovery.
+      //
       // connectivity_plus reports a spurious `none` on Windows and on some
-      // Android wifi/mobile handovers. A single bad reading used to arm
-      // _wentOffline, and the next tick then restarted the whole app —
-      // a multi-second freeze with no real network change behind it.
-      // Require two consecutive offline readings (30s) before believing it.
-      // Only a dropped *interface* arms the restart. A backend that is merely
-      // unreachable comes back through the sync path below — restarting the
-      // whole app over a server hiccup would throw away an in-progress cart.
-      if (!hasInterface) {
+      // Android wifi/mobile handovers, and a single slow request can look like
+      // a dead server. One bad reading arming _wentOffline would restart the
+      // app — a multi-second freeze with no real outage behind it — so require
+      // two consecutive offline readings (30s) before believing it.
+      if (!isOnlineNow) {
         _offlineReadings++;
         if (_offlineReadings >= 2) _wentOffline = true;
       } else {
         _offlineReadings = 0;
       }
       _log('tick interface=$hasInterface online=$isOnlineNow '
-          'serverDown=$_serverDown reconnected=$justReconnected');
+          'serverDown=$_serverDown offlineReadings=$_offlineReadings '
+          'wentOffline=$_wentOffline reconnected=$justReconnected');
       _wasOnlinePrev = isOnlineNow;
       if (justReconnected) {
         _handleReconnect();
@@ -260,6 +270,7 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
       final reachable =
           await ref.read(authFlowProvider.notifier).refreshProfile();
       if (!mounted) return;
+      _log('profile poll reachable=$reachable');
       final wasDown = _serverDown;
       _setServerDown(!reachable);
       if (reachable && wasDown) _handleReconnect();
@@ -371,7 +382,8 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
     // no network call at all, so only a run that did work can clear the flag.
     _log('sync synced=${result.synced} failed=${result.failed} '
         'connectionFailed=${result.connectionFailed} '
-        'authExpired=${result.authExpired} forceRefresh=$effectiveForceRefresh');
+        'authExpired=${result.authExpired} forceRefresh=$effectiveForceRefresh'
+        '${result.failureDetail == null ? '' : ' — ${result.failureDetail}'}');
     if (result.connectionFailed) {
       _setServerDown(true);
     } else if (result.hasWork) {

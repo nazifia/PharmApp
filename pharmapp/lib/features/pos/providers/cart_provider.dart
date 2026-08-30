@@ -1,10 +1,51 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/cart_item.dart';
 import '../../../shared/models/item.dart';
 
+/// Where the in-progress retail cart is kept between runs.
+/// Cleared on logout so a shared terminal never hands one cashier's cart to
+/// the next — see AuthService.logout().
+const kRetailCartKey = 'cart_retail';
+
 class CartNotifier extends StateNotifier<List<CartItem>> {
-  CartNotifier() : super([]);
+  CartNotifier() : super([]) {
+    _restore();
+  }
+
+  /// A reconnect reloads the web page (and restarts the native app), which
+  /// would otherwise throw away a cart the cashier is halfway through ringing
+  /// up. Persisting every change also survives an accidental tab close.
+  @override
+  set state(List<CartItem> value) {
+    super.state = value;
+    _persist(value);
+  }
+
+  Future<void> _restore() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(kRetailCartKey);
+    // Anything added while this was loading wins — never clobber a live cart.
+    if (raw == null || state.isNotEmpty) return;
+    try {
+      super.state = (jsonDecode(raw) as List)
+          .map((e) => CartItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      await prefs.remove(kRetailCartKey); // unreadable (model changed) — drop it
+    }
+  }
+
+  void _persist(List<CartItem> items) {
+    SharedPreferences.getInstance().then((prefs) {
+      if (items.isEmpty) return prefs.remove(kRetailCartKey);
+      return prefs.setString(
+          kRetailCartKey, jsonEncode(items.map((c) => c.toJson()).toList()));
+    }).ignore();
+  }
 
   void addItem(Item item) {
     if (item.stock == 0) return;

@@ -81,3 +81,50 @@ class RefreshTokenTest(TestCase):
         # The renewed token must actually authenticate.
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {res2.data['access']}")
         self.assertEqual(self.client.get('/api/auth/me/').status_code, 200)
+
+
+class InflightTakeoverTest(TestCase):
+    """An abandoned in-flight key must not answer 409 forever."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.calls = 0
+
+    def _middleware(self):
+        def view(request):
+            self.calls += 1
+            return JsonResponse({'id': self.calls}, status=201)
+        return IdempotencyMiddleware(view)
+
+    def _post(self, key='key-1'):
+        return self.factory.post('/api/pos/checkout/', HTTP_IDEMPOTENCY_KEY=key,
+                                 HTTP_AUTHORIZATION='Bearer aaa')
+
+    def test_fresh_inflight_key_is_rejected_as_duplicate(self):
+        from authapp.models import IdempotencyRecord
+        import hashlib
+        IdempotencyRecord.objects.create(
+            key='key-1',
+            token_hash=hashlib.sha256(b'Bearer aaa').hexdigest()[:64])
+        res = self._middleware()(self._post())
+        self.assertEqual(res.status_code, 409)
+        self.assertEqual(self.calls, 0)
+
+    def test_abandoned_inflight_key_is_taken_over(self):
+        from datetime import timedelta
+        import hashlib
+        from django.utils import timezone
+        from authapp.models import IdempotencyRecord
+
+        rec = IdempotencyRecord.objects.create(
+            key='key-1',
+            token_hash=hashlib.sha256(b'Bearer aaa').hexdigest()[:64])
+        IdempotencyRecord.objects.filter(pk=rec.pk).update(
+            created_at=timezone.now() - timedelta(
+                seconds=IdempotencyMiddleware.INFLIGHT_TAKEOVER_SECONDS + 1))
+
+        res = self._middleware()(self._post())
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(self.calls, 1)
+        rec.refresh_from_db()
+        self.assertEqual(rec.status_code, 201)

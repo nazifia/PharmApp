@@ -1,6 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/item.dart';
+
+/// Where the in-progress wholesale cart is kept between runs.
+/// Cleared on logout — see AuthService.logout().
+const kWholesaleCartKey = 'cart_wholesale';
 
 class WsCartLine {
   final int    id;
@@ -25,6 +32,28 @@ class WsCartLine {
 
   double get total => (price * qty) - discount;
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'price': price,
+        'qty': qty,
+        'barcode': barcode,
+        'discount': discount,
+        'stock': stock,
+        'unitOfDispensing': unitOfDispensing,
+      };
+
+  factory WsCartLine.fromJson(Map<String, dynamic> j) => WsCartLine(
+        id: (j['id'] as num).toInt(),
+        name: j['name'] as String,
+        price: (j['price'] as num).toDouble(),
+        qty: (j['qty'] as num).toDouble(),
+        barcode: j['barcode'] as String? ?? '',
+        discount: (j['discount'] as num?)?.toDouble() ?? 0,
+        stock: (j['stock'] as num?)?.toInt() ?? 9999,
+        unitOfDispensing: j['unitOfDispensing'] as String? ?? '',
+      );
+
   WsCartLine copyWith({double? qty, double? discount}) => WsCartLine(
     id: id, name: name, price: price, barcode: barcode, stock: stock,
     unitOfDispensing: unitOfDispensing,
@@ -34,7 +63,40 @@ class WsCartLine {
 }
 
 class WsCartNotifier extends StateNotifier<List<WsCartLine>> {
-  WsCartNotifier() : super([]);
+  WsCartNotifier() : super([]) {
+    _restore();
+  }
+
+  /// A reconnect reloads the web page (and restarts the native app), which
+  /// would otherwise throw away a cart being rung up. Persisting every change
+  /// also survives an accidental tab close.
+  @override
+  set state(List<WsCartLine> value) {
+    super.state = value;
+    _persist(value);
+  }
+
+  Future<void> _restore() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(kWholesaleCartKey);
+    // Anything added while this was loading wins — never clobber a live cart.
+    if (raw == null || state.isNotEmpty) return;
+    try {
+      super.state = (jsonDecode(raw) as List)
+          .map((e) => WsCartLine.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      await prefs.remove(kWholesaleCartKey); // unreadable — drop it
+    }
+  }
+
+  void _persist(List<WsCartLine> lines) {
+    SharedPreferences.getInstance().then((prefs) {
+      if (lines.isEmpty) return prefs.remove(kWholesaleCartKey);
+      return prefs.setString(
+          kWholesaleCartKey, jsonEncode(lines.map((l) => l.toJson()).toList()));
+    }).ignore();
+  }
 
   void addItem(Item item) {
     if (item.stock == 0) return;

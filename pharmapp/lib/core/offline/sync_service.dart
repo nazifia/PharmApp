@@ -43,6 +43,10 @@ class SyncResult {
   final bool connectionFailed;
   /// Human-readable detail about the connection failure (Dio error type + URL).
   final String? connectionErrorDetail;
+  /// Why the first item failed — status code and path, or the error type for a
+  /// non-HTTP failure. Diagnostic only: a queue that never drains says nothing
+  /// about *why* without it.
+  final String? failureDetail;
 
   const SyncResult({
     this.salesSynced = 0,
@@ -53,6 +57,7 @@ class SyncResult {
     this.authExpired = false,
     this.connectionFailed = false,
     this.connectionErrorDetail,
+    this.failureDetail,
   });
 
   /// Total successful syncs (sales + mutations).
@@ -89,6 +94,7 @@ class SyncService {
     bool authExpired = false;
     bool connectionFailed = false;
     String? connectionErrorDetail;
+    String? failureDetail;
 
     try {
       // ── 1. Sync pending sales ────────────────────────────────────────────
@@ -123,6 +129,13 @@ class SyncService {
             connectionErrorDetail = _describeConnectionError(e);
             break; // network down — stop here, try again next sync cycle
           }
+          // 409 means another replay of this key is still in flight server-side.
+          // Transient, and not the sale's fault — leave the attempt count alone.
+          if (e is DioException && e.response?.statusCode == 409) {
+            failureDetail ??= _describeFailure(e);
+            continue;
+          }
+          failureDetail ??= _describeFailure(e);
           await ref.read(offlineQueueProvider.notifier).markAttempt(sale.id);
           failedSales++;
         }
@@ -146,6 +159,11 @@ class SyncService {
               connectionErrorDetail ??= _describeConnectionError(e);
               break; // network down — stop here
             }
+            if (e is DioException && e.response?.statusCode == 409) {
+              failureDetail ??= _describeFailure(e);
+              continue;
+            }
+            failureDetail ??= _describeFailure(e);
             await ref
                 .read(offlineMutationQueueProvider.notifier)
                 .markAttempt(mut.id);
@@ -174,7 +192,22 @@ class SyncService {
       authExpired: authExpired,
       connectionFailed: connectionFailed,
       connectionErrorDetail: connectionErrorDetail,
+      failureDetail: failureDetail,
     );
+  }
+
+  /// Describes why one queued item failed — enough to tell a server rejection
+  /// from a client-side error without a debugger.
+  String _describeFailure(Object e) {
+    if (e is DioException) {
+      final status = e.response?.statusCode;
+      final detail = e.response?.data is Map
+          ? (e.response!.data as Map)['detail']
+          : null;
+      return 'HTTP ${status ?? 'none'} ${e.requestOptions.method} '
+          '${e.requestOptions.path}${detail == null ? '' : ' — $detail'}';
+    }
+    return '${e.runtimeType}: $e';
   }
 
   /// Returns a human-readable string describing why a connection-level DioException failed.
