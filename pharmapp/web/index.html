@@ -46,6 +46,12 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <!-- Reload on reconnect. Native browser event, outside Flutter: fires only on
+       an offline->online transition, and works even if the Dart side is wedged
+       by the outage. The offline queue and cart live in localStorage, so a
+       reload loses nothing. -->
+  <script>addEventListener('online', function () { location.reload(); });</script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
