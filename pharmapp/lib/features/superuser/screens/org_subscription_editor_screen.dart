@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -289,9 +290,9 @@ class _OrgSubscriptionEditorScreenState
         backgroundColor: EnhancedTheme.primaryDark,
         body: Stack(children: [
           Container(decoration: context.bgGradient),
-          const Center(
-              child: CircularProgressIndicator(
-                  color: EnhancedTheme.primaryTeal)),
+          Center(
+              child: const CircularProgressIndicator(
+                  color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
         ]),
       ),
       error: (e, _) => Scaffold(
@@ -361,12 +362,12 @@ class _OrgSubscriptionEditorScreenState
                             ),
                           ),
                           if (_saving)
-                            const SizedBox(
+                            SizedBox(
                               width: 18, height: 18,
-                              child: CircularProgressIndicator(
+                              child: const CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: EnhancedTheme.primaryTeal,
-                              ),
+                              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                             )
                           else
                             TextButton(

@@ -291,7 +291,7 @@ class _CommissionReportScreenState
           color: EnhancedTheme.successGreen.withValues(alpha: 0.1),
           shape: BoxShape.circle),
         child: const CircularProgressIndicator(
-            color: EnhancedTheme.successGreen, strokeWidth: 3)),
+            color: EnhancedTheme.successGreen, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
       const SizedBox(height: 16),
       Text('Loading commissions…',
           style: TextStyle(
@@ -668,10 +668,10 @@ class _CommissionReportScreenState
               borderRadius: BorderRadius.circular(10)),
             child: Center(
               child: saveAsync.isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16, height: 16,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
+                      child: const CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                   : const Text('Save',
                       style: TextStyle(
                           color: Colors.white,

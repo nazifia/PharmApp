@@ -717,7 +717,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                   color: EnhancedTheme.primaryTeal,
                   backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
                   strokeWidth: 3,
-                ),
+                ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
               ),
               const SizedBox(height: 16),
               Text('Loading customers…',

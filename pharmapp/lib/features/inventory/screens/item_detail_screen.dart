@@ -432,8 +432,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           alignment: Alignment.center,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: saving
-                              ? const SizedBox(height: 20, width: 20,
-                                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
+                              ? SizedBox(height: 20, width: 20,
+                                  child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                               : Text('Save Changes',
                                   style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 16)),
                         ),
@@ -1192,8 +1192,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                       child: saving
-                          ? const SizedBox(width: 20, height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                          ? SizedBox(width: 20, height: 20,
+                              child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                           : Text('Save', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
                     )),
                   ]),
@@ -1382,8 +1382,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                       child: saving
-                          ? const SizedBox(width: 20, height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          ? SizedBox(width: 20, height: 20,
+                              child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                           : Text('Save', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
                     )),
                   ]),

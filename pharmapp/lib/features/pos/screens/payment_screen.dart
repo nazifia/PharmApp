@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -808,8 +808,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                   ),
                   child: _processing
-                      ? const SizedBox(width: 22, height: 22,
-                          child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
+                      ? SizedBox(width: 22, height: 22,
+                          child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                       : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                           Icon(_method.icon, size: 20, color: Colors.black),
                           const SizedBox(width: 10),

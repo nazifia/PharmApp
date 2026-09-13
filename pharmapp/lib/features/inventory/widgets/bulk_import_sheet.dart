@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/branches/providers/branch_provider.dart';
@@ -172,10 +173,10 @@ class _BulkImportSheetState extends ConsumerState<BulkImportSheet> {
                         borderRadius: BorderRadius.circular(12)),
                   ),
                   icon: _busy
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 16, height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.black))
+                          child: const CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                       : const Icon(Icons.download_done_rounded, size: 18),
                   label: Text(
                     'Import ${preview.created + preview.updated} item(s)',

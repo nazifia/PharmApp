@@ -412,12 +412,12 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                                   if (i == state.logs.length) {
                                     // Loading / load-more indicator
                                     if (state.isLoading) {
-                                      return const Padding(
-                                        padding: EdgeInsets.all(24),
+                                      return Padding(
+                                        padding: const EdgeInsets.all(24),
                                         child: Center(
-                                          child: CircularProgressIndicator(
+                                          child: const CircularProgressIndicator(
                                               color: EnhancedTheme.accentPurple,
-                                              strokeWidth: 2),
+                                              strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                                         ),
                                       );
                                     }

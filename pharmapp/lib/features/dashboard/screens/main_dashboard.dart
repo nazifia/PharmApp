@@ -262,9 +262,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             _sectionHeader('Revenue Breakdown', () => context.go('/dashboard/reports/sales')),
             const SizedBox(height: 12),
             salesAsync.when(
-              loading: () => const Center(child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(color: Color(0xFF0D9488)),
+              loading: () => Center(child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: const CircularProgressIndicator(color: Color(0xFF0D9488)).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
               )),
               error: (e, _) => _glassRow(child: Text('Failed to load sales data',
                   style: TextStyle(color: context.hintColor, fontSize: 13))),
@@ -313,9 +313,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             _sectionHeader('Low Stock Alerts', canInventory ? () => context.go('/dashboard/inventory') : () {}),
             const SizedBox(height: 12),
             invAsync.when(
-              loading: () => const Center(child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(color: Color(0xFF0D9488)),
+              loading: () => Center(child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: const CircularProgressIndicator(color: Color(0xFF0D9488)).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
               )),
               error: (e, _) => _glassRow(child: Text('Failed to load inventory data',
                   style: TextStyle(color: context.hintColor, fontSize: 13))),
@@ -540,10 +540,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
   Widget _wholesaleBody(bool wide2, {required bool canInventory}) {
     final wsAsync = ref.watch(_wholesaleDashProvider);
     return wsAsync.when(
-      loading: () => const Center(
+      loading: () => Center(
         child: Padding(
-          padding: EdgeInsets.all(48),
-          child: CircularProgressIndicator(color: EnhancedTheme.accentCyan),
+          padding: const EdgeInsets.all(48),
+          child: const CircularProgressIndicator(color: EnhancedTheme.accentCyan).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
         ),
       ),
       error: (e, _) => _glassRow(
@@ -949,9 +949,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   Widget _staffDispensedSection(AsyncValue<List<TopItem>> itemsAsync) {
     return itemsAsync.when(
-      loading: () => const Center(child: Padding(
-        padding: EdgeInsets.all(24),
-        child: CircularProgressIndicator(color: EnhancedTheme.accentCyan),
+      loading: () => Center(child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: const CircularProgressIndicator(color: EnhancedTheme.accentCyan).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
       )),
       error: (e, _) => _emptyState(Icons.medication_rounded, 'No items dispensed today', EnhancedTheme.accentCyan),
       data: (items) {
@@ -1014,7 +1014,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               color: context.cardColor,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: context.borderColor)),
-            child: const Center(child: CircularProgressIndicator(color: EnhancedTheme.accentCyan, strokeWidth: 2)),
+            child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.accentCyan, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           ),
         ),
       ),
@@ -1175,7 +1175,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               color: context.cardColor,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: context.borderColor)),
-            child: const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2)),
+            child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           ),
         ),
       ),

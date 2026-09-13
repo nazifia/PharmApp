@@ -776,8 +776,8 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 11),
                     ),
                     icon: _isSubmitting
-                        ? const SizedBox(width: 16, height: 16,
-                            child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                        ? SizedBox(width: 16, height: 16,
+                            child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                         : const Icon(Icons.check_circle_rounded, size: 18),
                     label: Text(_isSubmitting ? 'Processing…' : 'Checkout',
                         style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -1078,8 +1078,8 @@ class _WsPaymentSheetState extends State<_WsPaymentSheet> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     child: _isSubmitting
-                        ? const SizedBox(width: 22, height: 22,
-                            child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                        ? SizedBox(width: 22, height: 22,
+                            child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                         : Text('Confirm ${_fmtNaira(widget.total)}',
                             style: GoogleFonts.outfit(
                                 fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black)),

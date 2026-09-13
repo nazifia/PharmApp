@@ -470,8 +470,8 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
 
           // Items list
           Expanded(child: _detailLoading
-              ? const Center(child: CircularProgressIndicator(
-                  color: EnhancedTheme.primaryTeal))
+              ? Center(child: const CircularProgressIndicator(
+                  color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
               : filteredItems.isEmpty
                   ? _emptyState(Icons.inventory_2_outlined, 'No items found')
                   : ListView.builder(
@@ -805,8 +805,8 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
           ),
 
           Expanded(child: _reportLoading
-              ? const Center(child: CircularProgressIndicator(
-                  color: EnhancedTheme.accentPurple))
+              ? Center(child: const CircularProgressIndicator(
+                  color: EnhancedTheme.accentPurple).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
               : RefreshIndicator(
                   color: EnhancedTheme.accentPurple,
                   onRefresh: _loadReport,
@@ -1742,11 +1742,11 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
                             ],
                           )),
                           isAdding
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 28, height: 28,
-                                  child: CircularProgressIndicator(
+                                  child: const CircularProgressIndicator(
                                       color: EnhancedTheme.primaryTeal,
-                                      strokeWidth: 2.5))
+                                      strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                               : GestureDetector(
                                   onTap: () => _addItem(item),
                                   child: Container(

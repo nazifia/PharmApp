@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
@@ -159,15 +160,15 @@ class _EagerSyncBanner extends ConsumerWidget {
       width: double.infinity,
       color: EnhancedTheme.primaryTeal.withValues(alpha: 0.85),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: const Row(children: [
+      child: Row(children: [
         SizedBox(
           width: 14, height: 14,
-          child: CircularProgressIndicator(
+          child: const CircularProgressIndicator(
             strokeWidth: 2, color: Colors.white,
-          ),
+          ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
         ),
-        SizedBox(width: 10),
-        Text(
+        const SizedBox(width: 10),
+        const Text(
           'Syncing offline data…',
           style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
         ),
@@ -463,13 +464,13 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
                 color: Colors.black, fontSize: 12, fontWeight: FontWeight.w600),
           )),
           if (showSpinner)
-            const SizedBox(
+            SizedBox(
               width: 14,
               height: 14,
-              child: CircularProgressIndicator(
+              child: const CircularProgressIndicator(
                 strokeWidth: 2,
                 color: Colors.black,
-              ),
+              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
             )
           else if (pending > 0) ...[
             const SizedBox(width: 6),
@@ -605,15 +606,15 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 3),
-        content: const Row(children: [
+        content: Row(children: [
           SizedBox(
             width: 16,
             height: 16,
             child:
-                CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
           ),
-          SizedBox(width: 10),
-          Expanded(
+          const SizedBox(width: 10),
+          const Expanded(
               child: Text(
             'Sync already in progress…',
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),

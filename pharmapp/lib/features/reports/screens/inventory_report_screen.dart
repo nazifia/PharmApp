@@ -156,7 +156,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                                 .withValues(alpha: 0.1),
                             shape: BoxShape.circle),
                         child: const CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal, strokeWidth: 3)),
+                            color: EnhancedTheme.primaryTeal, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     const SizedBox(height: 16),
                     Text('Loading inventory…',
                         style: TextStyle(

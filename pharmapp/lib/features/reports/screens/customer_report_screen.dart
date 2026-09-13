@@ -119,7 +119,7 @@ class CustomerReportScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
                     shape: BoxShape.circle),
-                  child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 3)),
+                  child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                 const SizedBox(height: 16),
                 Text('Loading customers…', style: TextStyle(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.8), fontSize: 13)),
               ]),
@@ -329,10 +329,10 @@ class CustomerReportScreen extends ConsumerWidget {
         _sectionHeader(context, 'Negative Wallet Balances', Icons.account_balance_wallet_rounded, EnhancedTheme.errorRed),
         const SizedBox(height: 12),
         negGroups.when(
-          loading: () => const Center(
+          loading: () => Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 3),
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
             ),
           ),
           error: (_, __) => const SizedBox.shrink(),

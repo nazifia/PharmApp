@@ -407,13 +407,13 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
                             ),
                             if (isOnline && total > 0)
                               _syncing
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 28,
                                       height: 28,
-                                      child: CircularProgressIndicator(
+                                      child: const CircularProgressIndicator(
                                         strokeWidth: 2.5,
                                         color: EnhancedTheme.primaryTeal,
-                                      ),
+                                      ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                                     )
                                   : ElevatedButton.icon(
                                       onPressed: _syncNow,

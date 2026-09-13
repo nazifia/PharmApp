@@ -792,9 +792,9 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: detailAsync.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(48),
-          child: Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal)),
+        loading: () => Padding(
+          padding: const EdgeInsets.all(48),
+          child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
         ),
         error: (e, _) => Padding(
           padding: const EdgeInsets.all(32),
@@ -1384,8 +1384,8 @@ class _WholesaleReturnDialogState extends ConsumerState<_WholesaleReturnDialog> 
               elevation: 0,
             ),
             child: _submitting
-                ? const SizedBox(width: 20, height: 20,
-                    child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                ? SizedBox(width: 20, height: 20,
+                    child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                 : Text('Process Return',
                     style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
           )),

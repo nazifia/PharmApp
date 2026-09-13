@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,7 +53,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                   color: EnhancedTheme.primaryTeal,
                   backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
                   strokeWidth: 3,
-                ),
+                ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
               ),
               const SizedBox(height: 16),
               Text('Loading profile…', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
@@ -353,9 +353,9 @@ class CustomerDetailScreen extends ConsumerWidget {
           _sectionTitle(context, 'Purchase History', Icons.receipt_long_rounded, EnhancedTheme.accentPurple),
           const SizedBox(height: 10),
           salesAsync.when(
-            loading: () => const Center(
-                child: Padding(padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2))),
+            loading: () => Center(
+                child: Padding(padding: const EdgeInsets.all(20),
+                  child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
             error: (e, _) => _glassCard(context, child: Row(children: [
               const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed, size: 18),
               const SizedBox(width: 12),

@@ -246,7 +246,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           child: CircularProgressIndicator(
                               color: EnhancedTheme.successGreen,
                               backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.15),
-                              strokeWidth: 3)),
+                              strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                       error: (_, __) => Text('—',
                           style: GoogleFonts.outfit(
                               color: context.labelColor, fontSize: 40, fontWeight: FontWeight.w800)),
@@ -410,8 +410,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             ],
                           ),
                           child: processing
-                              ? const SizedBox(width: 18, height: 18,
-                                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                              ? SizedBox(width: 18, height: 18,
+                                  child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                               : Text(_isTopUp ? 'Top Up' : 'Deduct',
                                   style: GoogleFonts.outfit(
                                       color: Colors.black,
@@ -472,7 +472,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     color: EnhancedTheme.primaryTeal,
                     backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
                     strokeWidth: 3,
-                  ),
+                  ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                 ),
                 const SizedBox(height: 12),
                 Text('Loading transactions…', style: TextStyle(color: context.subLabelColor, fontSize: 12)),

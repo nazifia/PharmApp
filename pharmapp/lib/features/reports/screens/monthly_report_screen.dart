@@ -542,7 +542,7 @@ class MonthlyReportScreen extends ConsumerWidget {
               boxShadow: [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 2))],
             ),
           ),
-        ),
+        ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
       ])),
       const SizedBox(width: 10),
       Text('${(pct * 100).toStringAsFixed(0)}%',

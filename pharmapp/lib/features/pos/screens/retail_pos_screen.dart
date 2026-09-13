@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -733,7 +733,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       ),
       Expanded(child: filtered.when(
         loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2.5),
+          const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
           const SizedBox(height: 16),
           Text('Loading catalogue…', style: TextStyle(color: context.hintColor, fontSize: 13)),
         ])),
@@ -1224,11 +1224,11 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       loading: () => Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         child: Row(children: [
-          const SizedBox(
+          SizedBox(
             width: 12,
             height: 12,
-            child: CircularProgressIndicator(
-                strokeWidth: 1.5, color: EnhancedTheme.primaryTeal),
+            child: const CircularProgressIndicator(
+                strokeWidth: 1.5, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
           ),
           const SizedBox(width: 8),
           Text('Checking drug interactions…',

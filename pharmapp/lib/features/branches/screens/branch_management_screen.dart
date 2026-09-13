@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
@@ -106,11 +107,11 @@ class _BranchManagementScreenState
 
                           // ── Branch list ───────────────────────────────────
                           asyncBranches.when(
-                            loading: () => const Center(
+                            loading: () => Center(
                               child: Padding(
-                                padding: EdgeInsets.all(40),
-                                child: CircularProgressIndicator(
-                                    color: EnhancedTheme.primaryTeal),
+                                padding: const EdgeInsets.all(40),
+                                child: const CircularProgressIndicator(
+                                    color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                               ),
                             ),
                             error: (e, _) => _ErrorCard(
@@ -742,11 +743,11 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
                             borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18, height: 18,
-                              child: CircularProgressIndicator(
+                              child: const CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white))
+                                  color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                           : Text(
                               isEdit ? 'Save Changes' : 'Create Branch',
                               style: const TextStyle(

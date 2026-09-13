@@ -187,10 +187,10 @@ class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
       child: TextButton.icon(
         onPressed: _printing ? null : _pickFormatAndPrint,
         icon: _printing
-            ? const SizedBox(
+            ? SizedBox(
                 width: 14, height: 14,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: EnhancedTheme.primaryTeal))
+                child: const CircularProgressIndicator(
+                    strokeWidth: 2, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
             : const Icon(Icons.print_rounded, size: 16, color: Colors.black),
         label: Text(_printing ? 'Printing…' : 'Print',
             style: TextStyle(
@@ -418,10 +418,10 @@ class _BluetoothPrinterSheetState extends State<_BluetoothPrinterSheet> {
         const Divider(height: 1),
         if (_loading) ...[
           const SizedBox(height: 28),
-          const SizedBox(
+          SizedBox(
             width: 28, height: 28,
-            child: CircularProgressIndicator(
-                strokeWidth: 2.5, color: EnhancedTheme.primaryTeal),
+            child: const CircularProgressIndicator(
+                strokeWidth: 2.5, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
           ),
           const SizedBox(height: 10),
           Text('Loading paired devices…',
@@ -743,10 +743,10 @@ class _ReceiptShareButtonState extends State<ReceiptShareButton> {
       child: TextButton.icon(
         onPressed: _sharing ? null : () => _showShareMenu(context),
         icon: _sharing
-            ? const SizedBox(
+            ? SizedBox(
                 width: 14, height: 14,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: EnhancedTheme.primaryTeal))
+                child: const CircularProgressIndicator(
+                    strokeWidth: 2, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
             : const Icon(Icons.share_rounded, size: 16,
                 color: EnhancedTheme.primaryTeal),
         label: Text(_sharing ? 'Sharing…' : 'Share',

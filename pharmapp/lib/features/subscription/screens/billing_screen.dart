@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -77,12 +78,12 @@ class BillingScreen extends ConsumerWidget {
                           ),
                         ),
                         billingAsync.isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(
+                                child: const CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: EnhancedTheme.primaryTeal),
+                                    color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                               )
                             : IconButton(
                                 icon: const Icon(Icons.refresh_rounded,
@@ -96,9 +97,9 @@ class BillingScreen extends ConsumerWidget {
 
                   Expanded(
                     child: billingAsync.when(
-                      loading: () => const Center(
-                        child: CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal),
+                      loading: () => Center(
+                        child: const CircularProgressIndicator(
+                            color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                       ),
                       error: (e, _) => _ErrorRetry(
                           message: e.toString(),
@@ -273,12 +274,12 @@ class _BillingSummaryCard extends ConsumerWidget {
                 ),
               ),
               isSaving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(
+                      child: const CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: EnhancedTheme.primaryTeal))
+                          color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                   : Switch.adaptive(
                       value: autoBilling,
                       activeTrackColor: EnhancedTheme.primaryTeal,
@@ -698,10 +699,10 @@ class _BillingContactFormSheetState extends State<_BillingContactFormSheet> {
                     elevation: 0,
                   ),
                   child: _saving
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20, height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
+                          child: const CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                       : const Text('Save Billing Contact',
                           style: TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w700)),
@@ -1525,11 +1526,11 @@ class _CardFormSheetState extends State<_CardFormSheet> {
                     elevation: 0,
                   ),
                   child: _saving
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                          child: const CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                         )
                       : Text(
                           widget.existing != null
@@ -2204,11 +2205,11 @@ class _PlanRowState extends ConsumerState<_PlanRow> {
             // Action button
             if (!widget.isCurrent)
               _loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18, height: 18,
-                      child: CircularProgressIndicator(
+                      child: const CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: EnhancedTheme.primaryTeal))
+                          color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                   : GestureDetector(
                       onTap: () => _upgrade(context),
                       child: Container(

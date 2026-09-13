@@ -495,11 +495,11 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                         Icons.leaderboard_rounded, EnhancedTheme.successGreen),
                     const SizedBox(height: 12),
                     salesToday.when(
-                      loading: () => const Center(
+                      loading: () => Center(
                           child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal),
+                        padding: const EdgeInsets.all(24),
+                        child: const CircularProgressIndicator(
+                            color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                       )),
                       error: (e, _) => _infoTile(
                           'Failed to load sales data', EnhancedTheme.errorRed),

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,7 +26,7 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = prescriber ?? ref.watch(currentPrescriberProvider);
     if (p == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(body: Center(child: const CircularProgressIndicator().animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)));
     }
     final summaryAsync =
         ref.watch(prescriberCommissionSummaryProvider(p.id));
@@ -158,11 +159,11 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
 
                 // ── Summary cards ─────────────────────────────────────────
                 summaryAsync.when(
-                  loading: () => const SizedBox(
+                  loading: () => SizedBox(
                     height: 100,
                     child: Center(
-                        child: CircularProgressIndicator(
-                            color: EnhancedTheme.accentOrange)),
+                        child: const CircularProgressIndicator(
+                            color: EnhancedTheme.accentOrange).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                   ),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (s) => Padding(
@@ -204,9 +205,9 @@ class PrescriberCommissionsScreen extends ConsumerWidget {
                 // ── Filter tabs + list ────────────────────────────────────
                 Expanded(
                   child: commissionsAsync.when(
-                    loading: () => const Center(
-                        child: CircularProgressIndicator(
-                            color: EnhancedTheme.accentOrange)),
+                    loading: () => Center(
+                        child: const CircularProgressIndicator(
+                            color: EnhancedTheme.accentOrange).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     error: (e, _) => Center(
                       child: Text('Error loading commissions: $e',
                           style:

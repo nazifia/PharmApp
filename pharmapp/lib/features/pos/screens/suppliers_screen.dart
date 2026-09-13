@@ -1382,9 +1382,9 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
                 elevation: 0,
               ),
               child: _submitting
-                  ? const SizedBox(width: 18, height: 18,
-                      child: CircularProgressIndicator(
-                          color: Colors.black, strokeWidth: 2))
+                  ? SizedBox(width: 18, height: 18,
+                      child: const CircularProgressIndicator(
+                          color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                   : Text(
                       'Dispatch to ${_destination == 'retail' ? 'Retail' : 'Wholesale'}',
                       style: GoogleFonts.outfit(fontSize: 13,
@@ -1907,10 +1907,10 @@ class _ProcurementDetailSheetState
         // Dispatch buttons (only for draft)
         if (isDraft) ...[
           if (_dispatching)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 20),
-              child: Center(child: CircularProgressIndicator(
-                  color: EnhancedTheme.primaryTeal)),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Center(child: const CircularProgressIndicator(
+                  color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
             )
           else
             Column(children: [

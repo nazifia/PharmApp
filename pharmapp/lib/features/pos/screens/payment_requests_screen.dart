@@ -531,7 +531,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 Expanded(child: ElevatedButton.icon(
                   onPressed: _actingIds.contains(id) ? null : () => _acceptRequest(id),
                   icon: _actingIds.contains(id)
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      ? SizedBox(width: 18, height: 18, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                       : const Icon(Icons.check_circle_outline_rounded, size: 18),
                   label: Text('Accept', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
@@ -548,7 +548,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 Expanded(child: ElevatedButton.icon(
                   onPressed: _actingIds.contains(id) ? null : () => _rejectRequest(id),
                   icon: _actingIds.contains(id)
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      ? SizedBox(width: 18, height: 18, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                       : const Icon(Icons.cancel_outlined, size: 18),
                   label: Text('Reject', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
@@ -569,7 +569,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
               child: SizedBox(width: double.infinity, child: ElevatedButton.icon(
                 onPressed: _actingIds.contains(id) ? null : () => _completeRequest(id),
                 icon: _actingIds.contains(id)
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                    ? SizedBox(width: 18, height: 18, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                     : const Icon(Icons.payment_rounded, size: 18),
                 label: Text('Complete Payment', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
@@ -607,7 +607,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
 
           // Items list
           Expanded(child: _detailLoading
-              ? const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal))
+              ? Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
               : _detailItems.isEmpty
                   ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.inventory_2_outlined, color: context.hintColor, size: 40),

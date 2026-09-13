@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -156,7 +157,7 @@ class _ShiftReportScreenState extends ConsumerState<ShiftReportScreen> {
 
           // Shifts list
           Expanded(child: shiftsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2)),
+            loading: () => Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
             error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed, size: 40),
               const SizedBox(height: 12),

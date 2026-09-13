@@ -159,9 +159,9 @@ class _ReceiveOrderScreenState extends ConsumerState<ReceiveOrderScreen> {
             ),
             Expanded(
               child: orderAsync.when(
-                loading: () => const Center(
-                    child: CircularProgressIndicator(
-                        color: EnhancedTheme.primaryTeal)),
+                loading: () => Center(
+                    child: const CircularProgressIndicator(
+                        color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                 error: (e, _) => Center(
                   child: Text('$e',
                       style: GoogleFonts.inter(
@@ -238,11 +238,11 @@ class _ReceiveOrderScreenState extends ConsumerState<ReceiveOrderScreen> {
                 ? null
                 : () => _markReceived(context, order.items),
             icon: _submitting
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(
-                        color: Colors.black, strokeWidth: 2))
+                    child: const CircularProgressIndicator(
+                        color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                 : const Icon(Icons.move_to_inbox_rounded, size: 20),
             label: Text(
                 _submitting ? 'Updating…' : 'Mark as Received',

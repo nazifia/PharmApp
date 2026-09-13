@@ -751,11 +751,11 @@ class _WritePrescriptionScreenState
           // Search results
           if (searchAsync != null)
             searchAsync.when(
-              loading: () => const Center(
+              loading: () => Center(
                   child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(
-                    color: EnhancedTheme.primaryTeal),
+                padding: const EdgeInsets.all(24),
+                child: const CircularProgressIndicator(
+                    color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
               )),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(16),
@@ -1040,11 +1040,11 @@ class _WritePrescriptionScreenState
                   borderRadius: BorderRadius.circular(14)),
             ),
             child: _isSubmitting
-                ? const SizedBox(
+                ? SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                    child: const CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                 : const Text('Save Prescription',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w700)),
@@ -1631,15 +1631,15 @@ class _PrescriberPickerField extends ConsumerWidget {
         // Autocomplete results
         if (prescriberAsync != null)
           prescriberAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+            loading: () => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Center(
                   child: SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(
+                      child: const CircularProgressIndicator(
                           color: EnhancedTheme.accentPurple,
-                          strokeWidth: 2))),
+                          strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
             ),
             error: (_, __) => const SizedBox.shrink(),
             data: (prescribers) {

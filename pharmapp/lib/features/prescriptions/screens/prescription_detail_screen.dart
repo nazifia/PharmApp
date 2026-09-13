@@ -141,9 +141,9 @@ class _PrescriptionDetailScreenState
                 Expanded(
                   child: rxAsync.when(
                     skipLoadingOnReload: true,
-                    loading: () => const Center(
-                        child: CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal)),
+                    loading: () => Center(
+                        child: const CircularProgressIndicator(
+                            color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     error: (e, _) => Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1625,14 +1625,14 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet> {
               prefixIcon: const Icon(Icons.search_rounded,
                   color: Colors.white38, size: 20),
               suffixIcon: _loading
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
+                  ? Padding(
+                      padding: const EdgeInsets.all(12),
                       child: SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(
+                          child: const CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: EnhancedTheme.primaryTeal)),
+                              color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     )
                   : null,
               filled: true,
@@ -1992,12 +1992,12 @@ class _BottomActions extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: isBusy
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(
+                      child: const CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: EnhancedTheme.successGreen))
+                          color: EnhancedTheme.successGreen).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                   : Text(
                       selectedIndices.isEmpty
                           ? 'Select medications'

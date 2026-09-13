@@ -347,13 +347,13 @@ class _CreateNetworkScreenState extends ConsumerState<CreateNetworkScreen> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(
+                child: const CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 2.5,
-                ),
+                ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,

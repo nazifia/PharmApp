@@ -846,7 +846,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       ),
       Expanded(child: filtered.when(
         loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const CircularProgressIndicator(color: EnhancedTheme.accentCyan, strokeWidth: 2.5),
+          const CircularProgressIndicator(color: EnhancedTheme.accentCyan, strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
           const SizedBox(height: 16),
           Text('Loading catalogue…', style: TextStyle(color: context.hintColor, fontSize: 13)),
         ])),

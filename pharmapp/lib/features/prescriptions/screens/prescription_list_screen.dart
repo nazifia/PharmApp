@@ -148,9 +148,9 @@ class _PrescriptionListScreenState
                 _buildTabs(),
                 Expanded(
                   child: prescriptionsAsync.when(
-                    loading: () => const Center(
-                        child: CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal)),
+                    loading: () => Center(
+                        child: const CircularProgressIndicator(
+                            color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     error: (e, _) => _ErrorView(
                         message: e.toString(),
                         onRetry: () =>

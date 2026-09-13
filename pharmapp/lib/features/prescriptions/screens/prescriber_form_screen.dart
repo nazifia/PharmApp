@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -410,11 +411,11 @@ class _PrescriberFormSheetState extends ConsumerState<PrescriberFormSheet> {
                               borderRadius: BorderRadius.circular(16)),
                         ),
                         child: _saving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2))
+                                child: const CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                             : Text(
                                 isEdit ? 'Save Changes' : 'Add Prescriber',
                                 style: GoogleFonts.outfit(
@@ -642,11 +643,11 @@ class _HospitalPickerSheetState extends ConsumerState<HospitalPickerSheet> {
                                 const EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: _creating
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.black))
+                                  child: const CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                               : const Text('Create & Select',
                                   style: TextStyle(
                                       fontWeight: FontWeight.w700,
@@ -695,9 +696,9 @@ class _HospitalPickerSheetState extends ConsumerState<HospitalPickerSheet> {
                 // ── List ────────────────────────────────────────────────────
                 Expanded(
                   child: hospitalsAsync.when(
-                    loading: () => const Center(
-                        child: CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal)),
+                    loading: () => Center(
+                        child: const CircularProgressIndicator(
+                            color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     error: (e, _) => Center(
                         child: Text('Error: $e',
                             style: TextStyle(color: context.subLabelColor))),

@@ -733,7 +733,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
               fontWeight: w))),
       Expanded(child: Text('${_fmt(sales)} − ${_fmt(expense)}',
           textAlign: TextAlign.end,
-          style: TextStyle(color: Colors.black54, fontSize: 11))),
+          style: const TextStyle(color: Colors.black54, fontSize: 11))),
       const SizedBox(width: 10),
       Text(_fmt(net), style: TextStyle(
           color: net >= 0 ? color : EnhancedTheme.errorRed,

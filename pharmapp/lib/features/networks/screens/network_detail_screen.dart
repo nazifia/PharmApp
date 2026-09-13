@@ -50,7 +50,7 @@ class NetworkDetailScreen extends ConsumerWidget {
                         backgroundColor:
                             EnhancedTheme.accentPurple.withValues(alpha: 0.15),
                         strokeWidth: 3,
-                      ),
+                      ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -638,7 +638,7 @@ class _MemberCardState extends ConsumerState<_MemberCard> {
                           color: EnhancedTheme.errorRed,
                           backgroundColor:
                               EnhancedTheme.errorRed.withValues(alpha: 0.1),
-                        ),
+                        ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                       )
                     : GestureDetector(
                         onTap: _removeMember,

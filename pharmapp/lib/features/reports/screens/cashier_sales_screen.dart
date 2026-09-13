@@ -195,7 +195,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
           color: EnhancedTheme.accentOrange.withValues(alpha: 0.1),
           shape: BoxShape.circle),
         child: const CircularProgressIndicator(
-          color: EnhancedTheme.accentOrange, strokeWidth: 3)),
+          color: EnhancedTheme.accentOrange, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
       const SizedBox(height: 16),
       Text('Loading report…', style: TextStyle(color: EnhancedTheme.accentOrange.withValues(alpha: 0.8), fontSize: 13)),
     ]),

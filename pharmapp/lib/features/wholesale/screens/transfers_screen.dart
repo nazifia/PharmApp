@@ -1525,11 +1525,11 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
                     elevation: 0,
                   ),
                   child: _submitting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(
-                              color: Colors.black, strokeWidth: 2))
+                          child: const CircularProgressIndicator(
+                              color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                       : Text('Create Transfer',
                           style: GoogleFonts.inter(
                               fontSize: 16, fontWeight: FontWeight.w700)),

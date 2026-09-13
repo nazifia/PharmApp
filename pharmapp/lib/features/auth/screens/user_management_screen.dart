@@ -1353,10 +1353,10 @@ class _UserManagementScreenState
                       // ── Body ───────────────────────────────────
                       Flexible(
                         child: loading
-                            ? const Padding(
-                                padding: EdgeInsets.all(40),
+                            ? Padding(
+                                padding: const EdgeInsets.all(40),
                                 child: Center(
-                                    child: CircularProgressIndicator()),
+                                    child: const CircularProgressIndicator().animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                               )
                             : error != null
                                 ? Padding(
@@ -1545,12 +1545,12 @@ class _UserManagementScreenState
                                       }
                                     },
                               icon: saving
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 16,
                                       height: 16,
-                                      child: CircularProgressIndicator(
+                                      child: const CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Colors.white))
+                                          color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
                                   : const Icon(Icons.save_rounded, size: 18),
                               label: Text(
                                 saving ? 'Saving…' : 'Save Permission Overrides',
@@ -2105,12 +2105,12 @@ class _UserManagementScreenState
                   .withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Padding(
-              padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: const CircularProgressIndicator(
                 color: EnhancedTheme.primaryTeal,
                 strokeWidth: 2.5,
-              ),
+              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
             ),
           ),
           const SizedBox(height: 16),

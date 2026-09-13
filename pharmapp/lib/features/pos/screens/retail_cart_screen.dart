@@ -356,8 +356,8 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
       loading: () => Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: Row(children: [
-          const SizedBox(width: 12, height: 12,
-              child: CircularProgressIndicator(strokeWidth: 1.5, color: EnhancedTheme.primaryTeal)),
+          SizedBox(width: 12, height: 12,
+              child: const CircularProgressIndicator(strokeWidth: 1.5, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           const SizedBox(width: 8),
           Text('Checking drug interactions…',
               style: TextStyle(color: context.subLabelColor, fontSize: 11)),

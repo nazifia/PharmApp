@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -29,7 +30,7 @@ class PrescriberConsultationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = prescriber ?? ref.watch(currentPrescriberProvider);
     if (p == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(body: Center(child: const CircularProgressIndicator().animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)));
     }
     final summaryAsync = ref.watch(prescriberConsultationSummaryProvider(p.id));
     final listAsync = ref.watch(prescriberConsultationsProvider(p.id));
@@ -165,11 +166,11 @@ class PrescriberConsultationsScreen extends ConsumerWidget {
 
                 // ── Summary cards ─────────────────────────────────────────
                 summaryAsync.when(
-                  loading: () => const SizedBox(
+                  loading: () => SizedBox(
                     height: 100,
                     child: Center(
-                        child: CircularProgressIndicator(
-                            color: EnhancedTheme.accentCyan)),
+                        child: const CircularProgressIndicator(
+                            color: EnhancedTheme.accentCyan).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                   ),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (s) => Padding(
@@ -211,9 +212,9 @@ class PrescriberConsultationsScreen extends ConsumerWidget {
                 // ── Payout list ───────────────────────────────────────────
                 Expanded(
                   child: listAsync.when(
-                    loading: () => const Center(
-                        child: CircularProgressIndicator(
-                            color: EnhancedTheme.accentCyan)),
+                    loading: () => Center(
+                        child: const CircularProgressIndicator(
+                            color: EnhancedTheme.accentCyan).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     error: (e, _) => Center(
                       child: Text('Error loading consultations: $e',
                           style: TextStyle(

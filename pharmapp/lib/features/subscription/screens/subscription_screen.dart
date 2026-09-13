@@ -86,12 +86,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                         ),
                       ),
                       if (isLoading)
-                        const SizedBox(
+                        SizedBox(
                           width: 18, height: 18,
-                          child: CircularProgressIndicator(
+                          child: const CircularProgressIndicator(
                             strokeWidth: 2,
                             color: EnhancedTheme.primaryTeal,
-                          ),
+                          ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                         ),
                     ],
                   ),
@@ -797,12 +797,12 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
                     ),
                     if (!widget.isCurrent)
                       _loading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20, height: 20,
-                              child: CircularProgressIndicator(
+                              child: const CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: EnhancedTheme.primaryTeal,
-                              ),
+                              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
                             )
                           : TextButton(
                               onPressed: () => _upgrade(context),

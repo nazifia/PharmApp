@@ -614,7 +614,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                     boxShadow: [BoxShadow(color: marginColor.withValues(alpha: 0.4), blurRadius: 6)],
                   ),
                 ),
-              ),
+              ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
             ]),
             const SizedBox(height: 6),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [

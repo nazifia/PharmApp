@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -306,11 +307,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           elevation: 0,
         ),
         child: _saving
-            ? const SizedBox(
+            ? SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2.5, color: Colors.black),
+                child: const CircularProgressIndicator(
+                    strokeWidth: 2.5, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
               )
             : const Text('Save Changes',
                 style:
