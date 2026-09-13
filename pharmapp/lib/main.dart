@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show timeDilation;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +16,10 @@ import 'core/offline/sync_driver.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Slow every animation app-wide (implicit, explicit, flutter_animate, route
+  // transitions, ripples). 1.0 = normal speed.
+  timeDilation = 2.0;
 
   // Initialize local SQLite database (dev/offline mode — not supported on web)
   if (!kIsWeb) {
