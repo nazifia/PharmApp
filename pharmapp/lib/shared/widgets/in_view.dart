@@ -3,9 +3,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 
-/// Rebuilds with `visible = true` once, the first time this widget scrolls
-/// into its nearest [Scrollable]'s viewport. Outside a scrollable it is
-/// visible right after the first frame.
+/// Rebuilds with `visible = true` whenever this widget scrolls into its
+/// nearest [Scrollable]'s viewport (either direction) and `false` once it is
+/// fully out of view again, so animations replay on every re-entry. Outside a
+/// scrollable it is visible right after the first frame.
 class InView extends StatefulWidget {
   const InView({super.key, required this.builder, this.delay = Duration.zero});
 
@@ -20,6 +21,7 @@ class InView extends StatefulWidget {
 
 class _InViewState extends State<InView> {
   bool _visible = false;
+  bool _pending = false;
   ScrollPosition? _position;
 
   @override
@@ -29,7 +31,7 @@ class _InViewState extends State<InView> {
     if (position != _position) {
       _position?.removeListener(_check);
       _position = position;
-      if (!_visible) _position?.addListener(_check);
+      _position?.addListener(_check);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => _check());
   }
@@ -41,7 +43,7 @@ class _InViewState extends State<InView> {
   }
 
   void _check() {
-    if (_visible || !mounted) return;
+    if (!mounted) return;
     final box = context.findRenderObject();
     if (box is! RenderBox || !box.hasSize || !box.attached) return;
     final viewport = RenderAbstractViewport.maybeOf(box);
@@ -55,15 +57,23 @@ class _InViewState extends State<InView> {
       seen = top < position.pixels + position.viewportDimension &&
           top + extent > position.pixels;
     }
-    if (!seen) return;
-    _position?.removeListener(_check);
+    if (!seen) {
+      _pending = false;
+      if (_visible) setState(() => _visible = false);
+      return;
+    }
+    if (_visible || _pending) return;
     if (widget.delay == Duration.zero) {
       setState(() => _visible = true);
-    } else {
-      Future.delayed(widget.delay, () {
-        if (mounted) setState(() => _visible = true);
-      });
+      return;
     }
+    _pending = true;
+    Future.delayed(widget.delay, () {
+      // Scrolled back out during the stagger: stay hidden.
+      if (!mounted || !_pending) return;
+      _pending = false;
+      setState(() => _visible = true);
+    });
   }
 
   @override
