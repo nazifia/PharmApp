@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -409,7 +410,7 @@ class _CurrentPlanCard extends StatelessWidget {
                               backgroundColor: planColor.withValues(alpha: 0.15),
                               valueColor: AlwaysStoppedAnimation(planColor),
                               minHeight: 5,
-                            ),
+                            ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -602,7 +603,7 @@ class _UsageRow extends StatelessWidget {
               backgroundColor: Colors.white.withValues(alpha: 0.08),
               valueColor: AlwaysStoppedAnimation(bar),
               minHeight: 4,
-            ),
+            ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
           ),
         ],
       ],

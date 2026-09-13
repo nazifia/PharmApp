@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -504,7 +505,7 @@ class _OrgCard extends ConsumerWidget {
                                   Colors.white.withValues(alpha: 0.08),
                               valueColor: AlwaysStoppedAnimation(statusColor),
                               minHeight: 3,
-                            ),
+                            ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
                           ),
                         ),
                         const SizedBox(width: 8),

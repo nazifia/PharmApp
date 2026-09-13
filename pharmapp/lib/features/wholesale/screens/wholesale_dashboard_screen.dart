@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
@@ -473,7 +474,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                   ),
                 ],
               ),
-            ),
+            ).animate().fadeIn(duration: 700.ms).slideX(begin: -0.06, end: 0, duration: 900.ms, curve: Curves.easeOutCubic),
           ),
         ]);
       },
@@ -590,7 +591,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                   );
                 }).toList(),
               ),
-            ),
+            ).animate().fadeIn(duration: 700.ms).scaleY(begin: 0, end: 1, alignment: Alignment.bottomCenter, duration: 900.ms, curve: Curves.easeOutCubic),
           ),
         ]);
       },

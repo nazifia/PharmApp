@@ -1887,7 +1887,7 @@ class _RefillSection extends StatelessWidget {
               backgroundColor: Colors.white.withValues(alpha: 0.08),
               color: progressColor,
               minHeight: 6,
-            ),
+            ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
           ),
           if (rx.nextRefillDate != null) ...[
             const SizedBox(height: 8),

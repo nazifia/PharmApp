@@ -601,7 +601,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   ),
                 ],
               ),
-            ),
+            ).animate().fadeIn(duration: 700.ms).slideX(begin: -0.06, end: 0, duration: 900.ms, curve: Curves.easeOutCubic),
           ),
         ),
       ),
@@ -799,7 +799,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           value: pct.clamp(0.0, 1.0),
           backgroundColor: context.borderColor,
           valueColor: AlwaysStoppedAnimation<Color>(color),
-          minHeight: 10)),
+          minHeight: 10).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
     ]);
   }
 

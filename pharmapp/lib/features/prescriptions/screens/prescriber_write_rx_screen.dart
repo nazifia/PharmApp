@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -576,7 +577,7 @@ class _PatientPicker extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const LinearProgressIndicator(),
+      loading: () => const LinearProgressIndicator().animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
       error: (e, _) => Text('Failed to load patients: $e',
           style: const TextStyle(
               color: EnhancedTheme.errorRed, fontSize: 13)),

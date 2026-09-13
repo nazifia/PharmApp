@@ -474,7 +474,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                         ),
                       ),
                     ),
-                  ),
+                  ).animate().fadeIn(duration: 700.ms).scaleY(begin: 0, end: 1, alignment: Alignment.bottomCenter, duration: 900.ms, curve: Curves.easeOutCubic),
                 ),
               ),
               Padding(

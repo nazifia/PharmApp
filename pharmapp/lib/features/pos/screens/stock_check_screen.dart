@@ -359,7 +359,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                           valueColor: AlwaysStoppedAnimation<Color>(
                               progress == 1.0 ? EnhancedTheme.successGreen : statusCol),
                           minHeight: 8,
-                        ),
+                        ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
                       ),
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -1037,7 +1037,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                       backgroundColor: accentColor.withValues(alpha: 0.12),
                       valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                       minHeight: 6,
-                    ),
+                    ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
                   ),
                   if (costDiff != 0) ...[
                     const SizedBox(height: 8),

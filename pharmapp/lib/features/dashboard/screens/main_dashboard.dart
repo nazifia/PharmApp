@@ -343,7 +343,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                           value: pct.clamp(0.0, 1.0),
                           backgroundColor: context.borderColor,
                           valueColor: AlwaysStoppedAnimation<Color>(c),
-                          minHeight: 4)),
+                          minHeight: 4).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
                     ])),
                     const SizedBox(width: 12),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -692,7 +692,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       value: pct.clamp(0.0, 1.0),
                       backgroundColor: context.borderColor,
                       valueColor: AlwaysStoppedAnimation<Color>(c),
-                      minHeight: 4)),
+                      minHeight: 4).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
                 ])),
                 const SizedBox(width: 12),
                 Text('$stock units', style: TextStyle(color: c, fontWeight: FontWeight.w800, fontSize: 14)),
@@ -1130,7 +1130,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                     ),
                   ],
                 ),
-              ),
+              ).animate().fadeIn(duration: 700.ms).slideX(begin: -0.06, end: 0, duration: 900.ms, curve: Curves.easeOutCubic),
             ),
           ),
         ).animate().fadeIn(duration: 500.ms, delay: 100.ms);
@@ -1292,7 +1292,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       );
                     }).toList(),
                   ),
-                ),
+                ).animate().fadeIn(duration: 700.ms).scaleY(begin: 0, end: 1, alignment: Alignment.bottomCenter, duration: 900.ms, curve: Curves.easeOutCubic),
               ),
             ),
           ),

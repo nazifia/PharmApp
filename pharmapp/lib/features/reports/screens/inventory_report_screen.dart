@@ -678,7 +678,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                       sectionsSpace: 2,
                       borderData: FlBorderData(show: false),
                     ),
-                  ),
+                  ).animate().fadeIn(duration: 700.ms).scale(begin: const Offset(0.6, 0.6), end: const Offset(1, 1), duration: 900.ms, curve: Curves.easeOutBack),
                 ),
               ),
               Expanded(
@@ -792,7 +792,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                           value: pct.clamp(0.0, 1.0),
                           backgroundColor: context.borderColor,
                           valueColor: AlwaysStoppedAnimation<Color>(c),
-                          minHeight: 6)),
+                          minHeight: 6).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
                   const SizedBox(height: 4),
                   Text('Threshold: ${fmtNum(item.lowStockThreshold.toDouble())} units',
                       style: TextStyle(color: context.hintColor, fontSize: 10)),

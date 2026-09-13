@@ -342,7 +342,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                                                   backgroundColor: color
                                                       .withValues(alpha: 0.1),
                                                   borderRadius:
-                                                      BorderRadius.circular(3)))
+                                                      BorderRadius.circular(3)).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))
                                           : Text(k['value'] as String,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -811,7 +811,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                   child: LinearProgressIndicator(
                       color: color,
                       backgroundColor: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(3))),
+                      borderRadius: BorderRadius.circular(3)).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
             ),
             error: (_, __) => Text('Error',
                 style: TextStyle(color: context.hintColor, fontSize: 12)),

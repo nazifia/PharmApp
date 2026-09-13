@@ -393,7 +393,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
         borderRadius: BorderRadius.circular(6),
         child: LinearProgressIndicator(
           value: pct, backgroundColor: context.borderColor,
-          valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 8)),
+          valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 8).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
     ]);
   }
 
