@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -149,7 +150,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
           isSenior ? Icons.group_rounded : Icons.person_rounded,
           color: EnhancedTheme.accentOrange, size: 18)),
     ]),
-  ).animate().fadeIn(duration: 350.ms);
+  ).animateInView((a) => a.fadeIn(duration: 350.ms));
 
   // ── Period chips ─────────────────────────────────────────────────────────────
 
@@ -183,7 +184,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
             ));
       }).toList()),
     ),
-  ).animate().fadeIn(duration: 350.ms, delay: 80.ms);
+  ).animateInView((a) => a.fadeIn(duration: 350.ms, delay: 80.ms));
 
   // ── Loading / Error ──────────────────────────────────────────────────────────
 
@@ -195,7 +196,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
           color: EnhancedTheme.accentOrange.withValues(alpha: 0.1),
           shape: BoxShape.circle),
         child: const CircularProgressIndicator(
-          color: EnhancedTheme.accentOrange, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+          color: EnhancedTheme.accentOrange, strokeWidth: 3).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
       const SizedBox(height: 16),
       Text('Loading report…', style: TextStyle(color: EnhancedTheme.accentOrange.withValues(alpha: 0.8), fontSize: 13)),
     ]),
@@ -274,7 +275,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Total Payments', style: TextStyle(color: context.subLabelColor, fontSize: 12, letterSpacing: 0.4)),
-                    Text(_fmt(data.totalAmount),
+                    CountUpText(_fmt(data.totalAmount),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.outfit(
                       color: context.labelColor, fontSize: 32, fontWeight: FontWeight.w800)),
@@ -298,7 +299,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
               ]),
             ),
           ),
-        ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0),
+        ).animateInView((a) => a.fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0)),
         const SizedBox(height: 22),
 
         // Payment method breakdown (aggregate)
@@ -323,12 +324,12 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
           if (isSenior)
             ...data.users.asMap().entries.map((e) =>
               _staffCard(context, e.value, e.key,
-                  configMap[e.value.userId]).animate()
+                  configMap[e.value.userId]).animateInView((a) => a
                   .fadeIn(duration: 300.ms, delay: (60 * e.key).ms)
-                  .slideX(begin: 0.05, end: 0))
+                  .slideX(begin: 0.05, end: 0)))
           else
             _selfCard(context, data.users.first,
-                configMap[data.users.first.userId]).animate().fadeIn(duration: 350.ms),
+                configMap[data.users.first.userId]).animateInView((a) => a.fadeIn(duration: 350.ms)),
         ],
         const SizedBox(height: 32),
       ]),
@@ -368,7 +369,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
           child: _breakdownRow(context, m.$1, m.$2, total, m.$4, m.$3),
         )).toList(),
       ),
-    ).animate().fadeIn(duration: 400.ms, delay: 100.ms);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms));
   }
 
   Widget _breakdownRow(BuildContext context, String label, double value, double total, Color color, IconData icon) {
@@ -384,16 +385,16 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
-          child: Text('${(pct * 100).round()}%', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800))),
+          child: CountUpText('${(pct * 100).round()}%', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800))),
         const SizedBox(width: 8),
-        Text(_fmt(value), style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+        CountUpText(_fmt(value), style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
       ]),
       const SizedBox(height: 8),
       ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: LinearProgressIndicator(
           value: pct, backgroundColor: context.borderColor,
-          valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 8).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
+          valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 8).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))),
     ]);
   }
 
@@ -444,7 +445,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
                   ]),
                 ])),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text(_fmt(user.totalAmount),
+                  CountUpText(_fmt(user.totalAmount),
                       style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 2),
                   Text('${user.totalSales} sales',
@@ -539,7 +540,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
                 Text(user.role, style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.w600)),
               ])),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(_fmt(user.totalAmount),
+                CountUpText(_fmt(user.totalAmount),
                     style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 20, fontWeight: FontWeight.w800)),
                 Text('${user.totalSales} transactions',
                     style: TextStyle(color: context.subLabelColor, fontSize: 11)),
@@ -583,7 +584,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.2))),
       child: Column(children: [
-        Text(value, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800)),
+        CountUpText(value, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800)),
         const SizedBox(height: 3),
         Text(label, style: TextStyle(color: context.hintColor, fontSize: 8), textAlign: TextAlign.center),
       ]),
@@ -600,7 +601,7 @@ class _CashierSalesScreenState extends ConsumerState<CashierSalesScreen> {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(icon, color: color, size: 16),
         const SizedBox(height: 5),
-        Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+        CountUpText(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
         Text(label, style: const TextStyle(color: Colors.black45, fontSize: 9), textAlign: TextAlign.center),
       ]),

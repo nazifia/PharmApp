@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -1356,7 +1357,7 @@ class _UserManagementScreenState
                             ? Padding(
                                 padding: const EdgeInsets.all(40),
                                 child: Center(
-                                    child: const CircularProgressIndicator().animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                                    child: const CircularProgressIndicator().animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                               )
                             : error != null
                                 ? Padding(
@@ -1550,7 +1551,7 @@ class _UserManagementScreenState
                                       height: 16,
                                       child: const CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                                          color: Colors.white).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                                   : const Icon(Icons.save_rounded, size: 18),
                               label: Text(
                                 saving ? 'Saving…' : 'Save Permission Overrides',
@@ -1715,21 +1716,21 @@ class _UserManagementScreenState
             child: Column(
               children: [
                 _buildHeader(context)
-                    .animate()
-                    .fadeIn(duration: 400.ms),
+                    .animateInView((a) => a
+                    .fadeIn(duration: 400.ms)),
                 const UsageLimitWarning(limitType: 'users'),
                 const SizedBox(height: 4),
                 _buildSearchBar()
-                    .animate()
-                    .fadeIn(delay: 100.ms, duration: 400.ms),
+                    .animateInView((a) => a
+                    .fadeIn(delay: 100.ms, duration: 400.ms)),
                 const SizedBox(height: 8),
                 _buildRoleFilterChips()
-                    .animate()
-                    .fadeIn(delay: 150.ms, duration: 400.ms),
+                    .animateInView((a) => a
+                    .fadeIn(delay: 150.ms, duration: 400.ms)),
                 const SizedBox(height: 6),
                 _buildBranchFilterChips()
-                    .animate()
-                    .fadeIn(delay: 200.ms, duration: 400.ms),
+                    .animateInView((a) => a
+                    .fadeIn(delay: 200.ms, duration: 400.ms)),
                 const SizedBox(height: 8),
                 Expanded(
                   child: FutureBuilder<List<dynamic>>(
@@ -1755,13 +1756,13 @@ class _UserManagementScreenState
                             20, 8, 20, 100),
                         itemCount: filtered.length,
                         itemBuilder: (_, i) => _userCard(filtered[i])
-                            .animate()
+                            .animateInView((a) => a
                             .fadeIn(
                               delay:
                                   Duration(milliseconds: i * 50),
                               duration: 350.ms,
                             )
-                            .slideY(begin: 0.06, end: 0),
+                            .slideY(begin: 0.06, end: 0)),
                       );
                     },
                   ),
@@ -2110,7 +2111,7 @@ class _UserManagementScreenState
               child: const CircularProgressIndicator(
                 color: EnhancedTheme.primaryTeal,
                 strokeWidth: 2.5,
-              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+              ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
             ),
           ),
           const SizedBox(height: 16),
@@ -2203,7 +2204,7 @@ class _UserManagementScreenState
             textAlign: TextAlign.center,
           ),
         ],
-      ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.92, 0.92)),
+      ).animateInView((a) => a.fadeIn(duration: 400.ms).scale(begin: const Offset(0.92, 0.92))),
     );
   }
 
@@ -2914,7 +2915,7 @@ class _UserDispensingLogSheetState
           border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(children: [
-          Text(value,
+          CountUpText(value,
               style: TextStyle(
                   color: color, fontSize: 13, fontWeight: FontWeight.w800),
               maxLines: 1,
@@ -3030,7 +3031,7 @@ class _UserDispensingLogSheetState
                           color: context.hintColor, size: 11),
                       const SizedBox(width: 3),
                       Flexible(
-                        child: Text(_fmtTs(dateStr),
+                        child: CountUpText(_fmtTs(dateStr),
                             style: TextStyle(
                                 color: context.hintColor,
                                 fontSize: 10),
@@ -3042,7 +3043,7 @@ class _UserDispensingLogSheetState
               )),
               const SizedBox(width: 8),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(_fmtNaira(amount),
+                CountUpText(_fmtNaira(amount),
                     style: const TextStyle(
                         color: EnhancedTheme.primaryTeal,
                         fontSize: 13,

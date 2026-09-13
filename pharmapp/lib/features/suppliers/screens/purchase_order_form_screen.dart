@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -424,7 +425,7 @@ class _PurchaseOrderFormScreenState
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600)),
                           ]),
-                          Text('₦${_total.toStringAsFixed(2)}',
+                          CountUpText('₦${_total.toStringAsFixed(2)}',
                               style: GoogleFonts.outfit(
                                   color: EnhancedTheme.primaryTeal,
                                   fontSize: 18,
@@ -452,7 +453,7 @@ class _PurchaseOrderFormScreenState
                               width: 18,
                               height: 18,
                               child: const CircularProgressIndicator(
-                                  color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                                  color: Colors.black, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                           : Text('Create Draft PO',
                               style: GoogleFonts.outfit(
                                   fontSize: 15,

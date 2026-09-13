@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,7 +84,7 @@ class BillingScreen extends ConsumerWidget {
                                 height: 18,
                                 child: const CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                                    color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                               )
                             : IconButton(
                                 icon: const Icon(Icons.refresh_rounded,
@@ -99,7 +100,7 @@ class BillingScreen extends ConsumerWidget {
                     child: billingAsync.when(
                       loading: () => Center(
                         child: const CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                            color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                       ),
                       error: (e, _) => _ErrorRetry(
                           message: e.toString(),
@@ -279,7 +280,7 @@ class _BillingSummaryCard extends ConsumerWidget {
                       height: 20,
                       child: const CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                          color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                   : Switch.adaptive(
                       value: autoBilling,
                       activeTrackColor: EnhancedTheme.primaryTeal,
@@ -702,7 +703,7 @@ class _BillingContactFormSheetState extends State<_BillingContactFormSheet> {
                       ? SizedBox(
                           width: 20, height: 20,
                           child: const CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                              strokeWidth: 2, color: Colors.white).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                       : const Text('Save Billing Contact',
                           style: TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w700)),
@@ -1009,7 +1010,7 @@ class _AccountDetailRow extends StatelessWidget {
               style: const TextStyle(color: Colors.black38, fontSize: 11)),
         ),
         Expanded(
-          child: Text(value,
+          child: CountUpText(value,
               style: const TextStyle(
                   color: Colors.black87,
                   fontSize: 12,
@@ -1530,7 +1531,7 @@ class _CardFormSheetState extends State<_CardFormSheet> {
                           width: 20,
                           height: 20,
                           child: const CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                              strokeWidth: 2, color: Colors.white).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                         )
                       : Text(
                           widget.existing != null
@@ -2209,7 +2210,7 @@ class _PlanRowState extends ConsumerState<_PlanRow> {
                       width: 18, height: 18,
                       child: const CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                          color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                   : GestureDetector(
                       onTap: () => _upgrade(context),
                       child: Container(
@@ -2695,7 +2696,7 @@ class _InfoRow extends StatelessWidget {
           Text(label,
               style: const TextStyle(color: Colors.black54, fontSize: 12)),
           const Spacer(),
-          Text(value,
+          CountUpText(value,
               style: TextStyle(
                   color: valueColor ?? Colors.black87,
                   fontSize: 12,

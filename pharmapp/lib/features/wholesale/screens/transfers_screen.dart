@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -196,7 +197,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
             ]),
           ),
         ]),
-      ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.15);
+      ).animateInView((a) => a.fadeIn(duration: 350.ms).slideY(begin: -0.15));
 
   // ── Filter Chips ───────────────────────────────────────────────────────────
 
@@ -252,7 +253,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
           );
         }).toList()),
       ),
-    ).animate().fadeIn(delay: 80.ms).slideY(begin: -0.1);
+    ).animateInView((a) => a.fadeIn(delay: 80.ms).slideY(begin: -0.1));
   }
 
   // ── Transfers List ─────────────────────────────────────────────────────────
@@ -626,7 +627,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
           ),
         ),
       ),
-    ).animate().fadeIn(delay: (index * 60).ms).slideY(begin: 0.08);
+    ).animateInView((a) => a.fadeIn(delay: (index * 60).ms).slideY(begin: 0.08));
   }
 
   Widget _actionBtn(BuildContext context, String label, Color color,
@@ -1529,7 +1530,7 @@ class _CreateTransferSheetState extends ConsumerState<_CreateTransferSheet> {
                           width: 20,
                           height: 20,
                           child: const CircularProgressIndicator(
-                              color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                              color: Colors.black, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                       : Text('Create Transfer',
                           style: GoogleFonts.inter(
                               fontSize: 16, fontWeight: FontWeight.w700)),

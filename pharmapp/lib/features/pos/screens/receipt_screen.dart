@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'dart:ui' as ui show ImageByteFormat;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -190,7 +191,7 @@ class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
             ? SizedBox(
                 width: 14, height: 14,
                 child: const CircularProgressIndicator(
-                    strokeWidth: 2, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                    strokeWidth: 2, color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
             : const Icon(Icons.print_rounded, size: 16, color: Colors.black),
         label: Text(_printing ? 'Printing…' : 'Print',
             style: TextStyle(
@@ -421,7 +422,7 @@ class _BluetoothPrinterSheetState extends State<_BluetoothPrinterSheet> {
           SizedBox(
             width: 28, height: 28,
             child: const CircularProgressIndicator(
-                strokeWidth: 2.5, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                strokeWidth: 2.5, color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           ),
           const SizedBox(height: 10),
           Text('Loading paired devices…',
@@ -746,7 +747,7 @@ class _ReceiptShareButtonState extends State<ReceiptShareButton> {
             ? SizedBox(
                 width: 14, height: 14,
                 child: const CircularProgressIndicator(
-                    strokeWidth: 2, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                    strokeWidth: 2, color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
             : const Icon(Icons.share_rounded, size: 16,
                 color: EnhancedTheme.primaryTeal),
         label: Text(_sharing ? 'Sharing…' : 'Share',
@@ -891,7 +892,7 @@ class _ReceiptCard extends StatelessWidget {
           child: Row(children: [
             Expanded(child: Text(label,
                 style: TextStyle(color: textMid, fontSize: fontSize))),
-            Text(value,
+            CountUpText(value,
                 style: TextStyle(
                     color: valueColor ?? textDark,
                     fontSize: fontSize,
@@ -980,7 +981,7 @@ class _ReceiptCard extends StatelessWidget {
                             ),
                     ),
                   ),
-                ]).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
+                ]).animateInView((a) => a.scale(duration: 400.ms, curve: Curves.elasticOut)),
                 const SizedBox(height: 12),
                 Text(orgName,
                     style: TextStyle(
@@ -1027,7 +1028,7 @@ class _ReceiptCard extends StatelessWidget {
                     Text('Sale Completed', style: TextStyle(
                         color: EnhancedTheme.successGreen, fontSize: 12, fontWeight: FontWeight.w700)),
                   ]),
-                ).animate().fadeIn(duration: 500.ms, delay: 200.ms),
+                ).animateInView((a) => a.fadeIn(duration: 500.ms, delay: 200.ms)),
               ]),
             ),
 
@@ -1120,7 +1121,7 @@ class _ReceiptCard extends StatelessWidget {
                             style: TextStyle(
                                 color: textDark, fontSize: 13,
                                 fontWeight: FontWeight.w700))),
-                        Text('₦${_fmt(sub)}',
+                        CountUpText('₦${_fmt(sub)}',
                             style: TextStyle(
                                 color: textDark, fontSize: 14,
                                 fontWeight: FontWeight.w800)),
@@ -1141,7 +1142,7 @@ class _ReceiptCard extends StatelessWidget {
                                   fontSize: 11, fontWeight: FontWeight.w700)),
                         ),
                         const SizedBox(width: 6),
-                        Text('₦${_fmt(price)} each',
+                        CountUpText('₦${_fmt(price)} each',
                             style: TextStyle(color: textMid, fontSize: 11)),
                         if (disc > 0) ...[
                           const SizedBox(width: 8),
@@ -1192,7 +1193,7 @@ class _ReceiptCard extends StatelessWidget {
                               fontSize: 11, fontWeight: FontWeight.w600)),
                     ]),
                     const Spacer(),
-                    Text('₦${_fmt(total)}',
+                    CountUpText('₦${_fmt(total)}',
                         style: TextStyle(
                             color: isDark ? EnhancedTheme.accentCyan : EnhancedTheme.primaryTeal,
                             fontSize: 26, fontWeight: FontWeight.w900)),
@@ -1234,7 +1235,7 @@ class _ReceiptCard extends StatelessWidget {
                           const SizedBox(width: 10),
                           Expanded(child: Text(_methodLabel(e.key),
                               style: TextStyle(color: textMid, fontSize: 13, fontWeight: FontWeight.w500))),
-                          Text('₦${_fmt(e.value)}',
+                          CountUpText('₦${_fmt(e.value)}',
                               style: TextStyle(
                                   color: textDark, fontSize: 14,
                                   fontWeight: FontWeight.w700)),
@@ -1284,7 +1285,7 @@ class _ReceiptCard extends StatelessWidget {
           ]),
         ),
       ),
-    ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.05);
+    ).animateInView((a) => a.fadeIn(duration: 350.ms).slideY(begin: 0.05));
   }
 
   static String _fmt(double v) => fmtNum(v);

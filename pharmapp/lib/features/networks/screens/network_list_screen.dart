@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -83,7 +84,7 @@ class NetworkListScreen extends ConsumerWidget {
                                 backgroundColor: EnhancedTheme.primaryTeal
                                     .withValues(alpha: 0.15),
                                 strokeWidth: 3,
-                              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                              ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -155,9 +156,9 @@ class NetworkListScreen extends ConsumerWidget {
                             membership: memberships[i],
                             isAdmin: isAdmin,
                           )
-                              .animate(delay: (i * 50).ms)
+                              .animateInView((a) => a
                               .fadeIn(duration: 350.ms)
-                              .slideY(begin: 0.2, end: 0),
+                              .slideY(begin: 0.2, end: 0), delay: (i * 50).ms),
                         );
                       },
                     ),
@@ -254,8 +255,8 @@ class NetworkListScreen extends ConsumerWidget {
             textAlign: TextAlign.center,
           ),
         ],
-      ).animate().fadeIn(duration: 400.ms).scale(
-          begin: const Offset(0.9, 0.9)),
+      ).animateInView((a) => a.fadeIn(duration: 400.ms).scale(
+          begin: const Offset(0.9, 0.9))),
     );
   }
 }
@@ -500,7 +501,7 @@ class _NetworkCardState extends ConsumerState<_NetworkCard> {
                           color: accentColor,
                           backgroundColor:
                               accentColor.withValues(alpha: 0.1),
-                        ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                        ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                       ),
                     )
                   else if (isPending)

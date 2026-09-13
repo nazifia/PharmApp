@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -55,7 +56,7 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
           child: orderAsync.when(
             loading: () => Center(
                 child: const CircularProgressIndicator(
-                    color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                    color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
             error: (e, _) => Center(
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -179,7 +180,7 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
                   ]),
                 ),
               ),
-            ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.03),
+            ).animateInView((a) => a.fadeIn(duration: 300.ms).slideY(begin: 0.03)),
             if (order.notes != null && order.notes!.isNotEmpty) ...[
               const SizedBox(height: 10),
               ClipRRect(
@@ -252,7 +253,7 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
                               fontSize: 14,
                               fontWeight: FontWeight.w600)),
                     ]),
-                    Text('₦${order.total.toStringAsFixed(2)}',
+                    CountUpText('₦${order.total.toStringAsFixed(2)}',
                         style: GoogleFonts.outfit(
                             color: EnhancedTheme.primaryTeal,
                             fontSize: 18,
@@ -363,8 +364,7 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
                       EnhancedTheme.warningAmber),
                 ]),
               ])),
-              Text(
-                  '₦${(item.unitCost * item.quantityOrdered).toStringAsFixed(2)}',
+              CountUpText('₦${(item.unitCost * item.quantityOrdered).toStringAsFixed(2)}',
                   style: GoogleFonts.outfit(
                       color: context.labelColor,
                       fontSize: 13,

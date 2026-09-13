@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -86,7 +87,7 @@ class MonthlyReportScreen extends ConsumerWidget {
 
               // ── Month selector ──────────────────────────────────────────
               _monthSelector(context, ref, selected, now)
-                  .animate().fadeIn(duration: 400.ms).slideY(begin: -0.15),
+                  .animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: -0.15)),
               const SizedBox(height: 20),
 
               // ── Report data ─────────────────────────────────────────────
@@ -133,7 +134,7 @@ class MonthlyReportScreen extends ConsumerWidget {
           ]),
         ),
       ],
-    ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.2);
+    ).animateInView((a) => a.fadeIn(duration: 350.ms).slideY(begin: -0.2));
   }
 
   // ── Month selector ─────────────────────────────────────────────────────────
@@ -258,17 +259,17 @@ class MonthlyReportScreen extends ConsumerWidget {
       Row(children: [
         Expanded(child: _kpiCard(context, 'Total Sales', _fmtNaira(totalSales),
             Icons.trending_up_rounded, EnhancedTheme.successGreen,
-            'Revenue generated').animate().fadeIn(delay: 100.ms).slideY(begin: 0.2)),
+            'Revenue generated').animateInView((a) => a.fadeIn(delay: 100.ms).slideY(begin: 0.2))),
         const SizedBox(width: 12),
         Expanded(child: _kpiCard(context, 'Expenses', _fmtNaira(totalExpenses),
             Icons.money_off_rounded, EnhancedTheme.warningAmber,
-            'Total outflows').animate().fadeIn(delay: 200.ms).slideY(begin: 0.2)),
+            'Total outflows').animateInView((a) => a.fadeIn(delay: 200.ms).slideY(begin: 0.2))),
       ]),
       const SizedBox(height: 12),
 
       // ── Net Profit Banner ────────────────────────────────────────────────
       _netProfitCard(context, netProfit, isProfit)
-          .animate().fadeIn(delay: 300.ms).scale(begin: const Offset(0.96, 0.96)),
+          .animateInView((a) => a.fadeIn(delay: 300.ms).scale(begin: const Offset(0.96, 0.96))),
       const SizedBox(height: 24),
 
       // ── Breakdown Section ────────────────────────────────────────────────
@@ -287,10 +288,10 @@ class MonthlyReportScreen extends ConsumerWidget {
         Text('Breakdown',
             style: GoogleFonts.outfit(
                 color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
-      ]).animate().fadeIn(delay: 350.ms),
+      ]).animateInView((a) => a.fadeIn(delay: 350.ms)),
       const SizedBox(height: 12),
       _breakdownCard(context, totalSales, totalExpenses, netProfit, isProfit)
-          .animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+          .animateInView((a) => a.fadeIn(delay: 400.ms).slideY(begin: 0.1)),
       const SizedBox(height: 24),
 
       // ── Visual Bar Chart ─────────────────────────────────────────────────
@@ -310,10 +311,10 @@ class MonthlyReportScreen extends ConsumerWidget {
           Text('Revenue vs Expenses',
               style: GoogleFonts.outfit(
                   color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
-        ]).animate().fadeIn(delay: 450.ms),
+        ]).animateInView((a) => a.fadeIn(delay: 450.ms)),
         const SizedBox(height: 12),
         _barChartCard(context, totalSales, totalExpenses, netProfit)
-            .animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
+            .animateInView((a) => a.fadeIn(delay: 500.ms).slideY(begin: 0.1)),
       ],
     ]);
   }
@@ -351,7 +352,7 @@ class MonthlyReportScreen extends ConsumerWidget {
               Icon(Icons.arrow_outward_rounded, color: color.withValues(alpha: 0.5), size: 14),
             ]),
             const SizedBox(height: 14),
-            Text(value,
+            CountUpText(value,
                 style: GoogleFonts.outfit(
                     color: color, fontSize: 22, fontWeight: FontWeight.w800)),
             const SizedBox(height: 2),
@@ -412,7 +413,7 @@ class MonthlyReportScreen extends ConsumerWidget {
                   style: GoogleFonts.inter(
                       color: context.hintColor, fontSize: 12, fontWeight: FontWeight.w500)),
               const SizedBox(height: 6),
-              Text(_fmtNaira(netProfit.abs()),
+              CountUpText(_fmtNaira(netProfit.abs()),
                   style: GoogleFonts.outfit(
                       color: color, fontSize: 30, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
@@ -509,7 +510,7 @@ class MonthlyReportScreen extends ConsumerWidget {
             fontSize: bold ? 14 : 13,
             fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
           ))),
-      Text(value,
+      CountUpText(value,
           style: GoogleFonts.outfit(
               color: color, fontSize: bold ? 17 : 14, fontWeight: FontWeight.w700)),
     ]);
@@ -542,10 +543,10 @@ class MonthlyReportScreen extends ConsumerWidget {
               boxShadow: [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 2))],
             ),
           ),
-        ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
+        ).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
       ])),
       const SizedBox(width: 10),
-      Text('${(pct * 100).toStringAsFixed(0)}%',
+      CountUpText('${(pct * 100).toStringAsFixed(0)}%',
           style: GoogleFonts.outfit(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
     ]);
   }

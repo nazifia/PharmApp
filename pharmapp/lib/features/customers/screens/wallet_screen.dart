@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -246,7 +247,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           child: CircularProgressIndicator(
                               color: EnhancedTheme.successGreen,
                               backgroundColor: EnhancedTheme.successGreen.withValues(alpha: 0.15),
-                              strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                              strokeWidth: 3).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                       error: (_, __) => Text('—',
                           style: GoogleFonts.outfit(
                               color: context.labelColor, fontSize: 40, fontWeight: FontWeight.w800)),
@@ -411,7 +412,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           ),
                           child: processing
                               ? SizedBox(width: 18, height: 18,
-                                  child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                                  child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                               : Text(_isTopUp ? 'Top Up' : 'Deduct',
                                   style: GoogleFonts.outfit(
                                       color: Colors.black,
@@ -423,7 +424,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 ),
               ),
             ),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0)),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0))),
 
           // ── Transaction History header ────────────────────────────────────────
           SliverToBoxAdapter(child: Padding(
@@ -472,7 +473,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     color: EnhancedTheme.primaryTeal,
                     backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
                     strokeWidth: 3,
-                  ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                  ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                 ),
                 const SizedBox(height: 12),
                 Text('Loading transactions…', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
@@ -516,9 +517,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   (_, i) {
                     final txs = transactionsAsync.value!;
                     return _txRow(txs[i])
-                        .animate(delay: (i * 30).ms)
+                        .animateInView((a) => a
                         .fadeIn(duration: 300.ms)
-                        .slideX(begin: 0.1, end: 0);
+                        .slideX(begin: 0.1, end: 0), delay: (i * 30).ms);
                   },
                   childCount: transactionsAsync.value!.length,
                 ),
@@ -670,7 +671,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 ],
               ])),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text('$sign₦${tx.amount.toStringAsFixed(2)}',
+                CountUpText('$sign₦${tx.amount.toStringAsFixed(2)}',
                     style: GoogleFonts.outfit(
                         color: color, fontSize: 15, fontWeight: FontWeight.w800)),
                 if (balanceAfter != null) ...[

@@ -1,5 +1,6 @@
 ﻿import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -270,7 +271,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   fontWeight: FontWeight.w600)),
         ),
       ]),
-    ).animate().fadeIn(duration: 400.ms);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms));
   }
 
   Widget _buildEmptyState() {
@@ -297,7 +298,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 14),
             textAlign: TextAlign.center),
       ]),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0));
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -347,7 +348,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 child: Text('$_unreadCount',
                     style: GoogleFonts.outfit(color: Colors.black,
                         fontSize: 12, fontWeight: FontWeight.w700)),
-              ).animate().scale(duration: 300.ms),
+              ).animateInView((a) => a.scale(duration: 300.ms)),
             const SizedBox(width: 8),
             if (_unreadCount > 0 && _notifications != null)
               GestureDetector(
@@ -550,8 +551,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: index * 50))
+        .animateInView((a) => a
         .fadeIn(duration: 350.ms)
-        .slideX(begin: 0.04, end: 0);
+        .slideX(begin: 0.04, end: 0), delay: Duration(milliseconds: index * 50));
   }
 }

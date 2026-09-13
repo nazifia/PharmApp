@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -133,7 +134,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                       size: 18)),
                 );
               }),
-            ]).animate().fadeIn(duration: 350.ms),
+            ]).animateInView((a) => a.fadeIn(duration: 350.ms)),
           ),
           const SizedBox(height: 12),
 
@@ -156,7 +157,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                                 .withValues(alpha: 0.1),
                             shape: BoxShape.circle),
                         child: const CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                            color: EnhancedTheme.primaryTeal, strokeWidth: 3).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                     const SizedBox(height: 16),
                     Text('Loading inventory…',
                         style: TextStyle(
@@ -275,7 +276,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                                     color: Colors.black54,
                                     fontSize: 12,
                                     letterSpacing: 0.4)),
-                            Text(_fmtValue(data.stockValue),
+                            CountUpText(_fmtValue(data.stockValue),
                                 style: GoogleFonts.outfit(
                                     color: Colors.black,
                                     fontSize: 30,
@@ -308,7 +309,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                   ]),
             ),
           ),
-        ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0),
+        ).animateInView((a) => a.fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0)),
         const SizedBox(height: 24),
 
         // ── Stock Distribution Pie Chart ──────────────────────────────────────
@@ -327,9 +328,9 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
           Text('Stock Distribution',
               style: GoogleFonts.outfit(
                   color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
-        ]).animate().fadeIn(duration: 350.ms, delay: 80.ms),
+        ]).animateInView((a) => a.fadeIn(duration: 350.ms, delay: 80.ms)),
         const SizedBox(height: 12),
-        _stockPieChart(context, data).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+        _stockPieChart(context, data).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 120.ms)),
         const SizedBox(height: 24),
 
         // ── Low stock alerts header ───────────────────────────────────────────
@@ -356,12 +357,12 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                   border: Border.all(
                       color:
                           EnhancedTheme.warningAmber.withValues(alpha: 0.3))),
-              child: Text('${data.lowStockItems.length} items',
+              child: CountUpText('${data.lowStockItems.length} items',
                   style: const TextStyle(
                       color: EnhancedTheme.warningAmber,
                       fontSize: 11,
                       fontWeight: FontWeight.w800))),
-        ]).animate().fadeIn(duration: 350.ms, delay: 100.ms),
+        ]).animateInView((a) => a.fadeIn(duration: 350.ms, delay: 100.ms)),
         const SizedBox(height: 12),
 
         if (data.lowStockItems.isEmpty)
@@ -410,7 +411,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                 color: red.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: red.withValues(alpha: 0.3))),
-            child: Text('${data.expiredCount} items',
+            child: CountUpText('${data.expiredCount} items',
                 style: const TextStyle(
                     color: red, fontSize: 11, fontWeight: FontWeight.w800))),
         if (data.expiredCount > 0 &&
@@ -433,7 +434,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
             ),
           ),
         ],
-      ]).animate().fadeIn(duration: 350.ms, delay: 140.ms),
+      ]).animateInView((a) => a.fadeIn(duration: 350.ms, delay: 140.ms)),
       const SizedBox(height: 12),
 
       ClipRRect(
@@ -462,7 +463,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                           color: Colors.black54,
                           fontSize: 12,
                           letterSpacing: 0.4)),
-                  Text(_fmtValue(data.expiredValue),
+                  CountUpText(_fmtValue(data.expiredValue),
                       style: GoogleFonts.outfit(
                           color: red,
                           fontSize: 28,
@@ -493,7 +494,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                 ]),
           ),
         ),
-      ).animate().fadeIn(duration: 400.ms, delay: 160.ms).slideY(begin: 0.08, end: 0),
+      ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 160.ms).slideY(begin: 0.08, end: 0)),
       const SizedBox(height: 12),
 
       if (data.expiredItems.isEmpty)
@@ -564,13 +565,13 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                 ])),
             const SizedBox(width: 12),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(_fmtValue(item.costValue),
+              CountUpText(_fmtValue(item.costValue),
                   style: const TextStyle(
                       color: c, fontSize: 15, fontWeight: FontWeight.w800)),
               const Text('cost value',
                   style: TextStyle(color: Colors.black38, fontSize: 9)),
               const SizedBox(height: 4),
-              Text(_fmtValue(item.retailValue),
+              CountUpText(_fmtValue(item.retailValue),
                   style: TextStyle(color: context.hintColor, fontSize: 10)),
               const Text('retail',
                   style: TextStyle(color: Colors.black38, fontSize: 9)),
@@ -579,10 +580,10 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
         ),
       ),
     )
-        .animate()
+        .animateInView((a) => a
         .fadeIn(
             duration: 350.ms, delay: Duration(milliseconds: 180 + index * 40))
-        .slideX(begin: 0.05, end: 0);
+        .slideX(begin: 0.05, end: 0));
   }
 
   static String _ymd(DateTime d) =>
@@ -678,7 +679,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                       sectionsSpace: 2,
                       borderData: FlBorderData(show: false),
                     ),
-                  ).animate().fadeIn(duration: 700.ms).scale(begin: const Offset(0.6, 0.6), end: const Offset(1, 1), duration: 900.ms, curve: Curves.easeOutBack),
+                  ).animateInView((a) => a.fadeIn(duration: 700.ms).scale(begin: const Offset(0.6, 0.6), end: const Offset(1, 1), duration: 900.ms, curve: Curves.easeOutBack)),
                 ),
               ),
               Expanded(
@@ -706,7 +707,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                                 style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.85),
                                     fontSize: 11, fontWeight: FontWeight.w600)),
-                            Text('${seg.value.toInt()} items · $pct%',
+                            CountUpText('${seg.value.toInt()} items · $pct%',
                                 style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.5), fontSize: 10)),
                           ])),
@@ -733,7 +734,7 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(icon, color: color, size: 16),
         const SizedBox(height: 5),
-        Text(value,
+        CountUpText(value,
             style: TextStyle(
                 color: color, fontSize: 14, fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
@@ -792,14 +793,14 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                           value: pct.clamp(0.0, 1.0),
                           backgroundColor: context.borderColor,
                           valueColor: AlwaysStoppedAnimation<Color>(c),
-                          minHeight: 6).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
+                          minHeight: 6).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))),
                   const SizedBox(height: 4),
                   Text('Threshold: ${fmtNum(item.lowStockThreshold.toDouble())} units',
                       style: TextStyle(color: context.hintColor, fontSize: 10)),
                 ])),
             const SizedBox(width: 14),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(fmtNum(item.stock.toDouble()),
+              CountUpText(fmtNum(item.stock.toDouble()),
                   style: TextStyle(
                       color: c, fontSize: 18, fontWeight: FontWeight.w800)),
               const Text('in stock',
@@ -820,10 +821,10 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
         ),
       ),
     )
-        .animate()
+        .animateInView((a) => a
         .fadeIn(
             duration: 350.ms, delay: Duration(milliseconds: 150 + index * 40))
-        .slideX(begin: 0.05, end: 0);
+        .slideX(begin: 0.05, end: 0));
   }
 
 }

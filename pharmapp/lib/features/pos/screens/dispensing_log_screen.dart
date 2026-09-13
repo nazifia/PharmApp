@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -529,7 +530,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
         ]),
       ),
     ]),
-  ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1);
+  ).animateInView((a) => a.fadeIn(duration: 300.ms).slideY(begin: -0.1));
 
   // ── Stats Row ──────────────────────────────────────────────────────────────
 
@@ -593,7 +594,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
             child: Icon(icon, color: color, size: 14),
           ),
           const SizedBox(height: 7),
-          Text(value,
+          CountUpText(value,
               style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w900),
               textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
@@ -603,7 +604,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
         ]),
       ),
     ),
-  ).animate().fadeIn(duration: 400.ms, delay: Duration(milliseconds: 80 * index)).scale(begin: const Offset(0.9, 0.9));
+  ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: Duration(milliseconds: 80 * index)).scale(begin: const Offset(0.9, 0.9)));
 
   // ── Search Bar ─────────────────────────────────────────────────────────────
 
@@ -758,7 +759,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
           ]),
         ),
       ),
-    ).animate().fadeIn(duration: 250.ms).slideY(begin: -0.15, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 250.ms).slideY(begin: -0.15, end: 0));
   }
 
   // ── Log List ───────────────────────────────────────────────────────────────
@@ -819,7 +820,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
             const SizedBox(height: 6),
             Text('Try a different date range or search term',
                 style: TextStyle(color: context.subLabelColor, fontSize: 13)),
-          ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95)));
+          ]).animateInView((a) => a.fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95))));
         }
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -929,7 +930,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
                       ],
                     ])),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(_fmtNaira(amount),
+                      CountUpText(_fmtNaira(amount),
                           style: const TextStyle(color: EnhancedTheme.primaryTeal,
                               fontSize: 15, fontWeight: FontWeight.w800)),
                       const SizedBox(height: 5),
@@ -988,7 +989,7 @@ class _DispensingLogScreenState extends ConsumerState<DispensingLogScreen> {
           ),
         ),
       ),
-    ).animate().fadeIn(duration: 300.ms, delay: Duration(milliseconds: 50 * index)).slideY(begin: 0.05);
+    ).animateInView((a) => a.fadeIn(duration: 300.ms, delay: Duration(milliseconds: 50 * index)).slideY(begin: 0.05));
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────

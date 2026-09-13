@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,7 +13,7 @@ class VerifyCodeScreen extends StatelessWidget {
     WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/login'));
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      body: Center(child: const CircularProgressIndicator().animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+      body: Center(child: const CircularProgressIndicator().animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
     );
   }
 }

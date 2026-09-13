@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -292,7 +293,7 @@ class _OrgSubscriptionEditorScreenState
           Container(decoration: context.bgGradient),
           Center(
               child: const CircularProgressIndicator(
-                  color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                  color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
         ]),
       ),
       error: (e, _) => Scaffold(
@@ -367,7 +368,7 @@ class _OrgSubscriptionEditorScreenState
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: EnhancedTheme.primaryTeal,
-                              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                              ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                             )
                           else
                             TextButton(

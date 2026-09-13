@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -296,7 +297,7 @@ class _PrescriberWriteRxScreenState
                                     height: 22,
                                     child: const CircularProgressIndicator(
                                         color: Colors.white,
-                                        strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                                        strokeWidth: 2.5).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                                 : Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.center,
@@ -450,7 +451,7 @@ class _ConsultChip extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 2),
-            Text(fmtN(fee),
+            CountUpText(fmtN(fee),
                 style: TextStyle(
                     color: selected ? color : context.labelColor,
                     fontSize: 13,
@@ -577,7 +578,7 @@ class _PatientPicker extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const LinearProgressIndicator().animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
+      loading: () => const LinearProgressIndicator().animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
       error: (e, _) => Text('Failed to load patients: $e',
           style: const TextStyle(
               color: EnhancedTheme.errorRed, fontSize: 13)),

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -210,7 +211,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
           ]),
         ),
       ],
-    ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.2);
+    ).animateInView((a) => a.fadeIn(duration: 350.ms).slideY(begin: -0.2));
   }
 
   Widget _buildPeriodSelector() {
@@ -249,7 +250,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
               ));
             }).toList()),
       ),
-    ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: -0.1);
+    ).animateInView((a) => a.fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: -0.1));
   }
 
   Widget _buildBody(BuildContext context, ProfitReportData data) {
@@ -264,20 +265,20 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
         Row(children: [
           Expanded(child: _plCard(context, 'Revenue', _fmt(data.revenue),
               EnhancedTheme.primaryTeal, Icons.trending_up_rounded, 'Gross income')
-              .animate().fadeIn(delay: 100.ms).slideY(begin: 0.2)),
+              .animateInView((a) => a.fadeIn(delay: 100.ms).slideY(begin: 0.2))),
           const SizedBox(width: 10),
           Expanded(child: _plCard(context, 'Cost', _fmt(cost),
               EnhancedTheme.errorRed, Icons.trending_down_rounded, 'Cost of goods')
-              .animate().fadeIn(delay: 180.ms).slideY(begin: 0.2)),
+              .animateInView((a) => a.fadeIn(delay: 180.ms).slideY(begin: 0.2))),
           const SizedBox(width: 10),
           Expanded(child: _plCard(context, 'Profit', _fmt(data.profit),
               EnhancedTheme.successGreen, Icons.savings_rounded, 'Net earnings')
-              .animate().fadeIn(delay: 260.ms).slideY(begin: 0.2)),
+              .animateInView((a) => a.fadeIn(delay: 260.ms).slideY(begin: 0.2))),
         ]),
         const SizedBox(height: 14),
 
         // ── Margin Banner ─────────────────────────────────────────────────
-        _marginBanner(context, data).animate().fadeIn(delay: 320.ms).scale(begin: const Offset(0.96, 0.96)),
+        _marginBanner(context, data).animateInView((a) => a.fadeIn(delay: 320.ms).scale(begin: const Offset(0.96, 0.96))),
         const SizedBox(height: 24),
 
         // ── P&L Bar Chart ────────────────────────────────────────────────
@@ -296,9 +297,9 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
           Text('P&L Overview',
               style: GoogleFonts.outfit(
                   color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
-        ]).animate().fadeIn(delay: 350.ms),
+        ]).animateInView((a) => a.fadeIn(delay: 350.ms)),
         const SizedBox(height: 12),
-        _profitBarChart(context, data, cost).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+        _profitBarChart(context, data, cost).animateInView((a) => a.fadeIn(delay: 400.ms).slideY(begin: 0.1)),
         const SizedBox(height: 24),
 
         // ── Revenue Breakdown Stacked Bar ─────────────────────────────────
@@ -318,15 +319,15 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
             Text('Revenue Breakdown',
                 style: GoogleFonts.outfit(
                     color: context.labelColor, fontSize: 16, fontWeight: FontWeight.w700)),
-          ]).animate().fadeIn(delay: 370.ms),
+          ]).animateInView((a) => a.fadeIn(delay: 370.ms)),
           const SizedBox(height: 12),
           _revenueBreakdownCard(context, data, cost)
-              .animate().fadeIn(delay: 420.ms).slideY(begin: 0.1),
+              .animateInView((a) => a.fadeIn(delay: 420.ms).slideY(begin: 0.1)),
           const SizedBox(height: 24),
         ],
 
         // ── Info note ─────────────────────────────────────────────────────
-        _infoNote(context, data).animate().fadeIn(delay: 470.ms),
+        _infoNote(context, data).animateInView((a) => a.fadeIn(delay: 470.ms)),
         const SizedBox(height: 24),
       ]),
     );
@@ -474,7 +475,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                         ),
                       ),
                     ),
-                  ).animate().fadeIn(duration: 700.ms).scaleY(begin: 0, end: 1, alignment: Alignment.bottomCenter, duration: 900.ms, curve: Curves.easeOutCubic),
+                  ).animateInView((a) => a.fadeIn(duration: 700.ms).scaleY(begin: 0, end: 1, alignment: Alignment.bottomCenter, duration: 900.ms, curve: Curves.easeOutCubic)),
                 ),
               ),
               Padding(
@@ -530,7 +531,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
               child: Icon(icon, color: color, size: 18),
             ),
             const SizedBox(height: 10),
-            Text(value,
+            CountUpText(value,
                 style: GoogleFonts.outfit(
                     color: color, fontSize: 16, fontWeight: FontWeight.w800)),
             Text(label,
@@ -590,7 +591,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                 Text('For the selected period',
                     style: GoogleFonts.inter(color: context.hintColor, fontSize: 11)),
               ])),
-              Text('${data.margin.toStringAsFixed(1)}%',
+              CountUpText('${data.margin.toStringAsFixed(1)}%',
                   style: GoogleFonts.outfit(
                       color: marginColor, fontSize: 28, fontWeight: FontWeight.w800)),
             ]),
@@ -614,7 +615,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                     boxShadow: [BoxShadow(color: marginColor.withValues(alpha: 0.4), blurRadius: 6)],
                   ),
                 ),
-              ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
+              ).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
             ]),
             const SizedBox(height: 6),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -688,7 +689,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
 
   Widget _barStatRow(BuildContext context, String label, String value, Color color) {
     return Column(children: [
-      Text(value, style: GoogleFonts.outfit(color: color, fontSize: 14, fontWeight: FontWeight.w700)),
+      CountUpText(value, style: GoogleFonts.outfit(color: color, fontSize: 14, fontWeight: FontWeight.w700)),
       const SizedBox(height: 2),
       Text(label, style: GoogleFonts.inter(color: context.hintColor, fontSize: 10)),
     ]);

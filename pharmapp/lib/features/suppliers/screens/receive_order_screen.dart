@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -161,7 +162,7 @@ class _ReceiveOrderScreenState extends ConsumerState<ReceiveOrderScreen> {
               child: orderAsync.when(
                 loading: () => Center(
                     child: const CircularProgressIndicator(
-                        color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                        color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                 error: (e, _) => Center(
                   child: Text('$e',
                       style: GoogleFonts.inter(
@@ -242,7 +243,7 @@ class _ReceiveOrderScreenState extends ConsumerState<ReceiveOrderScreen> {
                     width: 18,
                     height: 18,
                     child: const CircularProgressIndicator(
-                        color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                        color: Colors.black, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                 : const Icon(Icons.move_to_inbox_rounded, size: 20),
             label: Text(
                 _submitting ? 'Updating…' : 'Mark as Received',
@@ -339,8 +340,7 @@ class _ReceiveOrderScreenState extends ConsumerState<ReceiveOrderScreen> {
                           color: EnhancedTheme.warningAmber
                               .withValues(alpha: 0.25)),
                     ),
-                    child: Text(
-                        '₦${item.unitCost.toStringAsFixed(2)}/unit',
+                    child: CountUpText('₦${item.unitCost.toStringAsFixed(2)}/unit',
                         style: GoogleFonts.inter(
                             color: EnhancedTheme.warningAmber,
                             fontSize: 10,
@@ -392,8 +392,8 @@ class _ReceiveOrderScreenState extends ConsumerState<ReceiveOrderScreen> {
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: index * 50))
+        .animateInView((a) => a
         .fadeIn(duration: 300.ms)
-        .slideX(begin: 0.03, end: 0);
+        .slideX(begin: 0.03, end: 0), delay: Duration(milliseconds: index * 50));
   }
 }

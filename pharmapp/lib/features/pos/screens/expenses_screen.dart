@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -864,11 +865,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: EnhancedTheme.errorRed.withValues(alpha: 0.3)),
                   ),
-                  child: Text('₦${_totalExpenses.toStringAsFixed(0)}',
+                  child: CountUpText('₦${_totalExpenses.toStringAsFixed(0)}',
                       style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 13, fontWeight: FontWeight.w800)),
                 ),
             ]),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0)),
           const SizedBox(height: 16),
 
           Expanded(child: RefreshIndicator(
@@ -877,7 +878,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             child: ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 120), children: [
               // Monthly report card
               _buildReportCard()
-                  .animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, end: 0),
+                  .animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, end: 0)),
               const SizedBox(height: 16),
 
               // Period selector
@@ -885,7 +886,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 _periodChip(_Period.thisMonth, 'This Month', Icons.calendar_month_rounded),
                 const SizedBox(width: 10),
                 _periodChip(_Period.lastMonth, 'Last Month', Icons.history_rounded),
-              ]).animate().fadeIn(duration: 400.ms, delay: 150.ms),
+              ]).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 150.ms)),
               const SizedBox(height: 8),
               Row(children: [
                 const Icon(Icons.date_range_rounded, size: 14, color: EnhancedTheme.accentCyan),
@@ -911,7 +912,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 if (!_loading)
                   Text('${_expenses.length} records',
                       style: TextStyle(color: context.hintColor, fontSize: 12)),
-              ]).animate().fadeIn(duration: 400.ms, delay: 180.ms),
+              ]).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 180.ms)),
               const SizedBox(height: 12),
 
               // Expenses list
@@ -924,16 +925,16 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 _emptyState()
               else
                 ..._expenses.asMap().entries.map((e) => _expenseTile(e.value)
-                    .animate(delay: (e.key * 50).ms)
+                    .animateInView((a) => a
                     .fadeIn(duration: 300.ms)
-                    .slideX(begin: 0.05, end: 0)),
+                    .slideX(begin: 0.05, end: 0), delay: (e.key * 50).ms)),
 
               const SizedBox(height: 16),
 
               // Total summary
               if (_expenses.isNotEmpty)
                 _totalSummary()
-                    .animate().fadeIn(duration: 400.ms, delay: 200.ms),
+                    .animateInView((a) => a.fadeIn(duration: 400.ms, delay: 200.ms)),
             ]),
           )),
         ])),
@@ -1030,7 +1031,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
         Text(label, style: TextStyle(color: context.hintColor, fontSize: 11)),
       ]),
       const SizedBox(height: 6),
-      Text(value, style: GoogleFonts.outfit(color: color, fontSize: 14, fontWeight: FontWeight.w800)),
+      CountUpText(value, style: GoogleFonts.outfit(color: color, fontSize: 14, fontWeight: FontWeight.w800)),
     ]));
   }
 
@@ -1131,7 +1132,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 ])),
                 const SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text('₦${amount.toStringAsFixed(0)}',
+                  CountUpText('₦${amount.toStringAsFixed(0)}',
                       style: GoogleFonts.outfit(color: EnhancedTheme.errorRed, fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
                   Icon(Icons.swipe_left_rounded, color: context.hintColor, size: 14),
@@ -1183,7 +1184,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               Text('${_expenses.length} records this period',
                   style: TextStyle(color: context.subLabelColor, fontSize: 12)),
             ])),
-            Text('₦${_totalExpenses.toStringAsFixed(2)}',
+            CountUpText('₦${_totalExpenses.toStringAsFixed(2)}',
                 style: GoogleFonts.outfit(color: EnhancedTheme.errorRed, fontSize: 20, fontWeight: FontWeight.w900)),
           ]),
         ),

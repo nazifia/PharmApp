@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,7 +31,7 @@ class PrescriberConsultationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = prescriber ?? ref.watch(currentPrescriberProvider);
     if (p == null) {
-      return Scaffold(body: Center(child: const CircularProgressIndicator().animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)));
+      return Scaffold(body: Center(child: const CircularProgressIndicator().animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))));
     }
     final summaryAsync = ref.watch(prescriberConsultationSummaryProvider(p.id));
     final listAsync = ref.watch(prescriberConsultationsProvider(p.id));
@@ -170,7 +171,7 @@ class PrescriberConsultationsScreen extends ConsumerWidget {
                     height: 100,
                     child: Center(
                         child: const CircularProgressIndicator(
-                            color: EnhancedTheme.accentCyan).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                            color: EnhancedTheme.accentCyan).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                   ),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (s) => Padding(
@@ -214,7 +215,7 @@ class PrescriberConsultationsScreen extends ConsumerWidget {
                   child: listAsync.when(
                     loading: () => Center(
                         child: const CircularProgressIndicator(
-                            color: EnhancedTheme.accentCyan).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                            color: EnhancedTheme.accentCyan).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                     error: (e, _) => Center(
                       child: Text('Error loading consultations: $e',
                           style: TextStyle(
@@ -413,7 +414,7 @@ class _SummaryCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.4)),
               const SizedBox(height: 4),
-              Text(value,
+              CountUpText(value,
                   style: GoogleFonts.outfit(
                       color: color,
                       fontSize: 12,
@@ -569,7 +570,7 @@ class _Stat extends StatelessWidget {
                   fontSize: 10,
                   fontWeight: FontWeight.w500)),
           const SizedBox(height: 2),
-          Text(value,
+          CountUpText(value,
               style: TextStyle(
                   color: highlight
                       ? EnhancedTheme.accentCyan

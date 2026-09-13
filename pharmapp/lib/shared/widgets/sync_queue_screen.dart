@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -328,9 +329,9 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
                         ),
                     ],
                   ),
-                ).animate().fadeIn(
+                ).animateInView((a) => a.fadeIn(
                   duration: 400.ms,
-                ).slideY(begin: -0.1, end: 0),
+                ).slideY(begin: -0.1, end: 0)),
                 const SizedBox(height: 16),
 
                 // ── Connectivity status + Sync button ────────────────────────
@@ -413,7 +414,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
                                       child: const CircularProgressIndicator(
                                         strokeWidth: 2.5,
                                         color: EnhancedTheme.primaryTeal,
-                                      ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                                      ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                                     )
                                   : ElevatedButton.icon(
                                       onPressed: _syncNow,
@@ -449,7 +450,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
                       ),
                     ),
                   ),
-                ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+                ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms)),
                 const SizedBox(height: 16),
 
                 // ── Queue action buttons ─────────────────────────────────────
@@ -481,11 +482,9 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 ...pendingSales.asMap().entries.map(
-                                  (e) => _saleCard(e.value).animate(
-                                    delay: (e.key * 50).ms,
-                                  ).fadeIn(
+                                  (e) => _saleCard(e.value).animateInView((a) => a.fadeIn(
                                     duration: 300.ms,
-                                  ).slideY(begin: 0.05, end: 0),
+                                  ).slideY(begin: 0.05, end: 0), delay: (e.key * 50).ms),
                                 ),
                                 const SizedBox(height: 16),
                               ],
@@ -499,11 +498,9 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 ...pendingMuts.asMap().entries.map(
-                                  (e) => _mutationCard(e.value).animate(
-                                    delay: (e.key * 50).ms,
-                                  ).fadeIn(
+                                  (e) => _mutationCard(e.value).animateInView((a) => a.fadeIn(
                                     duration: 300.ms,
-                                  ).slideY(begin: 0.05, end: 0),
+                                  ).slideY(begin: 0.05, end: 0), delay: (e.key * 50).ms),
                                 ),
                               ],
                             ],
@@ -577,7 +574,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
           ],
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms, delay: 150.ms);
+    ).animateInView((a) => a.fadeIn(duration: 300.ms, delay: 150.ms));
   }
 
   Widget _sectionHeader(String title, int count, IconData icon, Color color) {
@@ -718,8 +715,7 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (total != null)
-                      Text(
-                        fmtN(total),
+                      CountUpText(fmtN(total),
                         style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal,
                           fontSize: 15,
@@ -945,10 +941,10 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
             style: TextStyle(color: context.subLabelColor, fontSize: 13),
           ),
         ],
-      ).animate().fadeIn(duration: 400.ms).scale(
+      ).animateInView((a) => a.fadeIn(duration: 400.ms).scale(
         begin: const Offset(0.9, 0.9),
         end: const Offset(1, 1),
-      ),
+      )),
     );
   }
 

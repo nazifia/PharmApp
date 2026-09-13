@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -290,7 +291,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: markup == m ? EnhancedTheme.successGreen : ctx.borderColor, width: markup == m ? 1.5 : 1),
                             ),
-                            child: Text('${m % 1 == 0 ? m.toInt() : m}%', style: TextStyle(
+                            child: CountUpText('${m % 1 == 0 ? m.toInt() : m}%', style: TextStyle(
                                 color: markup == m ? EnhancedTheme.successGreen : ctx.subLabelColor,
                                 fontSize: 12, fontWeight: FontWeight.w600)),
                           ),
@@ -433,7 +434,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: saving
                               ? SizedBox(height: 20, width: 20,
-                                  child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                                  child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                               : Text('Save Changes',
                                   style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 16)),
                         ),
@@ -1193,7 +1194,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                       child: saving
                           ? SizedBox(width: 20, height: 20,
-                              child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                              child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                           : Text('Save', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
                     )),
                   ]),
@@ -1383,7 +1384,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                       child: saving
                           ? SizedBox(width: 20, height: 20,
-                              child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                              child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                           : Text('Save', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15)),
                     )),
                   ]),
@@ -1546,7 +1547,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         ),
       ],
     ]),
-  ).animate().fadeIn(duration: 400.ms);
+  ).animateInView((a) => a.fadeIn(duration: 400.ms));
 
   Widget _buildContent(BuildContext context, Item item) {
     final now     = DateTime.now();
@@ -1621,7 +1622,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 ]),
               ),
             ),
-          ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, end: 0),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, end: 0)),
           const SizedBox(height: 16),
 
           // Key metrics
@@ -1638,7 +1639,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     : 'N/A',
                 expired ? EnhancedTheme.errorRed : EnhancedTheme.accentCyan,
                 Icons.event_rounded)),
-          ]).animate().fadeIn(duration: 400.ms, delay: 160.ms),
+          ]).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 160.ms)),
           const SizedBox(height: 20),
 
           // Product details
@@ -1680,7 +1681,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         Expanded(child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Text('${fmtNum(item.lowStockThreshold.toDouble())} units',
+                            CountUpText('${fmtNum(item.lowStockThreshold.toDouble())} units',
                                 style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
                             if (_canEdit) ...[
                               const SizedBox(width: 8),
@@ -1745,7 +1746,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 ]),
               ),
             ),
-          ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 200.ms)),
           const SizedBox(height: 20),
 
           // Pricing
@@ -1778,7 +1779,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 ]),
               ),
             ),
-          ).animate().fadeIn(duration: 400.ms, delay: 250.ms),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 250.ms)),
           const SizedBox(height: 28),
 
           // Action buttons
@@ -1865,7 +1866,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 ),
               );
             }),
-          ]).animate().fadeIn(duration: 400.ms, delay: 300.ms),
+          ]).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 300.ms)),
         ]),
       )),
     ]);
@@ -1926,7 +1927,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 8),
-          Text(value, style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.w800),
+          CountUpText(value, style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.w800),
               textAlign: TextAlign.center),
           const SizedBox(height: 2),
           Text(label, style: TextStyle(color: context.hintColor, fontSize: 10), textAlign: TextAlign.center),
@@ -1945,7 +1946,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       ),
       const SizedBox(width: 12),
       SizedBox(width: 110, child: Text(label, style: TextStyle(color: context.subLabelColor, fontSize: 13))),
-      Expanded(child: Text(value,
+      Expanded(child: CountUpText(value,
           style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600),
           textAlign: TextAlign.right)),
     ]));

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -70,9 +71,9 @@ class EmptyState extends StatelessWidget {
     );
 
     final animated = column
-        .animate()
+        .animateInView((a) => a
         .fadeIn(duration: 400.ms)
-        .scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1));
+        .scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)));
 
     if (!boxed) return Center(child: animated);
 

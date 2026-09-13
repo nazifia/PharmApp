@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -168,7 +169,7 @@ class _CreateNetworkScreenState extends ConsumerState<CreateNetworkScreen> {
             ],
           ),
         ],
-      ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.1, end: 0),
+      ).animateInView((a) => a.fadeIn(duration: 350.ms).slideY(begin: -0.1, end: 0)),
     );
   }
 
@@ -228,7 +229,7 @@ class _CreateNetworkScreenState extends ConsumerState<CreateNetworkScreen> {
           ),
         ),
       ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0));
   }
 
   Widget _formCard(BuildContext context, bool isLoading) {
@@ -318,7 +319,7 @@ class _CreateNetworkScreenState extends ConsumerState<CreateNetworkScreen> {
           ),
         ),
       ),
-    ).animate(delay: 80.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0), delay: 80.ms);
   }
 
   Widget _fieldLabel(BuildContext context, String label) => Text(
@@ -353,7 +354,7 @@ class _CreateNetworkScreenState extends ConsumerState<CreateNetworkScreen> {
                 child: const CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 2.5,
-                ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -368,6 +369,6 @@ class _CreateNetworkScreenState extends ConsumerState<CreateNetworkScreen> {
                 ],
               ),
       ),
-    ).animate(delay: 120.ms).fadeIn(duration: 350.ms).slideY(begin: 0.15, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 350.ms).slideY(begin: 0.15, end: 0), delay: 120.ms);
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -681,7 +682,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   color: EnhancedTheme.accentPurple.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text('$itemCount items',
+                child: CountUpText('$itemCount items',
                     style: const TextStyle(
                         color: EnhancedTheme.accentPurple, fontSize: 10, fontWeight: FontWeight.w600)),
               ),
@@ -728,7 +729,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
           ),
         ],
       ]),
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0));
   }
 
   // ── Customer Row ────────────────────────────────────────────────────────────
@@ -783,7 +784,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                         const Icon(Icons.account_balance_wallet_rounded,
                             color: EnhancedTheme.successGreen, size: 11),
                         const SizedBox(width: 4),
-                        Text(fmtN(selected.walletBalance),
+                        CountUpText(fmtN(selected.walletBalance),
                             style: const TextStyle(
                                 color: EnhancedTheme.successGreen,
                                 fontSize: 11, fontWeight: FontWeight.w600)),
@@ -846,7 +847,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
       ),
       Expanded(child: filtered.when(
         loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const CircularProgressIndicator(color: EnhancedTheme.accentCyan, strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+          const CircularProgressIndicator(color: EnhancedTheme.accentCyan, strokeWidth: 2.5).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           const SizedBox(height: 16),
           Text('Loading catalogue…', style: TextStyle(color: context.hintColor, fontSize: 13)),
         ])),
@@ -918,17 +919,17 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                   ),
                   itemCount: items.length,
                   itemBuilder: (_, i) => _catalogueGridCard(items[i], cart, wide)
-                      .animate(delay: (i * 30).ms)
+                      .animateInView((a) => a
                       .fadeIn(duration: 250.ms)
-                      .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1)),
+                      .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1)), delay: (i * 30).ms),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                   itemCount: items.length,
                   itemBuilder: (_, i) => _catalogueListItem(items[i], cart, wide)
-                      .animate(delay: (i * 25).ms)
+                      .animateInView((a) => a
                       .fadeIn(duration: 250.ms)
-                      .slideX(begin: 0.05, end: 0),
+                      .slideX(begin: 0.05, end: 0), delay: (i * 25).ms),
                 );
         },
       )),
@@ -1027,10 +1028,10 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
             const SizedBox(width: 8),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('₦', style: TextStyle(
+                CountUpText('₦', style: TextStyle(
                     color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                     fontSize: 11, fontWeight: FontWeight.w600)),
-                Text(fmtNum(item.price),
+                CountUpText(fmtNum(item.price),
                     style: TextStyle(
                         color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                         fontSize: 15, fontWeight: FontWeight.w800)),
@@ -1153,7 +1154,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                       fontSize: 12, fontWeight: FontWeight.w600),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
-              Text(fmtN(item.price),
+              CountUpText(fmtN(item.price),
                   style: TextStyle(
                       color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                       fontSize: 14, fontWeight: FontWeight.w800)),
@@ -1235,7 +1236,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                 onQtyChange:      (id, qty)     => ref.read(wsCartProvider.notifier).updateQty(id, qty),
                 onRemove:         (id)           => ref.read(wsCartProvider.notifier).removeItem(id),
                 onDiscountChange: (id, discount) => ref.read(wsCartProvider.notifier).updateDiscount(id, discount),
-              ).animate(delay: (i * 30).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0),
+              ).animateInView((a) => a.fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0), delay: (i * 30).ms),
             )),
       if (cart.isNotEmpty)
         Padding(
@@ -1269,7 +1270,7 @@ class _WholesalePOSScreenState extends ConsumerState<WholesalePOSScreen> {
                         const Text('Order Total',
                             style: TextStyle(color: Colors.black87, fontSize: 12)),
                       ]),
-                      Text(fmtN(cartTotal),
+                      CountUpText(fmtN(cartTotal),
                           style: GoogleFonts.outfit(
                               color: Colors.black, fontSize: 22, fontWeight: FontWeight.w800)),
                     ]),

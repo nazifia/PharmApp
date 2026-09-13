@@ -1,5 +1,6 @@
 ﻿import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -159,7 +160,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms));
   }
 
   // ── Hero section ────────────────────────────────────────────────────────────
@@ -204,9 +205,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             ),
           ],
         )
-            .animate()
+            .animateInView((a) => a
             .scale(duration: 600.ms, curve: Curves.elasticOut)
-            .fadeIn(duration: 400.ms),
+            .fadeIn(duration: 400.ms)),
 
         const SizedBox(height: 22),
 
@@ -220,9 +221,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ),
           textAlign: TextAlign.center,
         )
-            .animate()
+            .animateInView((a) => a
             .fadeIn(delay: 150.ms, duration: 500.ms)
-            .slideY(begin: 0.2, end: 0),
+            .slideY(begin: 0.2, end: 0)),
 
         const SizedBox(height: 8),
 
@@ -234,7 +235,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             height: 1.5,
           ),
           textAlign: TextAlign.center,
-        ).animate().fadeIn(delay: 250.ms, duration: 500.ms),
+        ).animateInView((a) => a.fadeIn(delay: 250.ms, duration: 500.ms)),
       ],
     );
   }
@@ -458,8 +459,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ),
       ),
     )
-        .animate()
+        .animateInView((a) => a
         .fadeIn(delay: 300.ms, duration: 500.ms)
-        .slideY(begin: 0.12, end: 0);
+        .slideY(begin: 0.12, end: 0));
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -173,7 +174,7 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                   child: listAsync.when(
                     loading: () => Center(
                       child: const CircularProgressIndicator(
-                          color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                          color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     ),
                     error: (e, _) => Center(
                       child: Text('Error: $e',
@@ -243,8 +244,8 @@ class _PrescriberListScreenState extends ConsumerState<PrescriberListScreen> {
                               ),
                             ),
                           ),
-                        ).animate().fadeIn(
-                            delay: Duration(milliseconds: i * 40)),
+                        ).animateInView((a) => a.fadeIn(
+                            delay: Duration(milliseconds: i * 40))),
                       );
                     },
                   ),
@@ -412,8 +413,7 @@ class _PrescriberCard extends StatelessWidget {
                                       size: 10,
                                       color: EnhancedTheme.accentOrange),
                                   const SizedBox(width: 3),
-                                  Text(
-                                    '${prescriber.commissionRate.toStringAsFixed(prescriber.commissionRate % 1 == 0 ? 0 : 1)}%',
+                                  CountUpText('${prescriber.commissionRate.toStringAsFixed(prescriber.commissionRate % 1 == 0 ? 0 : 1)}%',
                                     style: const TextStyle(
                                         color: EnhancedTheme.accentOrange,
                                         fontSize: 10,

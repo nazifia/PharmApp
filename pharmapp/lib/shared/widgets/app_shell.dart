@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -165,7 +166,7 @@ class _EagerSyncBanner extends ConsumerWidget {
           width: 14, height: 14,
           child: const CircularProgressIndicator(
             strokeWidth: 2, color: Colors.white,
-          ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+          ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
         ),
         const SizedBox(width: 10),
         const Text(
@@ -470,7 +471,7 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
               child: const CircularProgressIndicator(
                 strokeWidth: 2,
                 color: Colors.black,
-              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+              ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
             )
           else if (pending > 0) ...[
             const SizedBox(width: 6),
@@ -611,7 +612,7 @@ class _OfflineBannerState extends ConsumerState<_OfflineBanner> {
             width: 16,
             height: 16,
             child:
-                const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           ),
           const SizedBox(width: 10),
           const Expanded(

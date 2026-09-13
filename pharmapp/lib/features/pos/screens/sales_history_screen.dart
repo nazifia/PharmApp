@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -245,7 +246,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         ]),
       ),
     ]),
-  ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1);
+  ).animateInView((a) => a.fadeIn(duration: 300.ms).slideY(begin: -0.1));
 
   // ── Search Bar ─────────────────────────────────────────────────────────────
 
@@ -291,7 +292,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         ),
       ),
     ),
-  ).animate().fadeIn(duration: 350.ms, delay: 50.ms);
+  ).animateInView((a) => a.fadeIn(duration: 350.ms, delay: 50.ms));
 
   // ── Date Filter Chips ──────────────────────────────────────────────────────
 
@@ -340,7 +341,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         const SizedBox(width: 6),
         dateRangeButton(context, range: _customRange, onTap: _openDatePicker),
       ]),
-    ).animate().fadeIn(duration: 400.ms, delay: 100.ms);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms));
   }
 
   // ── Sales List ─────────────────────────────────────────────────────────────
@@ -423,7 +424,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         const SizedBox(height: 6),
         Text('Try adjusting your date filter or search',
             style: TextStyle(color: context.subLabelColor, fontSize: 13)),
-      ]).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95)));
+      ]).animateInView((a) => a.fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95))));
     }
 
     return ListView.builder(
@@ -564,7 +565,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                     ])),
                     const SizedBox(width: 10),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(_fmtNaira(totalAmount),
+                      CountUpText(_fmtNaira(totalAmount),
                           style: const TextStyle(color: EnhancedTheme.primaryTeal,
                               fontSize: 15, fontWeight: FontWeight.w800)),
                       const SizedBox(height: 6),
@@ -590,7 +591,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
           ),
         ),
       ),
-    ).animate().fadeIn(duration: 300.ms, delay: Duration(milliseconds: 60 * index)).slideY(begin: 0.05);
+    ).animateInView((a) => a.fadeIn(duration: 300.ms, delay: Duration(milliseconds: 60 * index)).slideY(begin: 0.05));
   }
 
   Widget _paymentBadge(String method) {
@@ -679,7 +680,7 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
       child: detailAsync.when(
         loading: () => Padding(
           padding: const EdgeInsets.all(48),
-          child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+          child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
         ),
         error: (e, _) => Padding(
           padding: const EdgeInsets.all(32),
@@ -882,7 +883,7 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
                   ]),
                 ]),
                 const Spacer(),
-                Text(_fmtNaira(totalAmount),
+                CountUpText(_fmtNaira(totalAmount),
                     style: const TextStyle(color: EnhancedTheme.primaryTeal,
                         fontSize: 24, fontWeight: FontWeight.w900)),
               ]),
@@ -980,7 +981,7 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
                     style: TextStyle(color: context.hintColor, fontSize: 11)),
               ])),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(_fmtNaira(subtotal),
+                CountUpText(_fmtNaira(subtotal),
                     style: const TextStyle(color: EnhancedTheme.primaryTeal,
                         fontSize: 13, fontWeight: FontWeight.w700)),
                 if (!returned && saleStatus != 'returned') ...[
@@ -1067,7 +1068,7 @@ class _SaleDetailSheetState extends ConsumerState<_SaleDetailSheet> {
                   const SizedBox(width: 10),
                   Expanded(child: Text(e.key.toUpperCase(),
                       style: TextStyle(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w600))),
-                  Text(_fmtNaira(e.value),
+                  CountUpText(_fmtNaira(e.value),
                       style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700)),
                 ]),
               ),
@@ -1356,7 +1357,7 @@ class _ReturnDialogState extends ConsumerState<_ReturnDialog> {
             ),
             child: _submitting
                 ? SizedBox(width: 20, height: 20,
-                    child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                    child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                 : const Text('Process Return',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           )),

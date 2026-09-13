@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -361,7 +362,7 @@ class _PurchaseOrderListScreenState
                           ],
                         ]),
                         const SizedBox(height: 6),
-                        Text('₦${order.total.toStringAsFixed(2)}',
+                        CountUpText('₦${order.total.toStringAsFixed(2)}',
                             style: GoogleFonts.outfit(
                                 color: context.labelColor,
                                 fontSize: 16,
@@ -384,9 +385,9 @@ class _PurchaseOrderListScreenState
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: index * 50))
+        .animateInView((a) => a
         .fadeIn(duration: 350.ms)
-        .slideY(begin: 0.04, end: 0);
+        .slideY(begin: 0.04, end: 0), delay: Duration(milliseconds: index * 50));
   }
 
   Widget _statusChip(String status) {
@@ -436,7 +437,7 @@ class _PurchaseOrderListScreenState
                   color: context.hintColor, fontSize: 12)),
         ]),
       ),
-    ).animate().fadeIn(duration: 400.ms).scale(
-        begin: const Offset(0.95, 0.95));
+    ).animateInView((a) => a.fadeIn(duration: 400.ms).scale(
+        begin: const Offset(0.95, 0.95)));
   }
 }

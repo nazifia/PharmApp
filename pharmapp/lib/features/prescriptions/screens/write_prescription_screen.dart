@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -557,7 +558,7 @@ class _WritePrescriptionScreenState
                               fontSize: 12,
                               fontWeight: FontWeight.w700)),
                       const SizedBox(height: 2),
-                      Text(fmtN(p.consultationFees[c] ?? 0),
+                      CountUpText(fmtN(p.consultationFees[c] ?? 0),
                           style: TextStyle(
                               color: _consultCategory == c
                                   ? EnhancedTheme.accentPurple
@@ -755,7 +756,7 @@ class _WritePrescriptionScreenState
                   child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: const CircularProgressIndicator(
-                    color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                    color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
               )),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(16),
@@ -787,8 +788,8 @@ class _WritePrescriptionScreenState
                     ...filtered.asMap().entries.map((e) => _CustomerResultTile(
                           result: e.value,
                           onTap: () => _proceedWithPatient(e.value),
-                        ).animate().fadeIn(
-                            delay: Duration(milliseconds: e.key * 40))),
+                        ).animateInView((a) => a.fadeIn(
+                            delay: Duration(milliseconds: e.key * 40)))),
                   ],
                 );
               },
@@ -1009,9 +1010,9 @@ class _WritePrescriptionScreenState
                 _medications.removeAt(i);
               }),
             )
-                .animate()
+                .animateInView((a) => a
                 .fadeIn(delay: Duration(milliseconds: i * 40))
-                .slideY(begin: 0.05, end: 0);
+                .slideY(begin: 0.05, end: 0));
           }),
 
           const SizedBox(height: 12),
@@ -1044,7 +1045,7 @@ class _WritePrescriptionScreenState
                     width: 20,
                     height: 20,
                     child: const CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                        strokeWidth: 2, color: Colors.white).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                 : const Text('Save Prescription',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w700)),
@@ -1639,7 +1640,7 @@ class _PrescriberPickerField extends ConsumerWidget {
                       height: 18,
                       child: const CircularProgressIndicator(
                           color: EnhancedTheme.accentPurple,
-                          strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
+                          strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))),
             ),
             error: (_, __) => const SizedBox.shrink(),
             data: (prescribers) {

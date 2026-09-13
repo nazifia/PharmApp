@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -388,17 +389,17 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.3), width: 2),
                 ),
                 child: const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.warningAmber, size: 38),
-              ).animate().scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
+              ).animateInView((a) => a.scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut)),
               const SizedBox(height: 20),
               Text('Sale Saved Offline',
                   style: GoogleFonts.outfit(color: context.labelColor, fontSize: 21, fontWeight: FontWeight.w800))
-                  .animate().fadeIn(delay: 200.ms),
+                  .animateInView((a) => a.fadeIn(delay: 200.ms)),
               const SizedBox(height: 8),
               Text(
                 'No internet connection. This sale has been saved and will sync automatically when back online.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.subLabelColor, fontSize: 13, height: 1.5),
-              ).animate().fadeIn(delay: 300.ms),
+              ).animateInView((a) => a.fadeIn(delay: 300.ms)),
               const SizedBox(height: 20),
               // Receipt ID chip
               Container(
@@ -414,7 +415,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   Text(receiptData['receiptId'] as String? ?? 'OFFLINE',
                       style: const TextStyle(color: EnhancedTheme.warningAmber, fontSize: 12, fontWeight: FontWeight.w700)),
                 ]),
-              ).animate().fadeIn(delay: 350.ms),
+              ).animateInView((a) => a.fadeIn(delay: 350.ms)),
               const SizedBox(height: 24),
               // View Receipt button
               OutlinedButton.icon(
@@ -430,7 +431,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.15, end: 0),
+              ).animateInView((a) => a.fadeIn(delay: 400.ms).slideY(begin: 0.15, end: 0)),
               const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
@@ -456,7 +457,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                   child: Text('OK, Got It', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black)),
                 )),
-              ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0),
+              ).animateInView((a) => a.fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0)),
             ]),
           ),
         ),
@@ -516,7 +517,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     style: TextStyle(color: Colors.black54, fontSize: 11)),
               ]),
             ]),
-          ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0),
+          ).animateInView((a) => a.fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0)),
 
           Expanded(child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -547,7 +548,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.8)),
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Text(fmtN(total),
+                        CountUpText(fmtN(total),
                             style: GoogleFonts.outfit(
                                 color: Colors.black, fontSize: 42, fontWeight: FontWeight.w800,
                                 letterSpacing: -1.5)),
@@ -567,7 +568,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                             Text('×${c.quantity}',
                                 style: const TextStyle(color: Colors.black45, fontSize: 11)),
                             const SizedBox(width: 12),
-                            Text(fmtN(c.total),
+                            CountUpText(fmtN(c.total),
                                 style: const TextStyle(
                                     color: EnhancedTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.w600)),
                           ]),
@@ -586,7 +587,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                                         color: Colors.black54,
                                         fontSize: 11,
                                         fontStyle: FontStyle.italic))),
-                            Text(fmtN(consultationFee),
+                            CountUpText(fmtN(consultationFee),
                                 style: const TextStyle(
                                     color: EnhancedTheme.accentPurple,
                                     fontSize: 12,
@@ -596,7 +597,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     ]),
                   ),
                 ),
-              ).animate().fadeIn(duration: 300.ms, delay: 50.ms),
+              ).animateInView((a) => a.fadeIn(duration: 300.ms, delay: 50.ms)),
 
               const SizedBox(height: 20),
 
@@ -652,7 +653,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       ]),
                     ),
                   ),
-                ).animate().fadeIn(delay: 100.ms),
+                ).animateInView((a) => a.fadeIn(delay: 100.ms)),
                 const SizedBox(height: 20),
               ],
 
@@ -692,7 +693,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     ),
                   ),
                 ),
-              ).animate().fadeIn(delay: 80.ms),
+              ).animateInView((a) => a.fadeIn(delay: 80.ms)),
               const SizedBox(height: 20),
 
               // ── Payment Method ───────────────────────────────────────────────
@@ -707,7 +708,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _methodCard(m),
-                ).animate(delay: (100 + i * 40).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0);
+                ).animateInView((a) => a.fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0), delay: (100 + i * 40).ms);
               }),
 
               // ── Wallet debt warning ─────────────────────────────────────────
@@ -809,7 +810,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                   child: _processing
                       ? SizedBox(width: 22, height: 22,
-                          child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                          child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                       : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                           Icon(_method.icon, size: 20, color: Colors.black),
                           const SizedBox(width: 10),
@@ -817,7 +818,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                               style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black)),
                         ]),
                 )),
-              ).animate().fadeIn(delay: 200.ms),
+              ).animateInView((a) => a.fadeIn(delay: 200.ms)),
 
               const SizedBox(height: 16),
             ]),
@@ -991,12 +992,12 @@ class _SuccessSheet extends StatelessWidget {
                 ],
               ),
               child: const Icon(Icons.check_rounded, color: Colors.black, size: 44),
-            ).animate().scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
+            ).animateInView((a) => a.scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut)),
 
             const SizedBox(height: 18),
             Text('Payment Successful!',
                 style: GoogleFonts.outfit(color: context.labelColor, fontSize: 23, fontWeight: FontWeight.w800))
-                .animate().fadeIn(delay: 200.ms),
+                .animateInView((a) => a.fadeIn(delay: 200.ms)),
             const SizedBox(height: 6),
 
             // Amount display
@@ -1011,7 +1012,7 @@ class _SuccessSheet extends StatelessWidget {
                   const TextSpan(text: '  via'),
                 ],
               ),
-            ).animate().fadeIn(delay: 250.ms),
+            ).animateInView((a) => a.fadeIn(delay: 250.ms)),
 
             const SizedBox(height: 10),
             // Payment method badge
@@ -1028,7 +1029,7 @@ class _SuccessSheet extends StatelessWidget {
                 Text(method.label,
                     style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
               ]),
-            ).animate().fadeIn(delay: 300.ms),
+            ).animateInView((a) => a.fadeIn(delay: 300.ms)),
 
             if (receiptId.isNotEmpty) ...[
               const SizedBox(height: 10),
@@ -1058,7 +1059,7 @@ class _SuccessSheet extends StatelessWidget {
                 height: 52,
                 child: Center(child: ReceiptPrintButton(saleData: saleData)),
               ),
-            ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.15, end: 0),
+            ).animateInView((a) => a.fadeIn(delay: 350.ms).slideY(begin: 0.15, end: 0)),
 
             const SizedBox(height: 10),
             // View Receipt button — outline
@@ -1073,7 +1074,7 @@ class _SuccessSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-            )).animate().fadeIn(delay: 400.ms),
+            )).animateInView((a) => a.fadeIn(delay: 400.ms)),
 
             const SizedBox(height: 10),
             SizedBox(width: double.infinity, child: OutlinedButton(
@@ -1086,7 +1087,7 @@ class _SuccessSheet extends StatelessWidget {
               ),
               child: Text('New Sale',
                   style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15)),
-            )).animate().fadeIn(delay: 450.ms),
+            )).animateInView((a) => a.fadeIn(delay: 450.ms)),
           ]),
         ),
       ),

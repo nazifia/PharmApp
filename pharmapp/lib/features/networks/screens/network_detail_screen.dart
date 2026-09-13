@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,7 +51,7 @@ class NetworkDetailScreen extends ConsumerWidget {
                         backgroundColor:
                             EnhancedTheme.accentPurple.withValues(alpha: 0.15),
                         strokeWidth: 3,
-                      ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                      ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -171,9 +172,9 @@ class NetworkDetailScreen extends ConsumerWidget {
                               currentOrgId:
                                   user?.organizationId ?? 0,
                             ),
-                          ).animate(delay: (i * 40).ms)
+                          ).animateInView((a) => a
                               .fadeIn(duration: 300.ms)
-                              .slideY(begin: 0.15, end: 0),
+                              .slideY(begin: 0.15, end: 0), delay: (i * 40).ms),
                           childCount: network.members.length,
                         ),
                       ),
@@ -361,7 +362,7 @@ class NetworkDetailScreen extends ConsumerWidget {
             children: [
               Icon(icon, color: color, size: 16),
               const SizedBox(height: 4),
-              Text(value,
+              CountUpText(value,
                   style: TextStyle(
                       color: color,
                       fontSize: 13,
@@ -638,7 +639,7 @@ class _MemberCardState extends ConsumerState<_MemberCard> {
                           color: EnhancedTheme.errorRed,
                           backgroundColor:
                               EnhancedTheme.errorRed.withValues(alpha: 0.1),
-                        ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                        ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                       )
                     : GestureDetector(
                         onTap: _removeMember,

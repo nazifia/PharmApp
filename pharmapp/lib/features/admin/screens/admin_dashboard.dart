@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -257,7 +258,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                     ])),
                 _buildProfileMenu(user?.role ?? 'Admin'),
               ]),
-            ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
+            ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0)),
 
             Expanded(
                 child: RefreshIndicator(
@@ -342,8 +343,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                                                   backgroundColor: color
                                                       .withValues(alpha: 0.1),
                                                   borderRadius:
-                                                      BorderRadius.circular(3)).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))
-                                          : Text(k['value'] as String,
+                                                      BorderRadius.circular(3)).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)))
+                                          : CountUpText(k['value'] as String,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: GoogleFonts.outfit(
@@ -368,9 +369,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                               ),
                             ),
                           )
-                              .animate(delay: (i * 50).ms)
+                              .animateInView((a) => a
                               .fadeIn(duration: 350.ms)
-                              .scale(begin: const Offset(0.92, 0.92));
+                              .scale(begin: const Offset(0.92, 0.92)), delay: (i * 50).ms);
                         },
                       );
                     }),
@@ -452,9 +453,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                             ),
                           ),
                         )
-                            .animate(delay: (i * 40).ms)
+                            .animateInView((a) => a
                             .fadeIn(duration: 300.ms)
-                            .slideY(begin: 0.15, end: 0);
+                            .slideY(begin: 0.15, end: 0), delay: (i * 40).ms);
                       },
                     ),
                     const SizedBox(height: 24),
@@ -499,7 +500,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                           child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: const CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                            color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                       )),
                       error: (e, _) => _infoTile(
                           'Failed to load sales data', EnhancedTheme.errorRed),
@@ -594,7 +595,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                                                   maxLines: 1,
                                                   overflow:
                                                       TextOverflow.ellipsis),
-                                              Text('${e.value.qty} units sold',
+                                              CountUpText('${e.value.qty} units sold',
                                                   style: TextStyle(
                                                       color:
                                                           context.subLabelColor,
@@ -604,7 +605,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.end,
                                             children: [
-                                              Text(_fmt(e.value.revenue),
+                                              CountUpText(_fmt(e.value.revenue),
                                                   style: GoogleFonts.outfit(
                                                       color: EnhancedTheme
                                                           .successGreen,
@@ -811,7 +812,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                   child: LinearProgressIndicator(
                       color: color,
                       backgroundColor: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(3)).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
+                      borderRadius: BorderRadius.circular(3)).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))),
             ),
             error: (_, __) => Text('Error',
                 style: TextStyle(color: context.hintColor, fontSize: 12)),
@@ -866,7 +867,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   Widget _invStat(
           BuildContext context, String value, String label, Color color) =>
       Column(children: [
-        Text(value,
+        CountUpText(value,
             style: GoogleFonts.outfit(
                 color: color, fontSize: 18, fontWeight: FontWeight.w800)),
         Text(label,

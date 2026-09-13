@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -466,7 +467,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
               ])),
               _statusBadge(status, color),
             ]),
-          ).animate().fadeIn(duration: 400.ms),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms)),
           const SizedBox(height: 16),
 
           // Summary card
@@ -492,7 +493,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Total Amount', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
                       const SizedBox(height: 6),
-                      Text(fmtN(totalAmount),
+                      CountUpText(fmtN(totalAmount),
                           style: GoogleFonts.outfit(
                               color: EnhancedTheme.primaryTeal, fontSize: 28, fontWeight: FontWeight.w900)),
                       const SizedBox(height: 4),
@@ -520,7 +521,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 ),
               ),
             ),
-          ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, end: 0),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, end: 0)),
           const SizedBox(height: 12),
 
           // Action buttons
@@ -531,7 +532,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 Expanded(child: ElevatedButton.icon(
                   onPressed: _actingIds.contains(id) ? null : () => _acceptRequest(id),
                   icon: _actingIds.contains(id)
-                      ? SizedBox(width: 18, height: 18, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                      ? SizedBox(width: 18, height: 18, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                       : const Icon(Icons.check_circle_outline_rounded, size: 18),
                   label: Text('Accept', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
@@ -548,7 +549,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 Expanded(child: ElevatedButton.icon(
                   onPressed: _actingIds.contains(id) ? null : () => _rejectRequest(id),
                   icon: _actingIds.contains(id)
-                      ? SizedBox(width: 18, height: 18, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                      ? SizedBox(width: 18, height: 18, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                       : const Icon(Icons.cancel_outlined, size: 18),
                   label: Text('Reject', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
@@ -562,14 +563,14 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                   ),
                 )),
               ]),
-            ).animate().fadeIn(duration: 400.ms, delay: 150.ms),
+            ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 150.ms)),
           if (status == 'accepted')
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SizedBox(width: double.infinity, child: ElevatedButton.icon(
                 onPressed: _actingIds.contains(id) ? null : () => _completeRequest(id),
                 icon: _actingIds.contains(id)
-                    ? SizedBox(width: 18, height: 18, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                    ? SizedBox(width: 18, height: 18, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                     : const Icon(Icons.payment_rounded, size: 18),
                 label: Text('Complete Payment', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
@@ -582,7 +583,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
               )),
-            ).animate().fadeIn(duration: 400.ms, delay: 150.ms),
+            ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 150.ms)),
           if (status == 'pending' || status == 'accepted') const SizedBox(height: 12),
 
           // Section header
@@ -599,7 +600,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
               Text('Items',
                   style: GoogleFonts.outfit(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
               const Spacer(),
-              Text('${_detailItems.length} items',
+              CountUpText('${_detailItems.length} items',
                   style: TextStyle(color: context.hintColor, fontSize: 12)),
             ]),
           ),
@@ -607,7 +608,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
 
           // Items list
           Expanded(child: _detailLoading
-              ? Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+              ? Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
               : _detailItems.isEmpty
                   ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.inventory_2_outlined, color: context.hintColor, size: 40),
@@ -619,9 +620,9 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                       itemCount: _detailItems.length,
                       itemBuilder: (_, i) => _detailItemCard(_detailItems[i])
-                          .animate(delay: (i * 50).ms)
+                          .animateInView((a) => a
                           .fadeIn(duration: 300.ms)
-                          .slideX(begin: 0.05, end: 0),
+                          .slideX(begin: 0.05, end: 0), delay: (i * 50).ms),
                     )),
         ])),
       ]),
@@ -684,14 +685,14 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                     style: GoogleFonts.outfit(color: context.labelColor, fontSize: 14, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Row(children: [
-                  Text(fmtN(price),
+                  CountUpText(fmtN(price),
                       style: TextStyle(color: context.subLabelColor, fontSize: 12)),
                   Text(' × ${qty % 1 == 0 ? qty.toInt() : qty.toStringAsFixed(2)}',
                       style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 12,
                           fontWeight: FontWeight.w700)),
                 ]),
               ])),
-              Text(fmtN(subtotal),
+              CountUpText(fmtN(subtotal),
                   style: GoogleFonts.outfit(
                       color: EnhancedTheme.primaryTeal, fontSize: 15, fontWeight: FontWeight.w800)),
             ]),
@@ -768,7 +769,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                   ]),
                 ),
             ]),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0)),
           const SizedBox(height: 14),
 
           // Filter chips
@@ -781,7 +782,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (_, i) => _filterChip(_filters[i]),
             ),
-          ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms)),
           const SizedBox(height: 14),
 
           // List
@@ -807,15 +808,15 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                             itemBuilder: (_, i) {
                               if (i < offlineToShow.length) {
                                 return _offlineRequestCard(offlineToShow[i])
-                                    .animate(delay: (i * 50).ms)
+                                    .animateInView((a) => a
                                     .fadeIn(duration: 300.ms)
-                                    .slideY(begin: 0.05, end: 0);
+                                    .slideY(begin: 0.05, end: 0), delay: (i * 50).ms);
                               }
                               final j = i - offlineToShow.length;
                               return _requestCard(_requests[j])
-                                  .animate(delay: (i * 50).ms)
+                                  .animateInView((a) => a
                                   .fadeIn(duration: 300.ms)
-                                  .slideY(begin: 0.05, end: 0);
+                                  .slideY(begin: 0.05, end: 0), delay: (i * 50).ms);
                             },
                           ),
                         )),
@@ -934,7 +935,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                   child: Row(children: [
                     Icon(Icons.medication_rounded, color: context.hintColor, size: 14),
                     const SizedBox(width: 6),
-                    Text('$itemCount items', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
+                    CountUpText('$itemCount items', style: TextStyle(color: context.subLabelColor, fontSize: 12)),
                     const SizedBox(width: 10),
                     Container(width: 1, height: 12, color: context.dividerColor),
                     const SizedBox(width: 10),
@@ -947,7 +948,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text(fmtN(totalAmount),
+                  CountUpText(fmtN(totalAmount),
                       style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal, fontSize: 20, fontWeight: FontWeight.w900)),
                   const Row(children: [
@@ -1075,7 +1076,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
               const SizedBox(height: 14),
 
               // ── Amount ───────────────────────────────────────────────────────
-              Text(fmtN(total),
+              CountUpText(fmtN(total),
                   style: GoogleFonts.outfit(
                       color: EnhancedTheme.primaryTeal,
                       fontSize: 20,
@@ -1169,7 +1170,7 @@ class _PaymentRequestsScreenState extends ConsumerState<PaymentRequestsScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
-      ]).animate().fadeIn(duration: 400.ms),
+      ]).animateInView((a) => a.fadeIn(duration: 400.ms)),
     ));
   }
 }
@@ -1315,7 +1316,7 @@ class _CompletePaymentDialogState extends State<_CompletePaymentDialog> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Amount Due', style: TextStyle(color: context.hintColor, fontSize: 11)),
                   const SizedBox(height: 4),
-                  Text(fmtN(widget.totalAmount),
+                  CountUpText(fmtN(widget.totalAmount),
                       style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal, fontSize: 24, fontWeight: FontWeight.w900)),
                 ]),

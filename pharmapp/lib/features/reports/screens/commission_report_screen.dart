@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -242,7 +243,7 @@ class _CommissionReportScreenState
             child: const Icon(Icons.payments_rounded,
                 color: EnhancedTheme.accentPurple, size: 18)),
         ]),
-      ).animate().fadeIn(duration: 350.ms);
+      ).animateInView((a) => a.fadeIn(duration: 350.ms));
 
   Widget _periodSelector() => Padding(
     padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
@@ -281,7 +282,7 @@ class _CommissionReportScreenState
             }).toList()),
           ),
       ),
-    ).animate().fadeIn(duration: 350.ms, delay: 80.ms);
+    ).animateInView((a) => a.fadeIn(duration: 350.ms, delay: 80.ms));
 
   Widget _loadingState() => Center(
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -291,7 +292,7 @@ class _CommissionReportScreenState
           color: EnhancedTheme.successGreen.withValues(alpha: 0.1),
           shape: BoxShape.circle),
         child: const CircularProgressIndicator(
-            color: EnhancedTheme.successGreen, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+            color: EnhancedTheme.successGreen, strokeWidth: 3).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
       const SizedBox(height: 16),
       Text('Loading commissions…',
           style: TextStyle(
@@ -384,7 +385,7 @@ class _CommissionReportScreenState
                             color: context.subLabelColor,
                             fontSize: 12,
                             letterSpacing: 0.4)),
-                    Text(_fmt(data.totalCommissions),
+                    CountUpText(_fmt(data.totalCommissions),
                         style: GoogleFonts.outfit(
                             color: context.labelColor,
                             fontSize: 32,
@@ -409,7 +410,7 @@ class _CommissionReportScreenState
               ]),
             ),
           ),
-        ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0),
+        ).animateInView((a) => a.fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0)),
 
         const SizedBox(height: 22),
 
@@ -423,9 +424,9 @@ class _CommissionReportScreenState
         else
           ...data.staff.asMap().entries.map((e) => _staffCommissionCard(
                 context, e.value, e.key, isSenior)
-              .animate()
+              .animateInView((a) => a
               .fadeIn(duration: 300.ms, delay: (60 * e.key).ms)
-              .slideX(begin: 0.05, end: 0)),
+              .slideX(begin: 0.05, end: 0))),
 
         const SizedBox(height: 32),
       ]),
@@ -487,7 +488,7 @@ class _CommissionReportScreenState
                             color: color, fontSize: 9, fontWeight: FontWeight.w700))),
                 ])),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text(_fmt(entry.totalPayout),
+                  CountUpText(_fmt(entry.totalPayout),
                       style: const TextStyle(
                           color: EnhancedTheme.successGreen,
                           fontSize: 16,
@@ -671,7 +672,7 @@ class _CommissionReportScreenState
                   ? SizedBox(
                       width: 16, height: 16,
                       child: const CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                          color: Colors.white, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                   : const Text('Save',
                       style: TextStyle(
                           color: Colors.white,
@@ -693,7 +694,7 @@ class _CommissionReportScreenState
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.2))),
       child: Column(children: [
-        Text(value, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800)),
+        CountUpText(value, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800)),
         const SizedBox(height: 3),
         Text(label,
             style: TextStyle(color: context.hintColor, fontSize: 8),
@@ -712,7 +713,7 @@ class _CommissionReportScreenState
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(icon, color: color, size: 16),
           const SizedBox(height: 5),
-          Text(value,
+          CountUpText(value,
               style: TextStyle(
                   color: color, fontSize: 13, fontWeight: FontWeight.w800)),
           const SizedBox(height: 2),

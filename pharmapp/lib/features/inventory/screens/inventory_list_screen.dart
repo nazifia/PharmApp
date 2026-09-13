@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -414,7 +415,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: markup == m ? EnhancedTheme.successGreen : ctx.borderColor, width: markup == m ? 1.5 : 1),
                             ),
-                            child: Text('${m % 1 == 0 ? m.toInt() : m}%', style: TextStyle(
+                            child: CountUpText('${m % 1 == 0 ? m.toInt() : m}%', style: TextStyle(
                                 color: markup == m ? EnhancedTheme.successGreen : ctx.subLabelColor,
                                 fontSize: 12, fontWeight: FontWeight.w600)),
                           ),
@@ -946,7 +947,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
         ),
       ),
     ]),
-  ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0);
+  ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0));
 
   Widget _buildSearchBar() => Padding(
     padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
@@ -998,7 +999,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
         ),
       ),
     ]),
-  ).animate().fadeIn(duration: 400.ms, delay: 100.ms);
+  ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms));
 
   Widget _buildFilterChips() => SizedBox(
     height: 40,
@@ -1036,7 +1037,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen>
         );
       },
     ),
-  ).animate().fadeIn(duration: 400.ms, delay: 150.ms);
+  ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 150.ms));
 }
 
 // ── Per-store inventory view ──────────────────────────────────────────────────
@@ -1162,13 +1163,13 @@ class _StoreInventoryView extends ConsumerWidget {
             Text(expired ? 'Total expired value' : 'Value expiring in 30 days',
                 style: TextStyle(color: context.subLabelColor, fontSize: 11)),
             const SizedBox(height: 2),
-            Text(fmtN(cost),
+            CountUpText(fmtN(cost),
                 style: TextStyle(
                     color: c, fontSize: 18, fontWeight: FontWeight.w800)),
           ]),
         ),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('${items.length} items - ${fmtNum(units)} units',
+          CountUpText('${items.length} items - ${fmtNum(units)} units',
               style: TextStyle(color: context.subLabelColor, fontSize: 11)),
           const SizedBox(height: 2),
           Text('Retail ${fmtN(retail)}',
@@ -1197,9 +1198,9 @@ class _StoreInventoryView extends ConsumerWidget {
     padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
     itemCount: items.length,
     itemBuilder: (_, i) => _itemCard(context, items[i])
-        .animate(delay: (i * 40).ms)
+        .animateInView((a) => a
         .fadeIn(duration: 350.ms)
-        .slideX(begin: 0.05, end: 0),
+        .slideX(begin: 0.05, end: 0), delay: (i * 40).ms),
   );
 
   Widget _buildGrid(BuildContext context, List<Item> items) => GridView.builder(
@@ -1209,9 +1210,9 @@ class _StoreInventoryView extends ConsumerWidget {
       mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: 0.95),
     itemCount: items.length,
     itemBuilder: (_, i) => _itemGridCard(context, items[i])
-        .animate(delay: (i * 40).ms)
+        .animateInView((a) => a
         .fadeIn(duration: 350.ms)
-        .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1)),
+        .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1)), delay: (i * 40).ms),
   );
 
   Color _stockColor(Item item) {
@@ -1282,7 +1283,7 @@ class _StoreInventoryView extends ConsumerWidget {
                 ])),
                 const SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text(fmtN(item.price),
+                  CountUpText(fmtN(item.price),
                       style: GoogleFonts.outfit(
                           color: EnhancedTheme.primaryTeal, fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
@@ -1353,7 +1354,7 @@ class _StoreInventoryView extends ConsumerWidget {
               const SizedBox(height: 3),
               Text(item.brand, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
               const Spacer(),
-              Text(fmtN(item.price),
+              CountUpText(fmtN(item.price),
                   style: GoogleFonts.outfit(
                       color: EnhancedTheme.primaryTeal, fontSize: 14, fontWeight: FontWeight.w800)),
             ]),

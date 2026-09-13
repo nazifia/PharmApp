@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -343,7 +344,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                             color: statusCol.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(
+                          child: CountUpText(
                             '${(progress * 100).round()}%',
                             style: GoogleFonts.outfit(color: statusCol,
                                 fontSize: 12, fontWeight: FontWeight.w800),
@@ -359,7 +360,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                           valueColor: AlwaysStoppedAnimation<Color>(
                               progress == 1.0 ? EnhancedTheme.successGreen : statusCol),
                           minHeight: 8,
-                        ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
+                        ).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
                       ),
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -372,7 +373,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                   ),
                 ),
               ),
-            ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0),
+            ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0)),
 
           const SizedBox(height: 10),
 
@@ -471,7 +472,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
           // Items list
           Expanded(child: _detailLoading
               ? Center(child: const CircularProgressIndicator(
-                  color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                  color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
               : filteredItems.isEmpty
                   ? _emptyState(Icons.inventory_2_outlined, 'No items found')
                   : ListView.builder(
@@ -646,7 +647,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                       Text('Cost diff: ',
                           style: GoogleFonts.inter(
                               color: context.subLabelColor, fontSize: 11)),
-                      Text(_fmt(itemCostDiff),
+                      CountUpText(_fmt(itemCostDiff),
                           style: GoogleFonts.outfit(
                               color: itemCostDiff < 0
                                   ? EnhancedTheme.errorRed
@@ -691,9 +692,9 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: index * 40))
+        .animateInView((a) => a
         .fadeIn(duration: 300.ms)
-        .slideY(begin: 0.05, end: 0);
+        .slideY(begin: 0.05, end: 0), delay: Duration(milliseconds: index * 40));
   }
 
   Widget _statCell(String label, String value, Color color, IconData icon) {
@@ -707,7 +708,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
               style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 10)),
         ]),
         const SizedBox(height: 4),
-        Text(value,
+        CountUpText(value,
             style: GoogleFonts.outfit(color: color,
                 fontSize: 20, fontWeight: FontWeight.w800)),
       ]),
@@ -806,7 +807,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
 
           Expanded(child: _reportLoading
               ? Center(child: const CircularProgressIndicator(
-                  color: EnhancedTheme.accentPurple).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                  color: EnhancedTheme.accentPurple).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
               : RefreshIndicator(
                   color: EnhancedTheme.accentPurple,
                   onRefresh: _loadReport,
@@ -924,7 +925,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                   overflow: TextOverflow.ellipsis)),
             ]),
             const SizedBox(height: 8),
-            Text(value,
+            CountUpText(value,
                 style: GoogleFonts.outfit(color: color,
                     fontSize: 24, fontWeight: FontWeight.w800)),
           ]),
@@ -1037,7 +1038,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                       backgroundColor: accentColor.withValues(alpha: 0.12),
                       valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                       minHeight: 6,
-                    ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
+                    ).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
                   ),
                   if (costDiff != 0) ...[
                     const SizedBox(height: 8),
@@ -1051,7 +1052,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
                       Text('Cost difference: ',
                           style: GoogleFonts.inter(
                               color: context.subLabelColor, fontSize: 11)),
-                      Text(_fmt(costDiff),
+                      CountUpText(_fmt(costDiff),
                           style: GoogleFonts.outfit(
                               color: costDiff < 0
                                   ? EnhancedTheme.errorRed
@@ -1067,16 +1068,16 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: index * 50))
+        .animateInView((a) => a
         .fadeIn(duration: 300.ms)
-        .slideY(begin: 0.04, end: 0);
+        .slideY(begin: 0.04, end: 0), delay: Duration(milliseconds: index * 50));
   }
 
   Widget _reportStat(String label, String value, Color color, IconData icon) {
     return Column(children: [
       Icon(icon, color: color.withValues(alpha: 0.7), size: 14),
       const SizedBox(height: 3),
-      Text(value,
+      CountUpText(value,
           style: GoogleFonts.outfit(color: color,
               fontSize: 16, fontWeight: FontWeight.w800)),
       Text(label,
@@ -1360,9 +1361,9 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: index * 60))
+        .animateInView((a) => a
         .fadeIn(duration: 350.ms)
-        .slideX(begin: 0.04, end: 0);
+        .slideX(begin: 0.04, end: 0), delay: Duration(milliseconds: index * 60));
   }
 
   void _confirmCancel(int id) {
@@ -1451,7 +1452,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
         Text('Tap + to get started',
             style: GoogleFonts.inter(color: context.hintColor, fontSize: 13)),
       ]),
-    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95));
+    ).animateInView((a) => a.fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95)));
   }
 
   Widget _errorState() {
@@ -1486,7 +1487,7 @@ class _StockCheckScreenState extends ConsumerState<StockCheckScreen> {
           ),
         ),
       ]),
-    ).animate().fadeIn(duration: 400.ms);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms));
   }
 }
 
@@ -1746,7 +1747,7 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
                                   width: 28, height: 28,
                                   child: const CircularProgressIndicator(
                                       color: EnhancedTheme.primaryTeal,
-                                      strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                                      strokeWidth: 2.5).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                               : GestureDetector(
                                   onTap: () => _addItem(item),
                                   child: Container(

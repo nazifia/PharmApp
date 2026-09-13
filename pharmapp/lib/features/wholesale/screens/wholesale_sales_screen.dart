@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -240,7 +241,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
         ]),
       ),
     ]),
-  ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.15);
+  ).animateInView((a) => a.fadeIn(duration: 350.ms).slideY(begin: -0.15));
 
   // ── Search Bar ─────────────────────────────────────────────────────────────
 
@@ -286,7 +287,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
         ),
       ),
     ),
-  ).animate().fadeIn(delay: 80.ms).slideY(begin: -0.1);
+  ).animateInView((a) => a.fadeIn(delay: 80.ms).slideY(begin: -0.1));
 
   // ── Date Filter Chips ──────────────────────────────────────────────────────
 
@@ -348,7 +349,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
         const SizedBox(width: 6),
         dateRangeButton(context, range: _customRange, onTap: _openDatePicker),
       ]),
-    ).animate().fadeIn(delay: 140.ms).slideY(begin: -0.1);
+    ).animateInView((a) => a.fadeIn(delay: 140.ms).slideY(begin: -0.1));
   }
 
   // ── Sales By User ──────────────────────────────────────────────────────────
@@ -420,10 +421,10 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
                           Text(name,
                               style: GoogleFonts.inter(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600),
                               maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('$itemsCount items sold',
+                          CountUpText('$itemsCount items sold',
                               style: GoogleFonts.inter(color: context.hintColor, fontSize: 11)),
                         ])),
-                        Text(_fmtNaira(total),
+                        CountUpText(_fmtNaira(total),
                             style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                                 fontSize: 14, fontWeight: FontWeight.w700)),
                       ]),
@@ -444,7 +445,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
             ),
           ),
           const SizedBox(height: 4),
-        ]).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1);
+        ]).animateInView((a) => a.fadeIn(delay: 200.ms).slideY(begin: 0.1));
       },
     );
   }
@@ -529,7 +530,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
           }
           return Column(children: sales.asMap().entries.map((e) =>
               _saleCard(e.value as Map<String, dynamic>)
-                  .animate().fadeIn(delay: (e.key * 50).ms).slideY(begin: 0.08)
+                  .animateInView((a) => a.fadeIn(delay: (e.key * 50).ms).slideY(begin: 0.08))
           ).toList());
         },
       ),
@@ -677,7 +678,7 @@ class _WholesaleSalesScreenState extends ConsumerState<WholesaleSalesScreen> {
                     ])),
                     const SizedBox(width: 8),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(_fmtNaira(totalAmount),
+                      CountUpText(_fmtNaira(totalAmount),
                           style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                               fontSize: 15, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 6),
@@ -794,7 +795,7 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
       child: detailAsync.when(
         loading: () => Padding(
           padding: const EdgeInsets.all(48),
-          child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+          child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
         ),
         error: (e, _) => Padding(
           padding: const EdgeInsets.all(32),
@@ -910,7 +911,7 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
                 ],
               ])),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(_fmtNaira(totalAmount),
+                CountUpText(_fmtNaira(totalAmount),
                     style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                         fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 6),
@@ -983,7 +984,7 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
                     style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w500)),
               ]),
             ]),
-            Text(_fmtNaira(totalAmount),
+            CountUpText(_fmtNaira(totalAmount),
                 style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                     fontSize: 24, fontWeight: FontWeight.w800)),
           ]),
@@ -1048,7 +1049,7 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
                 Text('Qty: $qty  \u00B7  ${_fmtNaira(price)} each',
                     style: GoogleFonts.inter(color: context.hintColor, fontSize: 11)),
               ])),
-              Text(_fmtNaira(subtotal),
+              CountUpText(_fmtNaira(subtotal),
                   style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                       fontSize: 13, fontWeight: FontWeight.w700)),
               const SizedBox(width: 8),
@@ -1099,7 +1100,7 @@ class _WholesaleSaleDetailSheetState extends ConsumerState<_WholesaleSaleDetailS
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Text(method,
                     style: GoogleFonts.inter(color: context.subLabelColor, fontSize: 12, fontWeight: FontWeight.w500)),
-                Text(_fmtNaira(amount),
+                CountUpText(_fmtNaira(amount),
                     style: GoogleFonts.outfit(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w700)),
               ]),
             );
@@ -1385,7 +1386,7 @@ class _WholesaleReturnDialogState extends ConsumerState<_WholesaleReturnDialog> 
             ),
             child: _submitting
                 ? SizedBox(width: 20, height: 20,
-                    child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                    child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                 : Text('Process Return',
                     style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
           )),

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -552,7 +553,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   color: EnhancedTheme.accentCyan.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text('$itemCount items',
+                child: CountUpText('$itemCount items',
                     style: const TextStyle(color: EnhancedTheme.accentCyan, fontSize: 10, fontWeight: FontWeight.w600)),
               ),
             ],
@@ -592,7 +593,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
           ),
         ],
       ]),
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0));
   }
 
   // ── Customer Row ───────────────────────────────────────────────────────────
@@ -641,7 +642,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                     Row(children: [
                       const Icon(Icons.account_balance_wallet_rounded, color: EnhancedTheme.successGreen, size: 11),
                       const SizedBox(width: 4),
-                      Text(fmtN(selected.walletBalance),
+                      CountUpText(fmtN(selected.walletBalance),
                           style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
                     ]),
                   ])
@@ -733,7 +734,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
       ),
       Expanded(child: filtered.when(
         loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+          const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2.5).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           const SizedBox(height: 16),
           Text('Loading catalogue…', style: TextStyle(color: context.hintColor, fontSize: 13)),
         ])),
@@ -794,17 +795,17 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   ),
                   itemCount: items.length,
                   itemBuilder: (_, i) => _catalogueGridCard(items[i], cart)
-                      .animate(delay: (i * 30).ms)
+                      .animateInView((a) => a
                       .fadeIn(duration: 250.ms)
-                      .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1)),
+                      .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1)), delay: (i * 30).ms),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                   itemCount: items.length,
                   itemBuilder: (_, i) => _catalogueListItem(items[i], cart)
-                      .animate(delay: (i * 25).ms)
+                      .animateInView((a) => a
                       .fadeIn(duration: 250.ms)
-                      .slideX(begin: 0.05, end: 0),
+                      .slideX(begin: 0.05, end: 0), delay: (i * 25).ms),
                 );
         },
       )),
@@ -922,10 +923,10 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               const SizedBox(width: 8),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text('₦', style: TextStyle(
+                  CountUpText('₦', style: TextStyle(
                     color: outOfStock ? context.hintColor : EnhancedTheme.accentCyan,
                     fontSize: 11, fontWeight: FontWeight.w600)),
-                  Text(fmtNum(item.price),
+                  CountUpText(fmtNum(item.price),
                       style: TextStyle(
                         color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal,
                         fontSize: 15, fontWeight: FontWeight.w800,
@@ -1040,7 +1041,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   ),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
-              Text(fmtN(item.price),
+              CountUpText(fmtN(item.price),
                   style: TextStyle(
                     color: outOfStock ? context.hintColor : EnhancedTheme.primaryTeal,
                     fontSize: 14, fontWeight: FontWeight.w800,
@@ -1228,7 +1229,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
             width: 12,
             height: 12,
             child: const CircularProgressIndicator(
-                strokeWidth: 1.5, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                strokeWidth: 1.5, color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           ),
           const SizedBox(width: 8),
           Text('Checking drug interactions…',
@@ -1317,7 +1318,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               itemBuilder: (_, i) => _RetailCartItem(
                 key: ValueKey(cart[i].item.id),
                 item: cart[i],
-              ).animate(delay: (i * 30).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0),
+              ).animateInView((a) => a.fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0), delay: (i * 30).ms),
             )),
 
       _interactionBanner(interactionsAsync),

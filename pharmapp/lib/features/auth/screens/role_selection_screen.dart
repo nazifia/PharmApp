@@ -1,5 +1,6 @@
 ﻿import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -125,8 +126,8 @@ class RoleSelectionScreen extends ConsumerWidget {
               children: [
                 // ── Top nav ───────────────────────────────────────────────
                 _buildNavBar(context)
-                    .animate()
-                    .fadeIn(duration: 400.ms),
+                    .animateInView((a) => a
+                    .fadeIn(duration: 400.ms)),
 
                 Expanded(
                   child: SingleChildScrollView(
@@ -138,9 +139,9 @@ class RoleSelectionScreen extends ConsumerWidget {
 
                         // ── Hero section ─────────────────────────────────
                         _buildHero()
-                            .animate()
+                            .animateInView((a) => a
                             .fadeIn(delay: 100.ms, duration: 500.ms)
-                            .slideY(begin: 0.2, end: 0),
+                            .slideY(begin: 0.2, end: 0)),
 
                         const SizedBox(height: 36),
 
@@ -159,12 +160,12 @@ class RoleSelectionScreen extends ConsumerWidget {
                                   _dashboardFor(r['role'] as String)),
                             ),
                           )
-                              .animate()
+                              .animateInView((a) => a
                               .fadeIn(
                                 delay: Duration(milliseconds: 200 + i * 80),
                                 duration: 400.ms,
                               )
-                              .slideX(begin: 0.08, end: 0);
+                              .slideX(begin: 0.08, end: 0));
                         }),
 
                         const SizedBox(height: 20),
@@ -263,7 +264,7 @@ class RoleSelectionScreen extends ConsumerWidget {
               ),
             ),
           ],
-        ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
+        ).animateInView((a) => a.scale(duration: 600.ms, curve: Curves.elasticOut)),
 
         const SizedBox(height: 20),
 

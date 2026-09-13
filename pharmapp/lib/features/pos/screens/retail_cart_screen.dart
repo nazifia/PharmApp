@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -357,7 +358,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: Row(children: [
           SizedBox(width: 12, height: 12,
-              child: const CircularProgressIndicator(strokeWidth: 1.5, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+              child: const CircularProgressIndicator(strokeWidth: 1.5, color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
           const SizedBox(width: 8),
           Text('Checking drug interactions…',
               style: TextStyle(color: context.subLabelColor, fontSize: 11)),
@@ -457,7 +458,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                       itemBuilder: (_, i) => _CartItemRow(
                         key: ValueKey(filtered[i].item.id),
                         item: filtered[i],
-                      ).animate(delay: (i * 30).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0),
+                      ).animateInView((a) => a.fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0), delay: (i * 30).ms),
                     )),
           _buildFooter(cart, cartTotal, selectedCustomer),
         ])),
@@ -468,7 +469,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
   Widget _hmoLineRow(String label, double amount, Color color) => Column(
     crossAxisAlignment: CrossAxisAlignment.start, children: [
     Text(label, style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10)),
-    Text(fmtN(amount), style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+    CountUpText(fmtN(amount), style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
   ]);
 
   Widget _buildHeader(BuildContext context, int lineCount, int unitCount) {
@@ -526,7 +527,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
             ]),
           ),
       ]),
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0));
   }
 
   Widget _emptyState() {
@@ -626,7 +627,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                         style: const TextStyle(color: Colors.black87, fontSize: 12)),
                   ])),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text(fmtN(cartTotal),
+                    CountUpText(fmtN(cartTotal),
                         style: GoogleFonts.outfit(
                             color: Colors.black, fontSize: 22, fontWeight: FontWeight.w800)),
                   ]),

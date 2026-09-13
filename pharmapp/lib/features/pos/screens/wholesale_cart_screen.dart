@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -278,17 +279,17 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
                   border: Border.all(color: EnhancedTheme.warningAmber.withValues(alpha: 0.3), width: 2),
                 ),
                 child: const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.warningAmber, size: 38),
-              ).animate().scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
+              ).animateInView((a) => a.scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut)),
               const SizedBox(height: 20),
               Text('Sale Saved Offline',
                   style: GoogleFonts.outfit(color: Colors.black87, fontSize: 21, fontWeight: FontWeight.w800))
-                  .animate().fadeIn(delay: 200.ms),
+                  .animateInView((a) => a.fadeIn(delay: 200.ms)),
               const SizedBox(height: 8),
               const Text(
                 'No internet connection. This sale has been saved and will sync automatically when back online.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.black54, fontSize: 13, height: 1.5),
-              ).animate().fadeIn(delay: 300.ms),
+              ).animateInView((a) => a.fadeIn(delay: 300.ms)),
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -304,7 +305,7 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
                       style: const TextStyle(color: EnhancedTheme.warningAmber,
                           fontSize: 12, fontWeight: FontWeight.w700)),
                 ]),
-              ).animate().fadeIn(delay: 350.ms),
+              ).animateInView((a) => a.fadeIn(delay: 350.ms)),
               const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: () {
@@ -319,7 +320,7 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.15, end: 0),
+              ).animateInView((a) => a.fadeIn(delay: 400.ms).slideY(begin: 0.15, end: 0)),
               const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
@@ -343,7 +344,7 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
                       style: GoogleFonts.outfit(
                           fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black)),
                 )),
-              ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0),
+              ).animateInView((a) => a.fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0)),
             ]),
           ),
         ),
@@ -568,7 +569,7 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
                         onQtyChange:      (id, qty)      => ref.read(wsCartProvider.notifier).updateQty(id, qty),
                         onRemove:         (id)            => ref.read(wsCartProvider.notifier).removeItem(id),
                         onDiscountChange: (id, discount)  => ref.read(wsCartProvider.notifier).updateDiscount(id, discount),
-                      ).animate(delay: (i * 30).ms).fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0),
+                      ).animateInView((a) => a.fadeIn(duration: 200.ms).slideX(begin: 0.05, end: 0), delay: (i * 30).ms),
                     )),
           _buildFooter(cart, total),
         ])),
@@ -635,7 +636,7 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
             ]),
           ),
       ]),
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0));
   }
 
   Widget _buildSearchBar() {
@@ -735,7 +736,7 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
                     const Text('Order Total',
                         style: TextStyle(color: Colors.black87, fontSize: 12)),
                   ])),
-                  Text(fmtN(total),
+                  CountUpText(fmtN(total),
                       style: GoogleFonts.outfit(
                           color: Colors.black, fontSize: 22, fontWeight: FontWeight.w800)),
                 ]),
@@ -777,7 +778,7 @@ class _WholesaleCartScreenState extends ConsumerState<WholesaleCartScreen> {
                     ),
                     icon: _isSubmitting
                         ? SizedBox(width: 16, height: 16,
-                            child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                            child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                         : const Icon(Icons.check_circle_rounded, size: 18),
                     label: Text(_isSubmitting ? 'Processing…' : 'Checkout',
                         style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -944,12 +945,12 @@ class _WsPaymentSheetState extends State<_WsPaymentSheet> {
                           fontSize: 12, letterSpacing: 0.5)),
                   const SizedBox(height: 6),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text('₦',
+                    CountUpText('₦',
                         style: GoogleFonts.outfit(
                             color: EnhancedTheme.accentCyan, fontSize: 22,
                             fontWeight: FontWeight.w600)),
                     const SizedBox(width: 4),
-                    Text(_fmtNaira(widget.total).replaceAll('₦', ''),
+                    CountUpText(_fmtNaira(widget.total).replaceAll('₦', ''),
                         style: GoogleFonts.outfit(
                             color: Colors.black, fontSize: 38, fontWeight: FontWeight.w800,
                             letterSpacing: -1)),
@@ -1079,7 +1080,7 @@ class _WsPaymentSheetState extends State<_WsPaymentSheet> {
                     ),
                     child: _isSubmitting
                         ? SizedBox(width: 22, height: 22,
-                            child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                            child: const CircularProgressIndicator(color: Colors.black, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                         : Text('Confirm ${_fmtNaira(widget.total)}',
                             style: GoogleFonts.outfit(
                                 fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black)),
@@ -1250,18 +1251,18 @@ class _WsSuccessSheet extends StatelessWidget {
                     blurRadius: 20, spreadRadius: 2)],
               ),
               child: const Icon(Icons.check_rounded, color: Colors.black, size: 44),
-            ).animate().scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1),
-                duration: 400.ms, curve: Curves.elasticOut),
+            ).animateInView((a) => a.scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1),
+                duration: 400.ms, curve: Curves.elasticOut)),
             const SizedBox(height: 20),
             Text('Order Placed!',
                 style: GoogleFonts.outfit(
                     color: context.labelColor, fontSize: 24, fontWeight: FontWeight.w800))
-                .animate().fadeIn(delay: 200.ms),
+                .animateInView((a) => a.fadeIn(delay: 200.ms)),
             const SizedBox(height: 8),
             Text('${_fmtNaira(total)} for $customerName',
                 style: TextStyle(color: context.subLabelColor, fontSize: 14),
                 textAlign: TextAlign.center)
-                .animate().fadeIn(delay: 300.ms),
+                .animateInView((a) => a.fadeIn(delay: 300.ms)),
             if (receiptId.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
@@ -1292,7 +1293,7 @@ class _WsSuccessSheet extends StatelessWidget {
                 Text(label,
                     style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
               ]),
-            ).animate().fadeIn(delay: 350.ms),
+            ).animateInView((a) => a.fadeIn(delay: 350.ms)),
             const SizedBox(height: 32),
             // Print receipt button
             Container(
@@ -1309,7 +1310,7 @@ class _WsSuccessSheet extends StatelessWidget {
                 height: 52,
                 child: Center(child: ReceiptPrintButton(saleData: saleData)),
               ),
-            ).animate().fadeIn(delay: 380.ms).slideY(begin: 0.15, end: 0),
+            ).animateInView((a) => a.fadeIn(delay: 380.ms).slideY(begin: 0.15, end: 0)),
             const SizedBox(height: 10),
             // View receipt button
             SizedBox(width: double.infinity, child: OutlinedButton.icon(
@@ -1323,7 +1324,7 @@ class _WsSuccessSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-            )).animate().fadeIn(delay: 400.ms),
+            )).animateInView((a) => a.fadeIn(delay: 400.ms)),
             const SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(
@@ -1350,7 +1351,7 @@ class _WsSuccessSheet extends StatelessWidget {
                           fontWeight: FontWeight.w800, fontSize: 16, color: Colors.black)),
                 ),
               ),
-            ).animate().fadeIn(delay: 420.ms).slideY(begin: 0.2, end: 0),
+            ).animateInView((a) => a.fadeIn(delay: 420.ms).slideY(begin: 0.2, end: 0)),
           ]),
         ),
       ),

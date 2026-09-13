@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -164,7 +165,7 @@ class _WholesaleShiftReportScreenState
           Expanded(child: shiftsAsync.when(
             loading: () => Center(
                 child: const CircularProgressIndicator(
-                    color: EnhancedTheme.accentCyan, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                    color: EnhancedTheme.accentCyan, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
             error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed, size: 40),
               const SizedBox(height: 12),
@@ -529,7 +530,7 @@ class _ShiftCardState extends State<_ShiftCard> {
                         ),
                       ]),
                       const SizedBox(height: 2),
-                      Text(_fmt(s.openedAt),
+                      CountUpText(_fmt(s.openedAt),
                           style: TextStyle(color: context.hintColor, fontSize: 11)),
                       if (s.branchName != null)
                         Text(s.branchName!,
@@ -537,7 +538,7 @@ class _ShiftCardState extends State<_ShiftCard> {
                     ])),
                     const SizedBox(width: 8),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(fmtN(s.totalSales),
+                      CountUpText(fmtN(s.totalSales),
                           style: GoogleFonts.outfit(
                               color: color, fontSize: 16, fontWeight: FontWeight.w800)),
                       Text('${s.salesCount} orders',

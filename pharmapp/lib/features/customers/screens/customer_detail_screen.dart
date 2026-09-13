@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -53,7 +54,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                   color: EnhancedTheme.primaryTeal,
                   backgroundColor: EnhancedTheme.primaryTeal.withValues(alpha: 0.15),
                   strokeWidth: 3,
-                ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
               ),
               const SizedBox(height: 16),
               Text('Loading profile…', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
@@ -209,7 +210,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 ]),
               ),
             ),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0)),
           const SizedBox(height: 16),
 
           // ── Key metrics ─────────────────────────────────────────────────────
@@ -228,7 +229,7 @@ class CustomerDetailScreen extends ConsumerWidget {
             Expanded(child: _metricCard(context, 'Purchases',
                 '${customer.totalPurchases}',
                 EnhancedTheme.accentCyan, Icons.shopping_bag_rounded)),
-          ]).animate().fadeIn(duration: 400.ms, delay: 80.ms).slideY(begin: 0.1, end: 0),
+          ]).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 80.ms).slideY(begin: 0.1, end: 0)),
 
           // ── Outstanding debt warning ─────────────────────────────────────────
           if (customer.outstandingDebt > 0) ...[
@@ -263,7 +264,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       const Text('Outstanding Balance',
                           style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 11, fontWeight: FontWeight.w600)),
-                      Text(fmtN(customer.outstandingDebt),
+                      CountUpText(fmtN(customer.outstandingDebt),
                           style: GoogleFonts.outfit(
                               color: EnhancedTheme.errorRed, fontSize: 18, fontWeight: FontWeight.w800)),
                     ])),
@@ -281,7 +282,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                   ]),
                 ),
               ),
-            ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+            ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 120.ms)),
           ],
           const SizedBox(height: 20),
 
@@ -307,7 +308,7 @@ class CustomerDetailScreen extends ConsumerWidget {
               colors: [EnhancedTheme.accentPurple, EnhancedTheme.accentPurple.withValues(alpha: 0.7)],
               onTap: () => _showSmsSheet(context, ref, customer),
             )),
-          ]).animate().fadeIn(duration: 400.ms, delay: 160.ms).slideY(begin: 0.2, end: 0),
+          ]).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 160.ms).slideY(begin: 0.2, end: 0)),
           const SizedBox(height: 20),
 
           // ── Contact details ──────────────────────────────────────────────────
@@ -331,7 +332,7 @@ class CustomerDetailScreen extends ConsumerWidget {
               _divider(context),
               _detailRow(context, Icons.access_time_rounded, 'Last Visit', customer.lastVisit!),
             ],
-          ])).animate().fadeIn(duration: 400.ms, delay: 200.ms),
+          ])).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 200.ms)),
           const SizedBox(height: 20),
 
           // ── Medical history ──────────────────────────────────────────────────
@@ -355,7 +356,7 @@ class CustomerDetailScreen extends ConsumerWidget {
           salesAsync.when(
             loading: () => Center(
                 child: Padding(padding: const EdgeInsets.all(20),
-                  child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
+                  child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))),
             error: (e, _) => _glassCard(context, child: Row(children: [
               const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed, size: 18),
               const SizedBox(width: 12),
@@ -374,9 +375,9 @@ class CustomerDetailScreen extends ConsumerWidget {
                   )))
                 : Column(children: sales.asMap().entries.map((e) =>
                     _PurchaseCard(sale: e.value)
-                        .animate(delay: (e.key * 40).ms)
+                        .animateInView((a) => a
                         .fadeIn(duration: 300.ms)
-                        .slideX(begin: 0.1, end: 0)
+                        .slideX(begin: 0.1, end: 0), delay: (e.key * 40).ms)
                   ).toList()),
           ),
           const SizedBox(height: 24),
@@ -1328,7 +1329,7 @@ class CustomerDetailScreen extends ConsumerWidget {
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 8),
-          Text(value,
+          CountUpText(value,
               style: GoogleFonts.outfit(color: color, fontSize: 14, fontWeight: FontWeight.w800),
               maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
@@ -1342,7 +1343,7 @@ class CustomerDetailScreen extends ConsumerWidget {
       const SizedBox(width: 10),
       SizedBox(width: 100,
           child: Text(label, style: TextStyle(color: context.subLabelColor, fontSize: 13))),
-      Expanded(child: Text(value,
+      Expanded(child: CountUpText(value,
           style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600),
           textAlign: TextAlign.right)),
     ]));
@@ -1769,7 +1770,7 @@ class _HmoSection extends StatelessWidget {
     Icon(icon, color: context.hintColor, size: 14),
     const SizedBox(width: 8),
     Text('$label: ', style: TextStyle(color: context.hintColor, fontSize: 12)),
-    Expanded(child: Text(value, style: TextStyle(color: context.labelColor, fontSize: 12, fontWeight: FontWeight.w600))),
+    Expanded(child: CountUpText(value, style: TextStyle(color: context.labelColor, fontSize: 12, fontWeight: FontWeight.w600))),
   ]);
 }
 
@@ -1894,7 +1895,7 @@ class _PurchaseCardState extends State<_PurchaseCard>
                       ]),
                     ])),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(fmtN(p.total),
+                      CountUpText(fmtN(p.total),
                           style: const TextStyle(
                               color: EnhancedTheme.primaryTeal,
                               fontSize: 14,
@@ -2014,7 +2015,7 @@ class _PurchaseCardState extends State<_PurchaseCard>
                       color: context.hintColor,
                       fontSize: 9,
                       fontWeight: FontWeight.w600)),
-              Text(value,
+              CountUpText(value,
                   style: TextStyle(
                       color: context.labelColor,
                       fontSize: 12,
@@ -2058,7 +2059,7 @@ class _PurchaseCardState extends State<_PurchaseCard>
                       isReturned ? TextDecoration.lineThrough : null),
               maxLines: 2,
             )),
-            Text(fmtN(item.subtotal),
+            CountUpText(fmtN(item.subtotal),
                 style: TextStyle(
                     color: isReturned
                         ? context.hintColor

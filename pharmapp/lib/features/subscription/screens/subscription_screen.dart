@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -91,7 +92,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           child: const CircularProgressIndicator(
                             strokeWidth: 2,
                             color: EnhancedTheme.primaryTeal,
-                          ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                          ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                         ),
                     ],
                   ),
@@ -410,7 +411,7 @@ class _CurrentPlanCard extends StatelessWidget {
                               backgroundColor: planColor.withValues(alpha: 0.15),
                               valueColor: AlwaysStoppedAnimation(planColor),
                               minHeight: 5,
-                            ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
+                            ).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -603,7 +604,7 @@ class _UsageRow extends StatelessWidget {
               backgroundColor: Colors.white.withValues(alpha: 0.08),
               valueColor: AlwaysStoppedAnimation(bar),
               minHeight: 4,
-            ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
+            ).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
           ),
         ],
       ],
@@ -782,8 +783,7 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
                           if (isAnnual &&
                               widget.sub.monthlyAmountForPlan(widget.plan) > 0) ...[
                             const SizedBox(height: 1),
-                            Text(
-                              '₦${widget.sub.monthlyAmountForPlan(widget.plan).toStringAsFixed(2)}/mo billed monthly',
+                            CountUpText('₦${widget.sub.monthlyAmountForPlan(widget.plan).toStringAsFixed(2)}/mo billed monthly',
                               style: const TextStyle(
                                 color: Colors.black38,
                                 fontSize: 10,
@@ -802,7 +802,7 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: EnhancedTheme.primaryTeal,
-                              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                              ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                             )
                           : TextButton(
                               onPressed: () => _upgrade(context),

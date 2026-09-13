@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,7 +19,7 @@ class PrescriberPortalScreen extends ConsumerWidget {
 
     if (prescriber == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/login'));
-      return Scaffold(body: Center(child: const CircularProgressIndicator().animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)));
+      return Scaffold(body: Center(child: const CircularProgressIndicator().animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))));
     }
 
     return Scaffold(
@@ -335,7 +336,7 @@ class PrescriberPortalScreen extends ConsumerWidget {
                           fontSize: 11,
                           fontWeight: FontWeight.w500)),
                   const SizedBox(height: 2),
-                  Text(value,
+                  CountUpText(value,
                       style: TextStyle(
                           color: ctx.labelColor,
                           fontSize: 14,
@@ -447,7 +448,7 @@ class _ConsultFeesCard extends ConsumerWidget {
                                       color: context.subLabelColor,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600)),
-                              Text(fmtN(fees[c] ?? 0),
+                              CountUpText(fmtN(fees[c] ?? 0),
                                   style: TextStyle(
                                       color: context.labelColor,
                                       fontSize: 13,
@@ -634,7 +635,7 @@ class _ConsultFeesSheetState extends ConsumerState<_ConsultFeesSheet> {
                           width: 20,
                           height: 20,
                           child: const CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2.5).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                              color: Colors.white, strokeWidth: 2.5).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                       : const Text('Save Fees',
                           style: TextStyle(fontWeight: FontWeight.w700)),
                 ),

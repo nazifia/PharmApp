@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -204,7 +205,7 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                       ),
                     ),
                   ]),
-                ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.1),
+                ).animateInView((a) => a.fadeIn(duration: 350.ms).slideY(begin: -0.1)),
 
                 const SizedBox(height: 16),
 
@@ -250,7 +251,7 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                       ),
                     ),
                   ),
-                ).animate().fadeIn(delay: 50.ms, duration: 300.ms),
+                ).animateInView((a) => a.fadeIn(delay: 50.ms, duration: 300.ms)),
 
                 const SizedBox(height: 12),
 
@@ -306,7 +307,7 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                       );
                     },
                   ),
-                ).animate().fadeIn(delay: 80.ms, duration: 300.ms),
+                ).animateInView((a) => a.fadeIn(delay: 80.ms, duration: 300.ms)),
 
                 const SizedBox(height: 10),
 
@@ -330,7 +331,7 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                       const SizedBox(width: 6),
                     ],
                   ]),
-                ).animate().fadeIn(delay: 90.ms, duration: 300.ms),
+                ).animateInView((a) => a.fadeIn(delay: 90.ms, duration: 300.ms)),
 
                 const SizedBox(height: 8),
 
@@ -383,7 +384,7 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                       ),
                     ],
                   ]),
-                ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
+                ).animateInView((a) => a.fadeIn(delay: 100.ms, duration: 300.ms)),
 
                 const SizedBox(height: 12),
 
@@ -417,7 +418,7 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                                         child: Center(
                                           child: const CircularProgressIndicator(
                                               color: EnhancedTheme.accentPurple,
-                                              strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                                              strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                                         ),
                                       );
                                     }
@@ -711,9 +712,9 @@ class _LogTile extends StatelessWidget {
         ),
       ),
     )
-        .animate(delay: (index * 30).ms)
+        .animateInView((a) => a
         .fadeIn(duration: 300.ms)
-        .slideX(begin: 0.04, end: 0);
+        .slideX(begin: 0.04, end: 0), delay: (index * 30).ms);
   }
 }
 

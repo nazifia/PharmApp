@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -245,7 +246,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Icon(s['icon'] as IconData, color: color, size: isWide ? 18 : 22),
                       const Spacer(),
-                      Text(s['value'] as String,
+                      CountUpText(s['value'] as String,
                           style: TextStyle(color: color, fontSize: isWide ? 16 : 20, fontWeight: FontWeight.w800)),
                       Text(s['label'] as String,
                           style: TextStyle(color: context.subLabelColor, fontSize: isWide ? 10 : 11)),
@@ -406,7 +407,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                       showTitles: true,
                       reservedSize: 46,
                       interval: maxY * 0.5,
-                      getTitlesWidget: (val, _) => Text(_fmtNaira(val),
+                      getTitlesWidget: (val, _) => CountUpText(_fmtNaira(val),
                           style: TextStyle(color: context.hintColor, fontSize: 9)),
                     ),
                   ),
@@ -474,7 +475,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                   ),
                 ],
               ),
-            ).animate().fadeIn(duration: 700.ms).slideX(begin: -0.06, end: 0, duration: 900.ms, curve: Curves.easeOutCubic),
+            ).animateInView((a) => a.fadeIn(duration: 700.ms).slideX(begin: -0.06, end: 0, duration: 900.ms, curve: Curves.easeOutCubic)),
           ),
         ]);
       },
@@ -523,7 +524,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                       showTitles: true,
                       reservedSize: 46,
                       interval: maxRevenue / 3,
-                      getTitlesWidget: (val, _) => Text(_fmtNaira(val),
+                      getTitlesWidget: (val, _) => CountUpText(_fmtNaira(val),
                           style: TextStyle(color: context.hintColor, fontSize: 9)),
                     ),
                   ),
@@ -591,7 +592,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                   );
                 }).toList(),
               ),
-            ).animate().fadeIn(duration: 700.ms).scaleY(begin: 0, end: 1, alignment: Alignment.bottomCenter, duration: 900.ms, curve: Curves.easeOutCubic),
+            ).animateInView((a) => a.fadeIn(duration: 700.ms).scaleY(begin: 0, end: 1, alignment: Alignment.bottomCenter, duration: 900.ms, curve: Curves.easeOutCubic)),
           ),
         ]);
       },
@@ -643,9 +644,9 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(name, style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w500),
                               maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('$qty units', style: TextStyle(color: context.hintColor, fontSize: 11)),
+                          CountUpText('$qty units', style: TextStyle(color: context.hintColor, fontSize: 11)),
                         ])),
-                        Text(_fmtNaira(revenue),
+                        CountUpText(_fmtNaira(revenue),
                             style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 13, fontWeight: FontWeight.w700)),
                       ]),
                     ),
@@ -836,7 +837,7 @@ class _WholesaleDashboardScreenState extends ConsumerState<WholesaleDashboardScr
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(name, style: TextStyle(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600),
                             maxLines: 1, overflow: TextOverflow.ellipsis),
-                        Text('$requestedQty units · $direction',
+                        CountUpText('$requestedQty units · $direction',
                             style: TextStyle(color: context.hintColor, fontSize: 11)),
                       ])),
                       _transferAction(id is int ? id : int.tryParse('$id') ?? 0, 'approve'),

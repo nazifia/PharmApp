@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -173,7 +174,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         );
       }),
     ]),
-  ).animate().fadeIn(duration: 350.ms);
+  ).animateInView((a) => a.fadeIn(duration: 350.ms));
 
   // -- Period chips ------------------------------------------------------------
 
@@ -207,7 +208,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             ));
       }).toList()),
     ),
-  ).animate().fadeIn(duration: 350.ms, delay: 80.ms);
+  ).animateInView((a) => a.fadeIn(duration: 350.ms, delay: 80.ms));
 
   // -- Custom range banner (shown when a date range is active) -----------------
 
@@ -308,7 +309,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   const SizedBox(width: 12),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const Text('Total Revenue', style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.4)),
-                    Text(_fmt(grand), style: GoogleFonts.outfit(
+                    CountUpText(_fmt(grand), style: GoogleFonts.outfit(
                       color: Colors.black, fontSize: 32, fontWeight: FontWeight.w800)),
                   ]),
                 ]),
@@ -323,12 +324,12 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
               ]),
             ),
           ),
-        ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0),
+        ).animateInView((a) => a.fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0)),
         const SizedBox(height: 22),
 
         _sectionHeader(context, 'Revenue Trend', Icons.show_chart_rounded, EnhancedTheme.primaryTeal),
         const SizedBox(height: 12),
-        _salesLineChart(context, data).animate().fadeIn(duration: 400.ms, delay: 80.ms),
+        _salesLineChart(context, data).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 80.ms)),
         const SizedBox(height: 22),
 
         // -- Sales Breakdown ---------------------------------------------------
@@ -343,7 +344,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   const SizedBox(height: 16),
                   _breakdownRow('Wholesale Sales', data.totalWholesale, grand, EnhancedTheme.accentPurple, Icons.store_rounded),
                 ]),
-        ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+        ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms)),
         const SizedBox(height: 22),
 
         // -- Credit Sales (insufficient-wallet, excluded from total) -----------
@@ -374,12 +375,12 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   ],
                 ),
               ),
-              Text(_fmt(data.creditSales),
+              CountUpText(_fmt(data.creditSales),
                   style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       color: EnhancedTheme.warningAmber)),
             ]),
-          ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 120.ms)),
           const SizedBox(height: 22),
         ],
 
@@ -424,12 +425,12 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                                 decoration: BoxDecoration(
                                   color: EnhancedTheme.infoBlue.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(4)),
-                                child: Text('${e.value.qty} units',
+                                child: CountUpText('${e.value.qty} units',
                                     style: const TextStyle(color: EnhancedTheme.infoBlue, fontSize: 9, fontWeight: FontWeight.w600))),
                             ]),
                           ])),
                           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                            Text(_fmt(e.value.revenue),
+                            CountUpText(_fmt(e.value.revenue),
                                 style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 14, fontWeight: FontWeight.w800)),
                             if (e.key == 0)
                               Container(
@@ -448,7 +449,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                     ]);
               }).toList(),
             ),
-          ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 200.ms)),
         const SizedBox(height: 32),
       ]),
     );
@@ -542,8 +543,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                       showTitles: true,
                       reservedSize: 48,
                       interval: maxY * 0.4,
-                      getTitlesWidget: (val, _) => Text(
-                        _fmt(val),
+                      getTitlesWidget: (val, _) => CountUpText(_fmt(val),
                         style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 9),
                       ),
                     ),
@@ -601,7 +601,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   ),
                 ],
               ),
-            ).animate().fadeIn(duration: 700.ms).slideX(begin: -0.06, end: 0, duration: 900.ms, curve: Curves.easeOutCubic),
+            ).animateInView((a) => a.fadeIn(duration: 700.ms).slideX(begin: -0.06, end: 0, duration: 900.ms, curve: Curves.easeOutCubic)),
           ),
         ),
       ),
@@ -671,7 +671,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(icon, color: color, size: 16),
         const SizedBox(height: 5),
-        Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+        CountUpText(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
         Text(label, style: const TextStyle(color: Colors.black45, fontSize: 9),
             textAlign: TextAlign.center),
@@ -719,7 +719,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           _netRow(context, 'Total', cashSales + otherSales, expTotal,
               net['total'] ?? 0, EnhancedTheme.primaryTeal, bold: true),
         ]),
-      ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+      ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 120.ms)),
       const SizedBox(height: 22),
     ]);
   }
@@ -735,7 +735,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           textAlign: TextAlign.end,
           style: const TextStyle(color: Colors.black54, fontSize: 11))),
       const SizedBox(width: 10),
-      Text(_fmt(net), style: TextStyle(
+      CountUpText(_fmt(net), style: TextStyle(
           color: net >= 0 ? color : EnhancedTheme.errorRed,
           fontSize: bold ? 15 : 13, fontWeight: w)),
     ]);
@@ -763,7 +763,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   if (m.$1 != 'wallet') const SizedBox(height: 16),
                 ],
               ]),
-      ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+      ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 120.ms)),
       const SizedBox(height: 22),
     ]);
   }
@@ -786,10 +786,10 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(6)),
-          child: Text('${(pct * 100).round()}%',
+          child: CountUpText('${(pct * 100).round()}%',
               style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800))),
         const SizedBox(width: 8),
-        Text(_fmt(value),
+        CountUpText(_fmt(value),
             style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
       ]),
       const SizedBox(height: 8),
@@ -799,7 +799,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           value: pct.clamp(0.0, 1.0),
           backgroundColor: context.borderColor,
           valueColor: AlwaysStoppedAnimation<Color>(color),
-          minHeight: 10).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
+          minHeight: 10).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))),
     ]);
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -143,7 +144,7 @@ class _PrescriptionDetailScreenState
                     skipLoadingOnReload: true,
                     loading: () => Center(
                         child: const CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                            color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                     error: (e, _) => Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -249,10 +250,10 @@ class _PrescriptionDetailScreenState
                                     : () => _addToCart(med, i, rx.id,
                                         consultationFee: rx.consultationFee),
                               )
-                                  .animate()
+                                  .animateInView((a) => a
                                   .fadeIn(
                                       delay: Duration(milliseconds: i * 50))
-                                  .slideY(begin: 0.05, end: 0);
+                                  .slideY(begin: 0.05, end: 0));
                             }),
                           ],
                         ),
@@ -953,7 +954,7 @@ class _InfoSection extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                Text(value,
+                CountUpText(value,
                     style: const TextStyle(
                         color: Colors.black87, fontSize: 14)),
               ],
@@ -1632,7 +1633,7 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet> {
                           height: 16,
                           child: const CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                              color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                     )
                   : null,
               filled: true,
@@ -1748,8 +1749,7 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet> {
                     fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 2),
-              Text(
-                fmtN(item.price),
+              CountUpText(fmtN(item.price),
                 style: const TextStyle(
                     color: Colors.white54, fontSize: 11),
               ),
@@ -1887,7 +1887,7 @@ class _RefillSection extends StatelessWidget {
               backgroundColor: Colors.white.withValues(alpha: 0.08),
               color: progressColor,
               minHeight: 6,
-            ).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic),
+            ).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
           ),
           if (rx.nextRefillDate != null) ...[
             const SizedBox(height: 8),
@@ -1997,7 +1997,7 @@ class _BottomActions extends StatelessWidget {
                       height: 18,
                       child: const CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: EnhancedTheme.successGreen).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                          color: EnhancedTheme.successGreen).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                   : Text(
                       selectedIndices.isEmpty
                           ? 'Select medications'

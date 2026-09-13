@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -150,7 +151,7 @@ class ReportsHubScreen extends ConsumerWidget {
                               ? SizedBox(height: 16,
                                   child: LinearProgressIndicator(
                                       color: k['color'] as Color,
-                                      backgroundColor: (k['color'] as Color).withValues(alpha: 0.1)).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))
+                                      backgroundColor: (k['color'] as Color).withValues(alpha: 0.1)).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)))
                               : Text(k['value'] as String, style: TextStyle(
                                   color: k['color'] as Color, fontSize: 13,
                                   fontWeight: FontWeight.w800)),

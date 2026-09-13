@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -108,7 +109,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                 ? SizedBox(
                                     width: 18, height: 18,
                                     child: const CircularProgressIndicator(
-                                        strokeWidth: 2, color: EnhancedTheme.infoBlue).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                                        strokeWidth: 2, color: EnhancedTheme.infoBlue).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                                 : Icon(Icons.chevron_right, color: context.hintColor, size: 18),
                           ),
                           _divider(),
@@ -121,7 +122,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                 ? SizedBox(
                                     width: 18, height: 18,
                                     child: const CircularProgressIndicator(
-                                        strokeWidth: 2, color: EnhancedTheme.warningAmber).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                                        strokeWidth: 2, color: EnhancedTheme.warningAmber).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                                 : Icon(Icons.chevron_right, color: context.hintColor, size: 18),
                           ),
                           _divider(),
@@ -484,7 +485,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                               child: SizedBox(
                                 width: 20, height: 20,
                                 child: const CircularProgressIndicator(
-                                    strokeWidth: 2.5, color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                                    strokeWidth: 2.5, color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                               ),
                             ),
                           ),
@@ -894,7 +895,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                     SizedBox(
                       width: 18, height: 18,
                       child: const CircularProgressIndicator(
-                          strokeWidth: 2, color: EnhancedTheme.accentCyan).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                          strokeWidth: 2, color: EnhancedTheme.accentCyan).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     )
                   else
                     Icon(Icons.search_rounded, color: context.hintColor, size: 18),
@@ -1291,7 +1292,7 @@ class _NetworkSheetState extends ConsumerState<_NetworkSheet>
                 SizedBox(
                   width: 18, height: 18,
                   child: const CircularProgressIndicator(
-                      strokeWidth: 2, color: EnhancedTheme.accentPurple).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                      strokeWidth: 2, color: EnhancedTheme.accentPurple).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
               const SizedBox(width: 8),
               FilledButton.icon(
                 onPressed: isLoading ? null : () => _showCreateDialog(),
@@ -1353,7 +1354,7 @@ class _NetworkSheetState extends ConsumerState<_NetworkSheet>
                 // ── Active networks ──────────────────────────────────────────
                 memberships.when(
                   loading: () => Center(
-                      child: const CircularProgressIndicator(color: EnhancedTheme.accentPurple).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                      child: const CircularProgressIndicator(color: EnhancedTheme.accentPurple).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                   error: (e, _) => Center(
                       child: Text(e.toString(),
                           style: TextStyle(color: context.hintColor))),
@@ -1392,7 +1393,7 @@ class _NetworkSheetState extends ConsumerState<_NetworkSheet>
                 // ── Pending invitations ──────────────────────────────────────
                 memberships.when(
                   loading: () => Center(
-                      child: const CircularProgressIndicator(color: EnhancedTheme.accentPurple).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                      child: const CircularProgressIndicator(color: EnhancedTheme.accentPurple).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                   error: (e, _) => Center(
                       child: Text(e.toString(),
                           style: TextStyle(color: context.hintColor))),
@@ -1841,7 +1842,7 @@ class _NetworkDetailSheetState extends ConsumerState<_NetworkDetailSheet> {
             loading: () => Expanded(
                 child: Center(
                     child: const CircularProgressIndicator(
-                        color: EnhancedTheme.accentPurple).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
+                        color: EnhancedTheme.accentPurple).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))),
             error: (e, _) => Expanded(
                 child: Center(
                     child: Text(e.toString(),
@@ -1866,7 +1867,7 @@ class _NetworkDetailSheetState extends ConsumerState<_NetworkDetailSheet> {
                       SizedBox(
                         width: 18, height: 18,
                         child: const CircularProgressIndicator(
-                            strokeWidth: 2, color: EnhancedTheme.accentPurple).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                            strokeWidth: 2, color: EnhancedTheme.accentPurple).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                     if (widget.isOwner) ...[
                       const SizedBox(width: 8),
                       FilledButton.icon(

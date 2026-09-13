@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -792,9 +793,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: index * 50))
+        .animateInView((a) => a
         .fadeIn(duration: 350.ms)
-        .slideX(begin: 0.04, end: 0);
+        .slideX(begin: 0.04, end: 0), delay: Duration(milliseconds: index * 50));
   }
 
   // ── Procurements Tab ───────────────────────────────────────────────────────
@@ -920,7 +921,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
                         ],
                       ]),
                       const SizedBox(height: 6),
-                      Text(fmtN(total),
+                      CountUpText(fmtN(total),
                           style: GoogleFonts.outfit(color: context.labelColor,
                               fontSize: 16, fontWeight: FontWeight.w800)),
                     ])),
@@ -960,9 +961,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: index * 50))
+        .animateInView((a) => a
         .fadeIn(duration: 350.ms)
-        .slideY(begin: 0.04, end: 0);
+        .slideY(begin: 0.04, end: 0), delay: Duration(milliseconds: index * 50));
   }
 
   Widget _statusBadge(String status) {
@@ -1040,7 +1041,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen>
         Text(subtitle,
             style: GoogleFonts.inter(color: context.hintColor, fontSize: 12)),
       ]),
-    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95));
+    ).animateInView((a) => a.fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95)));
   }
 }
 
@@ -1332,7 +1333,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
                     style: GoogleFonts.outfit(color: context.labelColor,
                         fontSize: 14, fontWeight: FontWeight.w600)),
               ]),
-              Text(fmtN(_total),
+              CountUpText(fmtN(_total),
                   style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                       fontSize: 18, fontWeight: FontWeight.w800)),
             ]),
@@ -1384,7 +1385,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
               child: _submitting
                   ? SizedBox(width: 18, height: 18,
                       child: const CircularProgressIndicator(
-                          color: Colors.black, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                          color: Colors.black, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                   : Text(
                       'Dispatch to ${_destination == 'retail' ? 'Retail' : 'Wholesale'}',
                       style: GoogleFonts.outfit(fontSize: 13,
@@ -1533,7 +1534,7 @@ class _NewProcurementSheetState extends ConsumerState<_NewProcurementSheet> {
                           style: GoogleFonts.inter(
                               color: context.subLabelColor, fontSize: 12)),
                     ]),
-                    Text(fmtN(selling),
+                    CountUpText(fmtN(selling),
                         style: GoogleFonts.outfit(
                             color: EnhancedTheme.successGreen,
                             fontSize: 13, fontWeight: FontWeight.w700)),
@@ -1898,7 +1899,7 @@ class _ProcurementDetailSheetState
             Text('Total Cost',
                 style: GoogleFonts.outfit(color: context.labelColor,
                     fontSize: 14, fontWeight: FontWeight.w600)),
-            Text(fmtN(total),
+            CountUpText(fmtN(total),
                 style: GoogleFonts.outfit(color: EnhancedTheme.primaryTeal,
                     fontSize: 20, fontWeight: FontWeight.w800)),
           ]),
@@ -1910,7 +1911,7 @@ class _ProcurementDetailSheetState
             Padding(
               padding: const EdgeInsets.only(bottom: 20),
               child: Center(child: const CircularProgressIndicator(
-                  color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                  color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
             )
           else
             Column(children: [
@@ -1984,7 +1985,7 @@ class _ProcurementDetailSheetState
 
   Widget _miniStat(String label, String value, Color color) {
     return Column(children: [
-      Text(value, style: GoogleFonts.outfit(color: color,
+      CountUpText(value, style: GoogleFonts.outfit(color: color,
           fontSize: 14, fontWeight: FontWeight.w800)),
       Text(label, style: GoogleFonts.inter(color: context.hintColor,
           fontSize: 10)),
@@ -2099,7 +2100,7 @@ class _ProcurementDetailSheetState
       Text(label,
           style: GoogleFonts.inter(color: color.withValues(alpha: 0.7),
               fontSize: 9)),
-      Text(value,
+      CountUpText(value,
           style: GoogleFonts.outfit(color: color,
               fontSize: 11, fontWeight: FontWeight.w700)),
     ]),

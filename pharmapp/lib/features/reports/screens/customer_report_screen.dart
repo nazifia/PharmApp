@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -100,7 +101,7 @@ class CustomerReportScreen extends ConsumerWidget {
                       size: 18)),
                 );
               }),
-            ]).animate().fadeIn(duration: 350.ms),
+            ]).animateInView((a) => a.fadeIn(duration: 350.ms)),
           ),
           const SizedBox(height: 12),
 
@@ -119,7 +120,7 @@ class CustomerReportScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: EnhancedTheme.primaryTeal.withValues(alpha: 0.1),
                     shape: BoxShape.circle),
-                  child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                  child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 3).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                 const SizedBox(height: 16),
                 Text('Loading customers…', style: TextStyle(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.8), fontSize: 13)),
               ]),
@@ -221,7 +222,7 @@ class CustomerReportScreen extends ConsumerWidget {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
                         const Icon(Icons.money_off_rounded, color: EnhancedTheme.errorRed, size: 16),
                         const SizedBox(height: 2),
-                        Text(_fmt(data.totalDebt),
+                        CountUpText(_fmt(data.totalDebt),
                             style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 12, fontWeight: FontWeight.w800)),
                         const Text('Outstanding', style: TextStyle(color: Colors.black38, fontSize: 9)),
                       ]),
@@ -238,7 +239,7 @@ class CustomerReportScreen extends ConsumerWidget {
               ]),
             ),
           ),
-        ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0),
+        ).animateInView((a) => a.fadeIn(duration: 450.ms).slideY(begin: 0.1, end: 0)),
         const SizedBox(height: 24),
 
         // ── Customer Segments ─────────────────────────────────────────────────
@@ -251,7 +252,7 @@ class CustomerReportScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             _segBar(context, 'Wholesale Customers', data.wholesale, total, EnhancedTheme.accentCyan, Icons.store_rounded),
           ]),
-        ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+        ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms)),
         const SizedBox(height: 24),
 
         // ── Top Customers ─────────────────────────────────────────────────────
@@ -310,7 +311,7 @@ class CustomerReportScreen extends ConsumerWidget {
                                     style: TextStyle(color: Color(0xFFFFD700), fontSize: 9, fontWeight: FontWeight.w700))),
                           ])),
                           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                            Text(_fmt(e.value.spent),
+                            CountUpText(_fmt(e.value.spent),
                                 style: const TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 14, fontWeight: FontWeight.w800)),
                             Text('total spend',
                                 style: TextStyle(color: context.hintColor, fontSize: 9)),
@@ -322,7 +323,7 @@ class CustomerReportScreen extends ConsumerWidget {
                     ]);
               }).toList(),
             ),
-          ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
+          ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 200.ms)),
         const SizedBox(height: 24),
 
         // ── Negative Wallet Balances ──────────────────────────────────────────
@@ -332,7 +333,7 @@ class CustomerReportScreen extends ConsumerWidget {
           loading: () => Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
-              child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 3).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+              child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 3).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
             ),
           ),
           error: (_, __) => const SizedBox.shrink(),
@@ -354,7 +355,7 @@ class CustomerReportScreen extends ConsumerWidget {
                 _negGroupCard(context, 'Wholesale', groups.wholesale, EnhancedTheme.accentCyan, Icons.store_rounded),
             ]);
           },
-        ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
+        ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 300.ms)),
         const SizedBox(height: 32),
       ]),
     );
@@ -388,7 +389,7 @@ class CustomerReportScreen extends ConsumerWidget {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text('${customers.length} customers',
                         style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 10, fontWeight: FontWeight.w700)),
-                    Text(_fmt(total.abs()),
+                    CountUpText(_fmt(total.abs()),
                         style: const TextStyle(color: EnhancedTheme.errorRed, fontSize: 12, fontWeight: FontWeight.w800)),
                   ]),
                 ),
@@ -441,7 +442,7 @@ class CustomerReportScreen extends ConsumerWidget {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(icon, color: color, size: 16),
         const SizedBox(height: 5),
-        Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+        CountUpText(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
         Text(label, style: const TextStyle(color: Colors.black45, fontSize: 9),
             textAlign: TextAlign.center),
@@ -477,7 +478,7 @@ class CustomerReportScreen extends ConsumerWidget {
           value: pct.clamp(0.0, 1.0),
           backgroundColor: context.borderColor,
           valueColor: AlwaysStoppedAnimation<Color>(color),
-          minHeight: 10).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
+          minHeight: 10).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))),
     ]);
   }
 

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -220,7 +221,7 @@ class _BranchSelectionScreenState extends ConsumerState<BranchSelectionScreen>
                               child: const CircularProgressIndicator(
                                 color: EnhancedTheme.primaryTeal,
                                 strokeWidth: 2.5,
-                              ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                              ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                             )
                           : Center(
                               child: Padding(
@@ -264,7 +265,7 @@ class _BranchSelectionScreenState extends ConsumerState<BranchSelectionScreen>
                                               width: 14,
                                               height: 14,
                                               child: const CircularProgressIndicator(
-                                                  strokeWidth: 2, color: Colors.white).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))
+                                                  strokeWidth: 2, color: Colors.white).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
                                           : const Icon(Icons.refresh_rounded, size: 16),
                                       label: Text(_refreshing ? 'Checking…' : 'Check Again'),
                                       style: FilledButton.styleFrom(
@@ -305,7 +306,7 @@ class _BranchSelectionScreenState extends ConsumerState<BranchSelectionScreen>
                         child: const CircularProgressIndicator(
                           color: EnhancedTheme.primaryTeal,
                           strokeWidth: 2.5,
-                        ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                        ).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                       ),
                       error: (e, _) => Center(
                         child: Padding(

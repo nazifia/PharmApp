@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 
@@ -163,5 +164,5 @@ Widget customRangeBanner({
         ]),
       ),
     ),
-  ).animate().fadeIn(duration: 250.ms).slideY(begin: -0.15, end: 0);
+  ).animateInView((a) => a.fadeIn(duration: 250.ms).slideY(begin: -0.15, end: 0));
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -150,7 +151,7 @@ class _PrescriptionListScreenState
                   child: prescriptionsAsync.when(
                     loading: () => Center(
                         child: const CircularProgressIndicator(
-                            color: EnhancedTheme.primaryTeal).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+                            color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
                     error: (e, _) => _ErrorView(
                         message: e.toString(),
                         onRetry: () =>
@@ -494,10 +495,10 @@ class _PrescriptionList extends StatelessWidget {
           statusLabel: statusLabel,
           showPharmacy: false,
         )
-            .animate()
+            .animateInView((a) => a
             .fadeIn(
                 delay: Duration(milliseconds: i * 40), duration: 300.ms)
-            .slideY(begin: 0.08, end: 0),
+            .slideY(begin: 0.08, end: 0)),
       );
     }
 
@@ -528,9 +529,9 @@ class _PrescriptionList extends StatelessWidget {
         final item = items[i];
         if (item is _HeaderItem) {
           return _PharmacyHeader(name: item.name)
-              .animate()
+              .animateInView((a) => a
               .fadeIn(
-                  delay: Duration(milliseconds: i * 30), duration: 250.ms);
+                  delay: Duration(milliseconds: i * 30), duration: 250.ms));
         }
         final rx = (item as _CardItem).prescription;
         return _PrescriptionCard(
@@ -539,10 +540,10 @@ class _PrescriptionList extends StatelessWidget {
           statusLabel: statusLabel,
           showPharmacy: false, // already shown in header
         )
-            .animate()
+            .animateInView((a) => a
             .fadeIn(
                 delay: Duration(milliseconds: i * 30), duration: 280.ms)
-            .slideY(begin: 0.06, end: 0);
+            .slideY(begin: 0.06, end: 0));
       },
     );
   }

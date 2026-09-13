@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 
 class DashboardCard extends StatelessWidget {
@@ -105,7 +106,7 @@ class DashboardCard extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text(
+                    child: CountUpText(
                       value,
                       style: TextStyle(
                         color: context.labelColor,

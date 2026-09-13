@@ -1,5 +1,6 @@
 ﻿import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -225,9 +226,9 @@ class _RegisterOrgScreenState extends ConsumerState<RegisterOrgScreen>
             ),
           ],
         )
-            .animate()
+            .animateInView((a) => a
             .scale(duration: 600.ms, curve: Curves.elasticOut)
-            .fadeIn(duration: 400.ms),
+            .fadeIn(duration: 400.ms)),
 
         const SizedBox(height: 20),
 
@@ -241,9 +242,9 @@ class _RegisterOrgScreenState extends ConsumerState<RegisterOrgScreen>
           ),
           textAlign: TextAlign.center,
         )
-            .animate()
+            .animateInView((a) => a
             .fadeIn(delay: 150.ms, duration: 500.ms)
-            .slideY(begin: 0.2, end: 0),
+            .slideY(begin: 0.2, end: 0)),
 
         const SizedBox(height: 6),
 
@@ -256,8 +257,8 @@ class _RegisterOrgScreenState extends ConsumerState<RegisterOrgScreen>
           ),
           textAlign: TextAlign.center,
         )
-            .animate()
-            .fadeIn(delay: 250.ms, duration: 500.ms),
+            .animateInView((a) => a
+            .fadeIn(delay: 250.ms, duration: 500.ms)),
       ],
     );
   }
@@ -475,9 +476,9 @@ class _RegisterOrgScreenState extends ConsumerState<RegisterOrgScreen>
         ),
       ),
     )
-        .animate()
+        .animateInView((a) => a
         .fadeIn(delay: 300.ms, duration: 500.ms)
-        .slideY(begin: 0.12, end: 0);
+        .slideY(begin: 0.12, end: 0));
   }
 
   // ── Sign-in link ─────────────────────────────────────────────────────────
@@ -502,7 +503,7 @@ class _RegisterOrgScreenState extends ConsumerState<RegisterOrgScreen>
         ),
       ],
     )
-        .animate()
-        .fadeIn(delay: 450.ms, duration: 400.ms);
+        .animateInView((a) => a
+        .fadeIn(delay: 450.ms, duration: 400.ms));
   }
 }

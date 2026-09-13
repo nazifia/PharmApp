@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -235,7 +236,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               crossAxisSpacing: 12,
               childAspectRatio: wide2 ? 1.35 : 1.05,
               children: retailStats,
-            ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
+            ).animateInView((a) => a.fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0)),
             const SizedBox(height: 24),
 
             _quickAccessPanel(wide2, hasReportsFeature: hasReportsFeature),
@@ -264,7 +265,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             salesAsync.when(
               loading: () => Center(child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: const CircularProgressIndicator(color: Color(0xFF0D9488)).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                child: const CircularProgressIndicator(color: Color(0xFF0D9488)).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
               )),
               error: (e, _) => _glassRow(child: Text('Failed to load sales data',
                   style: TextStyle(color: context.hintColor, fontSize: 13))),
@@ -288,10 +289,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(e.value.name, style: GoogleFonts.outfit(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13),
                           maxLines: 1, overflow: TextOverflow.ellipsis),
-                      Text('${e.value.qty} units sold', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                      CountUpText('${e.value.qty} units sold', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                     ])),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(_fmt(e.value.revenue),
+                      CountUpText(_fmt(e.value.revenue),
                           style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w800, fontSize: 14)),
                       Container(
                         margin: const EdgeInsets.only(top: 3),
@@ -304,7 +305,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       ),
                     ]),
                   ]))
-                ).toList()).animate().fadeIn(delay: 200.ms);
+                ).toList()).animateInView((a) => a.fadeIn(delay: 200.ms));
               },
             ),
             const SizedBox(height: 24),
@@ -315,7 +316,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             invAsync.when(
               loading: () => Center(child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: const CircularProgressIndicator(color: Color(0xFF0D9488)).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+                child: const CircularProgressIndicator(color: Color(0xFF0D9488)).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
               )),
               error: (e, _) => _glassRow(child: Text('Failed to load inventory data',
                   style: TextStyle(color: context.hintColor, fontSize: 13))),
@@ -343,7 +344,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                           value: pct.clamp(0.0, 1.0),
                           backgroundColor: context.borderColor,
                           valueColor: AlwaysStoppedAnimation<Color>(c),
-                          minHeight: 4).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
+                          minHeight: 4).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))),
                     ])),
                     const SizedBox(width: 12),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -351,7 +352,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       Text('/ ${s.lowStockThreshold}', style: TextStyle(color: context.subLabelColor, fontSize: 10)),
                     ]),
                   ]));
-                }).toList()).animate().fadeIn(delay: 300.ms);
+                }).toList()).animateInView((a) => a.fadeIn(delay: 300.ms));
               },
             ),
           ],
@@ -432,7 +433,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           ]),
         ),
       ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0));
   }
 
   // ── Mode Toggle ────────────────────────────────────────────────────────────
@@ -458,7 +459,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           ]),
         ),
       ),
-    ).animate().fadeIn(duration: 300.ms);
+    ).animateInView((a) => a.fadeIn(duration: 300.ms));
   }
 
   Widget _toggleChip(String label, bool active, Color color, VoidCallback onTap) {
@@ -532,7 +533,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           ),
         );
       }).toList(),
-    ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.05, end: 0);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.05, end: 0));
   }
 
   // ── Wholesale Body ─────────────────────────────────────────────────────────
@@ -543,7 +544,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
       loading: () => Center(
         child: Padding(
           padding: const EdgeInsets.all(48),
-          child: const CircularProgressIndicator(color: EnhancedTheme.accentCyan).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+          child: const CircularProgressIndicator(color: EnhancedTheme.accentCyan).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
         ),
       ),
       error: (e, _) => _glassRow(
@@ -584,7 +585,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
             crossAxisSpacing: 12,
             childAspectRatio: wide2 ? 1.35 : 1.05,
             children: wsStats,
-          ).animate().fadeIn(duration: 500.ms),
+          ).animateInView((a) => a.fadeIn(duration: 500.ms)),
           const SizedBox(height: 24),
 
           // Wholesale quick access panel
@@ -616,9 +617,9 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(name, style: GoogleFonts.outfit(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text('$qty units sold', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+                  CountUpText('$qty units sold', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                 ])),
-                Text(_fmt(rev), style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w800, fontSize: 14)),
+                CountUpText(_fmt(rev), style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w800, fontSize: 14)),
               ]));
             }).toList()),
           const SizedBox(height: 24),
@@ -692,10 +693,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       value: pct.clamp(0.0, 1.0),
                       backgroundColor: context.borderColor,
                       valueColor: AlwaysStoppedAnimation<Color>(c),
-                      minHeight: 4).animate().scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic)),
+                      minHeight: 4).animateInView((a) => a.scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft, duration: 900.ms, curve: Curves.easeOutCubic))),
                 ])),
                 const SizedBox(width: 12),
-                Text('$stock units', style: TextStyle(color: c, fontWeight: FontWeight.w800, fontSize: 14)),
+                CountUpText('$stock units', style: TextStyle(color: c, fontWeight: FontWeight.w800, fontSize: 14)),
               ]));
             }).toList()),
         ]);
@@ -896,7 +897,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           ]),
         ),
       ),
-    ).animate().fadeIn(duration: 400.ms, delay: 150.ms);
+    ).animateInView((a) => a.fadeIn(duration: 400.ms, delay: 150.ms));
   }
 
   Widget _quickAccessCard(String title, String subtitle, IconData icon, Color color, List<(IconData, String, String)> actions) {
@@ -951,7 +952,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     return itemsAsync.when(
       loading: () => Center(child: Padding(
         padding: const EdgeInsets.all(24),
-        child: const CircularProgressIndicator(color: EnhancedTheme.accentCyan).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic),
+        child: const CircularProgressIndicator(color: EnhancedTheme.accentCyan).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
       )),
       error: (e, _) => _emptyState(Icons.medication_rounded, 'No items dispensed today', EnhancedTheme.accentCyan),
       data: (items) {
@@ -977,11 +978,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                 Text(item.name,
                     style: GoogleFonts.outfit(color: context.labelColor, fontWeight: FontWeight.w600, fontSize: 13),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text('${item.qty} units dispensed',
+                CountUpText('${item.qty} units dispensed',
                     style: TextStyle(color: context.subLabelColor, fontSize: 11)),
               ])),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(_fmt(item.revenue),
+                CountUpText(_fmt(item.revenue),
                     style: const TextStyle(color: EnhancedTheme.accentCyan, fontWeight: FontWeight.w800, fontSize: 14)),
                 Container(
                   margin: const EdgeInsets.only(top: 3),
@@ -995,7 +996,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               ]),
             ]));
           }).toList(),
-        ).animate().fadeIn(delay: 200.ms);
+        ).animateInView((a) => a.fadeIn(delay: 200.ms));
       },
     );
   }
@@ -1014,7 +1015,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               color: context.cardColor,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: context.borderColor)),
-            child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.accentCyan, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+            child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.accentCyan, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
           ),
         ),
       ),
@@ -1065,8 +1066,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                         showTitles: true,
                         reservedSize: 46,
                         interval: maxY * 0.5,
-                        getTitlesWidget: (val, _) => Text(
-                          _fmt(val),
+                        getTitlesWidget: (val, _) => CountUpText(_fmt(val),
                           style: TextStyle(color: context.hintColor, fontSize: 9),
                         ),
                       ),
@@ -1130,10 +1130,10 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                     ),
                   ],
                 ),
-              ).animate().fadeIn(duration: 700.ms).slideX(begin: -0.06, end: 0, duration: 900.ms, curve: Curves.easeOutCubic),
+              ).animateInView((a) => a.fadeIn(duration: 700.ms).slideX(begin: -0.06, end: 0, duration: 900.ms, curve: Curves.easeOutCubic)),
             ),
           ),
-        ).animate().fadeIn(duration: 500.ms, delay: 100.ms);
+        ).animateInView((a) => a.fadeIn(duration: 500.ms, delay: 100.ms));
       },
     );
   }
@@ -1175,7 +1175,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
               color: context.cardColor,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: context.borderColor)),
-            child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
+            child: Center(child: const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
           ),
         ),
       ),
@@ -1225,8 +1225,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                           showTitles: true,
                           reservedSize: 46,
                           interval: maxRevenue / 3,
-                          getTitlesWidget: (val, _) => Text(
-                            _fmt(val),
+                          getTitlesWidget: (val, _) => CountUpText(_fmt(val),
                             style: TextStyle(color: context.hintColor, fontSize: 9),
                           ),
                         ),
@@ -1292,11 +1291,11 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
                       );
                     }).toList(),
                   ),
-                ).animate().fadeIn(duration: 700.ms).scaleY(begin: 0, end: 1, alignment: Alignment.bottomCenter, duration: 900.ms, curve: Curves.easeOutCubic),
+                ).animateInView((a) => a.fadeIn(duration: 700.ms).scaleY(begin: 0, end: 1, alignment: Alignment.bottomCenter, duration: 900.ms, curve: Curves.easeOutCubic)),
               ),
             ),
           ),
-        ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
+        ).animateInView((a) => a.fadeIn(duration: 500.ms, delay: 200.ms));
       },
     );
   }
