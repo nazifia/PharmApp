@@ -1311,6 +1311,18 @@ def notification_read(request, pk):
     return Response(notif.to_api_dict())
 
 
+@api_view(["DELETE"])
+def notification_delete(request, pk):
+    get_object_or_404(Notification, pk=pk, user=request.user).delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["POST"])
+def notification_read_all(request):
+    updated = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return Response({"updated": updated})
+
+
 @api_view(["GET"])
 def notification_count(request):
     count = Notification.objects.filter(user=request.user, is_read=False).count()

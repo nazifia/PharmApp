@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/i18n/tr.dart';
 import 'package:pharmapp/core/offline/app_refresh.dart';
 import 'package:pharmapp/core/services/auth_service.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
@@ -31,6 +32,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
 
   Future<void> _refresh() async {
     ref.invalidate(salesReportProvider('today'));
+    ref.invalidate(profitReportProvider('today'));
     ref.invalidate(inventoryReportProvider);
     ref.invalidate(customerReportProvider);
     ref.invalidate(retailInventoryProvider);
@@ -72,6 +74,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     final customerRpt = ref.watch(customerReportProvider);
     final retailInvAsync = ref.watch(retailInventoryProvider);
     final wholesaleInvAsync = ref.watch(wholesaleInventoryProvider);
+    final showProfit = ref.watch(hasFeatureProvider(SaasFeature.advancedReports));
+    final profit = showProfit
+        ? ref.watch(profitReportProvider('today')).whenOrNull(data: (d) => d.profit)
+        : null;
 
     final revenue =
         salesToday.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ??
@@ -81,30 +87,38 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     final debt = customerRpt.whenOrNull(data: (d) => d.totalDebt) ?? 0.0;
     final stockValue =
         inventoryRpt.whenOrNull(data: (d) => d.stockValue) ?? 0.0;
-    final topItemCount =
-        salesToday.whenOrNull(data: (d) => d.topItems.length) ?? 0;
+    final expiring = inventoryRpt.whenOrNull(data: (d) => d.expiringCount) ?? 0;
     final isLoading =
         salesToday.isLoading || inventoryRpt.isLoading || customerRpt.isLoading;
 
     String kpiVal(String val) => isLoading ? '—' : val;
 
+    // The three numbers an owner checks first: money in, money kept, stock about to be lost.
     final kpis = [
       {
-        'label': 'Today\'s Revenue',
+        'label': "Today's Sales".tr,
         'value': kpiVal(_fmt(revenue)),
-        'sub': 'Retail + Wholesale',
+        'sub': 'Money in today'.tr,
         'color': EnhancedTheme.successGreen,
         'icon': Icons.trending_up_rounded
       },
+      if (showProfit)
+        {
+          'label': "Today's Profit".tr,
+          'value': profit == null ? '—' : _fmt(profit),
+          'sub': 'After cost of drugs'.tr,
+          'color': EnhancedTheme.primaryTeal,
+          'icon': Icons.savings_rounded
+        },
       {
-        'label': 'Top Items Today',
-        'value': kpiVal('$topItemCount'),
-        'sub': 'Distinct items sold',
-        'color': EnhancedTheme.primaryTeal,
-        'icon': Icons.receipt_long_rounded
+        'label': 'Expiring Soon'.tr,
+        'value': kpiVal('$expiring'),
+        'sub': 'Within 30 days'.tr,
+        'color': EnhancedTheme.errorRed,
+        'icon': Icons.event_busy_rounded
       },
       {
-        'label': 'Low Stock Items',
+        'label': 'Low Stock'.tr,
         'value': kpiVal('$lowStock'),
         'sub': 'Need reorder',
         'color': EnhancedTheme.warningAmber,

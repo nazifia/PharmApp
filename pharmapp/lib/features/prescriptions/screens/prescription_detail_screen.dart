@@ -1861,7 +1861,7 @@ class _RefillSection extends StatelessWidget {
                     ),
                   ),
                 )
-              else if (!rx.canRefill && !rx.isDispensed && rx.refillsAllowed > 0)
+              else if (rx.refillsAllowed > 0 && rx.refillsUsed >= rx.refillsAllowed)
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 6),

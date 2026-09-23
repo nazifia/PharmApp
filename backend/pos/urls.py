@@ -76,6 +76,8 @@ urlpatterns = [
     path("notifications/", views.notification_list, name="notif-list"),
     path("notifications/count/", views.notification_count, name="notif-count"),
     path("notifications/<int:pk>/read/", views.notification_read, name="notif-read"),
+    path("notifications/read-all/", views.notification_read_all, name="notif-read-all"),
+    path("notifications/<int:pk>/", views.notification_delete, name="notif-delete"),
     # Barcode
     path("barcode/lookup/", views.barcode_lookup, name="barcode-lookup"),
     # User Management

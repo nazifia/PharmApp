@@ -111,6 +111,7 @@ class SelectedCustomer {
   final String? hmoProvider;
   final String? hmoCardNumber;
   final double? hmoCoveragePercent;
+  final String? phone;
   const SelectedCustomer({
     required this.id,
     required this.name,
@@ -118,6 +119,7 @@ class SelectedCustomer {
     this.hmoProvider,
     this.hmoCardNumber,
     this.hmoCoveragePercent,
+    this.phone,
   });
 
   bool get hasHmo => hmoCardNumber != null && hmoCardNumber!.isNotEmpty;

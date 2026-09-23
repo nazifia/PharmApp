@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/core/i18n/tr.dart';
 import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -130,15 +131,15 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                 child: const Icon(Icons.store_rounded, color: EnhancedTheme.primaryTeal, size: 18),
               ),
               const SizedBox(width: 12),
-              Text('Select Branch',
+              Text('Select Branch'.tr,
                   style: GoogleFonts.outfit(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.w700)),
             ]),
             const SizedBox(height: 16),
             if (isAdmin) _branchPickerTile(
               ctx: ctx,
               icon: Icons.business_rounded,
-              label: 'All Branches',
-              subtitle: 'Show items across all branches',
+              label: 'All Branches'.tr,
+              subtitle: 'Show items across all branches'.tr,
               isSelected: current == null || current.id <= 0,
               onTap: () {
                 ref.read(activeBranchProvider.notifier).state = null;
@@ -161,9 +162,9 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               },
             )),
             if (active.isEmpty && !isAdmin)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Text('No branches available.', style: TextStyle(color: Colors.black45, fontSize: 13)),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text('No branches available.'.tr, style: const TextStyle(color: Colors.black45, fontSize: 13)),
               ),
           ]),
         ),
@@ -273,7 +274,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                         child: const Icon(Icons.people_rounded, color: EnhancedTheme.primaryTeal, size: 16),
                       ),
                       const SizedBox(width: 10),
-                      Text('Select Customer',
+                      Text('Select Customer'.tr,
                           style: GoogleFonts.outfit(color: ctx.labelColor, fontSize: 17, fontWeight: FontWeight.w700)),
                       const Spacer(),
                       TextButton.icon(
@@ -282,7 +283,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                           Navigator.pop(ctx);
                         },
                         icon: const Icon(Icons.clear_rounded, size: 14, color: EnhancedTheme.errorRed),
-                        label: const Text('Clear', style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 13)),
+                        label: Text('Clear'.tr, style: TextStyle(color: EnhancedTheme.errorRed, fontSize: 13)),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           backgroundColor: EnhancedTheme.errorRed.withValues(alpha: 0.08),
@@ -298,7 +299,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                       onChanged: (_) => setSheetState(() {}),
                       style: TextStyle(color: ctx.labelColor),
                       decoration: InputDecoration(
-                        hintText: 'Search customers…',
+                        hintText: 'Search customers…'.tr,
                         hintStyle: TextStyle(color: ctx.hintColor),
                         prefixIcon: Icon(Icons.search_rounded, color: ctx.hintColor, size: 20),
                         suffixIcon: searchCtrl.text.isNotEmpty
@@ -334,10 +335,10 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                             child: const Icon(Icons.people_outline_rounded, color: EnhancedTheme.primaryTeal, size: 32),
                           ),
                           const SizedBox(height: 12),
-                          Text('No customers found',
+                          Text('No customers found'.tr,
                               style: GoogleFonts.inter(color: ctx.subLabelColor, fontSize: 14)),
                           const SizedBox(height: 4),
-                          Text('Try a different name or phone number',
+                          Text('Try a different name or phone number'.tr,
                               style: TextStyle(color: ctx.hintColor, fontSize: 12)),
                         ],
                       ));
@@ -370,7 +371,8 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                                   id: c.id, name: c.name, walletBalance: c.walletBalance,
                                   hmoProvider: c.hmoProvider,
                                   hmoCardNumber: c.hmoCardNumber,
-                                  hmoCoveragePercent: c.hmoCoveragePercent);
+                                  hmoCoveragePercent: c.hmoCoveragePercent,
+                                  phone: c.phone);
                                 Navigator.pop(ctx);
                               },
                               leading: CircleAvatar(
@@ -494,14 +496,14 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         )),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Retail POS',
+          Text('Retail POS'.tr,
               style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
           Row(children: [
             Flexible(child: Builder(builder: (_) {
               final activeBranch = ref.watch(activeBranchProvider);
               final label = (activeBranch != null && activeBranch.id > 0)
                   ? activeBranch.name
-                  : 'All Branches';
+                  : 'All Branches'.tr;
               final isSpecific = activeBranch != null && activeBranch.id > 0;
               final canSwitch = ref.watch(canSwitchBranchProvider);
               return GestureDetector(
@@ -646,7 +648,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                           style: const TextStyle(color: EnhancedTheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
                     ]),
                   ])
-                : Text('Link a customer (optional)',
+                : Text('Link a customer (optional)'.tr,
                     style: TextStyle(color: context.hintColor, fontSize: 13))),
             Icon(Icons.keyboard_arrow_down_rounded,
                 color: selected != null ? EnhancedTheme.primaryTeal : context.hintColor, size: 20),
@@ -701,7 +703,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               onChanged: (_) => setState(() {}),
               style: TextStyle(color: context.labelColor),
               decoration: InputDecoration(
-                hintText: 'Search items by name, brand, barcode…',
+                hintText: 'Search items by name, brand, barcode…'.tr,
                 hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
                 prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
                 suffixIcon: _searchCtrl.text.isNotEmpty
@@ -736,7 +738,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         loading: () => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           const CircularProgressIndicator(color: EnhancedTheme.primaryTeal, strokeWidth: 2.5).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           const SizedBox(height: 16),
-          Text('Loading catalogue…', style: TextStyle(color: context.hintColor, fontSize: 13)),
+          Text('Loading catalogue…'.tr, style: TextStyle(color: context.hintColor, fontSize: 13)),
         ])),
         error: (e, _) => Center(child: Padding(
           padding: const EdgeInsets.all(24),
@@ -750,14 +752,14 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
               child: const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.errorRed, size: 36),
             ),
             const SizedBox(height: 16),
-            Text('Failed to load items', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
+            Text('Failed to load items'.tr, style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             Text('$e', style: TextStyle(color: context.subLabelColor, fontSize: 12), textAlign: TextAlign.center),
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: () => ref.invalidate(retailInventoryProvider),
               icon: const Icon(Icons.refresh_rounded, size: 16, color: EnhancedTheme.primaryTeal),
-              label: const Text('Retry', style: TextStyle(color: EnhancedTheme.primaryTeal)),
+              label: Text('Retry'.tr, style: TextStyle(color: EnhancedTheme.primaryTeal)),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: EnhancedTheme.primaryTeal),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -780,7 +782,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                 child: const Icon(Icons.inventory_2_outlined, color: EnhancedTheme.primaryTeal, size: 40),
               ),
               const SizedBox(height: 16),
-              Text('No items found', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
+              Text('No items found'.tr, style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
               Text(_searchCtrl.text.isEmpty ? 'Add items from the inventory module' : 'Try a different search term',
                   style: TextStyle(color: context.subLabelColor, fontSize: 13)),
@@ -958,7 +960,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.4)),
                     ),
-                    child: const Text('Tap to add',
+                    child: Text('Tap to add'.tr,
                         style: TextStyle(color: EnhancedTheme.primaryTeal, fontSize: 10, fontWeight: FontWeight.w600)),
                   ),
               ]),
@@ -1119,7 +1121,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                 color: EnhancedTheme.warningAmber, size: 18),
           ),
           const SizedBox(width: 12),
-          Text('Drug Warnings',
+          Text('Drug Warnings'.tr,
               style: GoogleFonts.outfit(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -1148,7 +1150,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Understood',
+            child: Text('Understood'.tr,
                 style: TextStyle(
                     color: EnhancedTheme.primaryTeal,
                     fontWeight: FontWeight.w700)),
@@ -1232,7 +1234,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                 strokeWidth: 1.5, color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
           ),
           const SizedBox(width: 8),
-          Text('Checking drug interactions…',
+          Text('Checking drug interactions…'.tr,
               style: TextStyle(color: context.subLabelColor, fontSize: 11)),
         ]),
       ),
@@ -1308,9 +1310,9 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                 child: Icon(Icons.shopping_cart_outlined, color: context.hintColor, size: 28),
               ),
               const SizedBox(height: 10),
-              Text('Cart is empty', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+              Text('Cart is empty'.tr, style: GoogleFonts.outfit(color: context.labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
               const SizedBox(height: 3),
-              Text('Tap any item to add', style: TextStyle(color: context.subLabelColor, fontSize: 11)),
+              Text('Tap any item to add'.tr, style: TextStyle(color: context.subLabelColor, fontSize: 11)),
             ]))
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -1343,7 +1345,7 @@ class _RetailPOSScreenState extends ConsumerState<RetailPOSScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 icon: const Icon(Icons.check_circle_rounded, size: 18),
-                label: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                label: Text('Checkout'.tr, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
               ),
             ),
           ),
@@ -1469,7 +1471,7 @@ class _RetailCartItemState extends ConsumerState<_RetailCartItem> {
                 child: const Icon(Icons.discount_rounded, color: EnhancedTheme.warningAmber, size: 12),
               ),
               const SizedBox(width: 6),
-              Text('Discount:', style: TextStyle(color: context.hintColor, fontSize: 11)),
+              Text('Discount:'.tr, style: TextStyle(color: context.hintColor, fontSize: 11)),
               const SizedBox(width: 6),
               SizedBox(
                 width: 76,

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/core/i18n/tr.dart';
 import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -224,6 +225,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           enrichedResult['patient_name'] == null) {
         enrichedResult['customerName'] = selected.name;
       }
+      if (selected?.phone?.isNotEmpty ?? false) {
+        enrichedResult['customerPhone'] = selected!.phone;
+      }
       final capturedTotal = _total;
       ref.read(cartProvider.notifier).clearCart();
       ref.read(selectedCustomerProvider.notifier).state = null;
@@ -270,6 +274,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       'customerName':    buyerName.isNotEmpty
                              ? buyerName
                              : (customer?.name ?? 'Walk-in'),
+      'customerPhone':   customer?.phone,
       'isWholesale':     false,
       'createdAt':       now,
       'items': cart.map((c) => {
@@ -391,7 +396,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 child: const Icon(Icons.cloud_off_rounded, color: EnhancedTheme.warningAmber, size: 38),
               ).animateInView((a) => a.scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut)),
               const SizedBox(height: 20),
-              Text('Sale Saved Offline',
+              Text('Sale Saved Offline'.tr,
                   style: GoogleFonts.outfit(color: context.labelColor, fontSize: 21, fontWeight: FontWeight.w800))
                   .animateInView((a) => a.fadeIn(delay: 200.ms)),
               const SizedBox(height: 8),
@@ -424,7 +429,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   showReceiptSheet(context, receiptData);
                 },
                 icon: const Icon(Icons.receipt_long_rounded, size: 16),
-                label: const Text('View Receipt'),
+                label: Text('View Receipt'.tr),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: EnhancedTheme.primaryTeal,
                   side: const BorderSide(color: EnhancedTheme.primaryTeal),
@@ -455,7 +460,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: Text('OK, Got It', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black)),
+                  child: Text('OK, Got It'.tr, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black)),
                 )),
               ).animateInView((a) => a.fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0)),
             ]),
@@ -511,9 +516,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ),
               const SizedBox(width: 12),
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Payment',
+                Text('Payment'.tr,
                     style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
-                const Text('Complete the transaction',
+                Text('Complete the transaction'.tr,
                     style: TextStyle(color: Colors.black54, fontSize: 11)),
               ]),
             ]),
@@ -544,7 +549,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       border: Border.all(color: EnhancedTheme.primaryTeal.withValues(alpha: 0.3)),
                     ),
                     child: Column(children: [
-                      const Text('Total Amount',
+                      Text('Total Amount'.tr,
                           style: TextStyle(color: Colors.black54, fontSize: 12, letterSpacing: 0.8)),
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -658,7 +663,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ],
 
               // ── Buyer Name ──────────────────────────────────────────────────
-              Text('Buyer Name (optional)',
+              Text('Buyer Name (optional)'.tr,
                   style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
               const SizedBox(height: 10),
               ClipRRect(
@@ -697,7 +702,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               const SizedBox(height: 20),
 
               // ── Payment Method ───────────────────────────────────────────────
-              Text('Payment Method',
+              Text('Payment Method'.tr,
                   style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
 
@@ -732,7 +737,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               // ── Split Payment Fields ─────────────────────────────────────────
               if (_method == _PayMethod.split) ...[
                 const SizedBox(height: 20),
-                Text('Split Amounts',
+                Text('Split Amounts'.tr,
                     style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text('Amounts must sum to ${fmtN(total)}.',
@@ -873,7 +878,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 color: active ? color : context.labelColor,
                 fontSize: 14, fontWeight: active ? FontWeight.w700 : FontWeight.w500)),
             if (active)
-              Text('Selected', style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 11)),
+              Text('Selected'.tr, style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 11)),
           ])),
           if (active)
             Container(
@@ -995,7 +1000,7 @@ class _SuccessSheet extends StatelessWidget {
             ).animateInView((a) => a.scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut)),
 
             const SizedBox(height: 18),
-            Text('Payment Successful!',
+            Text('Payment Successful!'.tr,
                 style: GoogleFonts.outfit(color: context.labelColor, fontSize: 23, fontWeight: FontWeight.w800))
                 .animateInView((a) => a.fadeIn(delay: 200.ms)),
             const SizedBox(height: 6),
@@ -1066,7 +1071,7 @@ class _SuccessSheet extends StatelessWidget {
             SizedBox(width: double.infinity, child: OutlinedButton.icon(
               onPressed: onViewReceipt,
               icon: const Icon(Icons.receipt_long_rounded, size: 16),
-              label: Text('View Receipt',
+              label: Text('View Receipt'.tr,
                   style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: EnhancedTheme.accentCyan,
@@ -1085,7 +1090,7 @@ class _SuccessSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              child: Text('New Sale',
+              child: Text('New Sale'.tr,
                   style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15)),
             )).animateInView((a) => a.fadeIn(delay: 450.ms)),
           ]),

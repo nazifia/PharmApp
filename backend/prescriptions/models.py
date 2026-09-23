@@ -169,6 +169,12 @@ class Prescription(models.Model):
     )
     created_at     = models.DateTimeField(auto_now_add=True)
     dispensed_at   = models.DateTimeField(null=True, blank=True)
+    # Refills: a fully dispensed Rx can be re-opened for dispensing
+    # refills_allowed times. next_refill_date is when the current supply runs out.
+    refills_allowed  = models.PositiveSmallIntegerField(default=0)
+    refills_used     = models.PositiveSmallIntegerField(default=0)
+    last_refill_date = models.DateField(null=True, blank=True)
+    next_refill_date = models.DateField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -221,6 +227,10 @@ class Prescription(models.Model):
             'pharmacy_id':         self.organization_id,
             'branch_name':         self.branch.name if self.branch_id else None,
             'branch_id':           self.branch_id,
+            'refills_allowed':     self.refills_allowed,
+            'refills_used':        self.refills_used,
+            'last_refill_date':    self.last_refill_date.isoformat() if self.last_refill_date else None,
+            'next_refill_date':    self.next_refill_date.isoformat() if self.next_refill_date else None,
             'medications':         [m.to_api_dict() for m in self.medications.all()],
         }
 

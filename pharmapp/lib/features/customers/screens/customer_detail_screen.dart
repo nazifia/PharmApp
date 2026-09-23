@@ -5,11 +5,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmapp/core/i18n/tr.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/utils/phone_utils.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
 import 'package:pharmapp/shared/models/customer.dart';
 import 'package:pharmapp/shared/widgets/glass_card.dart';
+import 'package:pharmapp/features/auth/providers/auth_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/customer_provider.dart';
 import '../providers/customer_api_client.dart' show SaleItemDetail;
 import '../../pos/providers/cart_provider.dart';
@@ -268,6 +271,20 @@ class CustomerDetailScreen extends ConsumerWidget {
                           style: GoogleFonts.outfit(
                               color: EnhancedTheme.errorRed, fontSize: 18, fontWeight: FontWeight.w800)),
                     ])),
+                    if (whatsAppUri(customer.phone, '') != null)
+                      IconButton(
+                        tooltip: 'Remind on WhatsApp'.tr,
+                        icon: const Icon(Icons.chat_rounded, color: EnhancedTheme.successGreen),
+                        onPressed: () {
+                          final org = ref.read(currentOrganizationProvider)?.name ?? 'our pharmacy';
+                          launchUrl(
+                            whatsAppUri(customer.phone,
+                                'Hello ${customer.name}, this is a friendly reminder from $org. '
+                                'Your outstanding balance is ${fmtN(customer.outstandingDebt)}. Thank you.')!,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                      ),
                     ElevatedButton(
                       onPressed: () => _showPayDebtDialog(context, ref, customer),
                       style: ElevatedButton.styleFrom(
@@ -423,6 +440,7 @@ class CustomerDetailScreen extends ConsumerWidget {
       hmoProvider: customer.hmoProvider,
       hmoCardNumber: customer.hmoCardNumber,
       hmoCoveragePercent: customer.hmoCoveragePercent,
+      phone: customer.phone,
     );
 
     final posRoute = customer.isWholesale ? '/dashboard/wholesale-pos' : '/dashboard/pos';

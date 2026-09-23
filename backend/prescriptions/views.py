@@ -1,3 +1,6 @@
+import re
+from datetime import timedelta
+
 from django.core import signing
 from django.db import models as _m, transaction
 from django.db.models import Count, Case, When, IntegerField, F
@@ -277,6 +280,7 @@ def prescription_list(request):
             consultation_fee      = consult_fee,
             created_by     = request.user,
             status         = 'pending',
+            refills_allowed = _parse_refills_allowed(data.get('refills_allowed')),
         )
         for med in medications_data:
             item_name = (med.get('item_name') or med.get('name') or '').strip()
@@ -489,6 +493,9 @@ def dispense_prescription(request, pk):
             rx.status = 'dispensed'
             if not rx.dispensed_at:
                 rx.dispensed_at = now
+            if rx.refills_used < rx.refills_allowed:
+                days = _supply_days(medications)
+                rx.next_refill_date = (now + timedelta(days=days)).date() if days else None
         else:
             rx.status = 'partial'
         rx.save()
@@ -519,6 +526,84 @@ def dispense_prescription(request, pk):
     )
 
     # Return fresh data — use pk only (org already verified above)
+    rx = (Prescription.objects
+          .select_related('organization', 'created_by', 'branch', 'prescriber')
+          .prefetch_related('medications')
+          .get(pk=pk))
+    return Response(rx.to_api_dict())
+
+
+MAX_REFILLS = 12  # matches the write-prescription screen's stepper limit
+_DURATION_UNITS = {'day': 1, 'week': 7, 'month': 30}
+
+
+def _parse_refills_allowed(val):
+    try:
+        return max(0, min(MAX_REFILLS, int(val or 0)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _supply_days(medications):
+    """Longest medication duration in days, parsed from free text like
+    '7 days', '2 weeks', '1 month'. None if no duration can be read."""
+    # ponytail: plain "<n> <unit>" only; "twice daily for 5/7" style shorthand is ignored
+    best = None
+    for med in medications:
+        m = re.search(r'(\d+)\s*(day|week|month)', (med.duration or '').lower())
+        if m:
+            days = int(m.group(1)) * _DURATION_UNITS[m.group(2)]
+            best = max(best or 0, days)
+    return best
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsPrescriptionUser])
+def refill_prescription(request, pk):
+    """
+    POST /api/prescriptions/<pk>/refill/
+    Re-opens a fully dispensed prescription so it can be dispensed again.
+    Uses one of its refills; the dispense step then creates the commission for
+    the refill as it does for any dispense. The consultation fee is not charged again.
+    """
+    org, err = require_org(request)
+    if err:
+        return err
+
+    with transaction.atomic():
+        # Same visibility as dispensing: own org, network peers, or portal Rx.
+        peer_org_ids = _get_peer_org_ids(org)
+        rx = (Prescription.objects.select_for_update()
+              .filter(pk=pk)
+              .filter(_m.Q(organization=org)
+                      | _m.Q(organization_id__in=peer_org_ids)
+                      | _m.Q(source='portal'))
+              .first())
+        if rx is None:
+            return Response({'detail': 'Prescription not found'},
+                            status=status.HTTP_404_NOT_FOUND)
+        if rx.status != 'dispensed':
+            return Response({'detail': 'Only a fully dispensed prescription can be refilled.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if rx.refills_used >= rx.refills_allowed:
+            return Response({'detail': 'No refills left on this prescription.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        rx.medications.update(is_dispensed=False, dispensed_at=None, dispensed_by=None)
+        rx.status           = 'pending'
+        rx.dispensed_at     = None
+        rx.refills_used    += 1
+        rx.last_refill_date = timezone.localdate()
+        rx.next_refill_date = None  # set again when this refill is dispensed
+        rx.save()
+
+    log_activity(
+        request,
+        action='Refill Prescription',
+        category='customers',
+        description=f'Refill {rx.refills_used} of {rx.refills_allowed} on Rx#{pk} for "{rx.customer_name}"',
+    )
+
     rx = (Prescription.objects
           .select_related('organization', 'created_by', 'branch', 'prescriber')
           .prefetch_related('medications')

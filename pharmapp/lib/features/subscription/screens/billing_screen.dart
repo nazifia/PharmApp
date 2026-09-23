@@ -22,9 +22,6 @@ final _billingInfoProvider = FutureProvider.autoDispose<BillingInfo>((ref) async
 final _billingCycleProvider =
     StateProvider.autoDispose<BillingCycle>((ref) => BillingCycle.monthly);
 
-/// Local state: whether auto-billing toggle is being saved.
-final _autoBillingSavingProvider = StateProvider.autoDispose<bool>((_) => false);
-
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 class BillingScreen extends ConsumerWidget {
@@ -141,9 +138,6 @@ class _BillingContent extends StatelessWidget {
         _BillingContactCard(billing: billing, ref: ref),
         const SizedBox(height: 12),
 
-        _PaymentMethodCard(billing: billing, ref: ref),
-        const SizedBox(height: 12),
-
         // ── Where payment goes ────────────────────────────────────────────
         _PlatformAccountCard(billing: billing),
         const SizedBox(height: 12),
@@ -180,8 +174,6 @@ class _BillingSummaryCard extends ConsumerWidget {
     final planColor     = _planColor(sub.plan);
     final nextDate      = billing.nextPaymentDate;
     final nextAmt       = billing.nextPaymentAmount;
-    final autoBilling   = billing.autoBillingEnabled;
-    final isSaving      = ref.watch(_autoBillingSavingProvider);
 
     return _GlassCard(
       child: Column(
@@ -250,110 +242,9 @@ class _BillingSummaryCard extends ConsumerWidget {
             value: _statusLabel(sub.status),
             valueColor: _statusColor(sub.status),
           ),
-
-          // ── Auto-billing toggle ─────────────────────────────────────────
-          const SizedBox(height: 10),
-          const Divider(color: Colors.white10, height: 1),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.autorenew_rounded,
-                  color: Colors.black38, size: 14),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Auto-billing',
-                        style:
-                            TextStyle(color: Colors.black54, fontSize: 12)),
-                    Text(
-                      'Automatically charge your card on renewal date',
-                      style: TextStyle(color: Colors.black38, fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-              isSaving
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: const CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)))
-                  : Switch.adaptive(
-                      value: autoBilling,
-                      activeTrackColor: EnhancedTheme.primaryTeal,
-                      onChanged: sub.plan == SubscriptionPlan.trial
-                          ? null
-                          : (val) => _toggleAutoBilling(context, ref, val),
-                    ),
-            ],
-          ),
         ],
       ),
     );
-  }
-
-  Future<void> _toggleAutoBilling(
-      BuildContext context, WidgetRef ref, bool enable) async {
-    // ── SECURITY: disabling auto-billing requires explicit confirmation ────────
-    // A single accidental tap could disable auto-renewal and cause the
-    // subscription to lapse at the next billing date.
-    if (!enable) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: EnhancedTheme.surfaceColor,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Disable Auto-billing?',
-              style: TextStyle(
-                  color: Colors.black, fontWeight: FontWeight.w700)),
-          content: const Text(
-            'Your subscription will NOT renew automatically.\n\n'
-            'You must pay manually before your next billing date '
-            'to avoid service interruption.',
-            style: TextStyle(color: Colors.black54, fontSize: 13),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Keep Auto-billing',
-                  style: TextStyle(color: EnhancedTheme.primaryTeal)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Disable',
-                  style: TextStyle(color: EnhancedTheme.errorRed)),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-    }
-
-    ref.read(_autoBillingSavingProvider.notifier).state = true;
-    try {
-      await ref
-          .read(subscriptionApiClientProvider)
-          .setAutoBilling(enabled: enable);
-      ref.invalidate(_billingInfoProvider);
-    } catch (e, st) {
-      debugPrint('setAutoBilling failed: $e\n$st');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Could not update auto-billing setting. Please try again.'),
-            backgroundColor: EnhancedTheme.errorRed,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      ref.read(_autoBillingSavingProvider.notifier).state = false;
-    }
   }
 
   static String _statusLabel(SubscriptionStatus s) => switch (s) {
@@ -617,7 +508,7 @@ class _BillingContactFormSheetState extends State<_BillingContactFormSheet> {
               const SizedBox(height: 20),
 
               // Full name
-              _CardField(
+              _LabeledField(
                 label: 'Full Name',
                 hint: 'Billing contact name',
                 controller: _nameCtrl,
@@ -629,7 +520,7 @@ class _BillingContactFormSheetState extends State<_BillingContactFormSheet> {
               const SizedBox(height: 14),
 
               // Email
-              _CardField(
+              _LabeledField(
                 label: 'Email Address',
                 hint: 'billing@pharmacy.com',
                 controller: _emailCtrl,
@@ -647,7 +538,7 @@ class _BillingContactFormSheetState extends State<_BillingContactFormSheet> {
               const SizedBox(height: 14),
 
               // WhatsApp
-              _CardField(
+              _LabeledField(
                 label: 'WhatsApp Number',
                 hint: '+234 801 234 5678',
                 controller: _waCtrl,
@@ -1085,707 +976,21 @@ class _ContactRow extends StatelessWidget {
   }
 }
 
-// ── Payment Method Card ───────────────────────────────────────────────────────
+// ── Form field ────────────────────────────────────────────────────────────────
 
-class _PaymentMethodCard extends StatelessWidget {
-  final BillingInfo billing;
-  final WidgetRef   ref;
-
-  const _PaymentMethodCard({required this.billing, required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    final pm = billing.paymentMethod;
-
-    return _GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: EnhancedTheme.infoBlue.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.credit_card_rounded,
-                    color: EnhancedTheme.infoBlue, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text('Payment Method',
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700)),
-              ),
-              TextButton(
-                onPressed: () => _showCardForm(context, ref, pm),
-                style: TextButton.styleFrom(
-                  backgroundColor: EnhancedTheme.infoBlue.withValues(alpha: 0.10),
-                  foregroundColor: EnhancedTheme.infoBlue,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: Text(
-                  pm != null ? 'Update' : 'Add Card',
-                  style: const TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          if (pm != null)
-            _CardVisual(pm: pm)
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              alignment: Alignment.center,
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () => _showCardForm(context, ref, null),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: EnhancedTheme.infoBlue.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: EnhancedTheme.infoBlue.withValues(alpha: 0.25),
-                          style: BorderStyle.solid,
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.add_card_rounded,
-                              color: EnhancedTheme.infoBlue, size: 18),
-                          SizedBox(width: 8),
-                          Text('Add a payment card',
-                              style: TextStyle(
-                                  color: EnhancedTheme.infoBlue,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('Your card details are stored securely',
-                      style: TextStyle(color: Colors.black38, fontSize: 10)),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  void _showCardForm(BuildContext context, WidgetRef ref, PaymentMethod? existing) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CardFormSheet(existing: existing, ref: ref),
-    );
-  }
-}
-
-class _CardVisual extends StatelessWidget {
-  final PaymentMethod pm;
-  const _CardVisual({required this.pm});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A5F), Color(0xFF0D1F3C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: EnhancedTheme.infoBlue.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _BrandLogo(brand: pm.brand),
-              const Spacer(),
-              Text(pm.brand.toUpperCase(),
-                  style: const TextStyle(
-                      color: Colors.white60,
-                      fontSize: 11,
-                      letterSpacing: 1.5,
-                      fontWeight: FontWeight.w600)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '**** **** **** ${pm.last4}',
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                letterSpacing: 3,
-                fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('EXPIRES',
-                      style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 9,
-                          letterSpacing: 1)),
-                  const SizedBox(height: 2),
-                  Text(pm.expiry,
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500)),
-                ],
-              ),
-              const SizedBox(width: 24),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('CVV',
-                      style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 9,
-                          letterSpacing: 1)),
-                  SizedBox(height: 2),
-                  Text('•••',
-                      style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500)),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Card Form Sheet ───────────────────────────────────────────────────────────
-
-class _CardFormSheet extends StatefulWidget {
-  final PaymentMethod? existing;
-  final WidgetRef      ref;
-
-  const _CardFormSheet({required this.existing, required this.ref});
-
-  @override
-  State<_CardFormSheet> createState() => _CardFormSheetState();
-}
-
-class _CardFormSheetState extends State<_CardFormSheet> {
-  final _formKey    = GlobalKey<FormState>();
-  final _numberCtrl = TextEditingController();
-  final _nameCtrl   = TextEditingController();
-  final _expiryCtrl = TextEditingController();
-  final _cvvCtrl    = TextEditingController();
-
-  bool _saving  = false;
-  bool _cvvFocus = false;
-
-  String get _brand {
-    final digits = _numberCtrl.text.replaceAll(' ', '');
-    if (digits.startsWith('4'))                        return 'Visa';
-    if (digits.startsWith('5') || digits.startsWith('2')) return 'Mastercard';
-    if (digits.startsWith('3'))                        return 'Amex';
-    if (digits.startsWith('6'))                        return 'Discover';
-    return 'Card';
-  }
-
-  String get _last4 {
-    final digits = _numberCtrl.text.replaceAll(' ', '');
-    return digits.length >= 4 ? digits.substring(digits.length - 4) : '****';
-  }
-
-  @override
-  void dispose() {
-    _numberCtrl.dispose();
-    _nameCtrl.dispose();
-    _expiryCtrl.dispose();
-    _cvvCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A2744),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-      ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, 28 + bottom),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 20),
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-
-              // Title
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: EnhancedTheme.infoBlue.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.credit_card_rounded,
-                        color: EnhancedTheme.infoBlue, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    widget.existing != null
-                        ? 'Update Payment Card'
-                        : 'Add Payment Card',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── Live card preview ─────────────────────────────────────────
-              AnimatedBuilder(
-                animation: Listenable.merge(
-                    [_numberCtrl, _nameCtrl, _expiryCtrl]),
-                builder: (_, __) => _LiveCardPreview(
-                  brand:   _brand,
-                  number:  _numberCtrl.text.isEmpty
-                      ? '**** **** **** ****'
-                      : _numberCtrl.text.padRight(19, '*').substring(0, 19),
-                  name:    _nameCtrl.text.isEmpty
-                      ? 'CARDHOLDER NAME'
-                      : _nameCtrl.text.toUpperCase(),
-                  expiry:  _expiryCtrl.text.isEmpty ? 'MM/YY' : _expiryCtrl.text,
-                  showCvv: _cvvFocus,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── Card number ───────────────────────────────────────────────
-              _CardField(
-                label:    'Card Number',
-                hint:     '1234 5678 9012 3456',
-                controller: _numberCtrl,
-                keyboardType: TextInputType.number,
-                maxLength: 19,
-                formatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  _CardNumberFormatter(),
-                ],
-                onChanged: (_) => setState(() {}),
-                validator: (v) {
-                  final digits = (v ?? '').replaceAll(' ', '');
-                  if (digits.length < 13) return 'Enter a valid card number';
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 14),
-
-              // ── Cardholder name ───────────────────────────────────────────
-              _CardField(
-                label:      'Cardholder Name',
-                hint:       'As it appears on card',
-                controller: _nameCtrl,
-                keyboardType: TextInputType.name,
-                formatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
-                ],
-                validator: (v) =>
-                    (v == null || v.trim().length < 2)
-                        ? 'Enter the cardholder name'
-                        : null,
-              ),
-
-              const SizedBox(height: 14),
-
-              // ── Expiry + CVV ──────────────────────────────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    child: _CardField(
-                      label:    'Expiry',
-                      hint:     'MM/YY',
-                      controller: _expiryCtrl,
-                      keyboardType: TextInputType.number,
-                      maxLength: 5,
-                      formatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        _ExpiryFormatter(),
-                      ],
-                      validator: (v) {
-                        if (v == null || !RegExp(r'^\d{2}/\d{2}$').hasMatch(v)) {
-                          return 'MM/YY';
-                        }
-                        final parts = v.split('/');
-                        final month = int.tryParse(parts[0]) ?? 0;
-                        if (month < 1 || month > 12) return 'Invalid month';
-                        // Reject expired cards before they reach the backend
-                        final year = int.tryParse('20${parts[1]}') ?? 0;
-                        final now  = DateTime.now();
-                        if (year < now.year ||
-                            (year == now.year && month < now.month)) {
-                          return 'Card has expired';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Focus(
-                      onFocusChange: (f) => setState(() => _cvvFocus = f),
-                      child: _CardField(
-                        label:    'CVV',
-                        hint:     '•••',
-                        controller: _cvvCtrl,
-                        keyboardType: TextInputType.number,
-                        maxLength: 4,
-                        formatters: [FilteringTextInputFormatter.digitsOnly],
-                        obscure: true,
-                        validator: (v) =>
-                            ((v ?? '').length < 3) ? 'Invalid CVV' : null,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // Security note
-              const Row(
-                children: [
-                  Icon(Icons.lock_rounded, color: Colors.white38, size: 12),
-                  SizedBox(width: 4),
-                  Text(
-                    'Your card details are encrypted and stored securely.',
-                    style: TextStyle(color: Colors.white38, fontSize: 10),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── Save button ───────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: EnhancedTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor:
-                        EnhancedTheme.primaryTeal.withValues(alpha: 0.5),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
-                  ),
-                  child: _saving
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: const CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
-                        )
-                      : Text(
-                          widget.existing != null
-                              ? 'Update Card'
-                              : 'Save Card',
-                          style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w700),
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _submit() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() => _saving = true);
-
-    // ── SECURITY: snapshot non-sensitive values BEFORE clearing PAN/CVV ───────
-    // We only send last4, brand, expiry, and name — never the raw PAN or CVV.
-    final capturedLast4  = _last4;
-    final capturedBrand  = _brand;
-    final capturedName   = _nameCtrl.text.trim();
-
-    // Parse expiry safely from MM/YY
-    final expiryParts = _expiryCtrl.text.split('/');
-    final expMonth    = int.tryParse(expiryParts.first) ?? 1;
-    final expYear     = expiryParts.length > 1
-        ? (int.tryParse('20${expiryParts[1]}') ?? 2099)
-        : 2099;
-
-    // ── SECURITY: erase PAN and CVV from memory before any async I/O ─────────
-    // This prevents the raw card number from being readable in a memory dump
-    // or during a screenshot taken while the network call is in-flight.
-    _numberCtrl.clear();
-    _cvvCtrl.clear();
-
-    try {
-      await widget.ref
-          .read(subscriptionApiClientProvider)
-          .savePaymentMethod(
-            last4:          capturedLast4,
-            brand:          capturedBrand,
-            expMonth:       expMonth,
-            expYear:        expYear,
-            cardholderName: capturedName,
-          );
-
-      // Refresh billing info so the new card appears immediately
-      widget.ref.invalidate(_billingInfoProvider);
-
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.existing != null
-                ? 'Payment card updated. Auto-billing will use this card.'
-                : 'Card ending in $capturedLast4 saved for auto-billing.',
-          ),
-          backgroundColor: EnhancedTheme.successGreen,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } on Exception catch (e, st) {
-      // Log full error internally; show generic message to user to avoid
-      // leaking API paths, server errors, or internal exception details.
-      debugPrint('savePaymentMethod failed: $e\n$st');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not save payment card. Please try again.'),
-          backgroundColor: EnhancedTheme.errorRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-}
-
-// ── Live Card Preview ─────────────────────────────────────────────────────────
-
-class _LiveCardPreview extends StatelessWidget {
-  final String brand;
-  final String number;
-  final String name;
-  final String expiry;
-  final bool   showCvv;
-
-  const _LiveCardPreview({
-    required this.brand,
-    required this.number,
-    required this.name,
-    required this.expiry,
-    required this.showCvv,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      height: 170,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: showCvv
-              ? [const Color(0xFF2D1B69), const Color(0xFF11093C)]
-              : [const Color(0xFF1E3A5F), const Color(0xFF0D1F3C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: (showCvv
-              ? EnhancedTheme.accentPurple
-              : EnhancedTheme.infoBlue).withValues(alpha: 0.35),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: (showCvv
-                ? EnhancedTheme.accentPurple
-                : EnhancedTheme.infoBlue).withValues(alpha: 0.15),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: showCvv
-            ? const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.security_rounded,
-                        color: Colors.white38, size: 28),
-                    SizedBox(height: 8),
-                    Text('CVV',
-                        style: TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                            letterSpacing: 2)),
-                    SizedBox(height: 4),
-                    Text('•••',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            letterSpacing: 6,
-                            fontWeight: FontWeight.w700)),
-                  ],
-                ),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _BrandLogo(brand: brand),
-                      const Spacer(),
-                      Text(
-                        brand.toUpperCase(),
-                        style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 11,
-                            letterSpacing: 1.5,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Text(
-                    number,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        letterSpacing: 2.5,
-                        fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('CARDHOLDER',
-                                style: TextStyle(
-                                    color: Colors.white38,
-                                    fontSize: 8,
-                                    letterSpacing: 1)),
-                            const SizedBox(height: 2),
-                            Text(
-                              name,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text('EXPIRES',
-                              style: TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 8,
-                                  letterSpacing: 1)),
-                          const SizedBox(height: 2),
-                          Text(expiry,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-// ── Card form field ───────────────────────────────────────────────────────────
-
-class _CardField extends StatelessWidget {
+class _LabeledField extends StatelessWidget {
   final String                       label;
   final String                       hint;
   final TextEditingController        controller;
   final TextInputType                keyboardType;
-  final int?                         maxLength;
-  final List<TextInputFormatter>     formatters;
-  final bool                         obscure;
   final String? Function(String?)?   validator;
-  final ValueChanged<String>?        onChanged;
 
-  const _CardField({
+  const _LabeledField({
     required this.label,
     required this.hint,
     required this.controller,
     required this.keyboardType,
-    this.maxLength,
-    this.formatters = const [],
-    this.obscure = false,
     this.validator,
-    this.onChanged,
   });
 
   @override
@@ -1805,11 +1010,7 @@ class _CardField extends StatelessWidget {
         TextFormField(
           controller:        controller,
           keyboardType:      keyboardType,
-          obscureText:       obscure,
-          maxLength:         maxLength,
-          inputFormatters:   formatters,
           validator:         validator,
-          onChanged:         onChanged,
           style: const TextStyle(
               color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
           decoration: InputDecoration(
@@ -1848,80 +1049,6 @@ class _CardField extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Text Formatters ───────────────────────────────────────────────────────────
-
-class _CardNumberFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue _, TextEditingValue newVal) {
-    final digits = newVal.text.replaceAll(' ', '');
-    final buf    = StringBuffer();
-    for (var i = 0; i < digits.length && i < 16; i++) {
-      if (i > 0 && i % 4 == 0) buf.write(' ');
-      buf.write(digits[i]);
-    }
-    final text = buf.toString();
-    return newVal.copyWith(
-        text: text,
-        selection: TextSelection.collapsed(offset: text.length));
-  }
-}
-
-class _ExpiryFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue old, TextEditingValue newVal) {
-    final digits = newVal.text.replaceAll('/', '');
-    if (digits.isEmpty) {
-      return newVal.copyWith(text: '');
-    }
-    if (digits.length <= 2) {
-      return newVal.copyWith(
-          text: digits,
-          selection: TextSelection.collapsed(offset: digits.length));
-    }
-    final clamped = digits.substring(0, digits.length.clamp(0, 4));
-    final text    = '${clamped.substring(0, 2)}/${clamped.substring(2)}';
-    return newVal.copyWith(
-        text: text,
-        selection: TextSelection.collapsed(offset: text.length));
-  }
-}
-
-// ── Brand Logo ────────────────────────────────────────────────────────────────
-
-class _BrandLogo extends StatelessWidget {
-  final String brand;
-  const _BrandLogo({required this.brand});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (brand.toLowerCase()) {
-      'visa'       => const Color(0xFF1A73E8),
-      'mastercard' => const Color(0xFFEB5E28),
-      'amex'       => const Color(0xFF007BC1),
-      'discover'   => const Color(0xFFF76F20),
-      _            => Colors.white54,
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        brand == 'Card' ? 'CARD' : brand.toUpperCase(),
-        style: TextStyle(
-            color: color,
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1),
-      ),
     );
   }
 }
@@ -2243,16 +1370,14 @@ class _PlanRowState extends ConsumerState<_PlanRow> {
   Future<void> _upgrade(BuildContext context) async {
     if (_loading) return;
 
-    // Warn if no billing contact or card is on file — subscriber may miss
-    // receipt and auto-billing will fail.
+    // Warn if no billing contact is on file — subscriber may miss receipts.
     final billingAsync = ref.read(_billingInfoProvider);
     final billing      = billingAsync.valueOrNull;
     final noContact    = billing == null ||
         billing.billingContact == null ||
         billing.billingContact!.isEmpty;
-    final noCard       = billing?.paymentMethod == null;
 
-    if (noContact || noCard) {
+    if (noContact) {
       final proceed = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
@@ -2262,26 +1387,17 @@ class _PlanRowState extends ConsumerState<_PlanRow> {
           title: const Text('Incomplete Billing Setup',
               style: TextStyle(
                   color: Colors.black, fontWeight: FontWeight.w700)),
-          content: Column(
+          content: const Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (noContact)
-                const _SetupWarningRow(
-                  icon: Icons.contact_mail_rounded,
-                  text: 'No billing email or WhatsApp set — '
-                      'you won\'t receive payment receipts.',
-                ),
-              if (noCard) ...[
-                if (noContact) const SizedBox(height: 8),
-                const _SetupWarningRow(
-                  icon: Icons.credit_card_off_rounded,
-                  text: 'No card on file — auto-billing cannot charge '
-                      'you automatically on renewal.',
-                ),
-              ],
-              const SizedBox(height: 10),
-              const Text(
+              _SetupWarningRow(
+                icon: Icons.contact_mail_rounded,
+                text: 'No billing email or WhatsApp set — '
+                    'you won\'t receive payment receipts.',
+              ),
+              SizedBox(height: 10),
+              Text(
                 'You can still upgrade, but complete your billing setup '
                 'afterward to avoid service interruption.',
                 style: TextStyle(color: Colors.black54, fontSize: 12),

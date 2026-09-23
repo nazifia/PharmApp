@@ -43,3 +43,10 @@ bool isValidNigerianContactPhone(String raw) {
   if (normalizeNigerianPhone(raw) != null) return true;
   return _ngLandline.hasMatch(raw.replaceAll(_strip, ''));
 }
+
+/// `https://wa.me/234…?text=…` link for a Nigerian mobile, or null if invalid.
+Uri? whatsAppUri(String? phone, String text) {
+  final local = phone == null ? null : normalizeNigerianPhone(phone);
+  if (local == null) return null;
+  return Uri.https('wa.me', '/234${local.substring(1)}', {'text': text});
+}

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/core/i18n/tr.dart';
 import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,7 +35,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
   void _checkout() {
     final cart = ref.read(cartProvider);
     if (cart.isEmpty) {
-      _showSnackBar('Cart is empty', type: _SnackType.error);
+      _showSnackBar('Cart is empty'.tr, type: _SnackType.error);
       return;
     }
     context.push('/payment');
@@ -43,7 +44,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
   Future<void> _sendToCashier() async {
     final cart = ref.read(cartProvider);
     if (cart.isEmpty) {
-      _showSnackBar('Cart is empty', type: _SnackType.error);
+      _showSnackBar('Cart is empty'.tr, type: _SnackType.error);
       return;
     }
 
@@ -87,11 +88,11 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                         child: const Icon(Icons.send_rounded, color: EnhancedTheme.primaryTeal, size: 18),
                       ),
                       const SizedBox(width: 12),
-                      Text('Send to Cashier',
+                      Text('Send to Cashier'.tr,
                           style: GoogleFonts.outfit(color: Colors.black87, fontSize: 17, fontWeight: FontWeight.w700)),
                     ]),
                     const SizedBox(height: 16),
-                    const Text('Patient / Customer name (optional)',
+                    Text('Patient / Customer name (optional)'.tr,
                         style: TextStyle(color: Colors.black54, fontSize: 13)),
                     const SizedBox(height: 8),
                     TextField(
@@ -130,7 +131,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                             side: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
                           ),
                         ),
-                        child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
+                        child: Text('Cancel'.tr, style: TextStyle(color: Colors.black54)),
                       )),
                       const SizedBox(width: 12),
                       Expanded(child: Container(
@@ -146,7 +147,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-                          child: const Text('Send', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+                          child: Text('Send'.tr, style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
                         ),
                       )),
                     ]),
@@ -272,7 +273,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
             child: const Icon(Icons.warning_rounded, color: EnhancedTheme.warningAmber, size: 18),
           ),
           const SizedBox(width: 12),
-          Text('Drug Warnings',
+          Text('Drug Warnings'.tr,
               style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black87)),
         ]),
         content: SizedBox(
@@ -298,7 +299,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Understood',
+            child: Text('Understood'.tr,
                 style: TextStyle(color: EnhancedTheme.primaryTeal, fontWeight: FontWeight.w700)),
           ),
         ],
@@ -360,7 +361,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
           SizedBox(width: 12, height: 12,
               child: const CircularProgressIndicator(strokeWidth: 1.5, color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic))),
           const SizedBox(width: 8),
-          Text('Checking drug interactions…',
+          Text('Checking drug interactions…'.tr,
               style: TextStyle(color: context.subLabelColor, fontSize: 11)),
         ]),
       ),
@@ -406,7 +407,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
         onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
         style: TextStyle(color: context.labelColor, fontSize: 13),
         decoration: InputDecoration(
-          hintText: 'Search cart items…',
+          hintText: 'Search cart items…'.tr,
           hintStyle: TextStyle(color: context.hintColor, fontSize: 13),
           prefixIcon: Icon(Icons.search_rounded, color: context.hintColor, size: 20),
           suffixIcon: _searchCtrl.text.isNotEmpty
@@ -503,7 +504,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Cart',
+          Text('Cart'.tr,
               style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
           Text('$lineCount line${lineCount != 1 ? 's' : ''} · $unitCount unit${unitCount != 1 ? 's' : ''}',
               style: const TextStyle(color: Colors.black54, fontSize: 11)),
@@ -544,14 +545,14 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
         child: Icon(Icons.shopping_cart_outlined, color: context.hintColor, size: 32),
       ),
       const SizedBox(height: 12),
-      Text('Cart is empty', style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
+      Text('Cart is empty'.tr, style: GoogleFonts.outfit(color: context.labelColor, fontSize: 15, fontWeight: FontWeight.w600)),
       const SizedBox(height: 4),
-      Text('Go back and tap an item to add it', style: TextStyle(color: context.subLabelColor, fontSize: 13)),
+      Text('Go back and tap an item to add it'.tr, style: TextStyle(color: context.subLabelColor, fontSize: 13)),
       const SizedBox(height: 20),
       OutlinedButton.icon(
         onPressed: () => Navigator.pop(context),
         icon: const Icon(Icons.arrow_back_rounded, size: 16, color: EnhancedTheme.primaryTeal),
-        label: const Text('Back to catalogue', style: TextStyle(color: EnhancedTheme.primaryTeal)),
+        label: Text('Back to catalogue'.tr, style: TextStyle(color: EnhancedTheme.primaryTeal)),
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: EnhancedTheme.primaryTeal),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -623,7 +624,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('${cart.length} lines · ${cart.fold<int>(0, (s, c) => s + c.quantity)} units',
                         style: TextStyle(color: context.subLabelColor, fontSize: 11)),
-                    Text(hasHmo ? 'Total  (incl. HMO)' : 'Total Amount',
+                    Text(hasHmo ? 'Total  (incl. HMO)' : 'Total Amount'.tr,
                         style: const TextStyle(color: Colors.black87, fontSize: 12)),
                   ])),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -648,7 +649,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
                   icon: const Icon(Icons.delete_sweep_rounded, size: 16),
-                  label: const Text('Clear', style: TextStyle(fontWeight: FontWeight.w600)),
+                  label: Text('Clear'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
                 )),
                 const SizedBox(width: 10),
                 Expanded(flex: 2, child: Container(
@@ -670,7 +671,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 11),
                     ),
                     icon: const Icon(Icons.check_circle_rounded, size: 18),
-                    label: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w700)),
+                    label: Text('Checkout'.tr, style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 )),
               ]),
@@ -684,7 +685,7 @@ class _RetailCartScreenState extends ConsumerState<RetailCartScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 11),
                 ),
                 icon: const Icon(Icons.send_rounded, size: 16),
-                label: const Text('Send to Cashier', style: TextStyle(fontWeight: FontWeight.w600)),
+                label: Text('Send to Cashier'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
               )),
             ]),
           ),
@@ -808,7 +809,7 @@ class _CartItemRowState extends ConsumerState<_CartItemRow> {
                 child: const Icon(Icons.discount_rounded, color: EnhancedTheme.warningAmber, size: 12),
               ),
               const SizedBox(width: 6),
-              Text('Discount:', style: TextStyle(color: context.hintColor, fontSize: 11)),
+              Text('Discount:'.tr, style: TextStyle(color: context.hintColor, fontSize: 11)),
               const SizedBox(width: 6),
               SizedBox(
                 width: 76, height: 28,

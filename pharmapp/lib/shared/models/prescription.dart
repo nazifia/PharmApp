@@ -123,7 +123,8 @@ class Prescription {
   bool get isPartial => status == 'partial';
   bool get isDispensed => status == 'dispensed';
   bool get isPortalRx => source == 'portal';
-  bool get canRefill => refillsUsed < refillsAllowed && !isDispensed;
+  // A refill re-opens a fully dispensed prescription for another dispense.
+  bool get canRefill => refillsUsed < refillsAllowed && isDispensed;
   bool get isRefillDueSoon {
     if (nextRefillDate == null) return false;
     return nextRefillDate!.difference(DateTime.now()).inDays <= 7;

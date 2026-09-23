@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:ui';
 import 'dart:ui' as ui show ImageByteFormat;
 import 'package:flutter/material.dart';
+import 'package:pharmapp/core/i18n/tr.dart';
 import 'package:flutter/rendering.dart';
 import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -9,9 +10,11 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/core/services/hardware_printer_service.dart';
 import 'package:pharmapp/core/utils/currency_format.dart';
+import 'package:pharmapp/core/utils/phone_utils.dart';
 
 // ── Public helper ─────────────────────────────────────────────────────────────
 
@@ -77,11 +80,11 @@ class _ReceiptSheetState extends State<ReceiptSheet> {
               const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Receipt',
+                  Text('Receipt'.tr,
                       style: TextStyle(
                           color: context.labelColor,
                           fontSize: 18, fontWeight: FontWeight.w800)),
-                  Text('Print or share this receipt',
+                  Text('Print or share this receipt'.tr,
                       style: TextStyle(color: context.subLabelColor, fontSize: 11)),
                 ]),
               ),
@@ -147,8 +150,8 @@ class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
         if (!mounted) return;
         await HardwarePrinterService.printReceipt(mac, widget.saleData);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Printed successfully'),
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Printed successfully'.tr),
             backgroundColor: EnhancedTheme.successGreen,
           ));
         }
@@ -218,7 +221,7 @@ Future<PrintFormat?> _showFormatPicker(BuildContext context) {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
+      child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Padding(
           padding: const EdgeInsets.only(top: 12, bottom: 4),
           child: Container(
@@ -259,7 +262,7 @@ Future<PrintFormat?> _showFormatPicker(BuildContext context) {
           onTap: () => Navigator.pop(context, PrintFormat.a4),
         ),
         const SizedBox(height: 16),
-      ]),
+      ])),
     ),
   );
 }
@@ -296,16 +299,19 @@ class _FormatOption extends StatelessWidget {
             child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(width: 14),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label,
-                style: TextStyle(
-                    color: context.labelColor,
-                    fontSize: 14, fontWeight: FontWeight.w700)),
-            Text(subtitle,
-                style: TextStyle(
-                    color: context.subLabelColor, fontSize: 11)),
-          ]),
-          const Spacer(),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: context.labelColor,
+                      fontSize: 14, fontWeight: FontWeight.w700)),
+              Text(subtitle,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: context.subLabelColor, fontSize: 11)),
+            ]),
+          ),
           Icon(Icons.chevron_right_rounded, color: context.hintColor, size: 20),
         ]),
       ),
@@ -678,6 +684,8 @@ class _ReceiptShareButtonState extends State<ReceiptShareButton> {
   }
 
   void _showShareMenu(BuildContext context) {
+    final waUri = whatsAppUri(
+        widget.saleData['customerPhone'] as String?, _buildReceiptText());
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -688,7 +696,7 @@ class _ReceiptShareButtonState extends State<ReceiptShareButton> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+        child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 4),
             child: Container(
@@ -700,29 +708,40 @@ class _ReceiptShareButtonState extends State<ReceiptShareButton> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-            child: Text('Share Receipt',
+            child: Text('Share Receipt'.tr,
                 style: TextStyle(
                     color: context.labelColor,
                     fontSize: 16, fontWeight: FontWeight.w800)),
           ),
           const SizedBox(height: 8),
+          if (waUri != null)
+            _ShareOption(
+              icon: Icons.chat_rounded,
+              iconColor: EnhancedTheme.successGreen,
+              label: 'Send to customer on WhatsApp'.tr,
+              subtitle: widget.saleData['customerPhone'] as String,
+              onTap: () {
+                Navigator.pop(context);
+                launchUrl(waUri, mode: LaunchMode.externalApplication);
+              },
+            ),
           _ShareOption(
             icon: Icons.text_snippet_rounded,
             iconColor: EnhancedTheme.primaryTeal,
-            label: 'Share as Text',
-            subtitle: 'Send via WhatsApp, SMS or any app',
+            label: 'Share as Text'.tr,
+            subtitle: 'Send via WhatsApp, SMS or any app'.tr,
             onTap: () { Navigator.pop(context); _shareText(); },
           ),
           if (widget.repaintKey != null)
             _ShareOption(
               icon: Icons.image_rounded,
               iconColor: EnhancedTheme.accentCyan,
-              label: 'Share as Image',
+              label: 'Share as Image'.tr,
               subtitle: 'Capture receipt as a PNG',
               onTap: () { Navigator.pop(context); _shareImage(); },
             ),
           const SizedBox(height: 16),
-        ]),
+        ])),
       ),
     );
   }
@@ -792,16 +811,19 @@ class _ShareOption extends StatelessWidget {
             child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(width: 14),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label,
-                style: TextStyle(
-                    color: context.labelColor,
-                    fontSize: 14, fontWeight: FontWeight.w700)),
-            Text(subtitle,
-                style: TextStyle(
-                    color: context.subLabelColor, fontSize: 11)),
-          ]),
-          const Spacer(),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: context.labelColor,
+                      fontSize: 14, fontWeight: FontWeight.w700)),
+              Text(subtitle,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: context.subLabelColor, fontSize: 11)),
+            ]),
+          ),
           Icon(Icons.chevron_right_rounded, color: context.hintColor, size: 20),
         ]),
       ),

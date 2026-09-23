@@ -400,6 +400,10 @@ class Subscription(models.Model):
         help_text='Override max branches. -1 = unlimited. Leave blank for plan default.',
     )
 
+    # ── Billing preferences (set from the app's billing screen) ───────────────
+    # {email, whats_app, full_name}
+    billing_contact      = models.JSONField(default=dict, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

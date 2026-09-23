@@ -620,6 +620,80 @@ class ProcurementItem(models.Model):
         }
 
 
+# ── Purchase Orders ──────────────────────────────────────────────────────────
+
+
+class PurchaseOrder(models.Model):
+    """Order placed with a supplier; stock is added when lines are received."""
+
+    STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("submitted", "Submitted"),
+        ("partial", "Partially Received"),
+        ("received", "Received"),
+        ("cancelled", "Cancelled"),
+    ]
+
+    organization = models.ForeignKey(
+        "authapp.Organization", on_delete=models.CASCADE, related_name="purchase_orders"
+    )
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.PROTECT, related_name="purchase_orders"
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    expected_delivery = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"PO#{self.pk} {self.supplier.name} [{self.status}]"
+
+    def to_api_dict(self):
+        return {
+            "id": self.id,
+            "supplier_id": self.supplier_id,
+            "supplier_name": self.supplier.name,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "expected_delivery": self.expected_delivery.isoformat() if self.expected_delivery else None,
+            "notes": self.notes,
+            "items": [i.to_api_dict() for i in self.items.all()],
+        }
+
+
+class PurchaseOrderItem(models.Model):
+    purchase_order = models.ForeignKey(
+        PurchaseOrder, on_delete=models.CASCADE, related_name="items"
+    )
+    item = models.ForeignKey(
+        "inventory.Item", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    item_name = models.CharField(max_length=200)
+    quantity_ordered = models.PositiveIntegerField()
+    quantity_received = models.PositiveIntegerField(default=0)
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["id"]
+
+    def to_api_dict(self):
+        return {
+            "id": self.id,
+            "item_id": self.item_id or 0,
+            "item_name": self.item_name,
+            "quantity_ordered": self.quantity_ordered,
+            "quantity_received": self.quantity_received,
+            "unit_cost": float(self.unit_cost),
+        }
+
+
 # ── Stock Check ──────────────────────────────────────────────────────────────
 
 

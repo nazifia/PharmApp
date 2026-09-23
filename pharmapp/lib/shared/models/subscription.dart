@@ -315,54 +315,23 @@ class Invoice {
       );
 }
 
-// ── Payment Method ────────────────────────────────────────────────────────────
-
-class PaymentMethod {
-  final String brand;   // e.g. 'Visa', 'Mastercard'
-  final String last4;
-  final int    expMonth;
-  final int    expYear;
-
-  const PaymentMethod({
-    required this.brand,
-    required this.last4,
-    required this.expMonth,
-    required this.expYear,
-  });
-
-  String get maskedNumber => '**** **** **** $last4';
-  String get expiry       => '${expMonth.toString().padLeft(2, '0')}/$expYear';
-
-  factory PaymentMethod.fromJson(Map<String, dynamic> json) => PaymentMethod(
-        brand:    json['brand'] as String? ?? 'Card',
-        last4:    json['last4'] as String? ?? '****',
-        expMonth: (json['exp_month'] as num?)?.toInt() ?? 1,
-        expYear:  (json['exp_year']  as num?)?.toInt() ?? 2099,
-      );
-}
-
 // ── Billing Info ──────────────────────────────────────────────────────────────
 
 class BillingInfo {
   final DateTime?              nextPaymentDate;
   final double?                nextPaymentAmount;
-  final PaymentMethod?         paymentMethod;
   final List<Invoice>          invoices;
   /// Subscriber's email + WhatsApp contact for billing notifications.
   final BillingContact?        billingContact;
   /// Platform bank/payment account that receives subscription payments.
   final PlatformPaymentAccount? platformAccount;
-  /// Whether auto-billing (auto-renewal) is enabled for this subscription.
-  final bool                   autoBillingEnabled;
 
   const BillingInfo({
     this.nextPaymentDate,
     this.nextPaymentAmount,
-    this.paymentMethod,
     this.invoices            = const [],
     this.billingContact,
     this.platformAccount,
-    this.autoBillingEnabled  = false,
   });
 
   factory BillingInfo.fromJson(Map<String, dynamic> json) => BillingInfo(
@@ -370,10 +339,6 @@ class BillingInfo {
             ? DateTime.tryParse(json['next_payment_date'] as String)
             : null,
         nextPaymentAmount: (json['next_payment_amount'] as num?)?.toDouble(),
-        paymentMethod: json['payment_method'] != null
-            ? PaymentMethod.fromJson(
-                json['payment_method'] as Map<String, dynamic>)
-            : null,
         invoices: (json['invoices'] as List<dynamic>?)
                 ?.map((e) => Invoice.fromJson(e as Map<String, dynamic>))
                 .toList() ??
@@ -386,8 +351,6 @@ class BillingInfo {
             ? PlatformPaymentAccount.fromJson(
                 json['platform_account'] as Map<String, dynamic>)
             : null,
-        autoBillingEnabled:
-            (json['auto_billing_enabled'] as bool?) ?? false,
       );
 
   /// Placeholder used while loading or when the backend has no data.

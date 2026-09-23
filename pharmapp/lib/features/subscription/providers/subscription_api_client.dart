@@ -76,11 +76,9 @@ class SubscriptionApiClient {
         return BillingInfo(
           nextPaymentDate:    info.nextPaymentDate,
           nextPaymentAmount:  info.nextPaymentAmount,
-          paymentMethod:      info.paymentMethod,
           invoices:           info.invoices,
           billingContact:     info.billingContact,
           platformAccount:    account,
-          autoBillingEnabled: info.autoBillingEnabled,
         );
       }
       return info;
@@ -108,31 +106,6 @@ class SubscriptionApiClient {
   /// reminders/confirmations (WhatsApp).
   Future<void> saveBillingContact(BillingContact contact) async {
     await _dio.post('/subscription/billing/contact/', data: contact.toJson());
-  }
-
-  /// POST /subscription/billing/payment-method/ — record card details for
-  /// auto-billing. In production, send only the tokenised representation
-  /// (last4, brand, expiry) — never the raw PAN.
-  Future<void> savePaymentMethod({
-    required String last4,
-    required String brand,
-    required int    expMonth,
-    required int    expYear,
-    required String cardholderName,
-  }) async {
-    await _dio.post('/subscription/billing/payment-method/', data: {
-      'last4':           last4,
-      'brand':           brand,
-      'exp_month':       expMonth,
-      'exp_year':        expYear,
-      'cardholder_name': cardholderName,
-    });
-  }
-
-  /// POST /subscription/billing/auto-billing/ — toggle auto-renewal on/off.
-  Future<void> setAutoBilling({required bool enabled}) async {
-    await _dio.post('/subscription/billing/auto-billing/',
-        data: {'enabled': enabled});
   }
 
   /// GET /subscription/billing/receiving-account/ — platform's payment

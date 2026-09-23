@@ -11,6 +11,7 @@ urlpatterns = [
     # ── Billing endpoints ──────────────────────────────────────────────────────
     path('billing/',                       views.billing_info,               name='billing-info'),
     path('billing/receiving-account/',     views.billing_receiving_account,  name='billing-receiving-account'),
+    path('billing/contact/',               views.billing_contact,            name='billing-contact'),
 
     # ── Superuser payment-account management ───────────────────────────────────
     path('superuser/payment-accounts/',

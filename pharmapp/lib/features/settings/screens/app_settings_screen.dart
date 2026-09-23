@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pharmapp/core/i18n/tr.dart';
 import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/rbac/rbac.dart';
 import 'package:pharmapp/core/rbac/rbac_provider.dart';
@@ -32,7 +33,6 @@ class AppSettingsScreen extends ConsumerStatefulWidget {
 
 class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   bool _notificationsEnabled = true;
-  String _language           = 'English';
   bool _logoUploading        = false;
   bool _discovering          = false;
   bool _backingUp            = false;
@@ -87,9 +87,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                         ),
                         _divider(),
                         _dropdownTile(
-                          Icons.language_outlined, 'Language',
-                          _language, ['English', 'Hausa', 'Yoruba', 'Igbo'],
-                          (v) { if (v != null) setState(() => _language = v); },
+                          Icons.language_outlined, 'Language'.tr,
+                          currentLanguage, kLanguages,
+                          (v) { if (v != null) setLanguage(v); },
                         ),
                       ]),
                       const SizedBox(height: 16),

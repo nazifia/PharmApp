@@ -13,6 +13,7 @@ import 'core/router/app_router.dart';
 import 'core/network/api_client.dart';
 import 'core/services/auth_service.dart';
 import 'core/database/local_db.dart';
+import 'core/i18n/tr.dart';
 import 'core/offline/app_restart_service.dart';
 import 'core/offline/sync_driver.dart';
 
@@ -31,6 +32,7 @@ void main() async {
   final prefs      = await SharedPreferences.getInstance();
   final savedUrl   = prefs.getString('api_base_url');
   final savedTheme = prefs.getString('theme_mode');
+  await loadLanguage();
 
   final initialTheme =
       savedTheme == 'dark' ? ThemeMode.dark : ThemeMode.light;

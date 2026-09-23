@@ -7,6 +7,7 @@ from django.urls import path, include
 from authapp.admin_views import global_overview_view
 from subscription.admin_views import saas_dashboard_view
 from reports import views as reports_views
+from pos import purchase_order_views as po_views
 
 
 def _empty_sw(request):
@@ -32,6 +33,10 @@ urlpatterns = [
     path('api/subscription/', include('subscription.urls')),
     path('api/branches/',       include('branches.urls')),
     path('api/prescriptions/', include('prescriptions.urls')),
+    path('api/purchase-orders/',                  po_views.purchase_order_list,    name='po-list'),
+    path('api/purchase-orders/<int:pk>/',         po_views.purchase_order_detail,  name='po-detail'),
+    path('api/purchase-orders/<int:pk>/submit/',  po_views.purchase_order_submit,  name='po-submit'),
+    path('api/purchase-orders/<int:pk>/receive/', po_views.purchase_order_receive, name='po-receive'),
     path('api/', lambda request: JsonResponse({
         "message": "PharmApp API is working",
         "endpoints": [

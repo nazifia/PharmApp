@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/core/i18n/tr.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pharmapp/core/network/api_client.dart';
@@ -251,7 +252,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           const SizedBox(height: 2),
         ],
         if (orgAddress.isEmpty && orgPhone.isEmpty)
-          const Text('Pharmacy Management System',
+          Text('Pharmacy Management System'.tr,
               style: TextStyle(color: _textSub, fontSize: 13)),
       ],
     );
@@ -281,20 +282,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Welcome back',
+                Text('Welcome back'.tr,
                     style: TextStyle(
                         color: _textDark,
                         fontSize: 22,
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                const Text('Sign in with your phone number and password',
+                Text('Sign in with your phone number and password'.tr,
                     style: TextStyle(color: _textSub, fontSize: 13)),
                 const SizedBox(height: 28),
 
                 // Phone input
                 CustomTextField(
                   controller: _phoneController,
-                  labelText: 'Phone Number',
+                  labelText: 'Phone Number'.tr,
                   hintText: '+234 801 234 5678',
                   keyboardType: TextInputType.phone,
                   textColor: _textMid,
@@ -313,7 +314,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 // Password input
                 CustomTextField(
                   controller: _passwordController,
-                  labelText: 'Password',
+                  labelText: 'Password'.tr,
                   hintText: '••••••••',
                   obscureText: _obscurePassword,
                   textColor: _textMid,

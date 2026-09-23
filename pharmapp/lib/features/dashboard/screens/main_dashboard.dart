@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:pharmapp/core/i18n/tr.dart';
 import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -137,6 +138,7 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
 
   Future<void> _refresh() async {
     ref.invalidate(salesReportProvider('today'));
+    ref.invalidate(profitReportProvider('today'));
     ref.invalidate(salesReportProvider('week'));
     ref.invalidate(cashierSalesReportProvider('today'));
     ref.invalidate(_todayStaffItemsProvider);
@@ -164,10 +166,13 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
     final custAsync       = ref.watch(customerReportProvider);
     final wide2           = MediaQuery.of(context).size.width > 600;
     final hour            = DateTime.now().hour;
-    final greeting        = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    final greeting        = (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening').tr;
 
     final hasCustFeature    = ref.watch(hasFeatureProvider(SaasFeature.customers));
     final hasReportsFeature = ref.watch(hasFeatureProvider(SaasFeature.basicReports));
+    // Profit endpoint is senior-only and gated behind advanced reports.
+    final showProfit = isSeniorUser && ref.watch(hasFeatureProvider(SaasFeature.advancedReports));
+    final profitAsync = showProfit ? ref.watch(profitReportProvider('today')) : null;
     // Senior users get full revenue from admin report; non-senior get their own total
     final revenue = isSeniorUser
         ? salesAsync.whenOrNull(data: (d) => d.totalRetail + d.totalWholesale) ?? 0.0
@@ -182,9 +187,17 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
         ? salesAsync.isLoading || invAsync.isLoading || custAsync.isLoading
         : cashierAsync.isLoading || invAsync.isLoading || staffItemsAsync.isLoading;
 
+    final expiring  = invAsync.whenOrNull(data: (d) => d.expiringCount) ?? 0;
+    final profit    = profitAsync?.whenOrNull(data: (d) => d.profit);
+
+    // The three numbers an owner checks first: money in, money kept, stock about to be lost.
     final retailStats = [
-      DashboardCard(title: "Today's Revenue", value: loading ? '…' : _fmt(revenue), subtitle: 'Retail + Wholesale', icon: Icons.monetization_on,  color: EnhancedTheme.successGreen),
-      DashboardCard(title: 'Low Stock',        value: loading ? '…' : '$lowStock',   subtitle: 'Below threshold',     icon: Icons.warning_amber,    color: EnhancedTheme.warningAmber),
+      DashboardCard(title: "Today's Sales".tr, value: loading ? '…' : _fmt(revenue), subtitle: 'Money in today'.tr, icon: Icons.monetization_on,  color: EnhancedTheme.successGreen),
+      if (showProfit)
+        DashboardCard(title: "Today's Profit".tr, value: profit == null ? '…' : _fmt(profit), subtitle: 'After cost of drugs'.tr, icon: Icons.trending_up, color: EnhancedTheme.primaryTeal),
+      if (canInventory)
+        DashboardCard(title: 'Expiring Soon'.tr, value: loading ? '…' : '$expiring', subtitle: 'Within 30 days'.tr, icon: Icons.event_busy_rounded, color: EnhancedTheme.errorRed),
+      DashboardCard(title: 'Low Stock'.tr,        value: loading ? '…' : '$lowStock',   subtitle: 'Below threshold'.tr,     icon: Icons.warning_amber,    color: EnhancedTheme.warningAmber),
       if (!isSeniorUser)
         DashboardCard(title: 'Items Dispensed', value: loading ? '…' : '$dispensed', subtitle: 'Units sold today',    icon: Icons.medication_rounded, color: EnhancedTheme.accentCyan),
       if (hasCustFeature && isSeniorUser)
@@ -218,12 +231,12 @@ class _MainDashboardState extends ConsumerState<MainDashboard> {
           if (!_showWholesale) ...[
             // Quick action buttons
             _quickActionsRow([
-              (Icons.add_shopping_cart, 'New Sale',   EnhancedTheme.primaryTeal,   () => context.go('/dashboard/pos')),
+              (Icons.add_shopping_cart, 'New Sale'.tr,   EnhancedTheme.primaryTeal,   () => context.go('/dashboard/pos')),
               if (canInventory)
-                (Icons.inventory_2,        'Inventory',  EnhancedTheme.infoBlue,      () => context.go('/dashboard/inventory')),
+                (Icons.inventory_2,        'Inventory'.tr,  EnhancedTheme.infoBlue,      () => context.go('/dashboard/inventory')),
               if (hasCustFeature)
-                (Icons.people,           'Customers',  EnhancedTheme.accentPurple,  () => context.go('/dashboard/customers')),
-              (Icons.more_horiz_rounded, 'More',       context.subLabelColor,       _showMoreSheet),
+                (Icons.people,           'Customers'.tr,  EnhancedTheme.accentPurple,  () => context.go('/dashboard/customers')),
+              (Icons.more_horiz_rounded, 'More'.tr,       context.subLabelColor,       _showMoreSheet),
             ]),
             const SizedBox(height: 20),
 

@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 
 from rest_framework.decorators import api_view, permission_classes
@@ -627,15 +628,54 @@ def billing_info(request):
             'currency':       account.currency,
         }
 
+    sub = Subscription.get_or_create_trial(org)
     return Response({
         'platform_account':    platform_account,
         'invoices':            [],
-        'auto_billing_enabled': False,
-        'next_payment_date':   None,
+        'next_payment_date':   sub.current_period_end.isoformat() if sub.current_period_end else None,
         'next_payment_amount': None,
-        'payment_method':      None,
-        'billing_contact':     None,
+        'billing_contact':     sub.billing_contact or None,
     })
+
+
+def _billing_sub(request):
+    """Admin-only guard + the org's subscription. Returns (sub, error_response)."""
+    err = _require_admin(request)
+    if err:
+        return None, err
+    org, err = require_org(request)
+    if err:
+        return None, err
+    return Subscription.get_or_create_trial(org), None
+
+
+def _bad(detail):
+    return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ── POST /api/subscription/billing/contact/ ──────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def billing_contact(request):
+    sub, err = _billing_sub(request)
+    if err:
+        return err
+    contact = {}
+    for key, max_len in (('email', 254), ('whats_app', 20), ('full_name', 150)):
+        val = request.data.get(key)
+        if val is None or val == '':
+            continue
+        if not isinstance(val, str) or len(val.strip()) > max_len:
+            return _bad(f'Invalid {key}.')
+        contact[key] = val.strip()
+    if 'email' in contact and not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', contact['email']):
+        return _bad('Invalid email.')
+    if not contact:
+        return _bad('Provide an email or WhatsApp number.')
+    sub.billing_contact = contact
+    sub.save(update_fields=['billing_contact', 'updated_at'])
+    return Response(contact)
 
 
 # ── GET /api/subscription/billing/receiving-account/ ─────────────────────────
