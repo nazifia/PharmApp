@@ -160,7 +160,7 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _StatChip(label: 'Total',     value: stats.total,     color: Colors.white70),
+        _StatChip(label: 'Total',     value: stats.total,     color: Colors.blueGrey),
         const SizedBox(width: 8),
         _StatChip(label: 'Active',    value: stats.active,    color: EnhancedTheme.successGreen),
         const SizedBox(width: 8),
@@ -168,7 +168,7 @@ class _StatsRow extends StatelessWidget {
         const SizedBox(width: 8),
         _StatChip(label: 'Expired',   value: stats.expired,   color: EnhancedTheme.errorRed),
         const SizedBox(width: 8),
-        _StatChip(label: 'Suspended', value: stats.suspended, color: Colors.white38),
+        _StatChip(label: 'Suspended', value: stats.suspended, color: Colors.blueGrey),
       ],
     );
   }
@@ -205,7 +205,7 @@ class _StatChip extends StatelessWidget {
                 ),
                 Text(
                   label,
-                  style: const TextStyle(color: Colors.black45, fontSize: 9),
+                  style: const TextStyle(color: Colors.black54, fontSize: 11),
                 ),
               ],
             ),
@@ -354,7 +354,7 @@ class _FilterChip extends StatelessWidget {
           label,
           style: TextStyle(
               color: isSelected ? color : Colors.black54,
-              fontSize: 11,
+              fontSize: 12,
               fontWeight:
                   isSelected ? FontWeight.w700 : FontWeight.w500),
         ),
@@ -435,7 +435,7 @@ class _OrgCard extends ConsumerWidget {
                                 overflow: TextOverflow.ellipsis),
                             Text(org.slug,
                                 style: const TextStyle(
-                                    color: Colors.black38, fontSize: 11)),
+                                    color: Colors.black54, fontSize: 12)),
                           ],
                         ),
                       ),
@@ -464,19 +464,19 @@ class _OrgCard extends ConsumerWidget {
                   Row(
                     children: [
                       const Icon(Icons.people_outline_rounded,
-                          color: Colors.black38, size: 13),
+                          color: Colors.black54, size: 13),
                       const SizedBox(width: 4),
                       Text('${org.userCount} users',
                           style: const TextStyle(
-                              color: Colors.black38, fontSize: 11)),
+                              color: Colors.black54, fontSize: 12)),
                       const SizedBox(width: 12),
                       const Icon(Icons.receipt_long_rounded,
-                          color: Colors.black38, size: 13),
+                          color: Colors.black54, size: 13),
                       const SizedBox(width: 4),
                       Text(
                           '${org.usage.transactionsThisMonth} tx this month',
                           style: const TextStyle(
-                              color: Colors.black38, fontSize: 11)),
+                              color: Colors.black54, fontSize: 12)),
                       if (org.hasFeatureOverrides) ...[
                         const SizedBox(width: 12),
                         Icon(Icons.tune_rounded,
@@ -542,7 +542,7 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(label,
           style: TextStyle(
-              color: color, fontSize: 9, fontWeight: FontWeight.w700)),
+              color: color, fontSize: 11, fontWeight: FontWeight.w700)),
     );
   }
 }
@@ -628,8 +628,8 @@ Color _statusColor(SubscriptionStatus s) => switch (s) {
       SubscriptionStatus.expiring  => EnhancedTheme.warningAmber,
       SubscriptionStatus.expired   => EnhancedTheme.errorRed,
       SubscriptionStatus.pending   => EnhancedTheme.accentPurple,
-      SubscriptionStatus.suspended => Colors.white38,
-      SubscriptionStatus.cancelled => Colors.white24,
+      SubscriptionStatus.suspended => Colors.blueGrey,
+      SubscriptionStatus.cancelled => Colors.grey,
     };
 
 String _statusLabel(SubscriptionStatus s) => switch (s) {
