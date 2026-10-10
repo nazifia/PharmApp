@@ -1,5 +1,6 @@
 from django import template
 from authapp.models import SiteConfig
+from subscription.models import Subscription
 
 register = template.Library()
 
@@ -9,5 +10,5 @@ def env_banner():
     return {
         'running_env':    SiteConfig.running_env(),
         'pending_env':    SiteConfig.pending_env(),
-        'restart_needed': SiteConfig.restart_needed(),
+        'pending_subs':   Subscription.objects.filter(status='pending').count(),
     }
