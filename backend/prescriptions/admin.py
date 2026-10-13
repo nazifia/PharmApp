@@ -1,4 +1,6 @@
+from django import forms
 from django.contrib import admin
+from django.contrib.auth.hashers import make_password
 from django.db.models import Count
 from django.utils.html import format_html
 from authapp.admin_mixins import OrgScopedAdminMixin
@@ -88,8 +90,40 @@ class PrescriberPrescriptionInline(admin.TabularInline):
 
 # ── Prescriber admin ───────────────────────────────────────────────────────────
 
+class PrescriberAdminForm(forms.ModelForm):
+    """Adds password set/reset/clear on top of the model fields (hash never shown)."""
+    new_password     = forms.CharField(
+        label='New password', required=False, strip=False,
+        widget=forms.PasswordInput(render_value=False, attrs={'autocomplete': 'new-password'}),
+        help_text='Leave blank to keep the current password. Minimum 8 characters.',
+    )
+    confirm_password = forms.CharField(
+        label='Confirm new password', required=False, strip=False,
+        widget=forms.PasswordInput(render_value=False, attrs={'autocomplete': 'new-password'}),
+    )
+    clear_password   = forms.BooleanField(
+        label='Clear password', required=False,
+        help_text='Revoke portal login (ignored if a new password is entered).',
+    )
+
+    class Meta:
+        model  = Prescriber
+        fields = '__all__'
+
+    def clean(self):
+        data = super().clean()
+        pw, confirm = data.get('new_password'), data.get('confirm_password')
+        if pw or confirm:
+            if pw != confirm:
+                self.add_error('confirm_password', 'Passwords do not match.')
+            elif len(pw) < 8:
+                self.add_error('new_password', 'Password must be at least 8 characters.')
+        return data
+
+
 @admin.register(Prescriber)
 class PrescriberAdmin(admin.ModelAdmin):
+    form = PrescriberAdminForm
     list_display        = (
         'name', 'license_number', 'specialty', 'phone',
         'hospital', 'organization', 'reg_source_badge',
@@ -148,6 +182,10 @@ class PrescriberAdmin(admin.ModelAdmin):
                 'Use "Clear password" bulk action to revoke self-registration credentials.'
             ),
         }),
+        ('Password', {
+            'fields': ('new_password', 'confirm_password', 'clear_password'),
+            'description': 'Set or reset the prescriber portal password. Stored hashed.',
+        }),
         ('Legacy / Compatibility', {
             'fields': ('clinic',),
             'classes': ('collapse',),
@@ -160,6 +198,21 @@ class PrescriberAdmin(admin.ModelAdmin):
     )
 
     inlines = [PrescriberPrescriptionInline]
+
+    def get_form(self, request, obj=None, **kwargs):
+        # password stays out of the generic form; managed via the Password fieldset
+        kwargs.setdefault('exclude', ('password',))
+        return super().get_form(request, obj, **kwargs)
+
+    def save_model(self, request, obj, form, change):
+        pw = form.cleaned_data.get('new_password')
+        if pw:
+            obj.password = make_password(pw)
+        elif form.cleaned_data.get('clear_password'):
+            obj.password = ''
+        super().save_model(request, obj, form, change)
+        if pw:
+            self.message_user(request, f'Password updated for {obj.name}.')
 
     # ── Computed display helpers ───────────────────────────────────────────────
 
