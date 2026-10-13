@@ -199,11 +199,6 @@ class PrescriberAdmin(admin.ModelAdmin):
 
     inlines = [PrescriberPrescriptionInline]
 
-    def get_form(self, request, obj=None, **kwargs):
-        # password stays out of the generic form; managed via the Password fieldset
-        kwargs.setdefault('exclude', ('password',))
-        return super().get_form(request, obj, **kwargs)
-
     def save_model(self, request, obj, form, change):
         pw = form.cleaned_data.get('new_password')
         if pw:
