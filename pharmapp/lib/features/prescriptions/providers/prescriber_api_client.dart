@@ -253,4 +253,19 @@ class PrescriberApiClient {
           e.response?.data is Map ? (e.response?.data['detail'] ?? e.message) : e.message);
     }
   }
+
+  /// Portal self-service password change. Throws Exception(message) on failure.
+  Future<void> changePassword(
+      int prescriberId, String current, String next) async {
+    try {
+      await _dio.post(
+        '/prescriptions/prescribers/$prescriberId/change-password/',
+        data: {'current_password': current, 'new_password': next},
+        options: _portalOpts(),
+      );
+    } on DioException catch (e) {
+      final d = e.response?.data;
+      throw Exception(d is Map ? (d['detail'] ?? e.message) : e.message);
+    }
+  }
 }

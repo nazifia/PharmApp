@@ -1242,6 +1242,36 @@ def prescriber_login(request):
     return Response({'prescriber': prescriber.to_api_dict(), 'token': token})
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def prescriber_change_password(request, pk):
+    """
+    POST /api/prescriptions/prescribers/<pk>/change-password/
+    Header: X-Prescriber-Token (own record only). Body: { current_password, new_password }
+    """
+    token = (request.META.get('HTTP_X_PRESCRIBER_TOKEN') or '').strip()
+    prescriber = _verify_prescriber_token(token) if token else None
+    if prescriber is None or prescriber.pk != pk:
+        return Response({'detail': 'Authentication credentials were not provided.'},
+                        status=status.HTTP_401_UNAUTHORIZED)
+
+    current = request.data.get('current_password') or ''
+    new     = request.data.get('new_password') or ''
+    if not prescriber.password or not check_password(current, prescriber.password):
+        return Response({'detail': 'Current password is incorrect.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    if len(new) < 8:
+        return Response({'detail': 'New password must be at least 8 characters.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    if new == current:
+        return Response({'detail': 'New password must differ from the current one.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    prescriber.password = make_password(new)
+    prescriber.save(update_fields=['password', 'updated_at'])
+    return Response({'detail': 'Password updated.'})
+
+
 # ── Prescriber portal — create prescription (no pharmacy JWT) ─────────────────
 
 def _create_commission_for_dispense(rx, newly_dispensed_items):

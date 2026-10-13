@@ -283,6 +283,23 @@ class PrescriberPortalScreen extends ConsumerWidget {
                     ),
                   ],
 
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: _ActionCard(
+                      icon: Icons.lock_reset_rounded,
+                      label: 'Change Password',
+                      subtitle: 'Update your portal password',
+                      color: EnhancedTheme.accentPurple,
+                      onTap: () => showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => _ChangePasswordSheet(prescriber: prescriber),
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 28),
 
                   // Sign out
@@ -709,3 +726,125 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
+// ── Change password sheet ─────────────────────────────────────────────────────
+
+class _ChangePasswordSheet extends ConsumerStatefulWidget {
+  final Prescriber prescriber;
+  const _ChangePasswordSheet({required this.prescriber});
+
+  @override
+  ConsumerState<_ChangePasswordSheet> createState() =>
+      _ChangePasswordSheetState();
+}
+
+class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
+  final _current = TextEditingController();
+  final _new = TextEditingController();
+  final _confirm = TextEditingController();
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _current.dispose();
+    _new.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_current.text.isEmpty) {
+      return setState(() => _error = 'Enter your current password.');
+    }
+    if (_new.text.length < 8) {
+      return setState(
+          () => _error = 'New password must be at least 8 characters.');
+    }
+    if (_new.text != _confirm.text) {
+      return setState(() => _error = 'Passwords do not match.');
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(prescriberApiClientProvider)
+          .changePassword(widget.prescriber.id, _current.text, _new.text);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        backgroundColor: EnhancedTheme.successGreen,
+        behavior: SnackBarBehavior.floating,
+        content: Text('Password updated.'),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  Widget _field(String label, TextEditingController c) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextField(
+          controller: c,
+          obscureText: true,
+          enabled: !_saving,
+          decoration: InputDecoration(labelText: label),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+            20, 20, 20, MediaQuery.of(context).padding.bottom + 20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Change Password',
+                  style: TextStyle(
+                      color: context.labelColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              _field('Current password', _current),
+              _field('New password (min 8 characters)', _new),
+              _field('Confirm new password', _confirm),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(_error!,
+                      style: const TextStyle(
+                          color: EnhancedTheme.errorRed, fontSize: 13)),
+                ),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Update Password'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

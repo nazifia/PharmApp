@@ -18,6 +18,7 @@ urlpatterns = [
     path('prescribers/register/',         views.prescriber_register,      name='prescriber-register'),
     path('prescribers/login/',            views.prescriber_login,         name='prescriber-login'),
     path('prescribers/<int:pk>/',         views.prescriber_detail,        name='prescriber-detail'),
+    path('prescribers/<int:pk>/change-password/', views.prescriber_change_password, name='prescriber-change-password'),
     path('prescribers/<int:pk>/patients/', views.prescriber_patients,          name='prescriber-patients'),
     path('prescribers/<int:pk>/commissions/',         views.prescriber_commissions,          name='prescriber-commissions'),
     path('prescribers/<int:pk>/commissions/summary/', views.prescriber_commission_summary,    name='prescriber-commission-summary'),
