@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.throttling import ScopedRateThrottle, UserRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 from .models import Organization, PharmUser, ActivityLog, PharmacyNetwork, PharmacyNetworkMembership
@@ -95,8 +95,19 @@ def login_view(request):
     return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+class MeRateThrottle(UserRateThrottle):
+    """Dedicated budget for /auth/me/, which the app polls every 60s.
+
+    ScopedRateThrottle reads `throttle_scope` from the view, not the request,
+    so function-based views cannot use it. A fixed-scope UserRateThrottle is
+    the working equivalent and keeps polling out of the general user quota.
+    """
+    scope = 'me'
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MeRateThrottle])
 def me_view(request):
     return Response(request.user.to_api_dict(org=active_org(request)))
 

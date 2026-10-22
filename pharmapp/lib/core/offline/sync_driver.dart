@@ -9,7 +9,6 @@ import 'package:pharmapp/core/offline/app_restart_service.dart';
 import 'package:pharmapp/core/offline/connectivity_provider.dart'
     show
         isOnlineProvider,
-        lastServerContact,
         serverReachableProvider,
         checkConnectivityNow,
         pingServer;
@@ -217,17 +216,12 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
       // An interface being up is not the same as the backend being reachable:
       // wifi stays associated while the uplink is dead (DNS fails, no browser
       // event fires), so the interface alone can never detect that outage.
-      // Probe every tick while the server is known down — recovery should be
-      // quick — and every fourth tick otherwise.
-      // Probe unless the app's own traffic already proved the server is up
-      // within this tick. An idle app makes no requests at all, so without a
-      // probe a dead uplink goes unnoticed until the user next tries to do
-      // something; a busy one suppresses the probe entirely and pays nothing.
-      final lastContact = lastServerContact;
-      final probeDue = _serverDown ||
-          !ref.read(serverReachableProvider) ||
-          lastContact == null ||
-          DateTime.now().difference(lastContact) >= _tick;
+      // Probe only while the server is known down — recovery should be quick.
+      // An idle app used to probe /auth/me/ every tick (240 requests/hour),
+      // which exhausted the per-user API quota on its own. The 60-second
+      // profile poll already notices a dead uplink while idle, so the retry
+      // timer no longer needs to duplicate that check.
+      final probeDue = _serverDown || !ref.read(serverReachableProvider);
       final isOnlineNow = hasInterface && (!probeDue || await _pingServer());
       final justReconnected = isOnlineNow && !_wasOnlinePrev;
       // An outage arms the restart whichever layer failed: a dropped interface,

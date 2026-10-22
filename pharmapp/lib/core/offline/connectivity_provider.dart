@@ -59,11 +59,10 @@ final serverReachableProvider = StateProvider<bool>((ref) => true);
 /// When the backend last answered anything — stamped by [AuthInterceptor] on
 /// every request that gets a reply, and by [pingServer] through it.
 ///
-/// SyncDriver's retry timer reads this to decide whether a probe is worth
-/// making: traffic that already proved the server is up in the last few
-/// seconds makes the probe redundant. So a busy app pays nothing, and an idle
-/// one — where a probe is the only way to notice the uplink died — pays one
-/// cheap GET per tick. Null until the first answer of the session.
+/// Kept for diagnostics. Reachability is driven by [serverReachableProvider]
+/// and the profile poll; the retry timer only probes while the server is
+/// known down, so idle clients no longer spend their API quota on pings.
+/// Null until the first answer of the session.
 DateTime? lastServerContact;
 
 /// Probes the backend itself instead of the network interface.

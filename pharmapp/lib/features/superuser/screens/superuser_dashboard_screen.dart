@@ -4,6 +4,7 @@ import 'package:pharmapp/shared/widgets/in_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pharmapp/core/network/api_client.dart';
 import 'package:pharmapp/core/theme/enhanced_theme.dart';
 import 'package:pharmapp/features/auth/providers/auth_provider.dart';
 import 'package:pharmapp/features/superuser/providers/superuser_provider.dart';
@@ -95,7 +96,7 @@ class _SuperuserDashboardScreenState
                           color: EnhancedTheme.primaryTeal).animateInView((a) => a.fadeIn(duration: 600.ms).scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: 600.ms, curve: Curves.easeOutCubic)),
                     ),
                     error: (e, _) => _ErrorView(
-                      message: e.toString(),
+                      message: apiErrorMessage(e),
                       onRetry: () =>
                           ref.read(orgListProvider.notifier).load(),
                     ),

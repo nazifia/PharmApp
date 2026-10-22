@@ -266,7 +266,15 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         "anon": "100/day",
-        "user": "2000/day",
+        # A daily cap cannot coexist with a client that polls /auth/me/ for
+        # reachability: the old 2000/day was spent by background polling alone,
+        # so ordinary users started seeing 429s on unrelated endpoints (e.g.
+        # the superuser org list) after a few hours. Cap bursts per hour
+        # instead — still protects the backend, but leaves room for real work.
+        "user": "1000/hour",
+        # /auth/me/ is polled every 60s by SyncDriver. Give it its own generous
+        # scope so those polls never eat the interactive quota above.
+        "me": "120/minute",
         "auth": "10/minute",
         # Financial endpoint scopes
         "checkout": "60/minute",         # POS checkout & item returns

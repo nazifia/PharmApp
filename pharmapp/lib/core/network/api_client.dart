@@ -254,6 +254,33 @@ class ErrorNormalizerInterceptor extends Interceptor {
   }
 }
 
+// ── Error message helper ─────────────────────────────────────────────────────
+
+/// Turns a thrown request error into a line suitable for a UI. Prefers the
+/// backend's own `detail` (DRF puts the throttle window there on a 429) and
+/// falls back to a readable message instead of a raw [DioException.toString].
+String apiErrorMessage(Object error) {
+  if (error is DioException) {
+    final data = error.response?.data;
+    if (data is Map && data['detail'] != null) {
+      return data['detail'].toString();
+    }
+    if (error.response?.statusCode == 429) {
+      return 'Too many requests. Please wait a moment and try again.';
+    }
+    switch (error.type) {
+      case DioExceptionType.connectionError:
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'Could not reach the server. Check your connection.';
+      default:
+        break;
+    }
+  }
+  return error.toString();
+}
+
 // ── Safe log interceptor ─────────────────────────────────────────────────────
 
 /// Logs requests and responses (method + URI + status only — never body/headers
