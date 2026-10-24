@@ -54,7 +54,19 @@ final orgStatusFilterProvider =
     StateProvider<SubscriptionStatus?>((ref) => null);
 final orgSearchQueryProvider = StateProvider<String>((ref) => '');
 
-/// Filtered & searched org list.
+/// Display order for the org cards — active tenants first, then those that
+/// still need attention, so the list opens on the paying customers.
+int _orgStatusRank(SubscriptionStatus status) => switch (status) {
+      SubscriptionStatus.active    => 0,
+      SubscriptionStatus.trial     => 1,
+      SubscriptionStatus.expiring  => 2,
+      SubscriptionStatus.pending   => 3,
+      SubscriptionStatus.expired   => 4,
+      SubscriptionStatus.suspended => 5,
+      SubscriptionStatus.cancelled => 6,
+    };
+
+/// Filtered, searched & sorted org list (active tenants first).
 final filteredOrgListProvider =
     Provider<List<OrgSubscriptionSummary>>((ref) {
   final orgs   = ref.watch(orgListProvider).valueOrNull ?? [];
@@ -72,7 +84,14 @@ final filteredOrgListProvider =
       return false;
     }
     return true;
-  }).toList();
+  }).toList()
+    ..sort((a, b) {
+      final byStatus =
+          _orgStatusRank(a.status).compareTo(_orgStatusRank(b.status));
+      if (byStatus != 0) return byStatus;
+      // Alphabetical within a status group, ignoring case.
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
 });
 
 // ── Aggregate stats ───────────────────────────────────────────────────────────
